@@ -1,0 +1,43 @@
+{
+  "name": "materiales-fzac-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "npm run prisma:generate && nodemon src/server.js",
+    "start": "npm run prisma:generate && node src/server.js",
+    "prisma:generate": "prisma generate --schema src/prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
+    "prisma:deploy": "prisma migrate deploy --schema src/prisma/schema.prisma",
+    "seed": "node src/prisma/seed.js",
+    "lint": "node --check src/server.js",
+    "db": "node src/scripts/testDb.js",
+    "db:test": "node src/scripts/testDb.js",
+    "setup": "npm install && npm run prisma:generate"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "bcryptjs": "2.4.3",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "^4.22.2",
+    "express-rate-limit": "7.4.1",
+    "express-validator": "^7.3.2",
+    "helmet": "8.0.0",
+    "hpp": "0.2.3",
+    "jsonwebtoken": "9.0.2",
+    "mercadopago": "^3.1.0",
+    "morgan": "^1.11.0",
+    "multer": "1.4.5-lts.1",
+    "nodemailer": "^9.0.1",
+    "slugify": "1.6.6",
+    "xss": "1.0.15",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.7",
+    "prisma": "5.22.0"
+  }
+}

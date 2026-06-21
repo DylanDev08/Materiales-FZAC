@@ -1,0 +1,487 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  OPERATOR
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum OrderStatus {
+  PENDING
+  PENDING_PAYMENT
+  PAID
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum ShippingMethod {
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum TicketStatus {
+  ISSUED
+  PRINTED
+  CANCELLED
+}
+
+enum InventoryMovementType {
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum ChatChannel {
+  AI
+  SUPPORT
+}
+
+enum ChatStatus {
+  OPEN
+  WAITING_ADMIN
+  RESOLVED
+  CLOSED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  ADMIN
+  SYSTEM
+}
+
+model User {
+  id                    String             @id @default(uuid())
+  name                  String
+  email                 String             @unique
+  phone                 String?
+  password              String?
+  role                  Role               @default(USER)
+  authProvider          AuthProvider       @default(LOCAL)
+  supabaseId            String?            @unique
+  avatarUrl             String?
+  refreshToken          String?
+  lastLoginAt           DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  addresses             Address[]
+  orders                Order[]
+  cartItems              CartItem[]
+  reviews                Review[]
+  favorites              Favorite[]
+  preferences            UserPreference?
+  conversations          ChatConversation[] @relation("ConversationOwner")
+  assignedConversations  ChatConversation[] @relation("ConversationAssignee")
+  messages               ChatMessage[]
+  productEvents          ProductEvent[]
+  searchEvents           SearchEvent[]
+  inventoryMovements     InventoryMovement[]
+
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserPreference {
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  marketingEmails    Boolean         @default(false)
+  orderUpdates       Boolean         @default(true)
+  assistantHistory   Boolean         @default(true)
+  theme              String          @default("system")
+  preferredShipping  ShippingMethod?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String
+  label      String   @default("Principal")
+  street     String
+  number     String
+  apartment  String?
+  city       String
+  province   String
+  postalCode String
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String
+  image       String
+  active      Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id             String         @id @default(uuid())
+  slug           String         @unique
+  sku            String         @unique
+  name           String
+  categoryId     String
+  subcategory    String
+  brand          String
+  stock          Int            @default(0)
+  stockMinimum   Int            @default(5)
+  unit           String         @default("unidad")
+  price          Decimal        @db.Decimal(12, 2)
+  comparePrice   Decimal?       @db.Decimal(12, 2)
+  image          String
+  gallery        String[]
+  description    String
+  specifications Json
+  featured       Boolean        @default(false)
+  onSale         Boolean        @default(false)
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  category       Category       @relation(fields: [categoryId], references: [id])
+  orderItems     OrderItem[]
+  cartItems      CartItem[]
+  reviews        Review[]
+  favorites      Favorite[]
+  events         ProductEvent[]
+  inventoryMovements InventoryMovement[]
+  purchaseTicketItems PurchaseTicketItem[]
+
+  @@index([categoryId])
+  @@index([brand])
+  @@index([featured])
+  @@index([onSale])
+  @@index([active, stock])
+  @@index([createdAt])
+  @@map("products")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("favorites")
+}
+
+model ProductEvent {
+  id        String   @id @default(uuid())
+  productId String
+  userId    String?
+  sessionId String?
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, type])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("product_events")
+}
+
+model SearchEvent {
+  id           String   @id @default(uuid())
+  userId       String?
+  sessionId    String?
+  query        String
+  resultsCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([query])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("search_events")
+}
+
+model Order {
+  id                      String         @id @default(uuid())
+  userId                  String?
+  status                  OrderStatus    @default(PENDING_PAYMENT)
+  customerName            String
+  customerEmail           String
+  customerPhone           String
+  shippingMethod          ShippingMethod
+  shippingCost            Decimal        @default(0) @db.Decimal(12, 2)
+  subtotal                Decimal        @db.Decimal(12, 2)
+  total                   Decimal        @db.Decimal(12, 2)
+  addressSnapshot         Json?
+  notes                   String?
+  stripeCheckoutSessionId String?        @unique
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  user                    User?          @relation(fields: [userId], references: [id])
+  items                   OrderItem[]
+  payment                 Payment?
+  ticket                  PurchaseTicket?
+  inventoryMovements      InventoryMovement[]
+
+  @@index([status])
+  @@index([customerEmail])
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String?
+  sku       String
+  name      String
+  price     Decimal  @db.Decimal(12, 2)
+  quantity  Int
+  image     String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id                      String        @id @default(uuid())
+  orderId                 String        @unique
+  provider                String        @default("MERCADOPAGO")
+  status                  PaymentStatus @default(PENDING)
+  amount                  Decimal       @db.Decimal(12, 2)
+  currency                String        @default("ars")
+  providerSessionId       String?       @unique
+  providerPaymentIntentId String?
+  raw                     Json?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  order                   Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("payments")
+}
+
+model PurchaseTicket {
+  id                String               @id @default(uuid())
+  number            String               @unique
+  orderId           String               @unique
+  customerName      String
+  customerEmail     String
+  customerPhone     String
+  taxId             String?
+  paymentProvider   String
+  paymentId         String?
+  status            TicketStatus         @default(ISSUED)
+  subtotal          Decimal              @db.Decimal(12, 2)
+  discount          Decimal              @default(0) @db.Decimal(12, 2)
+  shippingCost      Decimal              @default(0) @db.Decimal(12, 2)
+  total             Decimal              @db.Decimal(12, 2)
+  shippingMethod    ShippingMethod
+  addressSnapshot   Json?
+  notes             String?
+  issuedAt          DateTime             @default(now())
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  order             Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items             PurchaseTicketItem[]
+
+  @@index([status, issuedAt])
+  @@index([customerEmail])
+  @@map("purchase_tickets")
+}
+
+model PurchaseTicketItem {
+  id            String          @id @default(uuid())
+  ticketId      String
+  productId     String?
+  sku           String
+  name          String
+  quantity      Int
+  unitPrice     Decimal         @db.Decimal(12, 2)
+  subtotal      Decimal         @db.Decimal(12, 2)
+  stockBefore   Int?
+  stockAfter    Int?
+  createdAt     DateTime        @default(now())
+  ticket        PurchaseTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  product       Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([productId])
+  @@map("purchase_ticket_items")
+}
+
+model InventoryMovement {
+  id          String                @id @default(uuid())
+  productId   String
+  orderId     String?
+  actorId     String?
+  type        InventoryMovementType
+  quantity    Int
+  stockBefore Int
+  stockAfter  Int
+  reason      String
+  metadata    Json?
+  createdAt   DateTime              @default(now())
+  product     Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order       Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  actor       User?                 @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([orderId])
+  @@index([actorId])
+  @@map("inventory_movements")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  userId    String
+  rating    Int
+  comment   String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId, approved])
+  @@map("reviews")
+}
+
+model ChatConversation {
+  id              String        @id @default(uuid())
+  userId          String?
+  visitorId       String?
+  assignedAdminId String?
+  channel         ChatChannel   @default(AI)
+  status          ChatStatus    @default(OPEN)
+  subject         String?
+  lastMessageAt   DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User?         @relation("ConversationOwner", fields: [userId], references: [id], onDelete: SetNull)
+  assignedAdmin   User?         @relation("ConversationAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  messages        ChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([visitorId])
+  @@index([status, channel])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String
+  senderId       String?
+  role           ChatRole
+  content        String
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User?            @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  orderId   String?
+  type      String
+  title     String
+  message   String
+  linkTo    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorEmail String?
+  actorRole  String?
+  action     String
+  entity     String
+  entityId   String?
+  message    String
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

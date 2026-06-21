@@ -1,0 +1,412 @@
+:root {
+  --fzac-black: #0b0b0b;
+  --fzac-black-2: #171717;
+  --fzac-panel: #1f1f1f;
+  --fzac-panel-soft: #242424;
+  --fzac-yellow: #f4c400;
+  --fzac-yellow-hover: #ffd31a;
+  --fzac-white: #ffffff;
+  --fzac-muted: #b8b8b8;
+  --fzac-border: rgba(244, 196, 0, 0.22);
+  --fzac-soft-border: rgba(255, 255, 255, 0.1);
+  --fzac-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+}
+
+.marketplace-page,
+.marketplace-home,
+.account-shell,
+.product-detail-page-v2,
+.legal-page-v2,
+.contact-page-v2 {
+  background:
+    radial-gradient(circle at top left, rgba(244, 196, 0, 0.12), transparent 34rem),
+    linear-gradient(180deg, #0b0b0b 0%, #121212 48%, #0b0b0b 100%) !important;
+  color: var(--fzac-white) !important;
+}
+
+.market-page-hero,
+.account-shell__head,
+.product-detail-v2,
+.legal-hero-v2,
+.contact-hero-v2 {
+  background:
+    linear-gradient(135deg, rgba(31, 31, 31, 0.96), rgba(13, 13, 13, 0.98)) !important;
+  border: 1px solid var(--fzac-border) !important;
+  box-shadow: var(--fzac-shadow) !important;
+  color: var(--fzac-white) !important;
+}
+
+.market-page-hero h1,
+.market-page-hero p,
+.account-shell h1,
+.account-shell h2,
+.account-shell h3,
+.account-shell p,
+.product-detail-page-v2 h1,
+.product-detail-page-v2 h2,
+.product-detail-page-v2 h3,
+.product-detail-page-v2 p,
+.legal-page-v2 h1,
+.legal-page-v2 h2,
+.legal-page-v2 p,
+.contact-page-v2 h1,
+.contact-page-v2 h2,
+.contact-page-v2 p {
+  color: inherit;
+}
+
+.market-page-hero p,
+.account-shell p,
+.product-detail-page-v2 p,
+.legal-page-v2 p,
+.contact-page-v2 p,
+.account-muted,
+.market-muted {
+  color: var(--fzac-muted) !important;
+}
+
+.market-section,
+.market-filter-bar,
+.market-results-head,
+.account-nav-v2,
+.account-dashboard-v2,
+.account-section-v2,
+.account-order-v2,
+.account-chat-v2,
+.account-cart-v2,
+.account-product-v2,
+.account-form-v2,
+.account-chat-center-v2,
+.account-empty-v2,
+.account-alert-v2,
+.product-gallery-v2,
+.product-gallery-v2__main,
+.product-buy-card-v2,
+.product-info-v2,
+.product-related-v2,
+.product-related-v2 .market-section,
+.legal-card-v2,
+.contact-card-v2 {
+  background: rgba(31, 31, 31, 0.94) !important;
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32) !important;
+}
+
+.account-metrics-v2 article,
+.account-order-list-v2 article,
+.account-chat-center-v2 article,
+.account-cart-v2 article,
+.product-info-v2 article,
+.product-spec-list-v2 li,
+.product-gallery-v2__thumb,
+.market-category-card,
+.market-offer-card,
+.market-product-card,
+.market-home-card {
+  background: linear-gradient(180deg, #222222, #171717) !important;
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28) !important;
+}
+
+.market-product-card,
+.market-offer-card,
+.market-category-card {
+  overflow: hidden;
+}
+
+.market-product-card__media,
+.market-product-card__image,
+.market-card__media,
+.product-gallery-v2__main,
+.product-gallery-v2__thumb {
+  background: #101010 !important;
+}
+
+.market-product-card__body,
+.market-product-card__content,
+.market-offer-card__body,
+.market-category-card__body {
+  background: transparent !important;
+  color: var(--fzac-white) !important;
+}
+
+.market-product-card strong,
+.market-product-card h2,
+.market-product-card h3,
+.market-offer-card strong,
+.market-category-card strong,
+.product-buy-card-v2 strong,
+.account-section-v2 strong {
+  color: var(--fzac-white) !important;
+}
+
+.market-product-card small,
+.market-product-card p,
+.market-offer-card small,
+.market-offer-card p,
+.market-category-card small,
+.market-category-card p,
+.product-buy-card-v2 small,
+.product-info-v2 small,
+.account-section-v2 small {
+  color: var(--fzac-muted) !important;
+}
+
+.market-product-card__price,
+.market-price,
+.product-price-v2,
+.account-price-v2 {
+  color: var(--fzac-yellow) !important;
+}
+
+.market-filter-bar input,
+.market-filter-bar select,
+.market-search-field input,
+.search-assist input,
+.custom-select,
+.account-form-v2 input,
+.account-form-v2 select,
+.account-form-v2 textarea,
+.contact-card-v2 input,
+.contact-card-v2 select,
+.contact-card-v2 textarea,
+.product-qty-v2 input,
+.product-buy-card-v2 input,
+.product-buy-card-v2 select {
+  background: #111111 !important;
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.market-filter-bar input::placeholder,
+.market-search-field input::placeholder,
+.search-assist input::placeholder,
+.account-form-v2 input::placeholder,
+.account-form-v2 textarea::placeholder,
+.contact-card-v2 input::placeholder,
+.contact-card-v2 textarea::placeholder,
+.product-buy-card-v2 input::placeholder {
+  color: rgba(255, 255, 255, 0.52) !important;
+}
+
+.market-filter-bar button,
+.market-product-card button,
+.market-product-card a,
+.market-page-hero a,
+.account-shell button,
+.account-shell a.account-action-v2,
+.product-buy-card-v2 button,
+.product-buy-card-v2 a,
+.contact-card-v2 button {
+  border-color: var(--fzac-border) !important;
+}
+
+.market-product-card button:not(:disabled),
+.market-page-hero .btn-primary,
+.account-shell .btn-primary,
+.product-buy-card-v2 .btn-primary,
+.product-buy-card-v2 button[type='submit'],
+.contact-card-v2 button[type='submit'] {
+  background: var(--fzac-yellow) !important;
+  color: #111111 !important;
+}
+
+.market-product-card button:not(:disabled):hover,
+.market-page-hero .btn-primary:hover,
+.account-shell .btn-primary:hover,
+.product-buy-card-v2 .btn-primary:hover,
+.product-buy-card-v2 button[type='submit']:hover,
+.contact-card-v2 button[type='submit']:hover {
+  background: var(--fzac-yellow-hover) !important;
+}
+
+.account-nav-v2 a,
+.account-nav-v2 button,
+.product-buy-card-v2 button,
+.market-filter-bar button {
+  background: #151515 !important;
+  color: var(--fzac-white) !important;
+}
+
+.account-nav-v2 a.active,
+.account-nav-v2 button.active,
+.account-nav-v2 [aria-current='page'],
+.product-gallery-v2__thumb.is-active,
+.market-filter-bar button[aria-pressed='true'] {
+  background: rgba(244, 196, 0, 0.16) !important;
+  border-color: var(--fzac-border) !important;
+  color: var(--fzac-yellow) !important;
+}
+
+.account-alert-v2,
+.account-empty-v2 {
+  background: rgba(244, 196, 0, 0.08) !important;
+  border-color: var(--fzac-border) !important;
+}
+
+.account-alert-v2--danger,
+.fzac-assistant__error {
+  background: rgba(255, 104, 104, 0.12) !important;
+  border-color: rgba(255, 104, 104, 0.35) !important;
+  color: #ffd0d0 !important;
+}
+
+.product-detail-v2 {
+  gap: clamp(1rem, 2vw, 2rem);
+}
+
+.product-gallery-v2__main img,
+.market-product-card img,
+.market-offer-card img {
+  object-fit: contain;
+}
+
+.product-buy-card-v2 {
+  align-self: start;
+}
+
+.product-buy-card-v2 .product-stock-v2,
+.product-stock-v2,
+.market-stock,
+.market-product-card__stock {
+  background: rgba(244, 196, 0, 0.12) !important;
+  border: 1px solid var(--fzac-border) !important;
+  color: var(--fzac-yellow) !important;
+}
+
+.product-related-v2 {
+  margin-top: 2rem;
+}
+
+.fzac-assistant-launcher {
+  background: var(--fzac-yellow) !important;
+  color: #111111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38) !important;
+}
+
+.fzac-assistant {
+  background: #111111 !important;
+  border: 1px solid var(--fzac-border) !important;
+  color: var(--fzac-white) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.62) !important;
+}
+
+.fzac-assistant__header {
+  background: linear-gradient(135deg, #202020, #0d0d0d) !important;
+  border-bottom: 1px solid var(--fzac-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__header span {
+  color: var(--fzac-yellow) !important;
+}
+
+.fzac-assistant__header button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__body {
+  background: #111111 !important;
+}
+
+.fzac-assistant__message {
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__message--assistant {
+  background: #202020 !important;
+}
+
+.fzac-assistant__message--user {
+  background: rgba(244, 196, 0, 0.95) !important;
+  color: #111111 !important;
+  border-color: rgba(244, 196, 0, 0.68) !important;
+}
+
+.fzac-assistant__message--system {
+  background: rgba(244, 196, 0, 0.12) !important;
+  color: var(--fzac-yellow) !important;
+  border-color: var(--fzac-border) !important;
+}
+
+.fzac-assistant__typing {
+  color: var(--fzac-muted) !important;
+}
+
+.fzac-assistant__products,
+.fzac-assistant__products a,
+.fzac-assistant__quick,
+.fzac-assistant__form,
+.fzac-assistant__human {
+  background: #181818 !important;
+  border-color: var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__products a {
+  border: 1px solid var(--fzac-soft-border) !important;
+}
+
+.fzac-assistant__products a:hover,
+.fzac-assistant__quick button:hover,
+.fzac-assistant__human:hover {
+  border-color: var(--fzac-border) !important;
+  color: var(--fzac-yellow) !important;
+}
+
+.fzac-assistant__products img {
+  background: #0f0f0f !important;
+}
+
+.fzac-assistant__products small {
+  color: var(--fzac-muted) !important;
+}
+
+.fzac-assistant__quick button {
+  background: #202020 !important;
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__form input {
+  background: #0d0d0d !important;
+  border: 1px solid var(--fzac-soft-border) !important;
+  color: var(--fzac-white) !important;
+}
+
+.fzac-assistant__form input::placeholder {
+  color: rgba(255, 255, 255, 0.54) !important;
+}
+
+.fzac-assistant__form button {
+  background: var(--fzac-yellow) !important;
+  color: #111111 !important;
+}
+
+.fzac-assistant__form button:disabled {
+  background: #3a3a3a !important;
+  color: #8d8d8d !important;
+}
+
+.fzac-assistant__human {
+  border-top: 1px solid var(--fzac-soft-border) !important;
+}
+
+@media (max-width: 720px) {
+  .fzac-assistant {
+    inset: auto 0.75rem 0.75rem 0.75rem !important;
+    width: auto !important;
+    max-height: min(82vh, 42rem) !important;
+  }
+
+  .market-filter-bar,
+  .account-dashboard-v2,
+  .product-detail-v2 {
+    grid-template-columns: 1fr !important;
+  }
+}

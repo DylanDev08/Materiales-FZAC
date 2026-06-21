@@ -1,0 +1,16 @@
+{
+  "name": "materiales-fzac",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "build": "npm run build --prefix client",
+    "check:server": "node scripts/check-server.mjs",
+    "prisma:generate": "npm run prisma:generate --prefix server",
+    "db:migrate": "npm run prisma:deploy --prefix server",
+    "db:seed": "npm run seed --prefix server"
+  }
+}
