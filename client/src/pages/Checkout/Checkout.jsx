@@ -38,12 +38,14 @@ export const Checkout = () => {
   const [address, setAddress] = useState(initialAddress);
   const [notes, setNotes] = useState('');
   const [accepted, setAccepted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const [simulatingStatus, setSimulatingStatus] = useState('');
   const [simulatedPayment, setSimulatedPayment] = useState(null);
   const [error, setError] = useState('');
 
   const shippingCost = shippingMethod === 'DELIVERY' ? 6500 : 0;
   const total = subtotal + shippingCost;
+  const isBusy = creatingPayment || Boolean(simulatingStatus);
 
   const canSubmit = useMemo(() => {
     const base = customer.name.trim() && customer.email.trim() && customer.phone.trim() && items.length > 0 && accepted;
@@ -54,11 +56,11 @@ export const Checkout = () => {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!canSubmit || loading) return;
+    if (!canSubmit || creatingPayment) return;
 
     setError('');
     setSimulatedPayment(null);
-    setLoading(true);
+    setCreatingPayment(true);
 
     try {
       await Promise.all(items.map((item) => productsApi.trackEvent({
@@ -77,7 +79,7 @@ export const Checkout = () => {
 
       if (result?.mock) {
         setSimulatedPayment(result);
-        setLoading(false);
+        setCreatingPayment(false);
         return;
       }
 
@@ -85,15 +87,15 @@ export const Checkout = () => {
       window.location.assign(result.url);
     } catch (checkoutError) {
       setError(checkoutError.message || 'No pudimos iniciar el pago.');
-      setLoading(false);
+      setCreatingPayment(false);
     }
   };
 
   const simulatePayment = async (status) => {
-    if (!simulatedPayment?.orderId || loading) return;
+    if (!simulatedPayment?.orderId || simulatingStatus) return;
 
     setError('');
-    setLoading(true);
+    setSimulatingStatus(status);
 
     try {
       await checkoutApi.simulatePayment({ orderId: simulatedPayment.orderId, status });
@@ -107,7 +109,7 @@ export const Checkout = () => {
       window.location.assign(target);
     } catch (simulateError) {
       setError(simulateError.message || 'No pudimos simular el pago.');
-      setLoading(false);
+      setSimulatingStatus('');
     }
   };
 
@@ -131,6 +133,11 @@ export const Checkout = () => {
           <span className="kicker">Checkout seguro</span>
           <h1>Revisa los datos y paga tu compra.</h1>
           <p>La orden se confirma cuando el pago queda aprobado. Si no hay proveedor conectado, se habilita una simulacion controlada.</p>
+          <div className="checkout-progress-v2" aria-label="Progreso de compra">
+            <span className="active">1. Datos</span>
+            <span className={customer.name && customer.email && customer.phone ? 'active' : ''}>2. Entrega</span>
+            <span className={accepted ? 'active' : ''}>3. Pago</span>
+          </div>
         </header>
 
         <form className="checkout-v2__layout" onSubmit={submit}>
@@ -171,6 +178,11 @@ export const Checkout = () => {
                 <div><strong>Pago principal por Mercado Pago</strong><p>Cuando el proveedor no esta conectado, FZAC permite simular el resultado para probar pedidos, tickets y stock sin tarjetas reales.</p></div>
               </div>
 
+              <div className="checkout-payment-methods-v2">
+                <article className="active"><FiCreditCard /><strong>Mercado Pago</strong><span>Tarjeta, dinero en cuenta o medios disponibles.</span></article>
+                <article><FiPackage /><strong>Modo prueba</strong><span>Disponible solo cuando no hay token real configurado.</span></article>
+              </div>
+
               {simulatedPayment && (
                 <div className="checkout-sim-v2">
                   <FiAlertTriangle />
@@ -178,9 +190,9 @@ export const Checkout = () => {
                     <strong>Modo simulacion activo</strong>
                     <p>Elegí un resultado para validar el flujo completo mientras se aprueba la conexion de pagos.</p>
                     <div>
-                      <button type="button" onClick={() => simulatePayment('PAID')} disabled={loading}>Aprobar pago</button>
-                      <button type="button" onClick={() => simulatePayment('PENDING')} disabled={loading}>Dejar pendiente</button>
-                      <button type="button" onClick={() => simulatePayment('FAILED')} disabled={loading}>Rechazar pago</button>
+                      <button type="button" onClick={() => simulatePayment('PAID')} disabled={Boolean(simulatingStatus)}>{simulatingStatus === 'PAID' ? 'Aprobando...' : 'Aprobar pago'}</button>
+                      <button type="button" onClick={() => simulatePayment('PENDING')} disabled={Boolean(simulatingStatus)}>{simulatingStatus === 'PENDING' ? 'Guardando...' : 'Dejar pendiente'}</button>
+                      <button type="button" onClick={() => simulatePayment('FAILED')} disabled={Boolean(simulatingStatus)}>{simulatingStatus === 'FAILED' ? 'Rechazando...' : 'Rechazar pago'}</button>
                     </div>
                   </div>
                 </div>
@@ -206,8 +218,8 @@ export const Checkout = () => {
             <div className="checkout-summary-v2__line"><span>Subtotal</span><strong>{currency(subtotal)}</strong></div>
             <div className="checkout-summary-v2__line"><span>{shippingMethod === 'DELIVERY' ? 'Envio' : 'Retiro'}</span><strong>{shippingCost ? currency(shippingCost) : 'Sin costo'}</strong></div>
             <div className="checkout-summary-v2__total"><span>Total</span><strong>{currency(total)}</strong></div>
-            <button className="btn full" type="submit" disabled={!canSubmit || loading}><FiLock /> {loading ? 'Preparando pago...' : simulatedPayment ? 'Generar otra simulacion' : 'Continuar al pago'}</button>
-            <p><FiCheck /> La simulacion solo aparece si no hay token real de Mercado Pago.</p>
+            <button className="btn full" type="submit" disabled={!canSubmit || isBusy}><FiLock /> {creatingPayment ? 'Preparando pago...' : simulatedPayment ? 'Generar otra orden de prueba' : 'Continuar al pago'}</button>
+            <p><FiCheck /> {simulatedPayment ? 'Elegi el resultado del pago desde el panel de simulacion.' : 'La simulacion aparece si no hay token real de Mercado Pago.'}</p>
           </aside>
         </form>
       </div>

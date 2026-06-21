@@ -1,4 +1,4 @@
-const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
+const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fm=webp&fit=crop&w=1400&q=86`;
 
 export const categories = [
   { id: 'cat-1', name: 'Construcción en Seco', slug: 'construccion-seca', description: 'Placas, perfiles, fijaciones y aislaciones.', image: photo('photo-1581092918056-0c4c3acd3789') },

@@ -17,6 +17,7 @@ import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { currency } from '../../utils/formatters';
+import { toWebpImageUrl } from '../../utils/images';
 import { ProductCard } from '../../components/product/ProductCard';
 
 const normalizeSpecifications = (specifications) => {
@@ -57,7 +58,7 @@ export const ProductDetail = () => {
           .slice(0, 4),
         fallback: true
       });
-      setActiveImage(fallbackProduct.image || '');
+      setActiveImage(toWebpImageUrl(fallbackProduct.image || ''));
     } else {
       setData(null);
     }
@@ -67,7 +68,7 @@ export const ProductDetail = () => {
       .then((response) => {
         if (!mounted) return;
         setData(response);
-        setActiveImage(response?.product?.image || '');
+        setActiveImage(toWebpImageUrl(response?.product?.image || ''));
         if (response?.product?.id) {
           productsApi.trackEvent({ productId: response.product.id, type: 'VIEW', metadata: { slug } });
         }
@@ -84,7 +85,7 @@ export const ProductDetail = () => {
   const product = data?.product;
   const gallery = useMemo(() => {
     if (!product) return [];
-    return [...new Set([product.image, ...(product.gallery || [])].filter(Boolean))];
+    return [...new Set([product.image, ...(product.gallery || [])].filter(Boolean).map(toWebpImageUrl))];
   }, [product]);
 
   const specifications = useMemo(
@@ -151,7 +152,7 @@ export const ProductDetail = () => {
         <div className="product-detail-v2__grid">
           <div className="product-gallery-v2">
             <div className="product-gallery-v2__main">
-              <img src={activeImage || product.image} alt={product.name} />
+              <img src={toWebpImageUrl(activeImage || product.image)} alt={product.name} />
               {product.onSale && <span>Oferta</span>}
             </div>
 

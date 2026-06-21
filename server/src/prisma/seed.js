@@ -1,10 +1,11 @@
+import '../config/env.js';
 import bcrypt from 'bcryptjs';
 import prismaPkg from '@prisma/client';
 const { PrismaClient } = prismaPkg;
 import { toSlug } from '../utils/slug.js';
 
 const prisma = new PrismaClient();
-const image = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
+const image = (id) => `https://images.unsplash.com/${id}?auto=format&fm=webp&fit=crop&w=1400&q=86`;
 const isProduction = process.env.NODE_ENV === 'production';
 const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@materialesfzac.local';
 const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || (isProduction ? '' : 'dev-admin-change-me-2026');

@@ -64,7 +64,7 @@ export const Products = ({ onlyOffers = false }) => {
       });
   }, [category, search, sort, onSale]);
 
-  const list = data.products || [];
+  const list = onlyOffers ? (data.products || []).slice(0, 4) : (data.products || []);
 
   return (
     <main className="page marketplace-page">

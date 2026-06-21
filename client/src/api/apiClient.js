@@ -1,5 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
+if (import.meta.env.PROD && /localhost|127\.0\.0\.1/i.test(API_URL)) {
+  console.warn('VITE_API_URL apunta a localhost en produccion. Configura la URL publica del backend.');
+}
+
 let accessToken = null;
 
 export const setAccessToken = (token) => {

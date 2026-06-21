@@ -51,7 +51,13 @@ const normalizeProductResponse = (response) => {
 
 export const Home = () => {
   const [products, setProducts] = useState(mockProducts);
+  const [showIntroLoader, setShowIntroLoader] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIntroLoader(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -89,7 +95,7 @@ export const Home = () => {
   const offerProducts = useMemo(() => {
     return products
       .filter((product) => product.onSale || product.comparePrice || product.oldPrice)
-      .slice(0, 12);
+      .slice(0, 4);
   }, [products]);
 
   const submitSearch = (query) => {
@@ -98,6 +104,17 @@ export const Home = () => {
 
   return (
     <main className="page marketplace-home fzac-home">
+      {showIntroLoader && (
+        <div className="fzac-game-loader" role="status" aria-label="Cargando inicio">
+          <div className="fzac-game-loader__box">
+            <span className="kicker">Materiales FZAC</span>
+            <strong>Cargando tienda</strong>
+            <div className="fzac-game-loader__bar"><span /></div>
+            <small>Preparando catalogo, ofertas y carrito</small>
+          </div>
+        </div>
+      )}
+
       <section className="fzac-hero">
         <div className="container fzac-hero__grid">
           <div className="fzac-hero__content">

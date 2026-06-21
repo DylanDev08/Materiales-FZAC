@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiEye, FiImage, FiShoppingCart, FiX } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';
 import { currency } from '../../utils/formatters';
+import { toWebpImageUrl } from '../../utils/images';
 
 const getCategoryName = (product) => {
   if (typeof product.category === 'string') return product.category;
@@ -24,7 +25,7 @@ export const ProductCard = ({ product, linkTo, showActions = true }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const hasStock = Number(product.stock || 0) > 0;
   const destination = linkTo || `/producto/${product.slug}`;
-  const image = product.image || product.gallery?.[0] || '';
+  const image = toWebpImageUrl(product.image || product.gallery?.[0] || '');
   const categoryName = getCategoryName(product);
 
   const add = () => addItem(product, 1);

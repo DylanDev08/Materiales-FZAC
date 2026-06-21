@@ -1,3 +1,4 @@
+import '../config/env.js';
 import prismaPkg from '@prisma/client';
 const { PrismaClient } = prismaPkg;
 import bcrypt from 'bcryptjs';
@@ -5,8 +6,12 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const main = async () => {
-  const email = 'admin@fzac.com';
-  const plainPassword = 'Admin1234!';
+  const email = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'fortalezaconstruccionesrosario@gmail.com';
+  const plainPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+
+  if (!plainPassword) {
+    throw new Error('Defini SEED_ADMIN_PASSWORD o ADMIN_PASSWORD antes de ejecutar este script.');
+  }
 
   const encryptedPassword = await bcrypt.hash(plainPassword, 12);
 
@@ -23,7 +28,8 @@ const main = async () => {
       email,
       phone: '+54 341 0000000',
       password: encryptedPassword,
-      role: 'ADMIN'
+      role: 'ADMIN',
+      preferences: { create: {} }
     }
   });
 

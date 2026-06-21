@@ -917,6 +917,38 @@ adminRoutes.get(
   })
 );
 
+adminRoutes.patch(
+  '/notifications/read-all',
+  asyncRoute(async (req, res) => {
+    await prisma.notification.updateMany({
+      where: { userId: null, read: false },
+      data: { read: true }
+    });
+
+    res.json({ success: true, message: 'Notificaciones administrativas marcadas como leidas' });
+  })
+);
+
+adminRoutes.patch(
+  '/notifications/:id/read',
+  asyncRoute(async (req, res) => {
+    const notification = await prisma.notification.findFirst({
+      where: { id: req.params.id, userId: null }
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notificacion no encontrada' });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: notification.id },
+      data: { read: true }
+    });
+
+    res.json({ success: true, data: updated });
+  })
+);
+
 adminRoutes.get(
   '/tickets',
   asyncRoute(async (req, res) => {
@@ -1240,7 +1272,7 @@ adminRoutes.post(
 adminRoutes.patch(
   '/categories/:id',
   asyncRoute(async (req, res) => {
-    const data = { ...req.body };
+    const { id: _id, productsCount: _productsCount, _count: _count, createdAt: _createdAt, updatedAt: _updatedAt, ...data } = req.body;
     if (data.name && !data.slug) data.slug = toSlug(data.name);
     if (data.sortOrder !== undefined) data.sortOrder = Number(data.sortOrder || 0);
     if (data.active !== undefined) data.active = Boolean(data.active);

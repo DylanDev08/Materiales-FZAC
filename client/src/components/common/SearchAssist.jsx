@@ -177,7 +177,7 @@ export const SearchAssist = ({
                   onClick={() => goTo(suggestion.to)}
                 >
                   <span className="search-assist__item-icon"><Icon /></span>
-                  <span>
+                  <span className="search-assist__item-copy">
                     <strong>{suggestion.title}</strong>
                     <small>{suggestion.detail}</small>
                   </span>
@@ -193,7 +193,7 @@ export const SearchAssist = ({
               onClick={() => goTo(`/contacto?consulta=${encodeURIComponent(query)}`)}
             >
               <span className="search-assist__item-icon"><FiMessageCircle /></span>
-              <span>
+              <span className="search-assist__item-copy">
                 <strong>Solicitar asistencia comercial</strong>
                 <small>Consultar disponibilidad por “{query}”</small>
               </span>

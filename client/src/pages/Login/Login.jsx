@@ -7,8 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getFriendlyApiError } from '../../api/apiClient';
 import { isSupabaseAuthEnabled, signInWithGoogle } from '../../api/supabaseClient';
 
-const MAX_LOCAL_ATTEMPTS = 5;
-const LOCK_MS = 5 * 60 * 1000;
+const MAX_LOCAL_ATTEMPTS = 10;
+const LOCK_MS = 60 * 1000;
 
 const getLoginGuard = () => {
   try {
@@ -93,7 +93,7 @@ export const Login = () => {
     setErr('');
 
     if (isLocallyLocked) {
-      setErr('Por seguridad, esperá unos minutos antes de volver a intentar.');
+      setErr('Por seguridad, espera un minuto antes de volver a intentar.');
       return;
     }
 

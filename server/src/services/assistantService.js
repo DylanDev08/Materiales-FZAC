@@ -33,6 +33,8 @@ const productView = (product) => ({
 const searchProducts = async (message) => {
   const terms = tokenize(message);
 
+  if (!terms.length) return [];
+
   const where = {
     active: true,
     stock: { gt: 0 }
@@ -173,8 +175,12 @@ const openAiReply = async ({ message, products, history, userId }) => {
     return fallbackReply({ message, products });
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json'
@@ -188,7 +194,7 @@ const openAiReply = async ({ message, products, history, userId }) => {
       store: false,
       safety_identifier: userId ? `fzac-${userId}` : undefined
     })
-  });
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');

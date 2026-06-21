@@ -217,7 +217,12 @@ productRoutes.get(
 
 productRoutes.get(
   '/suggestions',
-  createRateLimit({ windowMs: 60_000, maxRequests: 60, keyPrefix: 'product-suggestions' }),
+  createRateLimit({
+    windowMs: 10 * 60 * 1000,
+    maxRequests: 30,
+    keyPrefix: 'product-suggestions',
+    message: 'Demasiadas busquedas seguidas. Espera unos minutos y volve a probar.'
+  }),
   optionalAuth,
   asyncRoute(async (req, res) => {
     const query = String(req.query.q || req.query.search || '').trim();

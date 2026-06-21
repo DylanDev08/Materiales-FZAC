@@ -25,13 +25,13 @@ import { useAuth } from '../../context/AuthContext';
 import { currency, statusLabel } from '../../utils/formatters';
 
 const tabs = [
-  { id: 'overview', label: 'Resumen', icon: FiBox },
-  { id: 'orders', label: 'Compras', icon: FiPackage },
-  { id: 'cart', label: 'Carrito guardado', icon: FiShoppingCart },
-  { id: 'favorites', label: 'Favoritos', icon: FiHeart },
-  { id: 'chats', label: 'Asistencia', icon: FiMessageCircle },
-  { id: 'settings', label: 'Ajustes', icon: FiSettings },
-  { id: 'security', label: 'Seguridad', icon: FiLock }
+  { id: 'overview', label: 'Resumen', hint: 'Estado general', icon: FiBox },
+  { id: 'orders', label: 'Compras', hint: 'Pedidos y pagos', icon: FiPackage },
+  { id: 'cart', label: 'Carrito', hint: 'Productos guardados', icon: FiShoppingCart },
+  { id: 'favorites', label: 'Favoritos', hint: 'Productos marcados', icon: FiHeart },
+  { id: 'chats', label: 'Asistencia', hint: 'Chat y consultas', icon: FiMessageCircle },
+  { id: 'settings', label: 'Ajustes', hint: 'Datos y preferencias', icon: FiSettings },
+  { id: 'security', label: 'Seguridad', hint: 'Clave de acceso', icon: FiLock }
 ];
 
 const defaultPreferences = {
@@ -206,14 +206,22 @@ export const Account = () => {
           )}
         </header>
 
+        <div className="account-shortcuts-v2">
+          <button type="button" onClick={() => selectTab('orders')}><FiPackage /><strong>Compras</strong><span>{summary?.orders?.pending || 0} en espera</span></button>
+          <button type="button" onClick={() => selectTab('cart')}><FiShoppingCart /><strong>Carrito</strong><span>{summary?.cart?.itemsCount || 0} productos</span></button>
+          <button type="button" onClick={() => selectTab('chats')}><FiMessageCircle /><strong>Asistencia</strong><span>{conversations.length} conversaciones</span></button>
+          <button type="button" onClick={() => selectTab('settings')}><FiSettings /><strong>Ajustes</strong><span>Datos de compra</span></button>
+        </div>
+
         <div className="account-shell__layout">
           <aside className="account-nav-v2">
-            {tabs.map(({ id, label, icon: Icon }) => (
+            {tabs.map(({ id, label, hint, icon: Icon }) => (
               <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => selectTab(id)}>
-                <Icon /> {label}
+                <Icon />
+                <span><strong>{label}</strong><small>{hint}</small></span>
               </button>
             ))}
-            <button type="button" onClick={logout}><FiLogOut /> Cerrar sesión</button>
+            <button type="button" onClick={logout}><FiLogOut /><span><strong>Cerrar sesion</strong><small>Salir de la cuenta</small></span></button>
           </aside>
 
           <section className="account-dashboard-v2">

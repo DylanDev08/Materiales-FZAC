@@ -12,7 +12,12 @@ export const upload = multer({
 });
 
 export const uploadToCloudinary = (fileBuffer, folder = 'materiales-fzac/products') => new Promise((resolve, reject) => {
-  const stream = cloudinary.uploader.upload_stream({ folder, resource_type: 'image' }, (error, result) => {
+  const stream = cloudinary.uploader.upload_stream({
+    folder,
+    resource_type: 'image',
+    format: 'webp',
+    transformation: [{ quality: 'auto' }]
+  }, (error, result) => {
     if (error) return reject(error);
     resolve(result.secure_url);
   });

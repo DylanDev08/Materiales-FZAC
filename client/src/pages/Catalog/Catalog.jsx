@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiArrowRight } from 'react-icons/fi';
+import { FiArrowRight, FiFilter, FiGrid, FiShoppingBag } from 'react-icons/fi';
 import { productsApi } from '../../api/productsApi';
 import { categories, products as mockProducts } from '../../data/mockData';
-import { ProductCarousel } from '../../components/product/ProductCarousel';
+import { ProductCard } from '../../components/product/ProductCard';
 import { CustomSelect } from '../../components/common/CustomSelect';
 import { SearchAssist } from '../../components/common/SearchAssist';
 
 const categoryOptions = [
-  { value: '', label: 'Todas las categorías' },
+  { value: '', label: 'Todas las categorias' },
   ...categories.map((category) => ({ value: category.slug, label: category.name }))
 ];
 
@@ -67,20 +67,22 @@ export const Catalog = () => {
 
   return (
     <main className="page marketplace-page">
-      <section className="market-page-hero">
+      <section className="market-page-hero catalog-hero-v2">
         <div className="container">
-          <span className="kicker">Catálogo FZAC</span>
-          <h1>Una vista rápida de todo lo que hay.</h1>
-          <p>
-            Explorá productos con flechas, filtrá por categoría u oferta y, cuando
-            quieras comprar, pasá a la sección Productos.
-          </p>
+          <span className="kicker">Catalogo FZAC</span>
+          <h1>Productos organizados para comprar mas rapido.</h1>
+          <p>Filtra por rubro, revisa stock y abre cada producto desde una tarjeta clara de e-commerce.</p>
+          <div className="catalog-steps-v2">
+            <span><FiGrid /> Explora rubros</span>
+            <span><FiFilter /> Filtra resultados</span>
+            <span><FiShoppingBag /> Compra desde la tarjeta</span>
+          </div>
         </div>
       </section>
 
-      <section className="market-section">
+      <section className="market-section catalog-section-v2">
         <div className="container">
-          <div className="market-filter-bar">
+          <div className="market-filter-bar catalog-filter-v2">
             <label className="market-search-field market-search-field--assist">
               <span>Buscar</span>
               <SearchAssist
@@ -94,7 +96,7 @@ export const Catalog = () => {
             </label>
 
             <CustomSelect
-              label="Categoría"
+              label="Categoria"
               value={category}
               onChange={(value) => updateParam('category', value)}
               options={categoryOptions}
@@ -108,17 +110,23 @@ export const Catalog = () => {
               Solo ofertas
             </button>
 
-            <Link className="btn" to={productsUrl}>Comprar estos productos</Link>
+            <Link className="btn" to={productsUrl}>Ver compra completa</Link>
           </div>
 
-          <ProductCarousel
-            eyebrow="Vista de catálogo"
-            title={onSale ? 'Ofertas en catálogo.' : 'Productos disponibles.'}
-            text={`${list.length} productos encontrados. Usá las flechas para recorrer.`}
-            products={list}
-            getLinkTo={(product) => `/productos?search=${encodeURIComponent(product.name)}`}
-            action={<Link className="section-link" to={productsUrl}>Ir a Productos <FiArrowRight /></Link>}
-          />
+          <div className="catalog-results-head-v2">
+            <div>
+              <span className="kicker">Resultados</span>
+              <h2>{onSale ? 'Ofertas disponibles' : 'Productos disponibles'}</h2>
+              <p>{list.length} productos encontrados con los filtros actuales.</p>
+            </div>
+            <Link className="fzac-section-link" to={productsUrl}>Ir a Productos <FiArrowRight /></Link>
+          </div>
+
+          <div className="products-grid market-products-grid catalog-grid-v2">
+            {list.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
         </div>
       </section>
     </main>

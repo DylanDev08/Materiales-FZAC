@@ -1,9 +1,10 @@
 import rateLimit from 'express-rate-limit';
 
-const buildLimiter = ({ windowMs, limit, message }) =>
+const buildLimiter = ({ windowMs, limit, message, skipSuccessfulRequests = false }) =>
   rateLimit({
     windowMs,
     limit,
+    skipSuccessfulRequests,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: {
@@ -15,8 +16,9 @@ const buildLimiter = ({ windowMs, limit, message }) =>
 export const createRateLimit = ({
   windowMs = 60_000,
   maxRequests = 20,
-  message = 'Demasiadas solicitudes. Intenta nuevamente en unos minutos.'
-} = {}) => buildLimiter({ windowMs, limit: maxRequests, message });
+  message = 'Demasiadas solicitudes. Intenta nuevamente en unos minutos.',
+  skipSuccessfulRequests = false
+} = {}) => buildLimiter({ windowMs, limit: maxRequests, message, skipSuccessfulRequests });
 
 export const authRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
@@ -25,9 +27,10 @@ export const authRateLimit = createRateLimit({
 });
 
 export const loginRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000,
-  maxRequests: 5,
-  message: 'Demasiados intentos de ingreso. Espera unos minutos y volve a intentar.'
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 20,
+  skipSuccessfulRequests: true,
+  message: 'Demasiados intentos de ingreso. Espera un minuto y volve a intentar.'
 });
 
 export const registerRateLimit = createRateLimit({

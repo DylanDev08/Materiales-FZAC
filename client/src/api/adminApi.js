@@ -11,6 +11,8 @@ export const adminApi = {
   stock: () => apiRequest('/admin/stock'),
   pickups: () => apiRequest('/admin/pickups'),
   notifications: () => apiRequest('/admin/notifications'),
+  markNotificationRead: (id) => apiRequest(`/admin/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => apiRequest('/admin/notifications/read-all', { method: 'PATCH' }),
   tickets: (params = {}) => apiRequest(`/admin/tickets?${query(params)}`),
   updateTicketStatus: ({ id, status }) => apiRequest(`/admin/tickets/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   payments: (params = {}) => apiRequest(`/admin/payments?${query(params)}`),

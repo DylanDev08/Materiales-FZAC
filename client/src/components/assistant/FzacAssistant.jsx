@@ -179,7 +179,7 @@ export const FzacAssistant = () => {
               </article>
             ))}
 
-            {loading && <div className="fzac-assistant__typing">Pensando la mejor respuesta...</div>}
+            {loading && <div className="fzac-assistant__typing">...</div>}
 
             {products.length > 0 && (
               <div className="fzac-assistant__products">

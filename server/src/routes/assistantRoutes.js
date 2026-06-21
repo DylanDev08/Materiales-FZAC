@@ -110,6 +110,16 @@ assistantRoutes.post(
       }
     });
 
+    await prisma.notification.create({
+      data: {
+        userId: null,
+        type: 'CHAT_WAITING_ADMIN',
+        title: 'Nueva conversacion derivada',
+        message: 'Un cliente pidio atencion de Fortaleza Construcciones.',
+        linkTo: '/admin?tab=chats'
+      }
+    });
+
     res.json({ success: true, data: updated });
   })
 );

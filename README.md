@@ -129,15 +129,16 @@ El seed crea datos de ejemplo. Las credenciales iniciales deben definirse median
 
 ## Ejecutar localmente
 
-Terminal 1:
+Levantar cliente y servidor juntos:
+
+```bash
+npm run dev
+```
+
+O por separado:
 
 ```bash
 npm run dev:server
-```
-
-Terminal 2:
-
-```bash
 npm run dev:client
 ```
 
@@ -145,6 +146,10 @@ URLs habituales:
 - Frontend: `http://localhost:5173`
 - API: `http://localhost:4000/api`
 - Health check: `http://localhost:4000/api/health`
+- DB health: `http://localhost:4000/api/health/db`
+- Env health seguro: `http://localhost:4000/api/health/env`
+
+`npm run dev:server` no ejecuta `prisma generate` en cada inicio para evitar bloqueos `EPERM` del query engine en Windows. Ejecutar `npm run prisma:generate` manualmente cuando cambie `server/src/prisma/schema.prisma`.
 
 ## Pagos
 
@@ -176,6 +181,42 @@ El pedido se confirma solo cuando el pago aprobado llega al backend.
 5. Dejar `MERCADOPAGO_ACCESS_TOKEN` vacio para demo o cargarlo cuando el jefe apruebe pagos reales.
 6. Verificar CORS con `CLIENT_URL`.
 7. Cambiar cualquier usuario inicial creado por seed.
+
+### Vercel frontend
+
+- Root Directory: `client`
+- Framework Preset: `Vite`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Install Command: `npm install`
+
+Variables:
+
+```env
+VITE_API_URL=https://URL-PUBLICA-DEL-BACKEND/api
+VITE_ENABLE_API_MOCKS=false
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+No usar `localhost` en produccion. El cliente muestra un warning de build si `VITE_API_URL` apunta a localhost.
+
+### Backend Railway/Render
+
+Configurar las variables privadas del servidor y ejecutar:
+
+```bash
+npm run prisma:generate
+npm run prisma:deploy
+npm run start
+```
+
+### Troubleshooting
+
+- EPERM Prisma Windows: cerrar procesos Node abiertos y ejecutar `npm run prisma:generate` manualmente.
+- Vercel detecta otro framework: usar `client` como Root Directory.
+- API no responde en produccion: verificar que `VITE_API_URL` sea publica y termine en `/api`.
+- PostgreSQL enum/migraciones: usar `prisma migrate deploy`; no usar `migrate reset` en produccion.
 
 ## Verificaciones
 

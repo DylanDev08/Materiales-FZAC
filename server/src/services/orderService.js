@@ -30,7 +30,7 @@ const createTicketIfMissing = async (tx, order, payment, stockSnapshots = new Ma
 
   const issuedAt = new Date();
 
-  return tx.purchaseTicket.create({
+  const ticket = await tx.purchaseTicket.create({
     data: {
       number: buildTicketNumber(order.id, issuedAt),
       orderId: order.id,
@@ -67,6 +67,19 @@ const createTicketIfMissing = async (tx, order, payment, stockSnapshots = new Ma
     },
     include: { items: true }
   });
+
+  await tx.notification.create({
+    data: {
+      userId: null,
+      orderId: order.id,
+      type: 'PURCHASE_TICKET_ISSUED',
+      title: 'Ticket de compra generado',
+      message: `Se genero el ticket ${ticket.number} para ${order.customerName}.`,
+      linkTo: '/admin?tab=tickets'
+    }
+  });
+
+  return ticket;
 };
 
 const decrementStockAndMarkPaid = async (tx, order, paymentPayload = {}) => {
@@ -87,7 +100,7 @@ const decrementStockAndMarkPaid = async (tx, order, paymentPayload = {}) => {
 
     const product = await tx.product.findUnique({
       where: { id: item.productId },
-      select: { id: true, stock: true, active: true }
+      select: { id: true, name: true, sku: true, stock: true, stockMinimum: true, active: true }
     });
 
     if (!product?.active || product.stock < item.quantity) {
@@ -126,6 +139,19 @@ const decrementStockAndMarkPaid = async (tx, order, paymentPayload = {}) => {
         }
       }
     });
+
+    if (stockAfter <= Number(product.stockMinimum ?? 5)) {
+      await tx.notification.create({
+        data: {
+          userId: null,
+          orderId: order.id,
+          type: 'LOW_STOCK',
+          title: 'Stock bajo',
+          message: `${product.name} quedo con ${stockAfter} unidades disponibles.`,
+          linkTo: '/admin?tab=products'
+        }
+      });
+    }
   }
 
   const payment = await tx.payment.update({

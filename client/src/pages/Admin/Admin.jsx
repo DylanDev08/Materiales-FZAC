@@ -53,12 +53,14 @@ const emptyProduct = {
   gallery: [],
   description: '',
   specifications: {},
+  specificationsText: '{}',
   active: true,
   featured: false,
   onSale: false
 };
 
 const emptyCategory = {
+  id: '',
   name: '',
   slug: '',
   description: '',
@@ -83,6 +85,23 @@ const list = (value, key) => {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.[key])) return value[key];
   return [];
+};
+
+const parseSpecifications = (value) => {
+  const clean = String(value || '').trim();
+  if (!clean) return {};
+
+  try {
+    return JSON.parse(clean);
+  } catch {
+    return clean.split('\n').reduce((acc, row) => {
+      const [label, ...rest] = row.split(':');
+      const key = String(label || '').trim();
+      const nextValue = rest.join(':').trim();
+      if (key && nextValue) acc[key] = nextValue;
+      return acc;
+    }, {});
+  }
 };
 
 export const Admin = () => {
@@ -175,7 +194,8 @@ export const Admin = () => {
       categorySlug: product.category?.slug || '',
       comparePrice: product.comparePrice || '',
       gallery: product.gallery || [],
-      specifications: product.specifications || {}
+      specifications: product.specifications || {},
+      specificationsText: JSON.stringify(product.specifications || {}, null, 2)
     });
     setTab('products');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -213,7 +233,7 @@ export const Admin = () => {
         stock: Number(productForm.stock || 0),
         stockMinimum: Number(productForm.stockMinimum || 0),
         gallery: [...new Set([productForm.image, ...(productForm.gallery || [])].filter(Boolean))],
-        specifications: productForm.specifications || {}
+        specifications: parseSpecifications(productForm.specificationsText)
       };
 
       if (productForm.id) await adminApi.updateProduct({ id: productForm.id, payload });
@@ -244,15 +264,29 @@ export const Admin = () => {
     event.preventDefault();
     setSaving(true);
     try {
-      await adminApi.createCategory(categoryForm);
+      if (categoryForm.id) await adminApi.updateCategory({ id: categoryForm.id, payload: categoryForm });
+      else await adminApi.createCategory(categoryForm);
       setCategoryForm(emptyCategory);
-      setNotice('Categoría creada.');
+      setNotice(categoryForm.id ? 'Categoria actualizada.' : 'Categoria creada.');
       await load();
     } catch (categoryError) {
-      setError(categoryError.message || 'No pudimos crear la categoría.');
+      setError(categoryError.message || 'No pudimos guardar la categoria.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const editCategory = (category) => {
+    setCategoryForm({
+      id: category.id,
+      name: category.name || '',
+      slug: category.slug || '',
+      description: category.description || '',
+      image: category.image || '',
+      active: category.active !== false,
+      sortOrder: category.sortOrder || 0
+    });
+    setTab('categories');
   };
 
   const deleteCategory = async (category) => {
@@ -445,6 +479,8 @@ export const Admin = () => {
                   <input className="admin-form-grid-v2__wide" placeholder="URL imagen" value={productForm.image} onChange={(event) => setProductForm({ ...productForm, image: event.target.value })} />
                   <label className="admin-upload-v2"><FiUpload /> {saving ? 'Subiendo...' : 'Subir imagen'}<input type="file" accept="image/*" onChange={uploadProductImage} /></label>
                   <textarea placeholder="Descripción" value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} />
+                  <textarea placeholder="Galeria: una URL por linea" value={(productForm.gallery || []).join('\n')} onChange={(event) => setProductForm({ ...productForm, gallery: event.target.value.split('\n').map((item) => item.trim()).filter(Boolean) })} />
+                  <textarea placeholder="Especificaciones JSON o lineas Nombre: valor" value={productForm.specificationsText} onChange={(event) => setProductForm({ ...productForm, specificationsText: event.target.value })} />
                   <label className="admin-check-v2"><input type="checkbox" checked={productForm.active} onChange={(event) => setProductForm({ ...productForm, active: event.target.checked })} /> Activo</label>
                   <label className="admin-check-v2"><input type="checkbox" checked={productForm.featured} onChange={(event) => setProductForm({ ...productForm, featured: event.target.checked })} /> Destacado</label>
                   <label className="admin-check-v2"><input type="checkbox" checked={productForm.onSale} onChange={(event) => setProductForm({ ...productForm, onSale: event.target.checked })} /> En oferta</label>
@@ -462,20 +498,21 @@ export const Admin = () => {
           {!loading && tab === 'categories' && (
             <div className="admin-grid-v2">
               <article className="admin-card-v2">
-                <div className="admin-card-v2__head"><div><h3>Nueva categoría</h3><p>Organizá el catálogo por rubros.</p></div></div>
+                <div className="admin-card-v2__head"><div><h3>{categoryForm.id ? 'Editar categoria' : 'Nueva categoria'}</h3><p>Organiza el catalogo por rubros.</p></div>{categoryForm.id && <button className="btn secondary" type="button" onClick={() => setCategoryForm(emptyCategory)}><FiX /> Cancelar edicion</button>}</div>
                 <form className="admin-form-grid-v2 admin-form-grid-v2--single" onSubmit={saveCategory}>
                   <input placeholder="Nombre" value={categoryForm.name} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} required />
                   <input placeholder="Slug opcional" value={categoryForm.slug} onChange={(event) => setCategoryForm({ ...categoryForm, slug: event.target.value })} />
                   <input placeholder="URL de imagen" value={categoryForm.image} onChange={(event) => setCategoryForm({ ...categoryForm, image: event.target.value })} />
                   <input type="number" placeholder="Orden" value={categoryForm.sortOrder} onChange={(event) => setCategoryForm({ ...categoryForm, sortOrder: event.target.value })} />
-                  <textarea placeholder="Descripción" value={categoryForm.description} onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value })} />
-                  <button className="btn" type="submit" disabled={saving}><FiPlus /> Crear categoría</button>
+                  <textarea placeholder="Descripcion" value={categoryForm.description} onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value })} />
+                  <label className="admin-check-v2"><input type="checkbox" checked={categoryForm.active} onChange={(event) => setCategoryForm({ ...categoryForm, active: event.target.checked })} /> Activa</label>
+                  <button className="btn" type="submit" disabled={saving}>{categoryForm.id ? <FiSave /> : <FiPlus />} {categoryForm.id ? 'Guardar categoria' : 'Crear categoria'}</button>
                 </form>
               </article>
 
               <article className="admin-card-v2">
-                <div className="admin-card-v2__head"><div><h3>Categorías activas</h3><p>Eliminación protegida si contiene productos.</p></div></div>
-                <div className="admin-mini-list-v2">{categories.map((category) => <div key={category.id}><div><strong>{category.name}</strong><span>{category.productsCount || 0} productos · /{category.slug}</span></div><button type="button" onClick={() => deleteCategory(category)}><FiTrash2 /></button></div>)}</div>
+                <div className="admin-card-v2__head"><div><h3>Categorias activas</h3><p>Edicion completa y eliminacion protegida si contiene productos.</p></div></div>
+                <div className="admin-mini-list-v2">{categories.map((category) => <div key={category.id}><div><strong>{category.name}</strong><span>{category.productsCount || 0} productos - /{category.slug}</span></div><div className="admin-row-actions-v2"><button type="button" onClick={() => editCategory(category)}><FiEdit2 /></button><button type="button" onClick={() => deleteCategory(category)}><FiTrash2 /></button></div></div>)}</div>
               </article>
             </div>
           )}
