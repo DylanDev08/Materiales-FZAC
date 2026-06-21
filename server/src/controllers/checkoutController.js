@@ -29,6 +29,8 @@ export const checkoutController = {
         orderId: order.id,
         provider: 'MERCADOPAGO',
         preferenceId: preference.id,
+        mock: Boolean(preference.mock),
+        mockUrls: preference.mockUrls || null,
         url: preference.initPoint || preference.sandboxInitPoint,
         checkoutUrl: preference.initPoint || preference.sandboxInitPoint,
         initPoint: preference.initPoint,

@@ -47,7 +47,13 @@ export const mercadoPagoService = {
         id: `mock_mp_${order.id}`,
         initPoint: `${clientUrl()}/pago-pendiente?order_id=${order.id}&mock=true`,
         sandboxInitPoint: `${clientUrl()}/pago-pendiente?order_id=${order.id}&mock=true`,
-        raw: { mode: 'mock', provider: 'MERCADOPAGO' }
+        mock: true,
+        mockUrls: {
+          approved: `${clientUrl()}/pago-aprobado?order_id=${order.id}&mock=true`,
+          rejected: `${clientUrl()}/pago-rechazado?order_id=${order.id}&mock=true`,
+          pending: `${clientUrl()}/pago-pendiente?order_id=${order.id}&mock=true`
+        },
+        raw: { mode: 'mock', provider: 'MERCADOPAGO', simulated: true }
       };
     }
 

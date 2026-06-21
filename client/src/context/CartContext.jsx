@@ -28,6 +28,7 @@ export const CartProvider = ({ children }) => {
   const [items, setItems] = useState(read);
   const [isSyncing, setIsSyncing] = useState(false);
   const [cartError, setCartError] = useState('');
+  const [cartNotice, setCartNotice] = useState('');
   const synchronizedUser = useRef('');
 
   const setAndSave = (nextItems) => {
@@ -83,6 +84,12 @@ export const CartProvider = ({ children }) => {
     return () => { active = false; };
   }, [isAuthenticated, isCheckingAuth, user?.id]);
 
+  useEffect(() => {
+    if (!cartNotice) return undefined;
+    const timer = window.setTimeout(() => setCartNotice(''), 2600);
+    return () => window.clearTimeout(timer);
+  }, [cartNotice]);
+
   const addItem = async (product, quantity = 1) => {
     const requestedQuantity = Math.max(Number(quantity || 1), 1);
     setCartError('');
@@ -92,6 +99,7 @@ export const CartProvider = ({ children }) => {
         const response = await cartApi.add({ productId: product.id, quantity: requestedQuantity });
         const serverItems = normalizeServerItems(response);
         setAndSave(serverItems);
+        setCartNotice('Producto agregado al carrito');
         productsApi.trackEvent({ productId: product.id, type: 'ADD_TO_CART', metadata: { quantity: requestedQuantity } });
         return { items: serverItems, ...totals(serverItems) };
       } catch (error) {
@@ -106,6 +114,7 @@ export const CartProvider = ({ children }) => {
       : [...items, { id: product.id, productId: product.id, quantity: requestedQuantity, product }];
 
     setAndSave(next);
+    setCartNotice('Producto agregado al carrito');
     productsApi.trackEvent({ productId: product.id, type: 'ADD_TO_CART', metadata: { quantity: requestedQuantity } });
     return { items: next, ...totals(next) };
   };
@@ -164,7 +173,12 @@ export const CartProvider = ({ children }) => {
     clearCart
   }), [items, calculated.count, calculated.subtotal, isSyncing, cartError, isAuthenticated]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {cartNotice && <div className="cart-toast-v2" role="status" aria-live="polite">{cartNotice}</div>}
+    </CartContext.Provider>
+  );
 };
 
 export const useCart = () => {

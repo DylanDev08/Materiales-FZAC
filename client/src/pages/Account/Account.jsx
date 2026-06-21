@@ -4,14 +4,18 @@ import {
   FiBox,
   FiCheckCircle,
   FiCreditCard,
+  FiDollarSign,
   FiHeart,
   FiLock,
   FiLogOut,
+  FiMapPin,
   FiMessageCircle,
+  FiMoon,
   FiPackage,
   FiSave,
   FiSettings,
   FiShoppingCart,
+  FiSun,
   FiUser
 } from 'react-icons/fi';
 
@@ -35,7 +39,10 @@ const defaultPreferences = {
   orderUpdates: true,
   assistantHistory: true,
   theme: 'system',
-  preferredShipping: ''
+  preferredShipping: '',
+  preferredPayment: 'MERCADOPAGO',
+  avatarUrl: '',
+  biometricLogin: false
 };
 
 export const Account = () => {
@@ -360,16 +367,44 @@ export const Account = () => {
             {!loading && tab === 'settings' && (
               <article className="account-section-v2">
                 <div className="account-section-v2__head"><div><span className="kicker">Ajustes</span><h2>Preferencias de la cuenta</h2></div></div>
-                <form className="account-form-v2" onSubmit={saveSettings}>
+                <div className="account-settings-layout-v2">
+                  <aside className="account-settings-sidebar-v2">
+                    <div className="account-profile-card-v2">
+                      {settings.avatarUrl || user?.avatarUrl ? (
+                        <img src={settings.avatarUrl || user.avatarUrl} alt={settings.name || user?.name} />
+                      ) : (
+                        <div><FiUser /></div>
+                      )}
+                      <strong>{settings.name || user?.name}</strong>
+                      <span>{user?.email}</span>
+                    </div>
+                    <div className="account-preference-stack-v2">
+                      <article><FiDollarSign /><span>Saldo disponible</span><strong>{currency(summary?.balance || 0)}</strong></article>
+                      <article><FiCreditCard /><span>Tipo de pagos</span><strong>{settings.preferredPayment === 'TRANSFER' ? 'Transferencia' : settings.preferredPayment === 'CASH_ON_PICKUP' ? 'Pago al retirar' : 'Mercado Pago'}</strong></article>
+                      <article><FiMapPin /><span>Entrega preferida</span><strong>{settings.preferredShipping === 'DELIVERY' ? 'Envio' : settings.preferredShipping === 'PICKUP' ? 'Retiro en local' : 'Sin preferencia'}</strong></article>
+                      <article>{settings.theme === 'light' ? <FiSun /> : <FiMoon />}<span>Color</span><strong>{settings.theme === 'light' ? 'Blanco' : settings.theme === 'dark' ? 'Negro' : 'Sistema'}</strong></article>
+                      <article><FiCheckCircle /><span>Huella dactilar</span><strong>{settings.biometricLogin ? 'Solicitada' : 'Inactiva'}</strong></article>
+                    </div>
+                  </aside>
+
+                <form className="account-form-v2 account-form-v2--settings" onSubmit={saveSettings}>
                   <label>Nombre y apellido<input value={settings.name} onChange={(event) => setSettings({ ...settings, name: event.target.value })} required /></label>
+                  <label className="account-form-v2__wide">Foto de perfil<input value={settings.avatarUrl || ''} onChange={(event) => setSettings({ ...settings, avatarUrl: event.target.value })} placeholder="https://..." /></label>
+                  <label>Tipo de pagos<select value={settings.preferredPayment || 'MERCADOPAGO'} onChange={(event) => setSettings({ ...settings, preferredPayment: event.target.value })}><option value="MERCADOPAGO">Mercado Pago</option><option value="TRANSFER">Transferencia</option><option value="CASH_ON_PICKUP">Pago al retirar</option></select></label>
                   <label>Teléfono<input value={settings.phone} onChange={(event) => setSettings({ ...settings, phone: event.target.value })} /></label>
                   <label>Tema<select value={settings.theme} onChange={(event) => setSettings({ ...settings, theme: event.target.value })}><option value="system">Sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></label>
                   <label>Modalidad preferida<select value={settings.preferredShipping || ''} onChange={(event) => setSettings({ ...settings, preferredShipping: event.target.value })}><option value="">Sin preferencia</option><option value="PICKUP">Retiro</option><option value="DELIVERY">Envío</option></select></label>
                   <label className="check-row"><input type="checkbox" checked={Boolean(settings.orderUpdates)} onChange={(event) => setSettings({ ...settings, orderUpdates: event.target.checked })} /> Recibir novedades de pedidos</label>
                   <label className="check-row"><input type="checkbox" checked={Boolean(settings.assistantHistory)} onChange={(event) => setSettings({ ...settings, assistantHistory: event.target.checked })} /> Guardar historial del asistente</label>
                   <label className="check-row"><input type="checkbox" checked={Boolean(settings.marketingEmails)} onChange={(event) => setSettings({ ...settings, marketingEmails: event.target.checked })} /> Recibir promociones</label>
+                  <button className={`account-biometric-v2 ${settings.biometricLogin ? 'active' : ''}`} type="button" onClick={() => {
+                    const supported = Boolean(window.PublicKeyCredential);
+                    setSettings({ ...settings, biometricLogin: supported });
+                    setMessage(supported ? 'La verificacion por huella quedo preparada para este navegador.' : 'Este navegador no informa soporte de biometria.');
+                  }}><FiLock /><span><strong>Ingreso con huella dactilar</strong><small>Preparado con WebAuthn para una futura validacion segura.</small></span></button>
                   <button className="btn" type="submit"><FiSave /> Guardar ajustes</button>
                 </form>
+                </div>
               </article>
             )}
 

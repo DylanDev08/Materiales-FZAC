@@ -5,6 +5,15 @@ import { toSlug } from '../utils/slug.js';
 
 const prisma = new PrismaClient();
 const image = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
+const isProduction = process.env.NODE_ENV === 'production';
+const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@materialesfzac.local';
+const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || (isProduction ? '' : 'dev-admin-change-me-2026');
+const seedClientEmail = process.env.SEED_CLIENT_EMAIL || 'cliente@materialesfzac.local';
+const seedClientPassword = process.env.SEED_CLIENT_PASSWORD || (isProduction ? '' : 'dev-client-change-me-2026');
+
+if (isProduction && (!seedAdminPassword || !seedClientPassword)) {
+  throw new Error('SEED_ADMIN_PASSWORD y SEED_CLIENT_PASSWORD son requeridas para ejecutar seed en produccion');
+}
 
 const categories = [
   { name: 'Construcción seca', slug: 'construccion-seca', description: 'Perfiles, placas, fijaciones y aislaciones para sistemas en seco.', image: image('photo-1581092918056-0c4c3acd3789'), sortOrder: 1 },
@@ -56,13 +65,13 @@ async function main() {
   await prisma.address.deleteMany();
   await prisma.user.deleteMany();
 
-  const adminPassword = await bcrypt.hash('AdminFzac2026!', 12);
-  const userPassword = await bcrypt.hash('ClienteFzac2026!', 12);
+  const adminPassword = await bcrypt.hash(seedAdminPassword, 12);
+  const userPassword = await bcrypt.hash(seedClientPassword, 12);
 
   const admin = await prisma.user.create({
     data: {
       name: 'Admin FZAC',
-      email: 'admin@materialesfzac.com',
+      email: seedAdminEmail,
       password: adminPassword,
       role: 'ADMIN',
       phone: '3415550101',
@@ -73,7 +82,7 @@ async function main() {
   const client = await prisma.user.create({
     data: {
       name: 'Cliente Rosario',
-      email: 'cliente@materialesfzac.com',
+      email: seedClientEmail,
       password: userPassword,
       phone: '3415550202',
       preferences: { create: { orderUpdates: true, assistantHistory: true, theme: 'system', preferredShipping: 'PICKUP' } },
@@ -237,8 +246,8 @@ async function main() {
   });
 
   console.log('Seed completo: usuarios, catálogo, pedidos, pagos, favoritos, chat y analítica creados.');
-  console.log('Admin: admin@materialesfzac.com / AdminFzac2026!');
-  console.log('Cliente: cliente@materialesfzac.com / ClienteFzac2026!');
+  console.log(`Admin seed: ${seedAdminEmail}`);
+  console.log(`Cliente seed: ${seedClientEmail}`);
 }
 
 main()

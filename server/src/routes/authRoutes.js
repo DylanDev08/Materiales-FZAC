@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import { prisma } from '../config/db.js';
 import { env } from '../config/env.js';
-import { authRateLimit, registerRateLimit } from '../middleware/rateLimitMiddleware.js';
+import { authRateLimit, loginRateLimit, registerRateLimit } from '../middleware/rateLimitMiddleware.js';
 import { authBotGuard } from '../middleware/authSecurityMiddleware.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../utils/validateRequest.js';
@@ -142,7 +142,7 @@ authRoutes.post(
 
 authRoutes.post(
   '/login',
-  authRateLimit,
+  loginRateLimit,
   authBotGuard,
   loginValidation,
   asyncRoute(async (req, res) => {

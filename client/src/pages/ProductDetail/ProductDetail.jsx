@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fi';
 
 import { productsApi } from '../../api/productsApi';
+import { products as mockProducts } from '../../data/mockData';
 import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -47,6 +48,19 @@ export const ProductDetail = () => {
 
   useEffect(() => {
     let mounted = true;
+    const fallbackProduct = mockProducts.find((item) => item.slug === slug);
+    if (fallbackProduct) {
+      setData({
+        product: fallbackProduct,
+        related: mockProducts
+          .filter((item) => item.categorySlug === fallbackProduct.categorySlug && item.id !== fallbackProduct.id)
+          .slice(0, 4),
+        fallback: true
+      });
+      setActiveImage(fallbackProduct.image || '');
+    } else {
+      setData(null);
+    }
 
     productsApi
       .getBySlug(slug)
