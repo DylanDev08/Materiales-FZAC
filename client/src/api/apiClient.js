@@ -13,35 +13,34 @@ export const setAccessToken = (token) => {
 const getToken = () => accessToken;
 
 const friendlyNetworkMessage =
-  'No pudimos conectar con el servidor. Revisá que el backend esté iniciado y volvé a intentar.';
+  'No pudimos conectar con el servidor. Revisa que el backend este iniciado y volve a intentar.';
 
 const friendlyStatusMessages = {
-  400: 'La solicitud no se pudo procesar. Revisá los datos cargados.',
-  401: 'La sesión venció o las credenciales no son válidas.',
-  403: 'No tenés permisos para realizar esta acción.',
-  404: 'No encontramos la información solicitada.',
-  409: 'La operación entra en conflicto con datos existentes.',
-  429: 'Demasiados intentos. Esperá unos minutos y volvé a probar.',
-  500: 'El servidor no pudo completar la operación. Intentá nuevamente en unos minutos.'
+  400: 'La solicitud no se pudo procesar. Revisa los datos cargados.',
+  401: 'Email o contrasena incorrectos.',
+  403: 'No tenes permisos para realizar esta accion.',
+  404: 'No encontramos la informacion solicitada.',
+  409: 'La operacion entra en conflicto con datos existentes.',
+  429: 'Demasiados intentos. Espera unos minutos y volve a probar.',
+  500: 'El servidor no pudo completar la operacion.'
 };
 
 export const getFriendlyApiError = (error) => {
-  if (!error) return 'No pudimos completar la operación.';
+  if (!error) return 'No pudimos completar la operacion.';
   if (error.isNetworkError) return friendlyNetworkMessage;
+  if (error.status === 401) return friendlyStatusMessages[401];
   if (error.status && friendlyStatusMessages[error.status]) {
     return error.data?.message || error.message || friendlyStatusMessages[error.status];
   }
   if (error.message === 'Failed to fetch') return friendlyNetworkMessage;
-  return error.message || 'No pudimos completar la operación.';
+  return error.message || 'No pudimos completar la operacion.';
 };
 
 const refreshSession = async () => {
   try {
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      credentials: 'include'
     });
 
     if (!response.ok) return false;
@@ -92,7 +91,7 @@ export const apiRequest = async (path, options = {}, internal = {}) => {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message = data?.message || friendlyStatusMessages[response.status] || 'No pudimos completar la operación.';
+    const message = data?.message || friendlyStatusMessages[response.status] || 'No pudimos completar la operacion.';
     const err = new Error(message);
     err.status = response.status;
     err.data = data;

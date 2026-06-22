@@ -9,7 +9,13 @@ const getStringValues = (body = {}) => {
 export const authBotGuard = (req, res, next) => {
   const body = req.body || {};
 
-  const honeypot = body.website || body.company || body.url || body.nickname;
+  const honeypot =
+    body.website ||
+    body.company ||
+    body.companyConfirmation ||
+    body['company-confirmation'] ||
+    body.url ||
+    body.nickname;
 
   if (honeypot) {
     return res.status(400).json({
@@ -23,7 +29,7 @@ export const authBotGuard = (req, res, next) => {
   if (clientStartedAt && Date.now() - clientStartedAt < 700) {
     return res.status(400).json({
       success: false,
-      message: 'Validación de seguridad incompleta. Intentá nuevamente.'
+      message: 'Validacion de seguridad incompleta. Intenta nuevamente.'
     });
   }
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
 import { FiLock } from 'react-icons/fi';
@@ -7,19 +7,24 @@ import { useAuth } from '../../context/AuthContext';
 import { getFriendlyApiError } from '../../api/apiClient';
 import { isSupabaseAuthEnabled, signInWithGoogle } from '../../api/supabaseClient';
 
-const MAX_LOCAL_ATTEMPTS = 10;
-const LOCK_MS = 60 * 1000;
+const MAX_LOCAL_ATTEMPTS = 5;
+const LOCK_MS = 15 * 60 * 1000;
+const GUARD_KEY = 'fzac_login_guard';
 
 const getLoginGuard = () => {
   try {
-    return JSON.parse(localStorage.getItem('fzac_login_guard') || '{}');
+    return JSON.parse(localStorage.getItem(GUARD_KEY) || '{}');
   } catch {
     return {};
   }
 };
 
 const setLoginGuard = (guard) => {
-  localStorage.setItem('fzac_login_guard', JSON.stringify(guard));
+  localStorage.setItem(GUARD_KEY, JSON.stringify(guard));
+};
+
+const clearGuard = () => {
+  localStorage.removeItem(GUARD_KEY);
 };
 
 const hasSuspiciousContent = (value) => {
@@ -30,14 +35,18 @@ export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState({ email: '', password: '', website: '' });
+  const [form, setForm] = useState({ email: '', password: '', company: '' });
   const [startedAt] = useState(Date.now());
   const [err, setErr] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const guard = useMemo(() => getLoginGuard(), [err]);
+  const guard = useMemo(() => getLoginGuard(), [err, submitting]);
   const lockedUntil = Number(guard.lockedUntil || 0);
   const isLocallyLocked = lockedUntil > Date.now();
+
+  useEffect(() => {
+    if (lockedUntil && lockedUntil <= Date.now()) clearGuard();
+  }, [lockedUntil]);
 
   const update = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -45,6 +54,8 @@ export const Login = () => {
 
   const registerFailedAttempt = () => {
     const current = getLoginGuard();
+    if (Number(current.lockedUntil || 0) > Date.now()) return;
+
     const attempts = Number(current.attempts || 0) + 1;
 
     if (attempts >= MAX_LOCAL_ATTEMPTS) {
@@ -52,31 +63,27 @@ export const Login = () => {
       return;
     }
 
-    setLoginGuard({ ...current, attempts, lockedUntil: 0 });
-  };
-
-  const clearGuard = () => {
-    localStorage.removeItem('fzac_login_guard');
+    setLoginGuard({ attempts, lockedUntil: 0 });
   };
 
   const validateClientSide = ({ email, password }) => {
-    if (form.website) {
-      setErr('No pudimos validar el acceso. Intentá nuevamente.');
+    if (form.company) {
+      setErr('No pudimos validar el acceso. Intenta nuevamente.');
       return false;
     }
 
     if (Date.now() - startedAt < 650) {
-      setErr('Esperá un segundo y volvé a intentar.');
+      setErr('Espera un segundo y volve a intentar.');
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErr('Ingresá un email válido.');
+      setErr('Ingresa un email valido.');
       return false;
     }
 
     if (password.length < 8) {
-      setErr('La contraseña debe tener al menos 8 caracteres.');
+      setErr('La contrasena debe tener al menos 8 caracteres.');
       return false;
     }
 
@@ -93,7 +100,7 @@ export const Login = () => {
     setErr('');
 
     if (isLocallyLocked) {
-      setErr('Por seguridad, espera un minuto antes de volver a intentar.');
+      setErr('Demasiados intentos. Espera unos minutos y volve a probar.');
       return;
     }
 
@@ -105,17 +112,14 @@ export const Login = () => {
     setSubmitting(true);
 
     try {
-      await login({
-        email,
-        password,
-        website: form.website,
-        clientStartedAt: startedAt
-      });
+      const payload = { email, password, clientStartedAt: startedAt };
+      if (form.company) payload.company = form.company;
 
+      await login(payload);
       clearGuard();
       navigate(location.state?.from || '/cuenta', { replace: true });
     } catch (error) {
-      registerFailedAttempt();
+      if (error.status === 401) registerFailedAttempt();
       setErr(getFriendlyApiError(error));
     } finally {
       setSubmitting(false);
@@ -126,14 +130,14 @@ export const Login = () => {
     setErr('');
 
     if (!isSupabaseAuthEnabled) {
-      setErr('Google todavía no está configurado para este entorno. Podés ingresar con email y contraseña.');
+      setErr('Google todavia no esta configurado para este entorno. Podes ingresar con email y contrasena.');
       return;
     }
 
     try {
       await signInWithGoogle();
     } catch (error) {
-      setErr(error.message || 'No pudimos iniciar sesión con Google.');
+      setErr(error.message || 'No pudimos iniciar sesion con Google.');
     }
   };
 
@@ -143,17 +147,17 @@ export const Login = () => {
         <span className="kicker">Cliente FZAC</span>
         <h1>Ingresar</h1>
         <p className="auth-copy">
-          Accedé a tu cuenta para consultar pedidos, guardar tus datos de compra y continuar operaciones de forma segura.
+          Accede a tu cuenta para consultar pedidos, guardar tus datos de compra y continuar operaciones de forma segura.
         </p>
 
         <input
           className="auth-honeypot"
           type="text"
-          name="website"
-          value={form.website}
-          onChange={(event) => update('website', event.target.value)}
+          name="company-confirmation"
+          value={form.company}
+          onChange={(event) => update('company', event.target.value)}
           tabIndex="-1"
-          autoComplete="off"
+          autoComplete="new-password"
           aria-hidden="true"
         />
 
@@ -163,10 +167,10 @@ export const Login = () => {
         </button>
 
         {!isSupabaseAuthEnabled && (
-          <small className="auth-hint">Google se activa desde la configuración de Supabase. Mientras tanto, usá acceso por email.</small>
+          <small className="auth-hint">Google se activa desde la configuracion de Supabase. Mientras tanto, usa acceso por email.</small>
         )}
 
-        <div className="auth-divider"><span>o ingresá con email</span></div>
+        <div className="auth-divider"><span>o ingresa con email</span></div>
 
         <input
           type="email"
@@ -181,7 +185,7 @@ export const Login = () => {
           type="password"
           value={form.password}
           onChange={(event) => update('password', event.target.value)}
-          placeholder="Contraseña"
+          placeholder="Contrasena"
           autoComplete="current-password"
           required
         />
@@ -193,7 +197,7 @@ export const Login = () => {
           {submitting ? 'Ingresando...' : 'Ingresar'}
         </button>
 
-        <p className="auth-bottom-text">¿No tenés cuenta? <Link to="/registro">Crear cuenta</Link></p>
+        <p className="auth-bottom-text">No tenes cuenta? <Link to="/registro">Crear cuenta</Link></p>
       </form>
     </main>
   );

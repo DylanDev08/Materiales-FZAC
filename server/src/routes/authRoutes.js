@@ -53,6 +53,11 @@ const refreshCookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
+const clearRefreshCookies = (res) => {
+  res.clearCookie('refreshToken', refreshCookieOptions);
+  res.clearCookie('fzac_refresh_token', refreshCookieOptions);
+};
+
 const persistSession = async (user, res) => {
   const accessToken = createAccessToken(user);
   const refreshToken = createRefreshToken(user);
@@ -62,6 +67,7 @@ const persistSession = async (user, res) => {
     data: { refreshToken, lastLoginAt: new Date() }
   });
 
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
   res.cookie('fzac_refresh_token', refreshToken, refreshCookieOptions);
 
   return {
@@ -155,14 +161,14 @@ authRoutes.post(
         success: false,
         message: user?.authProvider === 'GOOGLE'
           ? 'Esta cuenta usa acceso con Google'
-          : 'Credenciales inválidas'
+          : 'Email o contrasena incorrectos.'
       });
     }
 
     const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
+      return res.status(401).json({ success: false, message: 'Email o contrasena incorrectos.' });
     }
 
     const session = await persistSession(user, res);
@@ -232,7 +238,10 @@ authRoutes.post(
   '/refresh',
   authRateLimit,
   asyncRoute(async (req, res) => {
-    const refreshToken = req.cookies?.fzac_refresh_token || req.body?.refreshToken;
+    const refreshToken =
+      req.cookies?.refreshToken ||
+      req.cookies?.fzac_refresh_token ||
+      req.body?.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({ success: false, message: 'Refresh token requerido' });
@@ -273,7 +282,7 @@ authRoutes.post(
       data: { refreshToken: null }
     });
 
-    res.clearCookie('fzac_refresh_token', refreshCookieOptions);
+    clearRefreshCookies(res);
     res.json({ success: true, message: 'Sesión cerrada correctamente' });
   })
 );

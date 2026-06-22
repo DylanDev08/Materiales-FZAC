@@ -120,12 +120,22 @@ SEED_CLIENT_PASSWORD=
 ## Base de datos
 
 ```bash
-npm run prisma:generate
-npm run db:migrate
-npm run db:seed
+npm run prisma:generate --prefix server
+npm run prisma:migrate --prefix server
+npm run seed --prefix server
 ```
 
 El seed crea datos de ejemplo. Las credenciales iniciales deben definirse mediante `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_CLIENT_EMAIL` y `SEED_CLIENT_PASSWORD`. En produccion no se deben usar contrasenas de desarrollo.
+
+Para actualizar o crear el admin sin resetear la base:
+
+```powershell
+$env:SEED_ADMIN_EMAIL="dylansalcedo333@gmail.com"
+$env:SEED_ADMIN_PASSWORD="tu-password-local"
+npm run reset:admin --prefix server
+```
+
+El script solo actualiza ese usuario y no borra productos, pedidos ni clientes.
 
 ## Ejecutar localmente
 
@@ -214,6 +224,7 @@ npm run start
 ### Troubleshooting
 
 - EPERM Prisma Windows: cerrar procesos Node abiertos y ejecutar `npm run prisma:generate` manualmente.
+- Puerto 4000 ocupado: cerrar el proceso Node que lo usa o iniciar con otro puerto: `$env:PORT=4001; npm run dev --prefix server`.
 - Vercel detecta otro framework: usar `client` como Root Directory.
 - API no responde en produccion: verificar que `VITE_API_URL` sea publica y termine en `/api`.
 - PostgreSQL enum/migraciones: usar `prisma migrate deploy`; no usar `migrate reset` en produccion.

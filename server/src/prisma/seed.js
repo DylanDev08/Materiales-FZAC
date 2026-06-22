@@ -7,13 +7,13 @@ import { toSlug } from '../utils/slug.js';
 const prisma = new PrismaClient();
 const image = (id) => `https://images.unsplash.com/${id}?auto=format&fm=webp&fit=crop&w=1400&q=86`;
 const isProduction = process.env.NODE_ENV === 'production';
-const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@materialesfzac.local';
-const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || (isProduction ? '' : 'dev-admin-change-me-2026');
+const seedAdminEmail = (process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'dylansalcedo333@gmail.com').trim().toLowerCase();
+const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '';
 const seedClientEmail = process.env.SEED_CLIENT_EMAIL || 'cliente@materialesfzac.local';
 const seedClientPassword = process.env.SEED_CLIENT_PASSWORD || (isProduction ? '' : 'dev-client-change-me-2026');
 
-if (isProduction && (!seedAdminPassword || !seedClientPassword)) {
-  throw new Error('SEED_ADMIN_PASSWORD y SEED_CLIENT_PASSWORD son requeridas para ejecutar seed en produccion');
+if (!seedAdminPassword || (isProduction && !seedClientPassword)) {
+  throw new Error('SEED_ADMIN_PASSWORD es requerida para ejecutar seed. En produccion tambien defini SEED_CLIENT_PASSWORD.');
 }
 
 const categories = [

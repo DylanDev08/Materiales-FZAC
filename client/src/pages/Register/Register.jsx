@@ -12,7 +12,7 @@ const hasSuspiciousContent = (value) => /(<script|javascript:|onerror=|onload=|\
 export const Register = () => {
   const { register } = useAuth();
   const nav = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', website: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', companyConfirmation: '' });
   const [startedAt] = useState(Date.now());
   const [err, setErr] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -23,13 +23,13 @@ export const Register = () => {
     event.preventDefault();
     setErr('');
 
-    if (form.website) {
-      setErr('No pudimos validar la solicitud. Intentá nuevamente.');
+    if (form.companyConfirmation) {
+      setErr('No pudimos validar la solicitud. Intenta nuevamente.');
       return;
     }
 
     if (Date.now() - startedAt < 650) {
-      setErr('Esperá un segundo y volvé a intentar.');
+      setErr('Espera un segundo y volve a intentar.');
       return;
     }
 
@@ -37,23 +37,21 @@ export const Register = () => {
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
       phone: form.phone.trim(),
-      password: form.password,
-      website: form.website,
-      clientStartedAt: startedAt
+      password: form.password
     };
 
     if (!payload.name || payload.name.length < 2) {
-      setErr('Ingresá tu nombre completo.');
+      setErr('Ingresa tu nombre completo.');
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-      setErr('Ingresá un email válido.');
+      setErr('Ingresa un email valido.');
       return;
     }
 
     if (payload.password.length < 8) {
-      setErr('La contraseña debe tener al menos 8 caracteres.');
+      setErr('La contrasena debe tener al menos 8 caracteres.');
       return;
     }
 
@@ -78,14 +76,14 @@ export const Register = () => {
     setErr('');
 
     if (!isSupabaseAuthEnabled) {
-      setErr('Google todavía no está configurado para este entorno. Podés crear tu cuenta con email.');
+      setErr('Google todavia no esta configurado para este entorno. Podes crear tu cuenta con email.');
       return;
     }
 
     try {
       await signInWithGoogle();
     } catch (error) {
-      setErr(error.message || 'No pudimos iniciar sesión con Google.');
+      setErr(error.message || 'No pudimos iniciar sesion con Google.');
     }
   };
 
@@ -99,11 +97,11 @@ export const Register = () => {
         <input
           className="auth-honeypot"
           type="text"
-          name="website"
-          value={form.website}
-          onChange={(event) => update('website', event.target.value)}
+          name="company-confirmation"
+          value={form.companyConfirmation}
+          onChange={(event) => update('companyConfirmation', event.target.value)}
           tabIndex="-1"
-          autoComplete="off"
+          autoComplete="new-password"
           aria-hidden="true"
         />
 
@@ -112,14 +110,14 @@ export const Register = () => {
           Registrarme con Google
         </button>
 
-        {!isSupabaseAuthEnabled && <small className="auth-hint">Google se activa desde la configuración de Supabase. Mientras tanto, usá registro por email.</small>}
+        {!isSupabaseAuthEnabled && <small className="auth-hint">Google se activa desde la configuracion de Supabase. Mientras tanto, usa registro por email.</small>}
 
-        <div className="auth-divider"><span>o creá una cuenta con email</span></div>
+        <div className="auth-divider"><span>o crea una cuenta con email</span></div>
 
         <input value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Nombre completo" autoComplete="name" required />
         <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="Email" autoComplete="email" required />
-        <input value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="Teléfono" autoComplete="tel" />
-        <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="Contraseña" autoComplete="new-password" required />
+        <input value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="Telefono" autoComplete="tel" />
+        <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="Contrasena" autoComplete="new-password" required />
 
         {err && <p className="error auth-error" role="alert">{err}</p>}
 
@@ -128,7 +126,7 @@ export const Register = () => {
           {submitting ? 'Creando cuenta...' : 'Crear cuenta'}
         </button>
 
-        <p className="auth-bottom-text">¿Ya tenés cuenta? <Link to="/login">Ingresar</Link></p>
+        <p className="auth-bottom-text">Ya tenes cuenta? <Link to="/login">Ingresar</Link></p>
       </form>
     </main>
   );

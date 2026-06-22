@@ -13,6 +13,7 @@
     "lint": "node --check src/server.js",
     "db": "node src/scripts/testDb.js",
     "db:test": "node src/scripts/testDb.js",
+    "reset:admin": "node src/scripts/resetAdminPassword.js",
     "setup": "npm install && npm run prisma:generate"
   },
   "dependencies": {
