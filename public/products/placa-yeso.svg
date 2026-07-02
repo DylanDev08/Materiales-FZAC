@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Placa de yeso">
+  <rect width="900" height="700" fill="#111"/>
+  <rect x="110" y="90" width="520" height="460" rx="12" fill="#ded7c7"/>
+  <path d="M160 135h420M160 195h420M160 255h420M160 315h420M160 375h420M160 435h420M160 495h420" stroke="#b8ad96" stroke-width="8"/>
+  <path d="M650 145l120 42v385l-120-42z" fill="#9a8f78"/>
+  <path d="M110 90l120 44h540l-120-44z" fill="#c8bea7"/>
+  <text x="110" y="635" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">PLACA DE YESO 12.5 MM</text>
+</svg>

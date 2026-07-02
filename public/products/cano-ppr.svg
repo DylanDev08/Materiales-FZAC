@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Cano PPR">
+  <rect width="900" height="700" fill="#101010"/>
+  <path d="M130 370c180-150 420-150 640 0" fill="none" stroke="#16834a" stroke-width="80" stroke-linecap="round"/>
+  <path d="M130 370c180-150 420-150 640 0" fill="none" stroke="#64c98f" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="135" cy="368" r="58" fill="#16834a"/>
+  <circle cx="135" cy="368" r="28" fill="#101010"/>
+  <circle cx="765" cy="368" r="58" fill="#16834a"/>
+  <circle cx="765" cy="368" r="28" fill="#101010"/>
+  <text x="180" y="640" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">CANO PPR 20 MM</text>
+</svg>

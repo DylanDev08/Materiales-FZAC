@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Balde de pintura latex">
+  <rect width="900" height="700" fill="#111"/>
+  <ellipse cx="450" cy="150" rx="210" ry="58" fill="#f4f1e7"/>
+  <path d="M240 150h420l-42 405c-6 56-331 56-337 0z" fill="#e9e4d4"/>
+  <ellipse cx="450" cy="555" rx="168" ry="48" fill="#c8bea8"/>
+  <rect x="300" y="250" width="300" height="160" rx="14" fill="#1f1f1f"/>
+  <text x="450" y="328" text-anchor="middle" fill="#f4c400" font-family="Arial, sans-serif" font-size="56" font-weight="900">20 L</text>
+  <text x="450" y="378" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="800">LATEX</text>
+  <text x="150" y="645" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">LATEX INTERIOR BLANCO</text>
+</svg>

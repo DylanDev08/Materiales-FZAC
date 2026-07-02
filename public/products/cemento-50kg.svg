@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Bolsa de cemento">
+  <rect width="900" height="700" fill="#101010"/>
+  <path d="M300 75h300l70 540H230z" fill="#d7d0bd"/>
+  <path d="M300 75h300l32 90H268z" fill="#b7ad97"/>
+  <rect x="278" y="215" width="344" height="170" rx="12" fill="#1f1f1f"/>
+  <text x="450" y="295" text-anchor="middle" fill="#f4c400" font-family="Arial, sans-serif" font-size="64" font-weight="900">50 KG</text>
+  <text x="450" y="350" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="800">CEMENTO</text>
+  <path d="M252 515h396" stroke="#9d927a" stroke-width="16"/>
+  <text x="130" y="650" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">CEMENTO PORTLAND</text>
+</svg>

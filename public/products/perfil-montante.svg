@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Perfil montante galvanizado">
+  <rect width="900" height="700" fill="#111"/>
+  <path d="M160 180h560v95H260v250H160z" fill="#bfc4c8"/>
+  <path d="M260 275h460v82H342v168h-82z" fill="#858c92"/>
+  <path d="M180 204h520" stroke="#e6eaed" stroke-width="20" opacity=".75"/>
+  <circle cx="315" cy="316" r="18" fill="#1f1f1f"/>
+  <circle cx="490" cy="316" r="18" fill="#1f1f1f"/>
+  <circle cx="665" cy="316" r="18" fill="#1f1f1f"/>
+  <text x="120" y="635" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">PERFIL MONTANTE 70 MM</text>
+</svg>

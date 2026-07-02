@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="Llave termica bipolar">
+  <rect width="900" height="700" fill="#101010"/>
+  <rect x="275" y="90" width="350" height="470" rx="28" fill="#f2f2ee"/>
+  <rect x="320" y="145" width="260" height="90" rx="14" fill="#1f1f1f"/>
+  <text x="450" y="205" text-anchor="middle" fill="#f4c400" font-family="Arial, sans-serif" font-size="44" font-weight="900">25A</text>
+  <rect x="335" y="285" width="95" height="180" rx="12" fill="#333"/>
+  <rect x="470" y="285" width="95" height="180" rx="12" fill="#333"/>
+  <path d="M350 325h65M485 325h65" stroke="#f4c400" stroke-width="12"/>
+  <text x="150" y="640" fill="#f4c400" font-family="Arial, sans-serif" font-size="42" font-weight="800">LLAVE TERMICA BIPOLAR</text>
+</svg>
