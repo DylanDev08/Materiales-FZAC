@@ -23,7 +23,7 @@ export function AccountShell({ profile, view = "inicio" }: { profile: SessionPro
           <Link className="quick-card" href="/cuenta/direcciones">
             <UserRound size={24} />
             <h3>Direcciones</h3>
-            <p>Datos de entrega y distancia a Rosario.</p>
+            <p>Datos de entrega para coordinar retiros o envios con FZAC.</p>
           </Link>
           <Link className="quick-card" href="/cuenta/conversaciones">
             <MessageCircle size={24} />

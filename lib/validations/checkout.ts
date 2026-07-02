@@ -32,10 +32,7 @@ export const checkoutSchema = z.object({
       city: safeString("Ciudad", 0, 80).optional(),
       province: safeString("Provincia", 0, 80).optional(),
       postalCode: safeString("Codigo postal", 0, 30).optional(),
-      notes: safeString("Notas de direccion", 0, 240).optional(),
-      distanceKm: z.coerce.number().optional(),
-      deliveryAvailable: z.boolean().optional(),
-      deliveryZoneSnapshot: z.string().optional()
+      notes: safeString("Notas de direccion", 0, 240).optional()
     })
     .nullable()
     .optional(),

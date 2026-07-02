@@ -181,15 +181,58 @@ export async function getProductSuggestions(query: string) {
   const search = sanitizeSearchTerm(query, 50);
   if (search.length < 2) return [];
 
-  const products = await getProducts({ search, limit: 8 });
+  const [products, categories] = await Promise.all([getProducts({ search, limit: 6 }), getCategories()]);
+  const normalized = search.toLowerCase();
+  const categorySuggestions = categories
+    .filter((category) =>
+      [category.name, category.slug, category.description].join(" ").toLowerCase().includes(normalized)
+    )
+    .slice(0, 3)
+    .map((category) => ({
+      type: "category" as const,
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description
+    }));
 
-  return products.slice(0, 8).map((product) => ({
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    sku: product.sku,
-    brand: product.brand,
-    price: product.price,
-    image_url: product.image_url
-  }));
+  const brandSuggestions = Array.from(new Set(products.map((product) => product.brand).filter(Boolean)))
+    .slice(0, 3)
+    .map((brand) => ({
+      type: "brand" as const,
+      id: `brand-${brand}`,
+      name: brand,
+      slug: brand
+    }));
+
+  const termSuggestions = [
+    { match: "cemento", name: "Cemento, cal, arena e hidrofugos" },
+    { match: "drywall", name: "Placas, perfiles, masilla y cinta" },
+    { match: "pintura", name: "Pinturas, impermeabilizantes y rodillos" },
+    { match: "electricidad", name: "Cables, cajas, canos y termicas" }
+  ]
+    .filter((term) => term.match.includes(normalized) || term.name.toLowerCase().includes(normalized))
+    .slice(0, 2)
+    .map((term) => ({
+      type: "term" as const,
+      id: `term-${term.match}`,
+      name: term.name,
+      slug: term.match
+    }));
+
+  return [
+    ...products.slice(0, 6).map((product) => ({
+      type: "product" as const,
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      sku: product.sku,
+      brand: product.brand,
+      price: product.price,
+      image_url: product.image_url
+    })),
+    ...categorySuggestions,
+    ...brandSuggestions,
+    ...termSuggestions
+  ].slice(0, 10);
 }

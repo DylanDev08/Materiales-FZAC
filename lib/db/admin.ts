@@ -185,7 +185,7 @@ export async function getAdminCustomerRows() {
       .select("id,user_id,customer_email,status,total,shipping_method,address_snapshot,created_at")
       .order("created_at", { ascending: false })
       .limit(1000),
-    admin.from("addresses").select("user_id,street,number,city,distance_km,delivery_available").limit(1000),
+    admin.from("addresses").select("user_id,street,number,city,province,postal_code").limit(1000),
     admin.from("chat_conversations").select("user_id,status").limit(1000)
   ]);
 
@@ -210,7 +210,7 @@ export async function getAdminCustomerRows() {
       TotalGastado: currency(totalSpent),
       Pedidos: profileOrders.length,
       Direccion: address ? `${address.street} ${address.number}, ${address.city}` : "-",
-      Distancia: address?.distance_km ? `${address.distance_km} km` : "-",
+      Provincia: address?.province ?? "-",
       Entrega: lastOrder?.status ?? "-",
       Chats: openChats
     };

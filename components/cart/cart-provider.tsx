@@ -22,7 +22,7 @@ function sanitize(items: CartLine[]) {
     .filter((item) => item.product?.id && item.quantity > 0)
     .map((item) => ({
       ...item,
-      quantity: Math.min(999, Math.max(1, Number(item.quantity)))
+      quantity: Math.min(item.product.stock || 999, Math.max(1, Number(item.quantity)))
     }));
 }
 

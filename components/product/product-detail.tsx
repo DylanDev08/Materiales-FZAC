@@ -44,7 +44,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
           </article>
           <article>
             <h2>Entrega y retiro</h2>
-            <p>Retiro coordinado en FZAC o envio dentro de la zona validada hasta 30 km desde Rosario.</p>
+            <p>Retiro coordinado en FZAC o envio a domicilio acordado por administracion segun direccion y disponibilidad.</p>
           </article>
         </section>
 

@@ -79,9 +79,6 @@ create table if not exists public.addresses (
   province text not null default 'Santa Fe',
   postal_code text,
   notes text,
-  distance_km numeric(8,2),
-  delivery_available boolean,
-  delivery_zone_snapshot text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -110,9 +107,6 @@ create table if not exists public.orders (
   subtotal numeric(12,2) not null,
   total numeric(12,2) not null,
   address_snapshot jsonb,
-  distance_km numeric(8,2),
-  delivery_available boolean,
-  delivery_zone_snapshot text,
   notes text,
   paid_at timestamptz,
   created_at timestamptz not null default now(),

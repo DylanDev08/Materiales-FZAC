@@ -28,7 +28,7 @@ export async function HomePage() {
       <section className="home-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
           <span>
-            <Truck size={18} /> Envios hasta 30 km
+            <Truck size={18} /> Envios coordinados
           </span>
           <span>
             <Package size={18} /> Retiro coordinado
@@ -61,8 +61,8 @@ export async function HomePage() {
             </div>
             <div className="hero-stats" aria-label="Indicadores FZAC">
               <span>
-                <strong>30 km</strong>
-                cobertura de envio
+                <strong>FZAC</strong>
+                logistica coordinada
               </span>
               <span>
                 <strong>24/7</strong>
@@ -209,7 +209,7 @@ export async function HomePage() {
           <article className="benefit-card">
             <Truck size={24} />
             <h3>Envio FZAC</h3>
-            <p>Google Maps se usa server-side para validar distancia desde Rosario.</p>
+            <p>La entrega se coordina con datos de direccion, telefono y disponibilidad operativa.</p>
           </article>
           <article className="benefit-card">
             <BadgeCheck size={24} />

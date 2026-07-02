@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Zap } from "lucide-react";
+import { CheckCircle, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import type { Product } from "@/types/domain";
@@ -10,7 +10,20 @@ import type { Product } from "@/types/domain";
 export function ProductBuyBox({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
+  const maxQuantity = Math.max(1, product.stock);
+  const subtotal = product.price * quantity;
+
+  function setSafeQuantity(next: number) {
+    setQuantity(Math.min(maxQuantity, Math.max(1, Number.isFinite(next) ? next : 1)));
+    setAdded(false);
+  }
+
+  function addToCart() {
+    addItem(product, quantity);
+    setAdded(true);
+  }
 
   return (
     <aside className="product-buybox">
@@ -31,21 +44,51 @@ export function ProductBuyBox({ product }: { product: Product }) {
       </span>
 
       <div className="product-actions">
-        <input
-          aria-label="Cantidad"
-          min={1}
-          max={product.stock}
-          type="number"
-          value={quantity}
-          onChange={(event) => setQuantity(Number(event.target.value))}
-        />
-        <button className="btn" type="button" disabled={product.stock <= 0} onClick={() => addItem(product, quantity)}>
+        <div className="quantity-stepper" aria-label="Cantidad">
+          <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1}>
+            <Minus size={16} />
+          </button>
+          <input
+            aria-label="Cantidad"
+            min={1}
+            max={product.stock}
+            type="number"
+            value={quantity}
+            onChange={(event) => setSafeQuantity(Number(event.target.value))}
+          />
+          <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity}>
+            <Plus size={16} />
+          </button>
+        </div>
+        <button className="btn" type="button" disabled={product.stock <= 0} onClick={addToCart}>
           <ShoppingCart size={18} />
           Agregar al carrito
         </button>
       </div>
 
-      <Link className="btn btn--ghost" href="/checkout" onClick={() => addItem(product, quantity)}>
+      <p className="product-subtotal">
+        Total estimado <strong>{currency(subtotal)}</strong>
+      </p>
+
+      {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estas seleccionando el maximo disponible.</p> : null}
+
+      {added ? (
+        <div className="notice notice--success product-added">
+          <strong>
+            <CheckCircle size={18} /> Tu producto fue agregado
+          </strong>
+          <div>
+            <Link className="btn" href="/carrito">
+              Ver carrito
+            </Link>
+            <Link className="btn btn--ghost" href="/productos">
+              Seguir comprando
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <Link className="btn btn--ghost" href="/checkout" onClick={addToCart}>
         <Zap size={18} />
         Comprar ahora
       </Link>

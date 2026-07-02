@@ -22,8 +22,8 @@ export default function Page() {
           </p>
           <h2>Entrega y retiro</h2>
           <p>
-            El envio se valida por distancia desde Rosario hasta 30 km. Si la direccion queda fuera de zona, el cliente
-            puede elegir retiro o coordinar una entrega especial con FZAC.
+            El envio se coordina administrativamente con los datos de direccion y telefono cargados por el cliente.
+            FZAC puede confirmar retiro, entrega a domicilio o una coordinacion especial antes de cerrar la operacion.
           </p>
           <h2>Tickets</h2>
           <p>

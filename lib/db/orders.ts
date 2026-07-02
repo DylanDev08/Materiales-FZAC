@@ -10,7 +10,6 @@ import type { PaymentProvider, Product } from "@/types/domain";
 
 function shippingCost(input: CheckoutInput) {
   if (input.shippingMethod !== "DELIVERY") return 0;
-  if (input.address?.deliveryAvailable === false) return 0;
   return 6500;
 }
 

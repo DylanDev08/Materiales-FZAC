@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
@@ -7,7 +8,8 @@ import { useCart } from "@/components/cart/cart-provider";
 import { currency } from "@/lib/formatters/currency";
 
 export function CartPage() {
-  const { items, subtotal, updateQuantity, removeItem } = useCart();
+  const { items, subtotal, updateQuantity, removeItem, clearCart } = useCart();
+  const [message, setMessage] = useState("");
 
   if (!items.length) {
     return (
@@ -48,14 +50,37 @@ export function CartPage() {
                     {item.product.sku} · {currency(item.product.price)} por {item.product.unit}
                   </p>
                   <div className="quantity-control" aria-label={`Cantidad de ${item.product.name}`}>
-                    <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateQuantity(item.productId, item.quantity - 1);
+                        setMessage(item.quantity <= 1 ? "Producto eliminado." : "Producto actualizado.");
+                      }}
+                    >
                       <Minus size={15} />
                     </button>
                     <strong>{item.quantity}</strong>
-                    <button type="button" onClick={() => updateQuantity(item.productId, item.quantity + 1)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (item.quantity >= item.product.stock) {
+                          setMessage("Stock insuficiente para sumar mas unidades.");
+                          return;
+                        }
+                        updateQuantity(item.productId, item.quantity + 1);
+                        setMessage("Producto actualizado.");
+                      }}
+                    >
                       <Plus size={15} />
                     </button>
-                    <button type="button" onClick={() => removeItem(item.productId)} aria-label="Eliminar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeItem(item.productId);
+                        setMessage("Producto eliminado.");
+                      }}
+                      aria-label="Eliminar"
+                    >
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -63,6 +88,7 @@ export function CartPage() {
                 <strong>{currency(item.product.price * item.quantity)}</strong>
               </article>
             ))}
+            {message ? <p className="notice notice--success">{message}</p> : null}
           </section>
 
           <aside className="checkout-summary">
@@ -81,6 +107,19 @@ export function CartPage() {
             </div>
             <Link className="btn" href="/checkout">
               Continuar al checkout
+            </Link>
+            <button
+              className="btn btn--ghost"
+              type="button"
+              onClick={() => {
+                clearCart();
+                setMessage("Carrito vacio.");
+              }}
+            >
+              Vaciar carrito
+            </button>
+            <Link className="btn btn--ghost" href="/productos">
+              Continuar comprando
             </Link>
           </aside>
         </div>

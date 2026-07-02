@@ -2,23 +2,44 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Clock, Grid3X3, Search, Tag } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { currency } from "@/lib/formatters/currency";
 
-type Suggestion = {
-  id: string;
-  name: string;
-  slug: string;
-  sku: string;
-  brand: string;
-  price: number;
-  image_url: string;
-};
+type Suggestion =
+  | {
+      type: "product";
+      id: string;
+      name: string;
+      slug: string;
+      sku: string;
+      brand: string;
+      price: number;
+      image_url: string;
+    }
+  | { type: "category"; id: string; name: string; slug: string; description?: string }
+  | { type: "brand" | "term"; id: string; name: string; slug: string };
+
+const RECENT_KEY = "fzac-search-recent-v1";
+
+function suggestionHref(suggestion: Suggestion) {
+  if (suggestion.type === "product") return `/producto/${suggestion.slug}`;
+  if (suggestion.type === "category") return `/categoria/${suggestion.slug}`;
+  if (suggestion.type === "brand") return `/productos?brand=${encodeURIComponent(suggestion.name)}`;
+  return `/productos?search=${encodeURIComponent(suggestion.slug)}`;
+}
 
 export function SearchSuggest() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [recent, setRecent] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem(RECENT_KEY) || "[]") as string[];
+    } catch {
+      return [];
+    }
+  });
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -43,7 +64,7 @@ export function SearchSuggest() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 180);
+    }, 300);
 
     return () => {
       controller.abort();
@@ -60,10 +81,19 @@ export function SearchSuggest() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
+  function remember(term: string) {
+    const clean = term.trim();
+    if (!clean) return;
+    const next = [clean, ...recent.filter((item) => item.toLowerCase() !== clean.toLowerCase())].slice(0, 6);
+    setRecent(next);
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const target = query.trim() ? `/productos?search=${encodeURIComponent(query.trim())}` : "/productos";
-    window.location.assign(target);
+    const clean = query.trim();
+    remember(clean);
+    window.location.assign(clean ? `/productos?search=${encodeURIComponent(clean)}` : "/productos");
   }
 
   return (
@@ -80,12 +110,10 @@ export function SearchSuggest() {
           onChange={(event) => {
             const next = event.target.value;
             setQuery(next);
-            if (next.trim().length < 2) {
-              setSuggestions([]);
-              setOpen(false);
-            }
+            if (next.trim().length < 2) setSuggestions([]);
+            setOpen(next.trim().length >= 2 || recent.length > 0);
           }}
-          onFocus={() => setOpen(suggestions.length > 0)}
+          onFocus={() => setOpen(query.trim().length >= 2 || recent.length > 0)}
           placeholder="Buscar cemento, placas, perfiles, pintura..."
         />
         <button type="submit" aria-label="Buscar">
@@ -95,20 +123,68 @@ export function SearchSuggest() {
 
       {open ? (
         <div className="search-suggest__panel">
-          {loading ? <span className="search-suggest__status">Buscando...</span> : null}
-          {!loading && suggestions.length === 0 ? <span className="search-suggest__status">Sin sugerencias</span> : null}
-          {suggestions.map((product) => (
-            <Link className="search-suggest__item" href={`/producto/${product.slug}`} key={product.id} onClick={() => setOpen(false)}>
-              <span className="search-suggest__image">
-                <Image src={product.image_url} alt={product.name} width={48} height={48} />
-              </span>
+          {query.trim().length < 2 && recent.length ? (
+            <div className="search-suggest__group">
+              <span className="search-suggest__status">Busquedas recientes</span>
+              {recent.map((term) => (
+                <Link
+                  className="search-suggest__item search-suggest__item--compact"
+                  href={`/productos?search=${encodeURIComponent(term)}`}
+                  key={term}
+                  onClick={() => {
+                    remember(term);
+                    setOpen(false);
+                  }}
+                >
+                  <Clock size={18} />
+                  <strong>{term}</strong>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="search-skeleton" aria-label="Cargando sugerencias">
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : null}
+          {!loading && query.trim().length >= 2 && suggestions.length === 0 ? (
+            <span className="search-suggest__status">No encontramos resultados</span>
+          ) : null}
+          {suggestions.map((suggestion) => (
+            <Link
+              className="search-suggest__item"
+              href={suggestionHref(suggestion)}
+              key={`${suggestion.type}-${suggestion.id}`}
+              onClick={() => {
+                remember(suggestion.name);
+                setOpen(false);
+              }}
+            >
+              {suggestion.type === "product" ? (
+                <span className="search-suggest__image">
+                  <Image src={suggestion.image_url} alt={suggestion.name} width={48} height={48} />
+                </span>
+              ) : (
+                <span className="search-suggest__icon">
+                  {suggestion.type === "category" ? <Grid3X3 size={20} /> : <Tag size={20} />}
+                </span>
+              )}
               <span>
-                <strong>{product.name}</strong>
+                <strong>{suggestion.name}</strong>
                 <small>
-                  {product.brand} · {product.sku}
+                  {suggestion.type === "product"
+                    ? `${suggestion.brand} - ${suggestion.sku}`
+                    : suggestion.type === "category"
+                      ? "Categoria"
+                      : suggestion.type === "brand"
+                        ? "Marca"
+                        : "Busqueda sugerida"}
                 </small>
               </span>
-              <b>{currency(product.price)}</b>
+              {suggestion.type === "product" ? <b>{currency(suggestion.price)}</b> : null}
             </Link>
           ))}
         </div>

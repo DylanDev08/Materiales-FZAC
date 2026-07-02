@@ -63,9 +63,6 @@ export type AddressPayload = {
   province?: string;
   postalCode?: string;
   notes?: string;
-  distanceKm?: number;
-  deliveryAvailable?: boolean;
-  deliveryZoneSnapshot?: string;
 };
 
 export type CheckoutPayload = {

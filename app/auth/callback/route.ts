@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getUserProfile } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/utils/env";
 
@@ -12,5 +13,7 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL(next, getSiteUrl()));
+  const profile = await getUserProfile();
+  const target = profile?.role === "ADMIN" ? "/admin" : next;
+  return NextResponse.redirect(new URL(target, getSiteUrl()));
 }

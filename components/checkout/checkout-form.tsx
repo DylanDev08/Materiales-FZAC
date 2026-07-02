@@ -2,17 +2,11 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
-import { Banknote, CheckCircle, CreditCard, Loader2, MapPin, Package, ShieldCheck, Truck, UserRound } from "lucide-react";
+import { Banknote, CheckCircle, CreditCard, Loader2, MessageCircle, Package, ShieldCheck, Truck, UserRound } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency } from "@/lib/formatters/currency";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
-
-type DistanceState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ok"; distanceKm: number; deliveryAvailable: boolean; zoneSnapshot: string }
-  | { status: "error"; message: string };
 
 export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   const { items, subtotal, clearCart } = useCart();
@@ -33,53 +27,20 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   });
   const [notes, setNotes] = useState("");
   const [accepted, setAccepted] = useState(false);
-  const [distance, setDistance] = useState<DistanceState>({ status: "idle" });
   const [loading, setLoading] = useState(false);
   const [simulated, setSimulated] = useState<{ orderId: string } | null>(null);
   const [error, setError] = useState("");
 
-  const shippingCost =
-    shippingMethod === "DELIVERY" && distance.status === "ok" && distance.deliveryAvailable ? 6500 : 0;
+  const shippingCost = shippingMethod === "DELIVERY" ? 6500 : 0;
   const total = subtotal + shippingCost;
 
   const canSubmit = useMemo(() => {
     if (!items.length || !accepted || !customer.name || !customer.email || !customer.phone) return false;
     if (shippingMethod === "DELIVERY") {
-      return Boolean(address.street && address.number && address.city && distance.status === "ok");
+      return Boolean(address.street && address.number && address.city && address.province);
     }
     return true;
-  }, [items.length, accepted, customer, shippingMethod, address, distance.status]);
-
-  async function calculateDistance() {
-    setDistance({ status: "loading" });
-    setError("");
-
-    try {
-      const response = await fetch("/api/maps/distance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: `${address.street} ${address.number}, ${address.city}, ${address.province}` })
-      });
-      const data = (await response.json()) as {
-        distanceKm?: number;
-        deliveryAvailable?: boolean;
-        zoneSnapshot?: string;
-        message?: string;
-      };
-      if (!response.ok) throw new Error(data.message || "No pudimos calcular la distancia.");
-      setDistance({
-        status: "ok",
-        distanceKm: Number(data.distanceKm),
-        deliveryAvailable: Boolean(data.deliveryAvailable),
-        zoneSnapshot: String(data.zoneSnapshot)
-      });
-    } catch (distanceError) {
-      setDistance({
-        status: "error",
-        message: distanceError instanceof Error ? distanceError.message : "No pudimos calcular la distancia."
-      });
-    }
-  }
+  }, [items.length, accepted, customer, shippingMethod, address]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,12 +59,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           shippingMethod,
           address:
             shippingMethod === "DELIVERY"
-              ? {
-                  ...address,
-                  distanceKm: distance.status === "ok" ? distance.distanceKm : undefined,
-                  deliveryAvailable: distance.status === "ok" ? distance.deliveryAvailable : undefined,
-                  deliveryZoneSnapshot: distance.status === "ok" ? distance.zoneSnapshot : undefined
-                }
+              ? address
               : null,
           notes
         })
@@ -180,7 +136,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
         <div className="checkout-progress">
           <span className="active">1. Datos</span>
           <span className={customer.name && customer.email ? "active" : ""}>2. Entrega</span>
-          <span className={shippingMethod === "PICKUP" || distance.status === "ok" ? "active" : ""}>3. Zona</span>
+          <span className={shippingMethod === "PICKUP" || address.street ? "active" : ""}>3. Datos de envio</span>
           <span className={accepted ? "active" : ""}>4. Pago</span>
           <span>5. Confirmacion</span>
         </div>
@@ -220,9 +176,17 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                 <button type="button" className="method-button" aria-pressed={shippingMethod === "DELIVERY"} onClick={() => setShippingMethod("DELIVERY")}>
                   <Truck size={20} />
                   <strong>Envio FZAC</strong>
-                  <span>Disponible hasta 30 km desde Rosario.</span>
+                  <span>Entrega coordinada por administracion segun direccion y disponibilidad.</span>
                 </button>
+                <a className="method-button" href="https://wa.me/5493415847000?text=Hola%20FZAC,%20quiero%20coordinar%20un%20envio" target="_blank" rel="noreferrer">
+                  <MessageCircle size={20} />
+                  <strong>Coordinar por WhatsApp</strong>
+                  <span>Para pedidos especiales o dudas antes de pagar.</span>
+                </a>
               </div>
+              <p className="notice" style={{ marginTop: 12 }}>
+                La direccion se toma como dato operativo y FZAC coordina la entrega o retiro al confirmar la orden.
+              </p>
 
               {shippingMethod === "DELIVERY" ? (
                 <>
@@ -252,16 +216,6 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                       <input value={address.postalCode} onChange={(event) => setAddress({ ...address, postalCode: event.target.value })} />
                     </label>
                   </div>
-                  <button className="btn btn--ghost" type="button" onClick={calculateDistance} style={{ marginTop: 12 }} disabled={distance.status === "loading"}>
-                    {distance.status === "loading" ? <Loader2 size={18} /> : <MapPin size={18} />}
-                    Calcular distancia
-                  </button>
-                  {distance.status === "ok" ? (
-                    <p className={distance.deliveryAvailable ? "notice notice--success" : "notice notice--danger"}>
-                      {distance.distanceKm} km. {distance.zoneSnapshot}
-                    </p>
-                  ) : null}
-                  {distance.status === "error" ? <p className="notice notice--danger">{distance.message}</p> : null}
                 </>
               ) : null}
             </section>

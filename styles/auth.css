@@ -14,6 +14,10 @@
   box-shadow: var(--shadow-soft);
 }
 
+.auth-logo {
+  margin-bottom: 12px;
+}
+
 .auth-panel h1 {
   margin: 10px 0;
 }
@@ -31,4 +35,63 @@
 
 .auth-panel .btn {
   width: 100%;
+}
+
+.auth-hp {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-inline {
+  margin: -4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+}
+
+.password-checklist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.password-checklist span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  padding: 0 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.password-checklist span.is-ok {
+  border-color: rgba(22, 131, 74, 0.42);
+  color: #74d7a3;
+}
+
+.auth-terms span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.auth-link-button {
+  border: 0;
+  background: transparent;
+  color: var(--color-yellow);
+  padding: 12px 0 0;
+  font-weight: 850;
+}
+
+@media (max-width: 520px) {
+  .password-checklist {
+    grid-template-columns: 1fr;
+  }
 }

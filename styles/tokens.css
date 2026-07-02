@@ -15,4 +15,17 @@
   --radius: 8px;
   --radius-sm: 6px;
   --container: 1180px;
+  --fzac-black: var(--color-black);
+  --fzac-black-2: var(--color-black-2);
+  --fzac-panel: var(--color-panel);
+  --fzac-panel-2: #262626;
+  --fzac-yellow: var(--color-yellow);
+  --fzac-yellow-hover: var(--color-yellow-hover);
+  --fzac-white: var(--color-white);
+  --fzac-muted: var(--color-muted);
+  --fzac-muted-2: #8c8c8c;
+  --fzac-border: var(--color-yellow-border);
+  --fzac-border-soft: var(--color-border);
+  --fzac-success: var(--color-green);
+  --fzac-danger: var(--color-red);
 }

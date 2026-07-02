@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { UserRound, ShieldCheck } from "lucide-react";
+import { Menu, ShieldCheck, UserRound } from "lucide-react";
 import { CartStatus } from "@/components/layout/cart-status";
 import { SearchSuggest } from "@/components/layout/search-suggest";
 import { getUserProfile } from "@/lib/auth/get-user";
@@ -14,7 +14,7 @@ export async function SiteHeader() {
       <div className="topbar">
         <div className="container topbar__inner">
           <span>Fortaleza Construcciones Rosario</span>
-          <span>Envios hasta 30 km, retiro coordinado y pagos online.</span>
+          <span>Envios coordinados, retiro acordado y pagos online.</span>
         </div>
       </div>
 
@@ -42,13 +42,36 @@ export async function SiteHeader() {
               <UserRound size={20} />
             </Link>
             <CartStatus />
+            <details className="mobile-menu">
+              <summary aria-label="Abrir menu">
+                <Menu size={20} />
+              </summary>
+              <div>
+                <Link href="/">Inicio</Link>
+                <Link href="/productos">Productos</Link>
+                <Link href="/categorias">Categorias</Link>
+                <Link href="/ofertas">Ofertas</Link>
+                <Link href="/como-comprar">Como comprar</Link>
+                <Link href="/contacto">Contacto</Link>
+                {categories.slice(0, 8).map((category) => (
+                  <Link key={category.id} href={`/categoria/${category.slug}`}>
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
 
         <nav className="category-nav" aria-label="Categorias principales">
           <div className="container category-nav__inner">
+            <Link href="/">Inicio</Link>
+            <Link href="/productos">Productos</Link>
+            <Link href="/categorias">Categorias</Link>
             <Link href="/catalogo">Catalogo</Link>
             <Link href="/ofertas">Ofertas</Link>
+            <Link href="/como-comprar">Como comprar</Link>
+            <Link href="/contacto">Contacto</Link>
             {categories.slice(0, 8).map((category) => (
               <Link key={category.id} href={`/categoria/${category.slug}`}>
                 {category.name}
