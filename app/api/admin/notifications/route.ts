@@ -13,7 +13,7 @@ export async function GET() {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const { data, error } = await admin
     .from("notifications")
@@ -31,7 +31,7 @@ export async function PATCH(request: Request) {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const payload = patchSchema.parse(await request.json());
   const update = { read: true, read_at: new Date().toISOString() };

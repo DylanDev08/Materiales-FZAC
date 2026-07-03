@@ -24,13 +24,6 @@ export function SiteFooter() {
             E-commerce de materiales para obra, mantenimiento y construccion en Rosario. Compra online,
             pago seguro y coordinacion comercial.
           </p>
-          <div className="footer-payment-badges" aria-label="Medios de pago">
-            <span>VISA</span>
-            <span>MC</span>
-            <span>AMEX</span>
-            <span>MP</span>
-            <span>TRANSF.</span>
-          </div>
         </div>
 
         <div>
@@ -69,7 +62,7 @@ export function SiteFooter() {
       </div>
 
       <div className="site-footer__bottom">
-        <div className="container">Materiales FZAC. Pagos confirmados por backend y stock descontado solo con pago aprobado.</div>
+        <div className="container">Materiales FZAC. Pagos confirmados por proveedor seguro y stock descontado solo con pago aprobado.</div>
       </div>
     </footer>
   );

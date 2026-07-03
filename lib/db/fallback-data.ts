@@ -1,4 +1,5 @@
 import type { Category, Product } from "@/types/domain";
+import { resolveProductImageUrl } from "@/lib/products/images";
 
 export const fallbackCategories: Category[] = [
   {
@@ -188,5 +189,6 @@ const fallbackProductRows: Array<Omit<Product, "category">> = [
 
 export const fallbackProducts: Product[] = fallbackProductRows.map((product) => ({
   ...product,
+  image_url: resolveProductImageUrl(product),
   category: fallbackCategories.find((category) => category.id === product.category_id) ?? null
 }));

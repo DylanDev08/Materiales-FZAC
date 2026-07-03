@@ -364,14 +364,16 @@
 }
 
 .deal-card {
-  min-height: 142px;
+  min-height: 122px;
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: rgba(31, 31, 31, 0.82);
-  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.08), rgba(31, 31, 31, 0.88)),
+    rgba(31, 31, 31, 0.82);
+  padding: 14px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -393,7 +395,7 @@
 
 .deal-card--main {
   grid-column: 1 / -1;
-  min-height: 260px;
+  min-height: 218px;
   background:
     linear-gradient(135deg, rgba(244, 196, 0, 0.16), rgba(15, 15, 15, 0.92)),
     rgba(31, 31, 31, 0.9);
@@ -464,11 +466,11 @@
 .quick-card,
 .category-card,
 .benefit-card {
-  min-height: 150px;
-  padding: 18px;
+  min-height: 126px;
+  padding: 15px;
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 9px;
 }
 
 .quick-card svg,
@@ -486,8 +488,8 @@
 }
 
 .category-card__icon {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: var(--radius-sm);
@@ -505,7 +507,7 @@
 .category-card h3,
 .benefit-card h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
 }
 
 .quick-card p,
@@ -513,7 +515,216 @@
 .benefit-card p {
   margin: 0;
   color: var(--color-muted);
+  line-height: 1.45;
+  font-size: 0.9rem;
+}
+
+.account-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.12), rgba(31, 31, 31, 0.96)),
+    var(--color-panel);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.account-hero__identity,
+.account-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-hero h1 {
+  margin: 6px 0 4px;
+  line-height: 1.08;
+}
+
+.account-hero p,
+.account-muted,
+.account-empty {
+  margin: 0;
+  color: var(--color-muted);
   line-height: 1.55;
+}
+
+.account-avatar {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid var(--color-yellow-border);
+  border-radius: 999px;
+  background: var(--color-yellow);
+  color: var(--color-black);
+  font-size: 1.35rem;
+  font-weight: 950;
+  flex: 0 0 auto;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.account-summary-grid article {
+  min-height: 104px;
+  display: grid;
+  gap: 7px;
+  align-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-panel);
+  padding: 14px;
+}
+
+.account-summary-grid svg,
+.account-nav svg {
+  color: var(--color-yellow);
+}
+
+.account-summary-grid span {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+}
+
+.account-summary-grid strong {
+  color: var(--color-yellow);
+  font-size: 1.5rem;
+}
+
+.account-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  padding-bottom: 2px;
+}
+
+.account-nav a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #101010;
+  color: var(--color-muted);
+  padding: 0 12px;
+  font-weight: 850;
+}
+
+.account-nav a.active,
+.account-nav a:hover {
+  border-color: var(--color-yellow-border);
+  background: rgba(244, 196, 0, 0.11);
+  color: var(--color-white);
+}
+
+.account-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.account-panel {
+  padding: 18px;
+}
+
+.account-panel h2 {
+  margin: 0 0 14px;
+}
+
+.account-list,
+.account-product-list,
+.account-address-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.account-list article,
+.account-product-list article,
+.account-address-grid article,
+.account-data-list {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #101010;
+  padding: 12px;
+}
+
+.account-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-list article div,
+.account-address-grid article {
+  display: grid;
+  gap: 4px;
+}
+
+.account-list span,
+.account-product-list span,
+.account-product-list small,
+.account-address-grid span,
+.account-data-list span {
+  color: var(--color-muted);
+}
+
+.account-product-list article {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.account-product-list img {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-panel);
+}
+
+.account-data-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.account-data-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.account-settings-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.account-settings-form__button {
+  justify-self: start;
 }
 
 .banner-band {
@@ -672,7 +883,7 @@
 
 .floating-whatsapp,
 .floating-chat-button {
-  width: 52px;
+  min-width: 52px;
   height: 52px;
   display: grid;
   place-items: center;
@@ -687,8 +898,18 @@
 }
 
 .floating-chat-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--color-yellow);
   color: var(--color-black);
+  padding: 0 14px;
+  font-weight: 950;
+}
+
+.floating-chat-button span {
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
 .sr-only {
@@ -721,12 +942,19 @@
   .payment-method-grid,
   .payment-transfer-panel,
   .benefit-grid,
-  .hero-stats {
+  .hero-stats,
+  .account-summary-grid,
+  .account-content-grid {
     grid-template-columns: 1fr 1fr;
   }
 
   .banner-band {
     grid-template-columns: 1fr;
+  }
+
+  .account-hero {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -738,7 +966,9 @@
   .payment-transfer-panel,
   .benefit-grid,
   .hero-stats,
-  .form-grid {
+  .form-grid,
+  .account-summary-grid,
+  .account-content-grid {
     grid-template-columns: 1fr;
   }
 
@@ -757,5 +987,40 @@
 
   .home-hero__deal {
     grid-template-columns: 1fr;
+  }
+
+  .floating-assist {
+    right: 11px;
+    bottom: 11px;
+  }
+
+  .floating-chat {
+    max-height: calc(100vh - 96px);
+  }
+
+  .floating-chat-button {
+    height: 46px;
+    padding: 0 11px;
+  }
+
+  .floating-whatsapp {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+  }
+
+  .account-hero__identity {
+    align-items: flex-start;
+  }
+
+  .account-hero__actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-list article {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

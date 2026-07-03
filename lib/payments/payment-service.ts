@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAdminConsolePath } from "@/lib/utils/env";
 import type { PaymentProvider, PaymentStatus } from "@/types/domain";
 
 type ConfirmationInput = {
@@ -18,8 +19,9 @@ function ticketNumber() {
 
 export async function confirmApprovedPayment(input: ConfirmationInput) {
   const admin = getSupabaseAdminClient();
+  const adminPath = getAdminConsolePath();
   if (!admin) {
-    return { ok: true, mocked: true, ticketNumber: ticketNumber() };
+    throw new Error("Supabase admin no esta configurado para confirmar pagos reales.");
   }
 
   const { data: existingTicket } = await admin
@@ -38,6 +40,20 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
 
   if (orderError || !order) throw new Error("No encontramos la orden para confirmar el pago.");
 
+  if (order.status === "PAID") {
+    await admin
+      .from("payments")
+      .update({
+        status: input.status ?? "PAID",
+        provider_payment_id: input.providerPaymentId,
+        raw: input.raw ?? null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("order_id", order.id);
+
+    return { ok: true, alreadyConfirmed: true };
+  }
+
   const expectedTotal = Number(order.total ?? 0);
   const rawAmount = Number(input.raw?.transaction_amount ?? input.raw?.amount ?? expectedTotal);
   if (Math.abs(rawAmount - expectedTotal) > 1) {
@@ -45,6 +61,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
   }
 
   const items = (Array.isArray(order.items) ? order.items : []) as Array<Record<string, string | number | null>>;
+  const stockSnapshots = new Map<string, { before: number; after: number }>();
 
   for (const item of items) {
     if (!item.product_id) continue;
@@ -59,6 +76,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
 
     const stockBefore = Number(product.stock ?? 0);
     const stockAfter = Math.max(0, stockBefore - Number(item.quantity ?? 0));
+    stockSnapshots.set(String(item.product_id), { before: stockBefore, after: stockAfter });
 
     await admin.from("products").update({ stock: stockAfter, updated_at: new Date().toISOString() }).eq("id", product.id);
 
@@ -79,7 +97,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
         type: "LOW_STOCK",
         title: "Stock bajo",
         message: `${product.name} quedo con ${stockAfter} unidades.`,
-        link_to: `/admin/productos?product=${product.id}`
+        link_to: `${adminPath}/productos?product=${product.id}`
       });
     }
   }
@@ -132,8 +150,8 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
     quantity: item.quantity,
     unit_price: item.price,
     subtotal: Number(item.price ?? 0) * Number(item.quantity ?? 0),
-    stock_before: null,
-    stock_after: null
+    stock_before: item.product_id ? (stockSnapshots.get(String(item.product_id))?.before ?? null) : null,
+    stock_after: item.product_id ? (stockSnapshots.get(String(item.product_id))?.after ?? null) : null
   }));
 
   if (ticketItems.length) await admin.from("purchase_ticket_items").insert(ticketItems);
@@ -143,7 +161,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
     type: "PURCHASE_APPROVED",
     title: "Compra aprobada",
     message: `Nueva compra aprobada por ${order.customer_name}. Ticket ${ticket.number}.`,
-    link_to: `/admin/tickets?ticket=${ticket.id}`
+    link_to: `${adminPath}/tickets?ticket=${ticket.id}`
   });
 
   return { ok: true, ticketNumber: ticket.number };

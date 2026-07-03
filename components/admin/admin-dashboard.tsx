@@ -1,14 +1,25 @@
-import { AlertTriangle, CreditCard, FileText, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, CreditCard, FileText, Home, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
+import { isMercadoPagoConfigured } from "@/lib/payments/config";
+import { getAdminConsolePath } from "@/lib/utils/env";
 
 export async function AdminDashboard() {
   const data = await getAdminDashboardData();
-  const icons = [CreditCard, TrendingUp, ShoppingBag, CreditCard, AlertTriangle, FileText, Users, Package, ShoppingBag];
+  const adminPath = getAdminConsolePath();
+  const paymentsReady = isMercadoPagoConfigured();
+  const icons = [CreditCard, TrendingUp, ShoppingBag, CreditCard, CreditCard, AlertTriangle, FileText, Users, Package, ShoppingBag];
   const statusTotal = data.statusCounts.reduce((sum, item) => sum + item.count, 0) || 1;
 
   return (
     <AdminShell title="Dashboard">
+      {!paymentsReady ? (
+        <section className="admin-payment-status">
+          El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion.
+        </section>
+      ) : null}
+
       <section className="metrics-grid">
         {data.metrics.map((metric, index) => {
           const Icon = icons[index] ?? FileText;
@@ -23,13 +34,33 @@ export async function AdminDashboard() {
         })}
       </section>
 
+      <section className="admin-quick-actions" aria-label="Acciones rapidas de administracion">
+        <Link href={`${adminPath}/pedidos`}>
+          <ShoppingBag size={20} />
+          <span>Revisar pedidos</span>
+        </Link>
+        <Link href={`${adminPath}/productos`}>
+          <Package size={20} />
+          <span>Gestionar stock</span>
+        </Link>
+        <Link href={`${adminPath}/clientes`}>
+          <Users size={20} />
+          <span>Ver clientes</span>
+        </Link>
+        <Link href="/productos">
+          <Home size={20} />
+          <span>Vista cliente</span>
+        </Link>
+      </section>
+
       <section className="admin-panel">
-        <h2>Estados de pedidos recientes</h2>
+        <h2>Estado general de pedidos</h2>
+        <p className="admin-help">Si hay muchos pendientes, entra a Pedidos para llamar o escribir al cliente.</p>
         <div className="admin-status-bar">
           {data.statusCounts.length ? (
             data.statusCounts.map((item) => (
               <span key={item.status} style={{ width: `${Math.max(4, (item.count / statusTotal) * 100)}%` }}>
-                {item.status} · {item.count}
+                {`${item.status} - ${item.count}`}
               </span>
             ))
           ) : (

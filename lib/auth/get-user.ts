@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { getAdminConsolePath } from "@/lib/utils/env";
 import type { UserRole } from "@/types/domain";
 
 export type SessionProfile = {
@@ -61,7 +62,7 @@ export async function getUserProfile(): Promise<SessionProfile | null> {
       type: "ADMIN_LOGIN",
       title: "Administrador logueado",
       message: `${user.email} ingreso al panel o a la cuenta FZAC.`,
-      link_to: "/admin/clientes"
+      link_to: `${getAdminConsolePath()}/clientes`
     });
   }
 

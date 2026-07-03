@@ -8,7 +8,7 @@ export async function GET() {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const { data, error } = await admin.from("products").select("*").order("created_at", { ascending: false });
   if (error) return jsonError("No pudimos cargar productos.", 400);
@@ -20,11 +20,13 @@ export async function POST(request: Request) {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const payload = adminProductSchema.parse(await request.json());
-  const { data, error } = await admin.from("products").insert(payload).select("*").single();
-  if (error) return jsonError(error.message, 400);
+  const insert = { ...payload };
+  delete insert.id;
+  const { data, error } = await admin.from("products").insert(insert).select("*").single();
+  if (error) return jsonError("No pudimos crear el producto. Revisa SKU, slug, categoria y valores cargados.", 400);
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,
@@ -43,7 +45,7 @@ export async function PATCH(request: Request) {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const payload = adminProductSchema.parse(await request.json());
   if (!payload.id) return jsonError("Falta id de producto.", 422);
@@ -56,7 +58,7 @@ export async function PATCH(request: Request) {
     .select("*")
     .single();
 
-  if (error) return jsonError(error.message, 400);
+  if (error) return jsonError("No pudimos actualizar el producto. Revisa SKU, slug, categoria y valores cargados.", 400);
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,
@@ -75,13 +77,13 @@ export async function DELETE(request: Request) {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return jsonError("Falta id.", 422);
 
   const { error } = await admin.from("products").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) return jsonError(error.message, 400);
+  if (error) return jsonError("No pudimos desactivar el producto.", 400);
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,

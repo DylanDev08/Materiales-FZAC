@@ -9,7 +9,7 @@ export function AdminShell({ title, children }: { title: string; children: React
           <div>
             <span className="kicker">Panel admin</span>
             <h1>{title}</h1>
-            <p>Operaciones protegidas por backend. No se usa service role en cliente.</p>
+            <p>Operaciones protegidas. Las claves privadas no se usan en el navegador.</p>
           </div>
         </div>
 

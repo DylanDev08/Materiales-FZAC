@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getEnv, getSiteUrl, hasRealValue } from "@/lib/utils/env";
+import { assertMercadoPagoConfigured, isMercadoPagoConfigured } from "@/lib/payments/config";
 import type { Product } from "@/types/domain";
 
 type PreferenceInput = {
@@ -16,14 +16,11 @@ type PreferenceInput = {
 };
 
 export function isMercadoPagoEnabled() {
-  return hasRealValue(getEnv("MERCADOPAGO_ACCESS_TOKEN"));
+  return isMercadoPagoConfigured();
 }
 
 export async function createMercadoPagoPreference(input: PreferenceInput) {
-  const accessToken = getEnv("MERCADOPAGO_ACCESS_TOKEN");
-  if (!hasRealValue(accessToken)) return null;
-
-  const siteUrl = getSiteUrl();
+  const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId);
   const items = input.items.map(({ product, quantity }) => ({
     id: product.id,
     title: product.name,
@@ -36,7 +33,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
   if (input.shippingCost > 0) {
     items.push({
       id: "shipping",
-      title: "Envio FZAC",
+      title: "Entrega coordinada FZAC",
       quantity: 1,
       unit_price: input.shippingCost,
       currency_id: "ARS",
@@ -64,7 +61,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
         failure: `${siteUrl}/pago/rechazado`
       },
       auto_return: "approved",
-      notification_url: `${siteUrl}/api/payments/mercadopago/webhook`,
+      notification_url: `${siteUrl}/api/webhooks/mercadopago`,
       metadata: {
         order_id: input.orderId,
         source: "materiales-fzac-next"
@@ -81,13 +78,14 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
 
   return {
     preferenceId: data.id,
-    url: data.init_point || data.sandbox_init_point
+    initPoint: data.init_point ?? null,
+    sandboxInitPoint: data.sandbox_init_point ?? null,
+    url: data.init_point || data.sandbox_init_point || null
   };
 }
 
 export async function getMercadoPagoPayment(paymentId: string) {
-  const accessToken = getEnv("MERCADOPAGO_ACCESS_TOKEN");
-  if (!hasRealValue(accessToken)) throw new Error("Mercado Pago no esta configurado.");
+  const { accessToken } = assertMercadoPagoConfigured();
 
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },

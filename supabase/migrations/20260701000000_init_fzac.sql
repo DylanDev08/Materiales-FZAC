@@ -128,7 +128,7 @@ create table if not exists public.order_items (
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null unique references public.orders(id) on delete cascade,
-  provider text not null default 'MERCADOPAGO' check (provider in ('MERCADOPAGO','NARANJAX','MOCK')),
+  provider text not null default 'MERCADOPAGO' check (provider in ('MERCADOPAGO','NARANJAX')),
   status text not null default 'PENDING' check (status in ('PENDING','PAID','FAILED','EXPIRED','REFUNDED')),
   amount numeric(12,2) not null,
   currency text not null default 'ars',

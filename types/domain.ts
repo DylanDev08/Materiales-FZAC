@@ -12,7 +12,7 @@ export type OrderStatus =
   | "CANCELLED";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "EXPIRED" | "REFUNDED";
-export type PaymentProvider = "MERCADOPAGO" | "NARANJAX" | "MOCK";
+export type PaymentProvider = "MERCADOPAGO" | "NARANJAX";
 export type ShippingMethod = "PICKUP" | "DELIVERY";
 
 export type Category = {
@@ -66,7 +66,7 @@ export type AddressPayload = {
 };
 
 export type CheckoutPayload = {
-  items: Array<{ productId: string; quantity: number }>;
+  items: Array<{ productId: string; sku?: string; slug?: string; quantity: number }>;
   customer: {
     name: string;
     email: string;

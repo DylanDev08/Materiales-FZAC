@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { isAdminEmail } from "@/lib/auth/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
@@ -19,9 +20,9 @@ export async function POST(request: Request) {
     }
 
     const supabase = await getSupabaseServerClient();
-    if (!supabase) return jsonError("Supabase no esta configurado.", 503);
+    if (!supabase) return jsonError("El registro no esta disponible en este momento.", 503);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: payload.email,
       password: payload.password,
       options: {
@@ -32,7 +33,25 @@ export async function POST(request: Request) {
 
     if (error) {
       const duplicate = /already|registered|exists/i.test(error.message);
-      return jsonError(duplicate ? "Ya existe una cuenta con ese email. Inicia sesion." : error.message, duplicate ? 409 : 400);
+      return jsonError(
+        duplicate ? "Ya existe una cuenta con ese email. Inicia sesion." : "No pudimos crear la cuenta. Revisa los datos e intenta nuevamente.",
+        duplicate ? 409 : 400
+      );
+    }
+
+    if (admin && data.user?.id && isAdminEmail(payload.email)) {
+      await admin.from("profiles").upsert(
+        {
+          id: data.user.id,
+          email: payload.email,
+          full_name: payload.name,
+          phone: payload.phone || null,
+          avatar_url: data.user.user_metadata?.avatar_url ?? null,
+          role: "ADMIN",
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: "id" }
+      );
     }
 
     return Response.json({ target: "/login?registered=true" });

@@ -33,9 +33,25 @@ export async function CatalogPage({
   };
 
   const [categories, products] = await Promise.all([getCategories(), getProducts(filters)]);
+  const filterValues = {
+    search: value(searchParams, "search"),
+    category: forcedFilters.category ?? value(searchParams, "category"),
+    brand: value(searchParams, "brand"),
+    minPrice: value(searchParams, "minPrice"),
+    maxPrice: value(searchParams, "maxPrice"),
+    order: value(searchParams, "order"),
+    inStock: value(searchParams, "inStock"),
+    onSale: forcedFilters.onSale ? "true" : value(searchParams, "onSale")
+  };
 
   return (
     <main>
+      <section className="catalog-filter-band">
+        <div className="container">
+          <CatalogFilters categories={categories} values={filterValues} />
+        </div>
+      </section>
+
       <section className="catalog-hero">
         <div className="container catalog-hero__inner">
           <div>
@@ -62,29 +78,13 @@ export async function CatalogPage({
 
       <section className="page-section">
         <div className="container">
-          <div className="catalog-layout">
-            <CatalogFilters
-              categories={categories}
-              values={{
-                search: value(searchParams, "search"),
-                category: value(searchParams, "category"),
-                brand: value(searchParams, "brand"),
-                minPrice: value(searchParams, "minPrice"),
-                maxPrice: value(searchParams, "maxPrice"),
-                order: value(searchParams, "order"),
-                inStock: value(searchParams, "inStock"),
-                onSale: value(searchParams, "onSale")
-              }}
-            />
-
-            <section>
-              <div className="catalog-toolbar">
-                <p>{products.length} productos visibles</p>
-                <span className="status-pill">Vista grid</span>
-              </div>
-              <ProductGrid products={products} />
-            </section>
-          </div>
+          <section className="catalog-content">
+            <div className="catalog-toolbar">
+              <p>{products.length} productos visibles</p>
+              <span className="status-pill">Vista grid</span>
+            </div>
+            <ProductGrid products={products} />
+          </section>
         </div>
       </section>
     </main>

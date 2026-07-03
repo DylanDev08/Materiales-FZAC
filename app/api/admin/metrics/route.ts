@@ -7,7 +7,7 @@ export async function GET() {
   if (!profile) return jsonError("No autorizado.", 401);
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Supabase admin no esta configurado.", 500);
+  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
 
   const [{ count: products }, { count: pending }, { count: tickets }, { count: customers }] = await Promise.all([
     admin.from("products").select("id", { count: "exact", head: true }).eq("active", true),

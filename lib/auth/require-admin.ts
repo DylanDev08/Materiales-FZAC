@@ -2,11 +2,12 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { getUserProfile } from "@/lib/auth/get-user";
+import { getAdminConsolePath } from "@/lib/utils/env";
 
 export async function requireAdmin() {
   const profile = await getUserProfile();
 
-  if (!profile) redirect("/login?next=/admin");
+  if (!profile) redirect(`/login?next=${encodeURIComponent(getAdminConsolePath())}`);
   if (profile.role !== "ADMIN") redirect("/cuenta");
 
   return profile;

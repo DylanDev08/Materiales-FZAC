@@ -13,7 +13,7 @@ const methods = [
   },
   {
     title: "Validacion segura",
-    text: "El stock se descuenta y el ticket se confirma solo cuando el pago queda aprobado por backend.",
+    text: "El stock se descuenta y el ticket se confirma solo cuando el proveedor aprueba el pago.",
     icon: ShieldCheck
   }
 ];

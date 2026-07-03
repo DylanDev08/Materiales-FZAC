@@ -2,6 +2,7 @@ import "server-only";
 
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveProductImageUrl } from "@/lib/products/images";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Category, Product } from "@/types/domain";
 
@@ -33,8 +34,7 @@ function normalizeCategory(row: Record<string, unknown>): Category {
 
 function normalizeProduct(row: Record<string, unknown>): Product {
   const categoryRow = (row.category ?? row.categories ?? null) as Record<string, unknown> | null;
-
-  return {
+  const product = {
     id: String(row.id),
     slug: String(row.slug),
     sku: String(row.sku),
@@ -56,6 +56,8 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     on_sale: Boolean(row.on_sale ?? row.onSale),
     active: Boolean(row.active ?? true)
   };
+
+  return { ...product, image_url: resolveProductImageUrl(product) };
 }
 
 function applyFallbackFilters(products: Product[], filters: ProductFilters) {

@@ -2,11 +2,13 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle, Loader2, LogIn, MailWarning } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,7 +47,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       } finally {
         if (!controller.signal.aborted) setCheckingEmail(false);
       }
-    }, 300);
+    }, 180);
 
     return () => {
       controller.abort();
@@ -83,7 +85,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       });
       const data = (await response.json()) as { target?: string; message?: string };
       if (!response.ok) throw new Error(data.message || "No pudimos completar la operacion.");
-      window.location.assign(data.target || (mode === "login" ? "/cuenta" : "/login?registered=true"));
+      router.push(data.target || (mode === "login" ? "/cuenta" : "/login?registered=true"));
     } catch (authError) {
       setMessage(authError instanceof Error ? authError.message : "No pudimos conectar con el servidor.");
     } finally {
@@ -94,7 +96,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   async function googleLogin() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setMessage("Supabase no esta configurado.");
+      setMessage("El ingreso con Google no esta disponible en este momento.");
       return;
     }
 
@@ -103,20 +105,27 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
 
-    if (error) setMessage("Google no esta configurado o no pudimos iniciar OAuth.");
+    if (error) setMessage("No pudimos iniciar sesion con Google. Proba nuevamente o ingresa con email.");
   }
 
   async function recoverPassword() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase || !normalizedEmail) {
-      setMessage("Ingresa tu email para enviar recuperacion.");
+    if (!normalizedEmail) {
+      setMessage("Ingresa tu email para enviar el link de recuperacion.");
       return;
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/login`
-    });
-    setMessage(error ? "No pudimos enviar el email de recuperacion." : "Te enviamos instrucciones de recuperacion.");
+    try {
+      const response = await fetch("/api/auth/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail })
+      });
+      const data = (await response.json()) as { message?: string };
+      if (!response.ok) throw new Error(data.message || "No pudimos enviar el email de recuperacion.");
+      setMessage(data.message || "Te enviamos el link de recuperacion a tu email.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No pudimos enviar el email de recuperacion.");
+    }
   }
 
   return (
@@ -128,7 +137,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </span>
         <span className="kicker">{mode === "login" ? "Ingresar" : "Registro"}</span>
         <h1>{mode === "login" ? "Accede a tu cuenta FZAC" : "Crea tu cuenta FZAC"}</h1>
-        <p>Supabase Auth protege email, contrasena y Google OAuth. El rol admin se valida en backend.</p>
+        <p>Ingresa con email o Google. Tus datos se validan de forma segura y el acceso admin se controla desde servidor.</p>
 
         <button className="btn btn--ghost" type="button" onClick={googleLogin}>
           <LogIn size={18} />

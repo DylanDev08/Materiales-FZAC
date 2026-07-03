@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { hasSqlMeta } from "@/lib/validations/security";
 
-const COMMON_PASSWORDS = ["123456", "12345678", "password", "qwerty", "admin", "fzac123", "fortaleza"];
+const COMMON_PASSWORDS = ["123456", "12345678", "password", "qwerty", "admin", "fzac123"];
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -14,10 +14,8 @@ export function passwordChecks(password: string, email = "", name = "") {
 
   return [
     { id: "length", label: "8 caracteres minimo", ok: password.length >= 8 },
-    { id: "upper", label: "Una mayuscula", ok: /[A-Z]/.test(password) },
-    { id: "lower", label: "Una minuscula", ok: /[a-z]/.test(password) },
+    { id: "letter", label: "Una letra", ok: /[A-Za-z]/.test(password) },
     { id: "number", label: "Un numero", ok: /\d/.test(password) },
-    { id: "symbol", label: "Un simbolo", ok: /[^A-Za-z0-9]/.test(password) },
     { id: "common", label: "No comun ni obvia", ok: !COMMON_PASSWORDS.some((item) => normalizedPassword.includes(item)) },
     {
       id: "personal",
@@ -53,8 +51,8 @@ export const registerSchema = z
     name: safeText("Nombre", 2, 120),
     phone: safeText("Telefono", 6, 40).optional().or(z.literal("")),
     email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
-    password: z.string().min(8),
-    confirmPassword: z.string().min(8),
+    password: z.string().min(8, "La contrasena debe tener al menos 8 caracteres."),
+    confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres."),
     acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar terminos y privacidad." }) }),
     hp: z.string().max(0).optional()
   })

@@ -1,20 +1,77 @@
 import "server-only";
 
-import crypto from "node:crypto";
+import { getCurrentUser } from "@/lib/auth/get-user";
 import { checkoutSchema, type CheckoutInput } from "@/lib/validations/checkout";
 import { fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
-import { confirmApprovedPayment } from "@/lib/payments/payment-service";
+import { resolveProductImageUrl } from "@/lib/products/images";
+import { getAdminConsolePath } from "@/lib/utils/env";
 import type { PaymentProvider, Product } from "@/types/domain";
 
-function shippingCost(input: CheckoutInput) {
-  if (input.shippingMethod !== "DELIVERY") return 0;
-  return 6500;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export type StockIssue = {
+  productId: string;
+  requested: number;
+  available: number;
+  name?: string;
+};
+
+export class InsufficientStockError extends Error {
+  items: StockIssue[];
+
+  constructor(items: StockIssue[]) {
+    super("No hay stock suficiente para completar la compra.");
+    this.name = "InsufficientStockError";
+    this.items = items;
+  }
+}
+
+function shippingCost() {
+  return 0;
+}
+
+function isUuid(value: string | undefined | null) {
+  return UUID_PATTERN.test(String(value ?? ""));
+}
+
+function unique(values: Array<string | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean))) as string[];
+}
+
+function enrichLegacyItem(item: CheckoutInput["items"][number]) {
+  if (item.sku || item.slug) return item;
+  const fallback = fallbackProducts.find((product) => product.id === item.productId);
+  return fallback ? { ...item, sku: fallback.sku, slug: fallback.slug } : item;
+}
+
+function fallbackProductForItem(item: CheckoutInput["items"][number]) {
+  const normalizedSku = item.sku?.toLowerCase();
+  const normalizedSlug = item.slug?.toLowerCase();
+  return fallbackProducts.find(
+    (product) =>
+      product.id === item.productId ||
+      Boolean(normalizedSku && product.sku.toLowerCase() === normalizedSku) ||
+      Boolean(normalizedSlug && product.slug.toLowerCase() === normalizedSlug)
+  );
+}
+
+function itemDisplayName(item: CheckoutInput["items"][number], product?: Product) {
+  return product?.name ?? fallbackProductForItem(item)?.name ?? item.sku ?? item.slug ?? item.productId;
+}
+
+function matchesItem(product: Product, item: CheckoutInput["items"][number]) {
+  return (
+    product.id === item.productId ||
+    Boolean(item.sku && product.sku.toLowerCase() === item.sku.toLowerCase()) ||
+    Boolean(item.slug && product.slug.toLowerCase() === item.slug.toLowerCase())
+  );
 }
 
 function normalizeProduct(row: Record<string, unknown>): Product {
-  return {
+  const product = {
     id: String(row.id),
     slug: String(row.slug),
     sku: String(row.sku),
@@ -35,53 +92,105 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     on_sale: Boolean(row.on_sale),
     active: Boolean(row.active ?? true)
   };
+
+  return { ...product, image_url: resolveProductImageUrl(product) };
+}
+
+async function getProductsForItems(items: CheckoutInput["items"]) {
+  const admin = getSupabaseAdminClient();
+  const normalizedItems = items.map(enrichLegacyItem);
+  const requestedIds = unique(normalizedItems.map((item) => item.productId));
+  const uuidIds = requestedIds.filter(isUuid);
+  const skus = unique(normalizedItems.map((item) => item.sku));
+  const slugs = unique(normalizedItems.map((item) => item.slug));
+  let products: Product[] = [];
+
+  if (admin) {
+    const queries = [];
+
+    if (uuidIds.length) {
+      queries.push(admin.from("products").select("*").in("id", uuidIds).eq("active", true));
+    }
+    if (skus.length) {
+      queries.push(admin.from("products").select("*").in("sku", skus).eq("active", true));
+    }
+    if (slugs.length) {
+      queries.push(admin.from("products").select("*").in("slug", slugs).eq("active", true));
+    }
+
+    const responses = await Promise.all(queries);
+    const error = responses.find((response) => response.error)?.error;
+    if (error) throw new Error("No pudimos validar los productos del carrito.");
+
+    const byId = new Map<string, Product>();
+    responses
+      .flatMap((response) => response.data ?? [])
+      .map(normalizeProduct)
+      .forEach((product) => byId.set(product.id, product));
+
+    products = Array.from(byId.values());
+  } else {
+    products = fallbackProducts.filter((product) => normalizedItems.some((item) => matchesItem(product, item)));
+  }
+
+  return { admin, products, items: normalizedItems };
+}
+
+export async function validateCheckoutStock(input: unknown) {
+  const payload = checkoutSchema.pick({ items: true }).parse(input);
+  const { products, items } = await getProductsForItems(payload.items);
+
+  const issues = items.flatMap((item) => {
+    const product = products.find((candidate) => matchesItem(candidate, item));
+    const available = product?.stock ?? 0;
+    if (!product || item.quantity > available) {
+      return [{ productId: item.productId, requested: item.quantity, available, name: itemDisplayName(item, product) }];
+    }
+    return [];
+  });
+
+  if (issues.length) throw new InsufficientStockError(issues);
+
+  return { ok: true };
 }
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const admin = getSupabaseAdminClient();
+  const currentUser = await getCurrentUser();
+  const userId =
+    currentUser?.email?.trim().toLowerCase() === payload.customer.email.trim().toLowerCase() ? currentUser.id : null;
+  const { admin, products, items } = await getProductsForItems(payload.items);
 
-  const requestedIds = payload.items.map((item) => item.productId);
-  let products: Product[] = [];
+  const stockIssues = items.flatMap((item) => {
+    const product = products.find((candidate) => matchesItem(candidate, item));
+    const available = product?.stock ?? 0;
+    if (!product || item.quantity > available) {
+      return [{ productId: item.productId, requested: item.quantity, available, name: itemDisplayName(item, product) }];
+    }
+    return [];
+  });
 
-  if (admin) {
-    const { data, error } = await admin
-      .from("products")
-      .select("*")
-      .in("id", requestedIds)
-      .eq("active", true);
+  if (stockIssues.length) throw new InsufficientStockError(stockIssues);
 
-    if (error) throw new Error("No pudimos validar los productos.");
-    products = (data ?? []).map(normalizeProduct);
-  } else {
-    products = fallbackProducts.filter((product) => requestedIds.includes(product.id));
-  }
-
-  const lines = payload.items.map((item) => {
-    const product = products.find((candidate) => candidate.id === item.productId);
+  const lines = items.map((item) => {
+    const product = products.find((candidate) => matchesItem(candidate, item));
     if (!product) throw new Error("Un producto del carrito ya no esta disponible.");
-    if (product.stock < item.quantity) throw new Error(`Stock insuficiente para ${product.name}.`);
     return { product, quantity: item.quantity, subtotal: product.price * item.quantity };
   });
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const delivery = shippingCost(payload);
+  const delivery = shippingCost();
   const total = subtotal + delivery;
   const provider: PaymentProvider = payload.paymentProvider === "NARANJAX" ? "NARANJAX" : "MERCADOPAGO";
 
   if (!admin) {
-    return {
-      mock: true,
-      orderId: crypto.randomUUID(),
-      total,
-      message: "Checkout listo en modo local. Configura Supabase para persistir ordenes."
-    };
+    throw new Error("Supabase admin no esta configurado para crear ordenes reales.");
   }
 
   const { data: order, error: orderError } = await admin
     .from("orders")
     .insert({
-      user_id: null,
+      user_id: userId,
       status: "PENDING_PAYMENT",
       customer_name: payload.customer.name,
       customer_email: payload.customer.email,
@@ -123,7 +232,7 @@ export async function createCheckout(input: unknown) {
     type: "PAYMENT_PENDING",
     title: "Pago pendiente",
     message: `Nueva orden pendiente de pago por ${payload.customer.name}.`,
-    link_to: `/admin/pedidos?order=${order.id}`
+    link_to: `${getAdminConsolePath()}/pedidos?order=${order.id}`
   });
 
   if (provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
@@ -142,47 +251,25 @@ export async function createCheckout(input: unknown) {
       .update({ provider_preference_id: preference.preferenceId, updated_at: new Date().toISOString() })
       .eq("order_id", order.id);
 
-    return { orderId: order.id, url: preference.url, provider };
-  }
-
-  return {
-    mock: true,
-    orderId: order.id,
-    total,
-    provider: "MOCK",
-    message: "Mercado Pago no esta configurado. Se habilito simulacion controlada."
-  };
-}
-
-export async function simulatePayment(orderId: string, status: "PAID" | "PENDING" | "FAILED") {
-  const admin = getSupabaseAdminClient();
-
-  if (!admin) {
     return {
-      orderId,
-      status,
-      ticketNumber: status === "PAID" ? `FZAC-LOCAL-${Date.now()}` : null
+      orderId: order.id,
+      url: preference.url,
+      init_point: preference.initPoint,
+      sandbox_init_point: preference.sandboxInitPoint,
+      preference_id: preference.preferenceId,
+      provider
     };
   }
 
-  if (status === "PAID") {
-    return confirmApprovedPayment({
-      orderId,
-      provider: "MOCK",
-      providerPaymentId: `mock_${Date.now()}`,
-      raw: { status: "approved", amount: null }
-    });
+  if (provider === "MERCADOPAGO") {
+    throw new MercadoPagoNotConfiguredError(order.id);
   }
 
-  await admin
-    .from("payments")
-    .update({ status: status === "FAILED" ? "FAILED" : "PENDING", raw: { simulated: true, status } })
-    .eq("order_id", orderId);
-
-  await admin
-    .from("orders")
-    .update({ status: status === "FAILED" ? "CANCELLED" : "PENDING_PAYMENT" })
-    .eq("id", orderId);
-
-  return { orderId, status };
+  return {
+    orderId: order.id,
+    pending: true,
+    total,
+    provider,
+    message: "Orden creada. El pago queda pendiente hasta confirmar el proveedor de cobro."
+  };
 }

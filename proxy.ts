@@ -15,13 +15,24 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const rawAdminPath = process.env.ADMIN_CONSOLE_PATH?.trim() || "/fzac-admin-crs-2026";
+  const normalizedAdminPath = rawAdminPath.replace(/^\/+|\/+$/g, "");
+  const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fzac-admin-crs-2026";
+  const isLegacyAdminPath = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
+  const isConsolePath = request.nextUrl.pathname === adminConsolePath || request.nextUrl.pathname.startsWith(`${adminConsolePath}/`);
 
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)");
 
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  if (isLegacyAdminPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${adminConsolePath}${request.nextUrl.pathname.replace(/^\/admin/, "")}`;
+    return NextResponse.redirect(url);
+  }
+
+  if (isConsolePath) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   }
 

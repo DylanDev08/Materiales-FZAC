@@ -1,12 +1,34 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { Save, Trash2 } from "lucide-react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { Save, Trash2, UploadCloud } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import { slugify } from "@/lib/utils/slug";
 import type { Category, Product } from "@/types/domain";
 
-const emptyProduct = {
+type ProductForm = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  brand: string;
+  description: string;
+  category_id: string;
+  subcategory: string;
+  price: string | number;
+  compare_price: string | number | null;
+  stock: string | number;
+  stock_minimum: string | number;
+  unit: string;
+  image_url: string;
+  gallery: string[];
+  specifications: Record<string, string | number | boolean>;
+  featured: boolean;
+  on_sale: boolean;
+  active: boolean;
+};
+
+const emptyProduct: ProductForm = {
   id: "",
   name: "",
   slug: "",
@@ -33,16 +55,26 @@ export function AdminProductsManager({ products, categories }: { products: Produ
   const [form, setForm] = useState({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
+  const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
+  const hasCategories = categories.length > 0;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
+    if (!hasCategories || !form.category_id) {
+      setMessage("Primero carga una categoria valida para poder guardar productos.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
     const payload = {
       ...form,
+      id: form.id || undefined,
       slug: form.slug || slugify(form.name),
       price: Number(form.price),
       compare_price: form.compare_price ? Number(form.compare_price) : null,
@@ -83,10 +115,40 @@ export function AdminProductsManager({ products, categories }: { products: Produ
     }
   }
 
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || uploadingImage) return;
+
+    setUploadingImage(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/admin/uploads/product-image", {
+        method: "POST",
+        body: formData
+      });
+      const data = (await response.json()) as { url?: string; message?: string };
+      if (!response.ok || !data.url) throw new Error(data.message || "No pudimos subir la imagen.");
+
+      setForm((current) => ({ ...current, image_url: data.url! }));
+      setMessage("Imagen subida al bucket y lista para guardar en el producto.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No pudimos subir la imagen.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   return (
     <>
       <section className="admin-panel">
         <h2>{form.id ? "Editar producto" : "Crear producto"}</h2>
+        {!hasCategories ? (
+          <p className="notice notice--danger">No hay categorias registradas. Crea una categoria antes de cargar productos.</p>
+        ) : null}
         <form className="form-grid" onSubmit={save}>
           <label>
             Nombre
@@ -106,7 +168,8 @@ export function AdminProductsManager({ products, categories }: { products: Produ
           </label>
           <label>
             Categoria
-            <select value={form.category_id} onChange={(event) => setForm({ ...form, category_id: event.target.value })} required>
+            <select value={form.category_id} onChange={(event) => setForm({ ...form, category_id: event.target.value })} required disabled={!hasCategories}>
+              {!hasCategories ? <option value="">Sin categorias registradas</option> : null}
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -120,23 +183,23 @@ export function AdminProductsManager({ products, categories }: { products: Produ
           </label>
           <label>
             Precio
-            <input type="number" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} required />
+            <input inputMode="decimal" value={String(form.price)} onChange={(event) => setForm({ ...form, price: event.target.value })} required />
           </label>
           <label>
             Precio anterior
             <input
-              type="number"
+              inputMode="decimal"
               value={form.compare_price ?? ""}
-              onChange={(event) => setForm({ ...form, compare_price: event.target.value ? Number(event.target.value) : null })}
+              onChange={(event) => setForm({ ...form, compare_price: event.target.value || null })}
             />
           </label>
           <label>
             Stock
-            <input type="number" value={form.stock} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })} />
+            <input inputMode="numeric" value={String(form.stock)} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
           </label>
           <label>
             Stock minimo
-            <input type="number" value={form.stock_minimum} onChange={(event) => setForm({ ...form, stock_minimum: Number(event.target.value) })} />
+            <input inputMode="numeric" value={String(form.stock_minimum)} onChange={(event) => setForm({ ...form, stock_minimum: event.target.value })} />
           </label>
           <label>
             Unidad
@@ -146,21 +209,44 @@ export function AdminProductsManager({ products, categories }: { products: Produ
             Imagen
             <input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
           </label>
+          <div className="field admin-upload-field">
+            <span>Foto del producto</span>
+            <label className="admin-upload-control">
+              <UploadCloud size={16} />
+              {uploadingImage ? "Subiendo..." : "Subir al bucket"}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploadingImage} />
+            </label>
+            {form.image_url ? (
+              <span className="admin-upload-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={String(form.image_url)} alt="Vista previa del producto" />
+                URL lista para guardar
+              </span>
+            ) : (
+              <small>Tambien podes pegar una URL publica ya subida en Supabase Storage.</small>
+            )}
+          </div>
           <label>
             Descripcion
             <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required />
           </label>
-          <label>
-            Flags
-            <span>
-              <input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> Destacado
-              <input type="checkbox" checked={form.on_sale} onChange={(event) => setForm({ ...form, on_sale: event.target.checked })} /> Oferta
-              <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Activo
+          <div className="field admin-product-flags-field">
+            <span>Flags</span>
+            <span className="admin-product-flags">
+              <label>
+                <input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> Destacado
+              </label>
+              <label>
+                <input type="checkbox" checked={form.on_sale} onChange={(event) => setForm({ ...form, on_sale: event.target.checked })} /> Oferta
+              </label>
+              <label>
+                <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Activo
+              </label>
             </span>
-          </label>
-          <button className="btn" type="submit" disabled={saving}>
+          </div>
+          <button className="btn admin-product-save" type="submit" disabled={saving || !hasCategories}>
             <Save size={18} />
-            Guardar producto
+            {saving ? "Guardando..." : "Guardar producto"}
           </button>
         </form>
         {message ? <p className="notice">{message}</p> : null}
@@ -174,6 +260,7 @@ export function AdminProductsManager({ products, categories }: { products: Produ
               <tr>
                 <th>Producto</th>
                 <th>SKU</th>
+                <th>Categoria</th>
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Acciones</th>
@@ -184,6 +271,7 @@ export function AdminProductsManager({ products, categories }: { products: Produ
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{product.sku}</td>
+                  <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
                   <td>{currency(product.price)}</td>
                   <td>{product.stock}</td>
                   <td>

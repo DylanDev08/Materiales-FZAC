@@ -9,6 +9,8 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--color-yellow) #101010;
+  scrollbar-width: thin;
 }
 
 html {
@@ -54,4 +56,23 @@ img {
 ::selection {
   background: var(--color-yellow);
   color: var(--color-black);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #101010;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid #101010;
+  border-radius: 999px;
+  background: var(--color-yellow);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-yellow-hover);
 }

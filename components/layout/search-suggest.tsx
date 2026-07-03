@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Clock, Grid3X3, Search, Tag } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { currency } from "@/lib/formatters/currency";
@@ -30,6 +31,7 @@ function suggestionHref(suggestion: Suggestion) {
 }
 
 export function SearchSuggest() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [recent, setRecent] = useState<string[]>(() => {
@@ -64,7 +66,7 @@ export function SearchSuggest() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 300);
+    }, 160);
 
     return () => {
       controller.abort();
@@ -93,7 +95,7 @@ export function SearchSuggest() {
     event.preventDefault();
     const clean = query.trim();
     remember(clean);
-    window.location.assign(clean ? `/productos?search=${encodeURIComponent(clean)}` : "/productos");
+    router.push(clean ? `/productos?search=${encodeURIComponent(clean)}` : "/productos");
   }
 
   return (

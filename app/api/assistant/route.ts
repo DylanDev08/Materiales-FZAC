@@ -4,6 +4,7 @@ import { getProducts } from "@/lib/db/catalog";
 import { currency } from "@/lib/formatters/currency";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
+import { getAdminConsolePath } from "@/lib/utils/env";
 import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
 
@@ -21,32 +22,46 @@ function needsHuman(message: string) {
   return ["humano", "persona", "asesor", "vendedor", "whatsapp", "llamar"].some((term) => message.includes(term));
 }
 
-function advisoryReply(message: string) {
+function includesAny(message: string, terms: string[]) {
+  return terms.some((term) => message.includes(term));
+}
+
+function advisoryReply(message: string, history: Array<{ role: "user" | "assistant"; content: string }> = []) {
+  const context = [message, ...history.slice(-4).map((item) => item.content.toLowerCase())].join(" ");
+
   if (needsHuman(message)) {
-    return "Puedo dejar esta conversacion marcada para atencion humana. Tambien podes escribir por WhatsApp a FZAC para coordinar stock, retiro, envio o un pedido especial.";
+    return "Dejo esta conversacion marcada para atencion humana. Para resolverlo mas rapido, escribi a FZAC por WhatsApp con producto, cantidad, zona y si necesitas retiro o envio. El equipo puede confirmar stock real, condiciones de entrega y pedidos especiales.";
   }
 
-  if (message.includes("pago") || message.includes("tarjeta") || message.includes("mercado") || message.includes("transferencia")) {
-    return "Para pagar, FZAC usa proveedores externos como Mercado Pago y puede coordinar transferencia. No guardamos numeros de tarjeta ni CVV. Cuando el pago queda aprobado, el backend confirma la orden, descuenta stock y genera el ticket.";
+  if (includesAny(context, ["stock", "disponible", "cantidad", "faltante"])) {
+    return "El stock visible del catalogo es orientativo y el checkout lo valida contra base de datos antes de crear la orden. Si un producto figura sin stock, proba bajar cantidad o consulta por WhatsApp para que FZAC confirme reposicion, equivalentes o retiro coordinado.";
   }
 
-  if (message.includes("envio") || message.includes("entrega") || message.includes("zona")) {
-    return "El envio se coordina con los datos de direccion y telefono que cargues en checkout. FZAC no usa mapas automaticos: administracion confirma disponibilidad, horario y condiciones. Si necesitas resolverlo antes de pagar, escribi por WhatsApp.";
+  if (includesAny(context, ["pago", "tarjeta", "mercado", "transferencia", "comprobante"])) {
+    return "FZAC inicia el pago desde servidor seguro con proveedores externos. No guardamos numeros de tarjeta ni CVV. Cuando el proveedor confirma el pago, el sistema confirma la orden, descuenta stock y genera el ticket. Si vas a transferir, conserva el comprobante para que administracion pueda validarlo.";
   }
 
-  if (message.includes("retiro")) {
-    return "Para retiro, elegi Retiro coordinado en checkout. FZAC prepara el pedido y el admin actualiza el estado cuando este listo. Revisa cantidades, unidad de medida y telefono antes de pagar.";
+  if (includesAny(context, ["envio", "entrega", "zona", "flete", "domicilio"])) {
+    return "El envio no se calcula automaticamente: FZAC lo cotiza por WhatsApp segun zona, volumen, peso y disponibilidad. En checkout podes cargar direccion orientativa para que el equipo tenga contexto y despues confirme costo, horario y condiciones.";
   }
 
-  if (message.includes("devolucion") || message.includes("cambio")) {
-    return "Para cambios o devoluciones, conserva el ticket y contacta a FZAC indicando orden, producto y motivo. En materiales de obra suele revisarse estado del producto, embalaje y si fue pedido especial.";
+  if (includesAny(context, ["retiro", "retirar", "local"])) {
+    return "Para retiro, elegi Retiro coordinado. FZAC prepara el pedido y avisa cuando este disponible. Antes de pagar revisa SKU, cantidad, unidad de venta y telefono, asi administracion puede contactarte sin demoras.";
   }
 
-  if (message.includes("material") || message.includes("necesito") || message.includes("obra")) {
-    return "Para recomendar materiales necesito saber superficie aproximada, si es interior o exterior, tipo de obra y terminacion buscada. Conviene definir rubro, calcular margen por desperdicio y validar stock antes de cerrar el pago.";
+  if (includesAny(context, ["devolucion", "devolver", "cambio", "garantia"])) {
+    return "Para cambios o devoluciones, conserva el ticket e informa orden, producto y motivo. En materiales de obra se revisa estado, embalaje, uso y si fue pedido especial. Si el caso es urgente, conviene derivarlo a WhatsApp con fotos.";
   }
 
-  return "Soy Chatbot FZAC. Puedo ayudarte a elegir productos, revisar stock visible, explicar pagos, envios, retiro y estado de pedidos. Si me pasas que queres construir o reparar, te oriento con una lista inicial y puntos a verificar.";
+  if (includesAny(context, ["presupuesto", "calcular", "m2", "metro", "obra", "construir", "reparar", "material"])) {
+    return "Para orientarte con materiales necesito superficie aproximada, uso interior/exterior, tipo de obra y terminacion buscada. Como regla practica, conviene sumar margen por desperdicio y validar unidad de venta. Pasame medidas y rubro, por ejemplo placa, pintura, cemento o plomeria, y te armo una lista inicial para revisar.";
+  }
+
+  if (includesAny(context, ["pedido", "orden", "estado", "ticket", "factura"])) {
+    return "El estado del pedido se consulta desde tu cuenta. Si el pago ya fue confirmado, administracion actualiza preparacion, retiro, entrega o ticket. Para acelerar una consulta, envia numero de orden y email de compra por WhatsApp.";
+  }
+
+  return "Soy AI Chatbot FZAC. Te ayudo a elegir materiales, entender stock, pagos, retiros, envios y estado de pedidos. Contame que producto necesitas, cantidad aproximada y para que tipo de obra es; con eso te doy una recomendacion inicial y te aviso que conviene confirmar con administracion antes de cerrar la compra.";
 }
 
 async function persistConversation(input: {
@@ -59,6 +74,7 @@ async function persistConversation(input: {
 }) {
   const admin = getSupabaseAdminClient();
   if (!admin) return input.conversationId ?? null;
+  const adminPath = getAdminConsolePath();
 
   try {
     let conversationId = input.conversationId ?? null;
@@ -97,7 +113,7 @@ async function persistConversation(input: {
         type: "CHAT_WAITING_ADMIN",
         title: "Chat requiere atencion",
         message: input.message.slice(0, 140),
-        link_to: `/admin/chats?conversation=${conversationId}`
+        link_to: `${adminPath}/chats?conversation=${conversationId}`
       });
     }
 
@@ -141,7 +157,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const reply = advisoryReply(message);
+  const reply = advisoryReply(message, payload.history ?? []);
   const conversationId = await persistConversation({
     conversationId: payload.conversationId,
     visitorId: payload.visitorId,

@@ -6,18 +6,12 @@ import { Search } from "lucide-react";
 type CustomerRow = Record<string, string | number | null | undefined>;
 
 const columns = [
-  "Email",
-  "Nombre",
-  "Telefono",
+  "Cliente",
   "Rol",
-  "Registro",
-  "UltimoLogin",
+  "Contacto",
+  "Actividad",
   "Compras",
-  "TotalGastado",
-  "Pedidos",
   "Direccion",
-  "Distancia",
-  "Entrega",
   "Chats"
 ];
 
@@ -29,7 +23,7 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
     const query = search.toLowerCase().trim();
     return rows.filter((row) => {
       const matchesRole = role === "all" || String(row.Rol) === role;
-      const matchesSearch = !query || columns.some((column) => String(row[column] ?? "").toLowerCase().includes(query));
+      const matchesSearch = !query || Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(query));
       return matchesRole && matchesSearch;
     });
   }, [rows, search, role]);
@@ -61,9 +55,37 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
             {filtered.length ? (
               filtered.map((row, index) => (
                 <tr key={index}>
-                  {columns.map((column) => (
-                    <td key={column}>{row[column] ?? "-"}</td>
-                  ))}
+                  <td>
+                    <div className="admin-customer-summary">
+                      <strong>{row.Nombre || "Sin nombre"}</strong>
+                      <span>{row.Email}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="status-pill">{row.Rol ?? "-"}</span>
+                  </td>
+                  <td>
+                    <div className="admin-customer-stack">
+                      <strong>{row.Telefono || "-"}</strong>
+                      <span>{row.Provincia || "-"}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="admin-customer-stack">
+                      <span>Registro: {row.Registro || "-"}</span>
+                      <span>Ultimo login: {row.UltimoLogin || "-"}</span>
+                      <span>Estado: {row.Entrega || "-"}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="admin-customer-stack">
+                      <strong>{row.TotalGastado || "$0"}</strong>
+                      <span>{row.Compras ?? 0} compras</span>
+                      <span>{row.Pedidos ?? 0} pedidos</span>
+                    </div>
+                  </td>
+                  <td>{row.Direccion ?? "-"}</td>
+                  <td>{row.Chats ?? 0}</td>
                 </tr>
               ))
             ) : (

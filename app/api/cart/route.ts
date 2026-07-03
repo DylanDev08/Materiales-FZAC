@@ -6,6 +6,7 @@ import { jsonError } from "@/lib/utils/api";
 const cartSchema = z.object({
   items: z.array(z.object({ productId: z.string().min(1), quantity: z.coerce.number().int().min(1).max(999) }))
 });
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -27,12 +28,14 @@ export async function POST(request: Request) {
   if (!user || !admin) return Response.json({ ok: true, synced: false });
 
   const payload = cartSchema.parse(await request.json());
-  const rows = payload.items.map((item) => ({
-    user_id: user.id,
-    product_id: item.productId,
-    quantity: item.quantity,
-    updated_at: new Date().toISOString()
-  }));
+  const rows = payload.items
+    .filter((item) => UUID_PATTERN.test(item.productId))
+    .map((item) => ({
+      user_id: user.id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      updated_at: new Date().toISOString()
+    }));
 
   if (rows.length) {
     const { error } = await admin.from("cart_items").upsert(rows, { onConflict: "user_id,product_id" });

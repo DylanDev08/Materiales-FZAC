@@ -1,11 +1,13 @@
-import { isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
+import { isMercadoPagoConfigured, isPaymentsEnabled } from "@/lib/payments/config";
 
 export async function GET() {
+  const enabled = isMercadoPagoConfigured();
   return Response.json({
     provider: "MERCADOPAGO",
-    enabled: isMercadoPagoEnabled(),
-    message: isMercadoPagoEnabled()
+    enabled,
+    paymentsEnabled: isPaymentsEnabled(),
+    message: enabled
       ? "Mercado Pago esta configurado para crear preferencias server-side."
-      : "Mercado Pago no esta configurado. El checkout habilita simulacion controlada."
+      : "El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion."
   });
 }

@@ -3,10 +3,11 @@ import "server-only";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
+import { resolveProductImageUrl } from "@/lib/products/images";
 import type { Category, Product } from "@/types/domain";
 
 function normalizeProduct(row: Record<string, unknown>): Product {
-  return {
+  const product = {
     id: String(row.id),
     slug: String(row.slug),
     sku: String(row.sku),
@@ -27,6 +28,8 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     on_sale: Boolean(row.on_sale),
     active: Boolean(row.active ?? true)
   };
+
+  return { ...product, image_url: resolveProductImageUrl(product) };
 }
 
 function normalizeCategory(row: Record<string, unknown>): Category {
@@ -66,6 +69,73 @@ export async function getAdminRows(table: string, limit = 200) {
   return (data ?? []) as Array<Record<string, string | number | null | undefined>>;
 }
 
+export async function getAdminOrderTableRows(limit = 200) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data: orders } = await admin
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const orderIds = (orders ?? []).map((order) => order.id);
+  const [{ data: items }, { data: payments }] = orderIds.length
+    ? await Promise.all([
+        admin.from("order_items").select("order_id,name,quantity").in("order_id", orderIds),
+        admin.from("payments").select("order_id,provider,status,provider_payment_id").in("order_id", orderIds)
+      ])
+    : [{ data: [] }, { data: [] }];
+
+  return (orders ?? []).map((order) => {
+    const orderItems = (items ?? []).filter((item) => item.order_id === order.id);
+    const payment = (payments ?? []).find((item) => item.order_id === order.id);
+
+    return {
+      Cliente: order.customer_name,
+      Email: order.customer_email,
+      Telefono: order.customer_phone,
+      Productos: orderItems.map((item) => `${item.quantity} x ${item.name}`).join("; ") || "-",
+      Total: currency(order.total),
+      Estado: order.status,
+      Pago: payment ? `${payment.provider} / ${payment.status}` : "Pendiente",
+      Envio: order.shipping_method === "DELIVERY" ? "Envio a coordinar" : "Retiro",
+      Fecha: adminDate(order.created_at)
+    };
+  });
+}
+
+export async function getAdminPaymentTableRows(limit = 200) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data: payments } = await admin
+    .from("payments")
+    .select("id,order_id,provider,status,amount,currency,provider_payment_id,provider_preference_id,created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const orderIds = (payments ?? []).map((payment) => payment.order_id).filter(Boolean);
+  const { data: orders } = orderIds.length
+    ? await admin.from("orders").select("id,customer_name,customer_email,status,total").in("id", orderIds)
+    : { data: [] };
+
+  return (payments ?? []).map((payment) => {
+    const order = (orders ?? []).find((item) => item.id === payment.order_id);
+    return {
+      Estado: payment.status,
+      Proveedor: payment.provider,
+      Monto: currency(payment.amount),
+      Orden: payment.order_id,
+      Cliente: order?.customer_name ?? "-",
+      Email: order?.customer_email ?? "-",
+      ProviderPaymentId: payment.provider_payment_id ?? "-",
+      PreferenceId: payment.provider_preference_id ?? "-",
+      Fecha: adminDate(payment.created_at)
+    };
+  });
+}
+
 function startOfDay() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -79,12 +149,23 @@ function startOfMonth() {
   return date.toISOString();
 }
 
+function adminDate(value: string | null | undefined) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
 export async function getAdminDashboardData() {
   const admin = getSupabaseAdminClient();
   if (!admin) {
     return {
       metrics: [
-        { label: "Ventas del dia", value: currency(0), helper: "Supabase no configurado" },
+        { label: "Ventas del dia", value: currency(0), helper: "Backend administrativo sin conexion" },
         { label: "Ventas del mes", value: currency(0), helper: "Esperando pagos aprobados" },
         { label: "Pedidos pendientes", value: "0", helper: "Sin datos" },
         { label: "Clientes nuevos", value: "0", helper: "Sin datos" }
@@ -131,6 +212,7 @@ export async function getAdminDashboardData() {
   const salesToday = (paidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const salesMonth = (monthOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
+  const pendingPayments = (payments ?? []).filter((payment) => payment.status === "PENDING");
   const rejectedPayments = (payments ?? []).filter((payment) => payment.status === "FAILED");
   const lowStock = (products ?? []).filter((product) => Number(product.stock ?? 0) <= Number(product.stock_minimum ?? 0));
   const averageTicket = approvedPayments.length
@@ -149,6 +231,7 @@ export async function getAdminDashboardData() {
       { label: "Ventas del dia", value: currency(salesToday), helper: "Pagos aprobados hoy" },
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },
+      { label: "Pagos pendientes", value: String(pendingPayments.length), helper: "Esperando proveedor" },
       { label: "Pagos aprobados", value: String(approvedPayments.length), helper: "Confirmados por proveedor" },
       { label: "Pagos rechazados", value: String(rejectedPayments.length), helper: "Sin stock descontado" },
       { label: "Ticket promedio", value: currency(averageTicket), helper: "Promedio de pagos aprobados" },
@@ -204,8 +287,8 @@ export async function getAdminCustomerRows() {
       Nombre: profile.full_name,
       Telefono: profile.phone,
       Rol: profile.role,
-      Registro: profile.created_at,
-      UltimoLogin: profile.last_login_at,
+      Registro: adminDate(profile.created_at),
+      UltimoLogin: adminDate(profile.last_login_at),
       Compras: paidOrders.length,
       TotalGastado: currency(totalSpent),
       Pedidos: profileOrders.length,

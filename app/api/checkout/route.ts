@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
-import { createCheckout } from "@/lib/db/orders";
+import { createCheckout, InsufficientStockError } from "@/lib/db/orders";
+import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
 
@@ -15,6 +16,30 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return jsonError(error.issues[0]?.message ?? "Datos de checkout invalidos.", 422);
     }
-    return jsonError(error instanceof Error ? error.message : "No pudimos crear el checkout.", 400);
+    if (error instanceof InsufficientStockError) {
+      return Response.json(
+        {
+          error: "INSUFFICIENT_STOCK",
+          message: error.message,
+          items: error.items
+        },
+        { status: 409 }
+      );
+    }
+    if (error instanceof MercadoPagoNotConfiguredError) {
+      return Response.json(
+        {
+          ok: false,
+          error: "MERCADOPAGO_NOT_CONFIGURED",
+          message: error.message,
+          orderId: error.orderId
+        },
+        { status: 503 }
+      );
+    }
+    if (error instanceof Error && error.message.includes("Supabase admin")) {
+      return jsonError("Checkout no disponible. Revisamos la configuracion de pedidos del sistema.", 503);
+    }
+    return jsonError("No pudimos crear el checkout. Revisa los datos e intenta nuevamente.", 400);
   }
 }

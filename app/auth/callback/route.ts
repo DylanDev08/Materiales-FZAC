@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserProfile } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getSiteUrl } from "@/lib/utils/env";
+import { getAdminConsolePath, getSiteUrl } from "@/lib/utils/env";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -14,6 +14,6 @@ export async function GET(request: Request) {
   }
 
   const profile = await getUserProfile();
-  const target = profile?.role === "ADMIN" ? "/admin" : next;
+  const target = profile?.role === "ADMIN" ? getAdminConsolePath() : next;
   return NextResponse.redirect(new URL(target, getSiteUrl()));
 }

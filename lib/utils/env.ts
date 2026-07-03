@@ -20,6 +20,12 @@ export function getAdminEmails() {
     .filter(Boolean);
 }
 
+export function getAdminConsolePath() {
+  const configured = getEnv("ADMIN_CONSOLE_PATH");
+  const path = configured.startsWith("/") ? configured : `/${configured}`;
+  return path.length > 1 ? path.replace(/\/+$/, "") : "/fzac-admin-crs-2026";
+}
+
 export function isConfigured(name: string) {
   return hasRealValue(getEnv(name));
 }

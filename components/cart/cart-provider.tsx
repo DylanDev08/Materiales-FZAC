@@ -2,12 +2,14 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { resolveProductImageUrl } from "@/lib/products/images";
 import type { CartLine, Product } from "@/types/domain";
 
 type CartContextValue = {
   items: CartLine[];
   count: number;
   subtotal: number;
+  hydrated: boolean;
   addItem: (product: Product, quantity?: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
@@ -20,30 +22,48 @@ const STORAGE_KEY = "fzac-cart-v1";
 function sanitize(items: CartLine[]) {
   return items
     .filter((item) => item.product?.id && item.quantity > 0)
-    .map((item) => ({
-      ...item,
-      quantity: Math.min(item.product.stock || 999, Math.max(1, Number(item.quantity)))
-    }));
+    .map((item) => {
+      const available = Number.isFinite(Number(item.product.stock)) ? Number(item.product.stock) : 999;
+      return {
+        ...item,
+        product: { ...item.product, image_url: resolveProductImageUrl(item.product) },
+        quantity: Math.min(available, Math.max(1, Number(item.quantity)))
+      };
+    })
+    .filter((item) => item.quantity > 0);
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartLine[]>(() => {
-    if (typeof window === "undefined") return [];
-
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      return raw ? sanitize(JSON.parse(raw) as CartLine[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [items, setItems] = useState<CartLine[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
+    window.queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        setItems(raw ? sanitize(JSON.parse(raw) as CartLine[]) : []);
+      } catch {
+        setItems([]);
+      } finally {
+        setHydrated(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+  }, [hydrated, items]);
 
   useEffect(() => {
-    if (items.length === 0) return;
+    if (!hydrated || items.length === 0) return;
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -59,7 +79,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         })
       }).catch(() => null);
     });
-  }, [items]);
+  }, [hydrated, items]);
 
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -69,6 +89,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       items,
       count,
       subtotal,
+      hydrated,
       addItem(product, quantity = 1) {
         setItems((current) => {
           const existing = current.find((item) => item.productId === product.id);
@@ -93,7 +114,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setItems([]);
       }
     };
-  }, [items]);
+  }, [hydrated, items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

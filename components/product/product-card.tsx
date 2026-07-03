@@ -1,15 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BadgeCheck, CreditCard, Eye, ShoppingCart, Truck } from "lucide-react";
+import { BadgeCheck, CheckCircle, CreditCard, Eye, ShoppingCart, Truck } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
+
+  function addToCart() {
+    if (isAdding || product.stock <= 0) return;
+    setIsAdding(true);
+    addItem(product, 1);
+    setAdded(true);
+    window.requestAnimationFrame(() => setIsAdding(false));
+  }
 
   return (
     <article className="product-card">
@@ -22,7 +33,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : null}
           {product.stock > 0 ? (
             <span className="status-pill status-pill--success">
-              <Truck size={14} /> Envio
+              <Truck size={14} /> Coordinar entrega
             </span>
           ) : null}
         </div>
@@ -52,14 +63,25 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
 
         <div className="product-card__actions">
-          <button className="btn" type="button" disabled={product.stock <= 0} onClick={() => addItem(product, 1)}>
+          <button className="btn" type="button" disabled={product.stock <= 0 || isAdding} onClick={addToCart}>
             <ShoppingCart size={18} />
-            Comprar
+            {isAdding ? "Agregando..." : "Comprar"}
           </button>
           <Link className="icon-link" href={`/producto/${product.slug}`} aria-label={`Ver ${product.name}`}>
             <Eye size={18} />
           </Link>
         </div>
+        {added ? (
+          <div className="product-card__toast">
+            <strong>
+              <CheckCircle size={15} /> Tu producto fue agregado
+            </strong>
+            <span>
+              <Link href="/carrito">Ver carrito</Link>
+              <Link href="/productos">Seguir comprando</Link>
+            </span>
+          </div>
+        ) : null}
       </div>
     </article>
   );

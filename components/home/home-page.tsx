@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BadgeCheck,
   Banknote,
-  CreditCard,
   Grid3X3,
   Hammer,
   Package,
@@ -34,10 +33,10 @@ export async function HomePage() {
             <Package size={18} /> Retiro coordinado
           </span>
           <span>
-            <CreditCard size={18} /> Mercado Pago listo
+            <ShieldCheck size={18} /> Orden segura
           </span>
           <span>
-            <ShieldCheck size={18} /> Stock validado en backend
+            <ShieldCheck size={18} /> Stock validado al comprar
           </span>
         </div>
       </section>
@@ -69,8 +68,8 @@ export async function HomePage() {
                 tienda disponible
               </span>
               <span>
-                <strong>MP</strong>
-                tarjetas y cuenta
+                <strong>Stock</strong>
+                validado al pagar
               </span>
             </div>
           </div>
@@ -159,26 +158,6 @@ export async function HomePage() {
 
       <section className="page-section">
         <div className="container">
-          <div className="banner-band">
-            <div>
-              <span className="kicker">
-                <CreditCard size={16} /> Pago online
-              </span>
-              <h2>Medios de pago listos para operar como tienda real.</h2>
-              <p>
-                Tarjetas por Mercado Pago, transferencia con revision administrativa y stock descontado solo cuando el
-                pago queda aprobado desde backend.
-              </p>
-            </div>
-            <Link className="btn" href="/checkout">
-              Pagar carrito <ArrowRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="page-section">
-        <div className="container">
           <SectionHeader
             eyebrow="Megaofertas"
             title="Oportunidades vigentes"
@@ -208,8 +187,8 @@ export async function HomePage() {
           </article>
           <article className="benefit-card">
             <Truck size={24} />
-            <h3>Envio FZAC</h3>
-            <p>La entrega se coordina con datos de direccion, telefono y disponibilidad operativa.</p>
+            <h3>Envio por WhatsApp</h3>
+            <p>La entrega se cotiza por zona, volumen, telefono y disponibilidad operativa.</p>
           </article>
           <article className="benefit-card">
             <BadgeCheck size={24} />

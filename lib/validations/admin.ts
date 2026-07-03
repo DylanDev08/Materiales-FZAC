@@ -10,13 +10,13 @@ const safeText = (label: string, min = 0, max = 600) =>
     .refine((value) => !hasSqlMeta(value), `${label} contiene caracteres no permitidos.`);
 
 export const adminProductSchema = z.object({
-  id: z.string().optional(),
+  id: z.preprocess((value) => (value === "" ? undefined : value), z.string().uuid("ID de producto invalido.").optional()),
   name: safeText("Nombre", 2, 160),
   slug: safeText("Slug", 2, 180),
   sku: safeText("SKU", 2, 80),
   brand: safeText("Marca", 1, 100),
   description: safeText("Descripcion", 5, 1200),
-  category_id: z.string().trim().min(1),
+  category_id: z.string().trim().uuid("Elegi una categoria valida antes de guardar."),
   subcategory: safeText("Subcategoria", 1, 100).default("General"),
   price: z.coerce.number().min(0),
   compare_price: z.coerce.number().min(0).nullable().optional(),

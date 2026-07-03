@@ -12,7 +12,7 @@ export default function Page() {
           </p>
           <h2>Precios y stock</h2>
           <p>
-            Los precios y stock visibles se validan nuevamente en backend al crear la orden. FZAC puede corregir errores
+            Los precios y stock visibles se validan nuevamente en servidor al crear la orden. FZAC puede corregir errores
             evidentes antes de confirmar una operacion comercial.
           </p>
           <h2>Pagos</h2>

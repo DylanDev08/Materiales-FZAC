@@ -1,131 +1,68 @@
-# Materiales FZAC Next
+# Materiales FZAC
 
-E-commerce profesional para Fortaleza Construcciones Rosario, construido con Next.js App Router, Supabase, Mercado Pago, carrito, checkout, tickets, notificaciones, chatbot FZAC y panel admin.
+Materiales FZAC es un e-commerce profesional para Fortaleza Construcciones Rosario. La app permite publicar productos de corralon, vender online, validar stock real, gestionar pedidos y centralizar la operacion comercial desde un panel administrativo.
 
-## Stack
+El proyecto esta pensado para pasar de una tienda basica a una plataforma lista para operar en produccion: catalogo, carrito, checkout, pagos externos, usuarios, panel admin, notificaciones, tickets, gestion de stock y contacto comercial.
 
-- Next.js App Router + React + TypeScript.
-- Supabase Database, Auth, RLS y Storage compatible.
-- Route Handlers server-side para auth, checkout, pagos, webhooks, buscador, chatbot y admin.
-- Mercado Pago preparado para preferencias y webhook.
-- Naranja X por adapter opcional, desactivado por defecto.
-- CSS puro con identidad FZAC negro + amarillo.
-- Buscador predictivo con productos, categorias, marcas, terminos e historial local.
-- Chatbot FZAC con historial local y persistencia opcional en Supabase.
-- WhatsApp visible para contacto comercial.
-- Rutas legales: terminos, privacidad, cambios/devoluciones, envios/retiros y medios de pago.
+## Que Hace
 
-## Instalacion
+- Muestra un catalogo de materiales organizado por productos, categorias, marcas, ofertas y destacados.
+- Permite al cliente buscar productos, agregarlos al carrito y completar un checkout seguro.
+- Valida precios y stock desde servidor antes de crear una orden.
+- Prepara el flujo de pago con proveedor externo sin guardar tarjetas ni datos sensibles.
+- Genera pedidos pendientes, pagos, tickets y movimientos de inventario cuando corresponde.
+- Ofrece cuenta de usuario con datos personales, pedidos, productos comprados y conversaciones.
+- Incluye panel administrativo para gestionar productos, clientes, pedidos, pagos, tickets, stock, chats y metricas.
+- Integra contacto por WhatsApp y un chatbot FZAC para orientar compras, stock, envios, pagos y consultas frecuentes.
+- Incluye secciones legales y comerciales: terminos, privacidad, medios de pago, envios, retiros, cambios y devoluciones.
 
-```bash
-npm install
-npm run dev
-```
+## Tecnologias
 
-La app corre en `http://localhost:3000`.
+- Next.js App Router.
+- React.
+- TypeScript.
+- Supabase Database.
+- Supabase Auth.
+- Supabase Storage.
+- PostgreSQL con RLS.
+- Route Handlers server-side.
+- Mercado Pago preparado para Checkout Pro y webhooks.
+- CSS modular con identidad visual FZAC.
+- Zod para validaciones.
+- Lucide React para iconografia.
 
-## Variables
+## Problemas Que Resuelve
 
-Usar `.env.example` como plantilla y cargar valores reales solo en `.env` local o variables del hosting. No subir `.env`, `.env.local`, service role, tokens de Mercado Pago ni credenciales privadas.
+- Evita vender productos sin stock validando la disponibilidad real antes del pago.
+- Evita confiar en precios enviados desde frontend: el total se recalcula en servidor.
+- Evita descuentos duplicados de stock con confirmacion idempotente de pagos.
+- Evita exponer claves privadas usando operaciones sensibles solo del lado servidor.
+- Evita un panel administrativo expuesto mediante proteccion de rol y rutas privadas.
+- Ordena la gestion diaria del negocio: pedidos, clientes, pagos, tickets, inventario y notificaciones.
+- Mejora la experiencia mobile para compras rapidas desde celular.
+- Permite operar aunque el proveedor de pagos todavia no este conectado, dejando las ordenes preparadas y controladas.
 
-Variables principales:
+## Modulos Principales
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_SITE_URL=
-NEXT_PUBLIC_API_URL=
-MERCADOPAGO_ACCESS_TOKEN=
-NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=
-MERCADOPAGO_WEBHOOK_SECRET=
-ADMIN_EMAILS=
-NEXT_PUBLIC_FZAC_WHATSAPP=
-NEXT_PUBLIC_FZAC_EMAIL=
-```
+- Home comercial con identidad FZAC.
+- Catalogo y detalle de producto.
+- Carrito persistente.
+- Checkout con validacion de stock.
+- Flujo de pagos preparado para produccion.
+- Webhook de confirmacion de pagos.
+- Panel de administracion.
+- Gestion de productos e imagenes.
+- Vista de clientes y pedidos.
+- Cuenta de usuario.
+- Chatbot y contacto comercial.
+- Paginas legales.
 
-Las contrasenas de administradores no se documentan ni se guardan en el repositorio. Deben cargarse en Supabase Auth o gestionarse por un canal seguro.
+## Enfoque De Seguridad
 
-## Supabase
+La app separa responsabilidades entre cliente y servidor. El frontend solo captura interacciones del usuario; las decisiones importantes, como validar stock, recalcular precios, crear ordenes, confirmar pagos, descontar inventario y emitir tickets, se hacen en backend.
 
-1. Crear o usar el proyecto Supabase.
-2. Ejecutar `supabase/migrations/20260701000000_init_fzac.sql`.
-3. Ejecutar `supabase/seed.sql` para categorias, productos iniciales y settings publicos.
-4. Configurar `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`.
+No se documentan claves, tokens ni credenciales privadas dentro del repositorio. La configuracion sensible debe gestionarse desde el entorno seguro del deploy o del equipo responsable.
 
-RLS queda activo. Usuarios leen sus propios datos y productos/categorias activos son publicos. Admin opera por backend con service role, nunca desde cliente.
+## Estado Del Proyecto
 
-## Auth
-
-Supabase Auth soporta email/password y Google OAuth desde el dashboard de Supabase.
-
-Callbacks de app:
-
-```txt
-http://localhost:3000/auth/callback
-https://TU-DOMINIO.vercel.app/auth/callback
-```
-
-Los emails admin se autorizan con `ADMIN_EMAILS` o `ADMIN_EMAIL`. Al iniciar sesion, el backend sincroniza el perfil y redirige admins a `/admin`.
-
-## Checkout Y Pagos
-
-El checkout crea orden y pago desde `app/api/checkout/route.ts`.
-
-Flujo:
-
-1. Valida items contra DB.
-2. Valida stock.
-3. Crea orden `PENDING_PAYMENT`.
-4. Crea payment `PENDING`.
-5. Si hay token, crea preferencia Mercado Pago.
-6. El webhook consulta el pago real.
-7. Si esta aprobado, confirma orden, descuenta stock, crea ticket, movimiento de inventario y notificacion admin.
-
-Webhook:
-
-```txt
-https://TU-DOMINIO.vercel.app/api/payments/mercadopago/webhook
-```
-
-FZAC no procesa tarjetas directamente ni recibe CVV. La ruta `/api/payments/cards` documenta esa politica.
-
-## Envios Y Retiros
-
-No se integran APIs de mapas. El checkout toma direccion, telefono y notas como datos operativos; FZAC coordina retiro o envio administrativamente.
-
-## Admin
-
-Rutas:
-
-- `/admin`
-- `/admin/productos`
-- `/admin/categorias`
-- `/admin/pedidos`
-- `/admin/pagos`
-- `/admin/tickets`
-- `/admin/clientes`
-- `/admin/chats`
-- `/admin/ajustes`
-- `/admin/apariencia`
-
-El panel usa `requireAdmin()` en servidor. Los endpoints admin vuelven `401` si no hay usuario admin.
-
-## Scripts
-
-```bash
-npm run dev
-npm run build
-npm run lint
-npm run typecheck
-npm run db:types
-npm run db:push
-npm run db:seed
-```
-
-## Troubleshooting
-
-- Auth no inicia: revisar `NEXT_PUBLIC_SUPABASE_URL`, anon key y callback `/auth/callback`.
-- Admin redirige a cuenta: revisar `ADMIN_EMAILS` y que el usuario exista en Supabase Auth.
-- Checkout queda en simulacion: falta `MERCADOPAGO_ACCESS_TOKEN`.
-- Productos no aparecen: ejecutar seed o cargar productos activos en Supabase.
+La base de la tienda ya esta preparada como e-commerce real: catalogo, checkout, auth, admin, storage, stock, pagos externos y webhook. Para operar comercialmente solo resta cargar credenciales reales del proveedor de pagos, datos definitivos del negocio y productos finales.
