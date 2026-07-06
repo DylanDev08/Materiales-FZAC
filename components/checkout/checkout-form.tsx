@@ -1,14 +1,29 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, CreditCard, Loader2, MapPin, MessageCircle, Package, ShieldCheck, Truck, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Package,
+  ShieldCheck,
+  Truck,
+  UserRound
+} from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
+import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
+
+type CheckoutStep = "customer" | "delivery" | "review" | "payment";
+type PaymentMode = "MERCADOPAGO" | "CARD";
 
 type StockIssue = {
   productId: string;
@@ -23,6 +38,19 @@ type StockState =
   | { status: "ok" }
   | { status: "error"; message: string; items: StockIssue[] };
 
+type ShippingQuoteState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ok"; amount: number; distanceKm: number; durationText?: string }
+  | { status: "error"; message: string; distanceKm?: number };
+
+const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
+  { id: "customer", label: "1. Comprador" },
+  { id: "delivery", label: "2. Entrega" },
+  { id: "review", label: "3. Revision" },
+  { id: "payment", label: "4. Pago" }
+];
+
 function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
   return items.map((item) => ({
     product_id: item.productId,
@@ -33,6 +61,8 @@ function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
 export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   const router = useRouter();
   const { hydrated, items, subtotal } = useCart();
+  const primaryActionRef = useRef<HTMLButtonElement | null>(null);
+  const [step, setStep] = useState<CheckoutStep>("customer");
   const [customer, setCustomer] = useState({
     name: profile?.full_name ?? "",
     email: profile?.email ?? "",
@@ -51,12 +81,19 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   const [notes, setNotes] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("MERCADOPAGO");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const checkoutInFlightRef = useRef(false);
   const helpHref = getWhatsAppHref("Hola FZAC, necesito ayuda con mi checkout antes de pagar.");
   const deliveryHref = getWhatsAppHref("Hola FZAC, quiero coordinar un envio antes de pagar.");
 
-  const total = subtotal;
+  const shippingCost = shippingMethod === "DELIVERY" && shippingQuote.status === "ok" ? shippingQuote.amount : 0;
+  const total = subtotal + shippingCost;
+  const stepIndex = checkoutSteps.findIndex((item) => item.id === step);
+  const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
+  const customerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim() && addressComplete);
 
   async function validateStock(signal?: AbortSignal) {
     if (!items.length) {
@@ -88,6 +125,50 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     return true;
   }
 
+  async function quoteShipping(forceDelivery = shippingMethod === "DELIVERY") {
+    if (!forceDelivery) {
+      setShippingQuote({ status: "idle" });
+      return true;
+    }
+
+    if (!addressComplete) {
+      setShippingQuote({ status: "error", message: "Completa direccion, numero, ciudad y provincia para cotizar envio." });
+      return false;
+    }
+
+    setShippingQuote({ status: "loading" });
+    const response = await fetch("/api/shipping/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(address)
+    });
+    const data = (await response.json()) as {
+      available?: boolean;
+      amount?: number;
+      distanceKm?: number;
+      durationText?: string;
+      reason?: string;
+      message?: string;
+    };
+
+    if (!response.ok || !data.available) {
+      setShippingQuote({
+        status: "error",
+        message: data.reason || data.message || "No pudimos cotizar el envio con datos reales.",
+        distanceKm: data.distanceKm
+      });
+      return false;
+    }
+
+    setShippingQuote({
+      status: "ok",
+      amount: Number(data.amount ?? 0),
+      distanceKm: Number(data.distanceKm ?? 0),
+      durationText: data.durationText
+    });
+    return true;
+  }
+
   useEffect(() => {
     if (!items.length) return;
 
@@ -106,20 +187,73 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
+  useEffect(() => {
+    function handleEnter(event: KeyboardEvent) {
+      if (event.key !== "Enter" || loading) return;
+
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-checkout-form='true']")) return;
+      if (target.tagName === "TEXTAREA") return;
+
+      event.preventDefault();
+      primaryActionRef.current?.click();
+    }
+
+    document.addEventListener("keydown", handleEnter);
+    return () => document.removeEventListener("keydown", handleEnter);
+  }, [loading]);
+
   const canSubmit = useMemo(() => {
-    if (!items.length || !accepted || !customer.name || !customer.email || !customer.phone) return false;
+    if (step !== "payment") return false;
+    if (!items.length || !accepted || !customerComplete) return false;
     if (stockState.status !== "ok") return false;
+    if (shippingMethod === "DELIVERY" && shippingQuote.status !== "ok") return false;
     return true;
-  }, [items.length, accepted, customer, stockState.status]);
+  }, [step, items.length, accepted, customerComplete, stockState.status, shippingMethod, shippingQuote.status]);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit || loading) return;
+  function progressClass(target: CheckoutStep) {
+    const targetIndex = checkoutSteps.findIndex((item) => item.id === target);
+    if (targetIndex < stepIndex) return "completed";
+    if (target === step) return "active";
+    return "";
+  }
 
+  function goToDelivery() {
+    if (!customerComplete) {
+      setError("Completa tus datos y direccion para continuar.");
+      return;
+    }
+    setError("");
+    setStep("delivery");
+  }
+
+  function goToReview() {
+    setError("");
+    void (async () => {
+      const quoted = await quoteShipping();
+      if (quoted) setStep("review");
+    })();
+  }
+
+  async function goToPayment() {
+    setError("");
+    const quoted = await quoteShipping();
+    if (!quoted) return;
+    const stockOk = await validateStock();
+    if (stockOk) setStep("payment");
+  }
+
+  async function startMercadoPagoPayment() {
+    if (!canSubmit || loading || checkoutInFlightRef.current) return;
+
+    checkoutInFlightRef.current = true;
     setLoading(true);
     setError("");
 
     try {
+      const quoted = await quoteShipping();
+      if (!quoted) return;
+
       const stockOk = await validateStock();
       if (!stockOk) return;
 
@@ -132,15 +266,15 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           customer_email: customer.email,
           customer_phone: customer.phone,
           shipping_method: shippingMethod,
-          address_snapshot: shippingMethod === "DELIVERY" ? address : null,
-          notes
+          address_snapshot: address,
+          notes,
+          payment_flow: "CHECKOUT_PRO"
         })
       });
 
       const data = (await response.json()) as {
         url?: string;
         init_point?: string;
-        sandbox_init_point?: string;
         pending?: boolean;
         orderId?: string;
         preference_id?: string;
@@ -156,16 +290,25 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
             message: data.message || "No hay stock suficiente para completar la compra.",
             items: data.items ?? []
           });
+          setStep("review");
           return;
         }
-        if (response.status === 503 && data.error === "MERCADOPAGO_NOT_CONFIGURED") {
-          setError("El checkout ya esta preparado. Falta configurar Mercado Pago para operar en produccion.");
+        if (response.status === 422 && data.error === "SHIPPING_QUOTE_UNAVAILABLE") {
+          setError(data.message || "No pudimos cotizar el envio con datos reales.");
+          setStep("delivery");
+          return;
+        }
+        if (
+          response.status === 503 &&
+          (data.error === "PAYMENT_PROVIDER_NOT_CONFIGURED" || data.error === "MERCADOPAGO_NOT_CONFIGURED")
+        ) {
+          setError("No pudimos iniciar el pago online en este momento. La orden queda preparada para seguimiento.");
           return;
         }
         throw new Error(data.message || "No pudimos crear el checkout.");
       }
 
-      const paymentUrl = data.init_point || data.url || data.sandbox_init_point;
+      const paymentUrl = data.init_point || data.url;
       if (paymentUrl) {
         window.location.assign(paymentUrl);
         return;
@@ -180,6 +323,76 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "No pudimos iniciar el pago.");
     } finally {
+      checkoutInFlightRef.current = false;
+      setLoading(false);
+    }
+  }
+
+  async function startCardPayment(card: MercadoPagoCardPayload) {
+    if (!canSubmit || loading || checkoutInFlightRef.current) return;
+
+    checkoutInFlightRef.current = true;
+    setLoading(true);
+    setError("");
+
+    try {
+      const quoted = await quoteShipping();
+      if (!quoted) return;
+
+      const stockOk = await validateStock();
+      if (!stockOk) return;
+
+      const response = await fetch("/api/checkout/card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: checkoutItems(items),
+          customer_name: customer.name,
+          customer_email: customer.email,
+          customer_phone: customer.phone,
+          shipping_method: shippingMethod,
+          address_snapshot: address,
+          notes,
+          payment_flow: "CARD",
+          card
+        })
+      });
+
+      const data = (await response.json()) as {
+        redirectUrl?: string;
+        message?: string;
+        error?: string;
+        items?: StockIssue[];
+      };
+
+      if (!response.ok) {
+        if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
+          setStockState({
+            status: "error",
+            message: data.message || "No hay stock suficiente para completar la compra.",
+            items: data.items ?? []
+          });
+          setStep("review");
+          return;
+        }
+        if (response.status === 422 && data.error === "SHIPPING_QUOTE_UNAVAILABLE") {
+          setError(data.message || "No pudimos cotizar el envio con datos reales.");
+          setStep("delivery");
+          return;
+        }
+        throw new Error(data.message || "No pudimos procesar el pago con tarjeta.");
+      }
+
+      if (data.redirectUrl) {
+        router.push(data.redirectUrl);
+        return;
+      }
+
+      throw new Error("El proveedor no devolvio un resultado valido.");
+    } catch (cardError) {
+      setError(cardError instanceof Error ? cardError.message : "No pudimos procesar el pago con tarjeta.");
+    } finally {
+      checkoutInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -222,158 +435,206 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           <div>
             <span className="kicker">Checkout seguro</span>
             <h1>Confirma tu compra</h1>
-            <p>No guardamos tarjetas. Mercado Pago procesa el pago y FZAC confirma la orden de forma segura.</p>
+            <p>Completas los datos por pasos y al final queda solo el resumen, terminos y pago.</p>
           </div>
         </div>
 
         <div className="checkout-progress">
-          <span className="active">1. Comprador</span>
-          <span className={customer.name && customer.email && customer.phone ? "active" : ""}>2. Entrega</span>
-          <span className={stockState.status === "ok" ? "active" : ""}>3. Stock</span>
-          <span className={accepted && stockState.status === "ok" ? "active" : ""}>4. Pago</span>
+          {checkoutSteps.map((item) => (
+            <span className={progressClass(item.id)} key={item.id}>
+              {item.label}
+            </span>
+          ))}
         </div>
 
-        <form className="checkout-layout" onSubmit={submit}>
-          <div className="checkout-steps">
-            <section className="checkout-panel">
-              <h2>
-                <UserRound size={18} /> Datos del comprador
-              </h2>
-              <div className="form-grid">
-                <label>
-                  Nombre y apellido
-                  <input value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} required />
-                </label>
-                <label>
-                  Email
-                  <input type="email" value={customer.email} onChange={(event) => setCustomer({ ...customer, email: event.target.value })} required />
-                </label>
-                <label>
-                  Telefono
-                  <input value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} required />
-                </label>
-              </div>
-            </section>
-
-            <section className="checkout-panel">
-              <h2>
-                <Truck size={18} /> Entrega o retiro
-              </h2>
-              <div className="checkout-methods">
-                <button type="button" className="method-button" aria-pressed={shippingMethod === "PICKUP"} onClick={() => setShippingMethod("PICKUP")}>
-                  <Package size={20} />
-                  <strong>Retiro coordinado</strong>
-                  <span>Retiras en FZAC cuando administracion confirme disponibilidad.</span>
-                </button>
-                <button type="button" className="method-button" aria-pressed={shippingMethod === "DELIVERY"} onClick={() => setShippingMethod("DELIVERY")}>
-                  <MessageCircle size={20} />
-                  <strong>Envio por WhatsApp</strong>
-                  <span>El costo y horario se calculan por WhatsApp segun zona, volumen y disponibilidad.</span>
-                </button>
-                <a className="method-button" href={deliveryHref} target="_blank" rel="noreferrer">
-                  <MessageCircle size={20} />
-                  <strong>Coordinar por WhatsApp</strong>
-                  <span>Para pedidos especiales o dudas antes de pagar.</span>
-                </a>
-              </div>
-
-              {shippingMethod === "DELIVERY" ? (
-                <div className="checkout-subpanel">
-                  <h3>
-                    <MapPin size={17} /> Datos orientativos para coordinar
-                  </h3>
-                  <p>Estos datos ayudan a cotizar el envio por WhatsApp. No suman costo automatico al pedido.</p>
+        <div
+          className={`checkout-layout ${step === "payment" ? "checkout-layout--payment" : ""}`}
+          data-checkout-form="true"
+        >
+          {step !== "payment" ? (
+            <div className="checkout-steps">
+              {step === "customer" ? (
+                <section className="checkout-panel">
+                  <h2>
+                    <UserRound size={18} /> Datos del comprador
+                  </h2>
                   <div className="form-grid">
-                  <label>
-                    Calle
-                    <input value={address.street} onChange={(event) => setAddress({ ...address, street: event.target.value })} />
-                  </label>
-                  <label>
-                    Numero
-                    <input value={address.number} onChange={(event) => setAddress({ ...address, number: event.target.value })} />
-                  </label>
-                  <label>
-                    Departamento
-                    <input value={address.apartment} onChange={(event) => setAddress({ ...address, apartment: event.target.value })} />
-                  </label>
-                  <label>
-                    Ciudad
-                    <input value={address.city} onChange={(event) => setAddress({ ...address, city: event.target.value })} />
-                  </label>
-                  <label>
-                    Provincia
-                    <input value={address.province} onChange={(event) => setAddress({ ...address, province: event.target.value })} />
-                  </label>
-                  <label>
-                    Codigo postal
-                    <input value={address.postalCode} onChange={(event) => setAddress({ ...address, postalCode: event.target.value })} />
-                  </label>
+                    <label>
+                      Nombre y apellido
+                      <input value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} required />
+                    </label>
+                    <label>
+                      Email
+                      <input type="email" value={customer.email} onChange={(event) => setCustomer({ ...customer, email: event.target.value })} required />
+                    </label>
+                    <label>
+                      Telefono
+                      <input value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} required />
+                    </label>
+                    <label>
+                      Calle
+                      <input value={address.street} onChange={(event) => setAddress({ ...address, street: event.target.value })} required />
+                    </label>
+                    <label>
+                      Numero
+                      <input value={address.number} onChange={(event) => setAddress({ ...address, number: event.target.value })} required />
+                    </label>
+                    <label>
+                      Departamento
+                      <input value={address.apartment} onChange={(event) => setAddress({ ...address, apartment: event.target.value })} />
+                    </label>
+                    <label>
+                      Ciudad
+                      <input value={address.city} onChange={(event) => setAddress({ ...address, city: event.target.value })} required />
+                    </label>
+                    <label>
+                      Provincia
+                      <input value={address.province} onChange={(event) => setAddress({ ...address, province: event.target.value })} required />
+                    </label>
+                    <label>
+                      Codigo postal
+                      <input value={address.postalCode} onChange={(event) => setAddress({ ...address, postalCode: event.target.value })} />
+                    </label>
                   </div>
-                </div>
+                  {error ? <p className="notice notice--danger">{error}</p> : null}
+                  <div className="checkout-panel__actions">
+                    <button className="btn" ref={primaryActionRef} type="button" onClick={goToDelivery}>
+                      Continuar <ArrowRight size={17} />
+                    </button>
+                  </div>
+                </section>
               ) : null}
-            </section>
 
-            <section className="checkout-panel">
-              <h2>
-                <CreditCard size={18} /> Pago
-              </h2>
-              <div className="payment-note">
-                <ShieldCheck size={18} />
-                <p>
-                  El pago se inicia desde un sistema seguro. FZAC no guarda tarjetas; el stock se descuenta solo cuando el proveedor confirma el pago.
-                </p>
-              </div>
-              <label className="field" style={{ marginTop: 14 }}>
-                Notas del pedido
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={500} />
-              </label>
-              <div className="terms-checkbox">
-                <input
-                  type="checkbox"
-                  id="accept-terms"
-                  checked={accepted}
-                  onChange={(event) => setAccepted(event.target.checked)}
-                />
-                <label htmlFor="accept-terms">
-                  Acepto los{" "}
-                  <Link href="/terminos" target="_blank" rel="noopener noreferrer">
-                    Terminos y condiciones
-                  </Link>{" "}
-                  y la{" "}
-                  <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
-                    Politica de privacidad
-                  </Link>
-                  .
-                </label>
-              </div>
-              {stockState.status === "loading" ? <p className="notice">Validando productos y stock disponible...</p> : null}
-              {stockState.status === "ok" ? (
-                <p className="notice notice--success">Productos disponibles. Podes pagar con Mercado Pago cuando aceptes terminos.</p>
-              ) : null}
-              {stockState.status === "error" ? (
-                <div className="notice notice--danger">
-                  <strong>{stockState.message}</strong>
-                  {stockState.items.length ? (
-                    <ul className="stock-issue-list">
-                      {stockState.items.map((item) => (
-                        <li key={item.productId}>
-                          {item.name ?? item.productId}: pediste {item.requested}, disponibles {item.available}.
-                        </li>
-                      ))}
-                    </ul>
+              {step === "delivery" ? (
+                <section className="checkout-panel">
+                  <h2>
+                    <Truck size={18} /> Entrega o retiro
+                  </h2>
+                  <div className="checkout-methods">
+                    <button
+                      type="button"
+                      className="method-button"
+                      aria-pressed={shippingMethod === "PICKUP"}
+                      onClick={() => {
+                        setShippingMethod("PICKUP");
+                        setShippingQuote({ status: "idle" });
+                      }}
+                    >
+                      <Package size={20} />
+                      <strong>Retiro coordinado</strong>
+                      <span>Retiras en FZAC cuando administracion confirme disponibilidad.</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="method-button"
+                      aria-pressed={shippingMethod === "DELIVERY"}
+                      onClick={() => {
+                        setShippingMethod("DELIVERY");
+                        window.setTimeout(() => void quoteShipping(true), 0);
+                      }}
+                    >
+                      <Truck size={20} />
+                      <strong>Envio cotizado</strong>
+                      <span>Hasta 30 km de Rosario con direccion real y tarifa vigente configurada.</span>
+                    </button>
+                    <a className="method-button" href={deliveryHref} target="_blank" rel="noreferrer">
+                      <MessageCircle size={20} />
+                      <strong>Coordinar consulta</strong>
+                      <span>Para pedidos especiales o dudas antes de pagar.</span>
+                    </a>
+                  </div>
+
+                  {shippingMethod === "DELIVERY" ? (
+                    <div className="checkout-subpanel">
+                      <h3>
+                        <MapPin size={17} /> Direccion registrada
+                      </h3>
+                      <p>
+                        {address.street} {address.number}
+                        {address.apartment ? `, ${address.apartment}` : ""}, {address.city}, {address.province}
+                        {address.postalCode ? ` (${address.postalCode})` : ""}.
+                      </p>
+                      <button className="btn btn--ghost" type="button" onClick={() => setStep("customer")}>
+                        Editar direccion
+                      </button>
+                      <button className="btn" type="button" disabled={shippingQuote.status === "loading"} onClick={() => void quoteShipping()}>
+                        {shippingQuote.status === "loading" ? <Loader2 size={17} /> : <Truck size={17} />}
+                        Cotizar envio
+                      </button>
+                      {shippingQuote.status === "ok" ? (
+                        <p className="notice notice--success">
+                          Envio cotizado: {currency(shippingQuote.amount)} ({shippingQuote.distanceKm} km
+                          {shippingQuote.durationText ? `, ${shippingQuote.durationText}` : ""}).
+                        </p>
+                      ) : null}
+                      {shippingQuote.status === "error" ? (
+                        <p className="notice notice--danger">
+                          {shippingQuote.message}
+                          {shippingQuote.distanceKm ? ` Distancia detectada: ${shippingQuote.distanceKm} km.` : ""}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
-                  <a className="checkout-help-link checkout-help-link--danger" href={helpHref} target="_blank" rel="noreferrer">
-                    <MessageCircle size={17} />
-                    Consultar disponibilidad con FZAC
-                  </a>
-                </div>
-              ) : null}
-              {error ? <p className="notice notice--danger">{error}</p> : null}
-            </section>
-          </div>
 
-          <aside className="checkout-summary">
-            <h2>Resumen</h2>
+                  <div className="checkout-panel__actions">
+                    <button className="btn btn--ghost" type="button" onClick={() => setStep("customer")}>
+                      <ArrowLeft size={17} /> Volver
+                    </button>
+                    <button className="btn" ref={primaryActionRef} type="button" onClick={goToReview}>
+                      Continuar <ArrowRight size={17} />
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
+              {step === "review" ? (
+                <section className="checkout-panel">
+                  <h2>
+                    <ShieldCheck size={18} /> Revision del pedido
+                  </h2>
+                  <div className="payment-note">
+                    <ShieldCheck size={18} />
+                    <p>Validamos stock, cantidades y datos antes de habilitar el pago. El stock se descuenta solo con pago aprobado.</p>
+                  </div>
+                  <label className="field" style={{ marginTop: 14 }}>
+                    Notas del pedido
+                    <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={500} />
+                  </label>
+                  {stockState.status === "loading" ? <p className="notice">Validando productos y stock disponible...</p> : null}
+                  {stockState.status === "ok" ? <p className="notice notice--success">Productos disponibles. Podes continuar al pago.</p> : null}
+                  {stockState.status === "error" ? (
+                    <div className="notice notice--danger">
+                      <strong>{stockState.message}</strong>
+                      {stockState.items.length ? (
+                        <ul className="stock-issue-list">
+                          {stockState.items.map((item) => (
+                            <li key={item.productId}>
+                              {item.name ?? item.productId}: pediste {item.requested}, disponibles {item.available}.
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <a className="checkout-help-link checkout-help-link--danger" href={helpHref} target="_blank" rel="noreferrer">
+                        <MessageCircle size={17} />
+                        Consultar disponibilidad con FZAC
+                      </a>
+                    </div>
+                  ) : null}
+                  <div className="checkout-panel__actions">
+                    <button className="btn btn--ghost" type="button" onClick={() => setStep("delivery")}>
+                      <ArrowLeft size={17} /> Volver
+                    </button>
+                    <button className="btn" ref={primaryActionRef} type="button" disabled={stockState.status === "loading"} onClick={() => void goToPayment()}>
+                      Continuar al pago <ArrowRight size={17} />
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          ) : null}
+
+          <aside className={`checkout-summary ${step === "payment" ? "checkout-summary--final" : ""}`}>
+            <h2>{step === "payment" ? "Pago" : "Resumen"}</h2>
             {items.map((item) => (
               <div className="summary-line" key={item.productId}>
                 <span>
@@ -388,23 +649,92 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
             </div>
             <div className="summary-line">
               <span>{shippingMethod === "DELIVERY" ? "Envio" : "Retiro"}</span>
-              <strong>{shippingMethod === "DELIVERY" ? "A coordinar por WhatsApp" : "Sin costo"}</strong>
+              <strong>
+                {shippingMethod === "DELIVERY"
+                  ? shippingQuote.status === "ok"
+                    ? currency(shippingQuote.amount)
+                    : "Pendiente de cotizacion"
+                  : "Sin costo"}
+              </strong>
             </div>
-            <p className="checkout-summary__payment">El envio no se suma al total: se cotiza por WhatsApp.</p>
+            <p className="checkout-summary__payment">
+              {shippingMethod === "DELIVERY"
+                ? "El envio se suma solo cuando hay cotizacion real por direccion y tarifa vigente."
+                : "Retiro coordinado no suma costo de envio."}
+            </p>
             <div className="summary-total">
               <span>Total</span>
               <strong>{currency(total)}</strong>
             </div>
-            <button className="btn" type="submit" disabled={!canSubmit || loading}>
-              {loading ? <Loader2 size={18} /> : <CheckCircle size={18} />}
-              {loading ? "Procesando..." : "Pagar con Mercado Pago"}
-            </button>
-            <a className="checkout-help-link" href={helpHref} target="_blank" rel="noreferrer">
-              <MessageCircle size={17} />
-              Necesito ayuda con esta compra
-            </a>
+
+            {step === "payment" ? (
+              <>
+                <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
+                  <button
+                    type="button"
+                    className="payment-mode-button"
+                    aria-pressed={paymentMode === "MERCADOPAGO"}
+                    disabled={loading}
+                    onClick={() => setPaymentMode("MERCADOPAGO")}
+                  >
+                    <CreditCard size={18} />
+                    <strong>Pagar con Mercado Pago</strong>
+                    <span>Cuenta, dinero disponible y medios habilitados por Mercado Pago.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="payment-mode-button"
+                    aria-pressed={paymentMode === "CARD"}
+                    disabled={loading}
+                    onClick={() => setPaymentMode("CARD")}
+                  >
+                    <CreditCard size={18} />
+                    <strong>Pagar con tarjeta</strong>
+                    <span>Debito o credito con DNI/CUIT y validacion del proveedor.</span>
+                  </button>
+                </div>
+                <div className="terms-checkbox">
+                  <input
+                    type="checkbox"
+                    id="accept-terms"
+                    checked={accepted}
+                    onChange={(event) => setAccepted(event.target.checked)}
+                  />
+                  <label htmlFor="accept-terms">
+                    Acepto los{" "}
+                    <Link href="/terminos" target="_blank" rel="noopener noreferrer">
+                      Terminos y condiciones
+                    </Link>{" "}
+                    y la{" "}
+                    <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
+                      Politica de privacidad
+                    </Link>
+                    .
+                  </label>
+                </div>
+                {error ? <p className="notice notice--danger">{error}</p> : null}
+                {paymentMode === "MERCADOPAGO" ? (
+                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startMercadoPagoPayment()}>
+                    {loading ? <Loader2 size={18} /> : <CreditCard size={18} />}
+                    {loading ? "Generando transaccion..." : "Pagar con Mercado Pago"}
+                  </button>
+                ) : (
+                  <MercadoPagoCardForm
+                    amount={total}
+                    customerEmail={customer.email}
+                    disabled={!canSubmit || loading}
+                    onSubmit={(payload) => void startCardPayment(payload)}
+                  />
+                )}
+                <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("review")}>
+                  <ArrowLeft size={17} /> Revisar datos
+                </button>
+              </>
+            ) : (
+              <p className="checkout-summary__payment">Completa los pasos para habilitar el pago online.</p>
+            )}
           </aside>
-        </form>
+        </div>
       </div>
     </main>
   );

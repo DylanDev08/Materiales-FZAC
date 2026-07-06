@@ -13,6 +13,7 @@ export type OrderStatus =
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "EXPIRED" | "REFUNDED";
 export type PaymentProvider = "MERCADOPAGO" | "NARANJAX";
+export type PaymentFlow = "CHECKOUT_PRO" | "CARD";
 export type ShippingMethod = "PICKUP" | "DELIVERY";
 
 export type Category = {
@@ -76,6 +77,7 @@ export type CheckoutPayload = {
   address?: AddressPayload | null;
   notes?: string;
   paymentProvider?: PaymentProvider;
+  paymentFlow?: PaymentFlow;
 };
 
 export type AdminMetric = {

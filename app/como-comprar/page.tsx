@@ -4,7 +4,7 @@ import { CheckCircle, CreditCard, Package, Truck } from "lucide-react";
 const steps = [
   { title: "Elegis productos", text: "Busca por rubro, marca, SKU o uso y agrega cantidades al carrito.", icon: Package },
   { title: "Confirmas datos", text: "Cargas comprador, telefono y retiro o envio coordinado.", icon: Truck },
-  { title: "Pagas seguro", text: "FZAC no guarda tarjetas. Mercado Pago procesa los medios habilitados.", icon: CreditCard },
+  { title: "Pagas seguro", text: "FZAC no guarda tarjetas. El pago online se procesa con proveedor certificado.", icon: CreditCard },
   { title: "Recibis confirmacion", text: "Con pago aprobado se descuenta stock, se emite ticket y se prepara la orden.", icon: CheckCircle }
 ];
 

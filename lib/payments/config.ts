@@ -2,7 +2,8 @@ import "server-only";
 
 import { getEnv, getSiteUrl, hasRealValue } from "@/lib/utils/env";
 
-export const MERCADOPAGO_NOT_CONFIGURED_MESSAGE = "Mercado Pago todavia no esta configurado.";
+export const MERCADOPAGO_NOT_CONFIGURED_MESSAGE =
+  "El proveedor de pago online no esta disponible en este momento.";
 
 export class MercadoPagoNotConfiguredError extends Error {
   orderId?: string;

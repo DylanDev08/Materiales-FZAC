@@ -66,3 +66,10 @@ No se documentan claves, tokens ni credenciales privadas dentro del repositorio.
 ## Estado Del Proyecto
 
 La base de la tienda ya esta preparada como e-commerce real: catalogo, checkout, auth, admin, storage, stock, pagos externos y webhook. Para operar comercialmente solo resta cargar credenciales reales del proveedor de pagos, datos definitivos del negocio y productos finales.
+
+
+# Como correr el proyecto
+bash
+npm run dev
+npm run lint
+

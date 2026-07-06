@@ -83,11 +83,11 @@ export async function AdminDashboard() {
             <tbody>
               {data.recentOrders.map((row, index) => (
                 <tr key={index}>
-                  <td>{row.Cliente}</td>
-                  <td>{row.Email}</td>
-                  <td>{row.Estado}</td>
-                  <td>{row.Total}</td>
-                  <td>{row.Fecha}</td>
+                  <td data-label="Cliente">{row.Cliente}</td>
+                  <td data-label="Email">{row.Email}</td>
+                  <td data-label="Estado">{row.Estado}</td>
+                  <td data-label="Total">{row.Total}</td>
+                  <td data-label="Fecha">{row.Fecha}</td>
                 </tr>
               ))}
             </tbody>
@@ -109,11 +109,11 @@ export async function AdminDashboard() {
             <tbody>
               {data.recentTickets.map((row, index) => (
                 <tr key={index}>
-                  <td>{row.Numero}</td>
-                  <td>{row.Cliente}</td>
-                  <td>{row.Total}</td>
-                  <td>{row.Estado}</td>
-                  <td>{row.Fecha}</td>
+                  <td data-label="Numero">{row.Numero}</td>
+                  <td data-label="Cliente">{row.Cliente}</td>
+                  <td data-label="Total">{row.Total}</td>
+                  <td data-label="Estado">{row.Estado}</td>
+                  <td data-label="Fecha">{row.Fecha}</td>
                 </tr>
               ))}
             </tbody>

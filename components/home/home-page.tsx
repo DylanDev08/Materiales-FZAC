@@ -45,10 +45,10 @@ export async function HomePage() {
         <div className="container home-hero__grid">
           <div className="home-hero__content">
             <span className="kicker">Corralon online FZAC</span>
-            <h1>Compras de obra claras, rapidas y con identidad Fortaleza.</h1>
+            <h1>Materiales para obra con compra simple y seguimiento FZAC.</h1>
             <p>
-              Catalogo por rubro, precios visibles, carrito persistente y checkout preparado para pagos online,
-              transferencia coordinada, retiro o envio en Rosario y alrededores.
+              Elegi productos por rubro, confirma tus datos, valida stock y coordina retiro o envio con una compra
+              ordenada de principio a fin.
             </p>
             <div className="hero-actions">
               <Link className="btn" href="/catalogo">
@@ -80,15 +80,15 @@ export async function HomePage() {
                 <Percent size={15} /> Megaofertas
               </span>
               <h2>Combos para obra seca, pintura y materiales base.</h2>
-              <p>Pedis online, FZAC valida stock y te confirma retiro, envio o pago pendiente.</p>
+              <p>Arma tu pedido y FZAC lo deja listo para pago, retiro o envio coordinado.</p>
               <Link className="btn" href="/ofertas">
                 Explorar promos
               </Link>
             </div>
             <div className="deal-card">
               <Banknote size={22} />
-              <strong>Transferencia</strong>
-              <span>Pedido pendiente hasta validacion administrativa.</span>
+              <strong>Pago online</strong>
+              <span>Comprobante y seguimiento cuando la compra queda aprobada.</span>
             </div>
             <div className="deal-card">
               <Hammer size={22} />
@@ -183,7 +183,7 @@ export async function HomePage() {
           <article className="benefit-card">
             <ShieldCheck size={24} />
             <h3>Compra protegida</h3>
-            <p>Precios, stock, pagos y tickets se validan en Route Handlers.</p>
+            <p>Precios, stock, pagos y comprobantes se validan antes de confirmar la compra.</p>
           </article>
           <article className="benefit-card">
             <Truck size={24} />
@@ -193,8 +193,21 @@ export async function HomePage() {
           <article className="benefit-card">
             <BadgeCheck size={24} />
             <h3>Seguimiento admin</h3>
-            <p>El pedido queda visible para el panel con cliente, pago, ticket y estado operativo.</p>
+            <p>El pedido queda registrado para preparar materiales, coordinar entrega y emitir comprobante.</p>
           </article>
+        </div>
+      </section>
+
+      <section className="page-section page-section--tight">
+        <div className="container banner-band">
+          <div>
+            <span className="kicker">Derecho del consumidor</span>
+            <h2>Boton de arrepentimiento y cambios</h2>
+            <p>Consulta condiciones legales, plazos y requisitos para revocar una compra o solicitar cambios.</p>
+          </div>
+          <Link className="btn btn--ghost" href="/cambios-y-devoluciones">
+            Ver politica
+          </Link>
         </div>
       </section>
     </>

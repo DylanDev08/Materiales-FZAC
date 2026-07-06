@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Category } from "@/types/domain";
 
 export function CatalogFilters({
@@ -9,9 +10,15 @@ export function CatalogFilters({
 }) {
   return (
     <aside className="catalog-filter">
-      <h2>Filtros</h2>
+      <header className="catalog-filter__head">
+        <div>
+          <span className="kicker">Catalogo</span>
+          <h2>Filtrar productos</h2>
+        </div>
+        <Link href="/productos">Limpiar</Link>
+      </header>
       <form action="/productos">
-        <label className="field">
+        <label className="field catalog-filter__search">
           Buscar
           <input name="search" defaultValue={values.search} placeholder="Producto, SKU o marca" />
         </label>
@@ -30,14 +37,16 @@ export function CatalogFilters({
           Marca
           <input name="brand" defaultValue={values.brand} placeholder="Ej. Durlock" />
         </label>
-        <label className="field">
-          Precio minimo
-          <input name="minPrice" type="number" min="0" defaultValue={values.minPrice} />
-        </label>
-        <label className="field">
-          Precio maximo
-          <input name="maxPrice" type="number" min="0" defaultValue={values.maxPrice} />
-        </label>
+        <div className="catalog-filter__range">
+          <label className="field">
+            Precio minimo
+            <input name="minPrice" type="number" min="0" defaultValue={values.minPrice} />
+          </label>
+          <label className="field">
+            Precio maximo
+            <input name="maxPrice" type="number" min="0" defaultValue={values.maxPrice} />
+          </label>
+        </div>
         <label className="field">
           Orden
           <select name="order" defaultValue={values.order ?? "newest"}>
@@ -57,9 +66,11 @@ export function CatalogFilters({
             <input name="onSale" type="checkbox" value="true" defaultChecked={values.onSale === "true"} /> Solo ofertas
           </span>
         </label>
-        <button className="btn" type="submit">
-          Aplicar filtros
-        </button>
+        <div className="catalog-filter__actions">
+          <button className="btn" type="submit">
+            Aplicar
+          </button>
+        </div>
       </form>
     </aside>
   );

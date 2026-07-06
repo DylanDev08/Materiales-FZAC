@@ -25,7 +25,12 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card">
       <Link className="product-card__media" href={`/producto/${product.slug}`}>
-        <Image src={product.image_url} alt={product.name} fill sizes="(max-width: 540px) 100vw, (max-width: 820px) 50vw, 33vw" />
+        <Image
+          src={product.image_url}
+          alt={product.name}
+          fill
+          sizes="(max-width: 400px) 100vw, (max-width: 820px) 50vw, (max-width: 1200px) 25vw, 220px"
+        />
         <div className="product-card__badges">
           {discount ? <span className="status-pill status-pill--warning">-{discount}% OFF</span> : null}
           {product.stock > 0 && product.stock <= product.stock_minimum ? (

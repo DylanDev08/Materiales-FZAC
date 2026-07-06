@@ -13,7 +13,7 @@ export function SiteFooter() {
         <div>
           <Link className="brand" href="/">
             <span className="brand__mark brand__mark--logo">
-              <Image src="/logoFZAC.jpg" alt="" width={42} height={42} />
+              <Image src="/logoFZAC.jpg" alt="FZAC" width={42} height={42} unoptimized />
             </span>
             <span className="brand__text">
               <strong>Materiales FZAC</strong>

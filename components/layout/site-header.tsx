@@ -35,7 +35,7 @@ export async function SiteHeader() {
         <div className="container site-header__main">
           <Link className="brand" href="/" aria-label="Ir al inicio">
             <span className="brand__mark brand__mark--logo">
-              <Image src="/logoFZAC.jpg" alt="" width={42} height={42} priority />
+              <Image src="/logoFZAC.jpg" alt="FZAC" width={42} height={42} priority unoptimized />
             </span>
             <span className="brand__text">
               <strong>Materiales FZAC</strong>

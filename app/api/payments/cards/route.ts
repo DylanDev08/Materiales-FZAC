@@ -1,9 +1,10 @@
 export async function GET() {
   return Response.json({
-    provider: "MERCADOPAGO",
+    provider: "CONFIGURED_PAYMENT_PROVIDER",
     directCardProcessing: false,
+    tokenizedCardCheckout: true,
     message:
-      "FZAC no procesa ni almacena tarjetas. Las tarjetas de credito/debito deben abonarse mediante Mercado Pago u otro proveedor PCI habilitado."
+      "FZAC no procesa ni almacena tarjetas. El checkout usa tokenizacion del proveedor para debito/credito."
   });
 }
 
@@ -12,7 +13,7 @@ export async function POST() {
     {
       ok: false,
       message:
-        "Por seguridad y cumplimiento PCI, FZAC no recibe numeros de tarjeta ni CVV. Inicia el pago desde /api/checkout para usar el proveedor configurado."
+        "Por seguridad y cumplimiento PCI, FZAC no recibe numeros de tarjeta ni CVV. Inicia el pago desde /checkout para usar el formulario tokenizado."
     },
     { status: 405 }
   );

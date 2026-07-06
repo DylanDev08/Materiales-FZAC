@@ -2,7 +2,7 @@ import { Banknote, CreditCard, ShieldCheck } from "lucide-react";
 
 const methods = [
   {
-    title: "Mercado Pago",
+    title: "Pago online",
     text: "Tarjetas, dinero en cuenta y medios habilitados por el proveedor. FZAC no guarda datos de tarjetas.",
     icon: CreditCard
   },
@@ -25,7 +25,7 @@ export default function Page() {
         <span className="kicker">Pagos y transferencia</span>
         <h1>Medios de pago FZAC</h1>
         <p className="payment-page__lead">
-          La tienda esta preparada para operar con Mercado Pago y transferencia coordinada. Los pagos se validan fuera
+          La tienda esta preparada para operar con pago online y transferencia coordinada. Los pagos se validan fuera
           del frontend para evitar aprobaciones falsas, descuentos duplicados de stock o tickets incorrectos.
         </p>
 

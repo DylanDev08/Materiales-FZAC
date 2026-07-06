@@ -37,9 +37,9 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
         </label>
         <select value={role} onChange={(event) => setRole(event.target.value)}>
           <option value="all">Todos los roles</option>
-          <option value="ADMIN">Admins</option>
-          <option value="USER">Usuarios</option>
-          <option value="OPERATOR">Operadores</option>
+          <option value="Administrador">Administradores</option>
+          <option value="Cliente">Clientes</option>
+          <option value="Operador">Operadores</option>
         </select>
       </div>
       <div className="admin-table-wrap">
@@ -55,37 +55,37 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
             {filtered.length ? (
               filtered.map((row, index) => (
                 <tr key={index}>
-                  <td>
+                  <td data-label="Cliente">
                     <div className="admin-customer-summary">
                       <strong>{row.Nombre || "Sin nombre"}</strong>
                       <span>{row.Email}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Rol">
                     <span className="status-pill">{row.Rol ?? "-"}</span>
                   </td>
-                  <td>
+                  <td data-label="Contacto">
                     <div className="admin-customer-stack">
                       <strong>{row.Telefono || "-"}</strong>
                       <span>{row.Provincia || "-"}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Actividad">
                     <div className="admin-customer-stack">
                       <span>Registro: {row.Registro || "-"}</span>
                       <span>Ultimo login: {row.UltimoLogin || "-"}</span>
                       <span>Estado: {row.Entrega || "-"}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Compras">
                     <div className="admin-customer-stack">
                       <strong>{row.TotalGastado || "$0"}</strong>
                       <span>{row.Compras ?? 0} compras</span>
                       <span>{row.Pedidos ?? 0} pedidos</span>
                     </div>
                   </td>
-                  <td>{row.Direccion ?? "-"}</td>
-                  <td>{row.Chats ?? 0}</td>
+                  <td data-label="Direccion">{row.Direccion ?? "-"}</td>
+                  <td data-label="Chats">{row.Chats ?? 0}</td>
                 </tr>
               ))
             ) : (

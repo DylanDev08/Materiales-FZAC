@@ -118,7 +118,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
       </button>
 
       <p>
-        Medios de pago por Mercado Pago. No solicitamos ni guardamos datos de tarjeta en FZAC.
+        Medios de pago online seguros. No solicitamos ni guardamos datos de tarjeta en FZAC.
       </p>
     </aside>
   );

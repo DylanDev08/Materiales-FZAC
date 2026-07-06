@@ -45,9 +45,9 @@ function shortDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
-function mergeOrders(...groups: Array<OrderRow[] | null>) {
+function mergeOrders(...groups: Array<OrderRow[] | null | undefined>) {
   const map = new Map<string, OrderRow>();
-  groups.flat().forEach((order) => {
+  groups.flatMap((group) => group ?? []).forEach((order) => {
     if (order?.id) map.set(order.id, order);
   });
   return Array.from(map.values()).sort((a, b) => Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? ""));
@@ -149,17 +149,19 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
         .limit(400)
     : { data: [] as OrderItemRow[] };
 
-  const productIds = Array.from(new Set((items as OrderItemRow[]).map((item) => item.product_id).filter(Boolean))) as string[];
+  const itemRows = (items ?? []) as OrderItemRow[];
+  const productIds = Array.from(new Set(itemRows.map((item) => item.product_id).filter(Boolean))) as string[];
   const { data: stockRows } = productIds.length
     ? await admin.from("products").select("id,stock,unit").in("id", productIds).limit(400)
     : { data: [] as ProductStockRow[] };
 
-  const stockByProduct = new Map((stockRows as ProductStockRow[]).map((product) => [product.id, product]));
+  const stockList = (stockRows ?? []) as ProductStockRow[];
+  const stockByProduct = new Map(stockList.map((product) => [product.id, product]));
   const ordersById = new Map(orders.map((order) => [order.id, order]));
   const paidOrderIds = new Set(orders.filter((order) => paidStatuses.has(String(order.status))).map((order) => order.id));
   const pendingOrderIds = new Set(orders.filter((order) => pendingStatuses.has(String(order.status))).map((order) => order.id));
-  const paidItems = (items as OrderItemRow[]).filter((item) => paidOrderIds.has(item.order_id));
-  const pendingItems = (items as OrderItemRow[]).filter((item) => pendingOrderIds.has(item.order_id));
+  const paidItems = itemRows.filter((item) => paidOrderIds.has(item.order_id));
+  const pendingItems = itemRows.filter((item) => pendingOrderIds.has(item.order_id));
 
   const totalSpent = orders
     .filter((order) => paidStatuses.has(String(order.status)))

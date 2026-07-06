@@ -10,7 +10,12 @@ export const metadata: Metadata = {
     template: "%s | Materiales FZAC"
   },
   description: "E-commerce profesional de materiales para Fortaleza Construcciones Rosario.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000")
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  icons: {
+    icon: "/logoFZAC.jpg",
+    shortcut: "/logoFZAC.jpg",
+    apple: "/logoFZAC.jpg"
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

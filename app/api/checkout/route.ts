@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { createCheckout, InsufficientStockError } from "@/lib/db/orders";
+import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
@@ -30,11 +30,21 @@ export async function POST(request: Request) {
       return Response.json(
         {
           ok: false,
-          error: "MERCADOPAGO_NOT_CONFIGURED",
+          error: "PAYMENT_PROVIDER_NOT_CONFIGURED",
           message: error.message,
           orderId: error.orderId
         },
         { status: 503 }
+      );
+    }
+    if (error instanceof ShippingQuoteError) {
+      return Response.json(
+        {
+          error: "SHIPPING_QUOTE_UNAVAILABLE",
+          message: error.message,
+          quote: error.quote ?? null
+        },
+        { status: 422 }
       );
     }
     if (error instanceof Error && error.message.includes("Supabase admin")) {

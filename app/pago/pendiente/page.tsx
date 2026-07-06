@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { Clock3 } from "lucide-react";
 
-export default function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ order_id?: string }> }) {
+  const { order_id: orderId } = await searchParams;
+  const reference = orderId ? orderId.slice(0, 8).toUpperCase() : null;
+
   return (
     <main className="page-section">
       <div className="container empty-state">
         <div>
           <Clock3 size={42} />
           <h1>Pago pendiente</h1>
-          <p>El pedido queda pendiente hasta que el proveedor confirme el pago.</p>
+          <p>El proveedor de pago todavia no confirmo la operacion. Cuando se apruebe, FZAC actualizara el pedido automaticamente.</p>
+          {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href="/cuenta/pedidos">
             Ver estado
           </Link>

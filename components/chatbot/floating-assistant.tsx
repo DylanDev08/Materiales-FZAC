@@ -1,19 +1,25 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Send, X } from "lucide-react";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  options?: string[];
+};
+
+type AssistantResponse = {
+  message?: string;
+  conversationId?: string;
+  options?: string[];
 };
 
 const HISTORY_KEY = "fzac-assistant-history-v1";
 const CONVERSATION_KEY = "fzac-assistant-conversation-id";
 const VISITOR_KEY = "fzac-visitor-id";
-
-const starters = ["Que materiales necesito?", "Como compro?", "Envios a mi zona", "Medios de pago"];
+const initialOptions = ["Comprar materiales", "Consultar envio", "Medios de pago", "Estado de pedido"];
 
 function WhatsappLogo() {
   return (
@@ -38,6 +44,8 @@ export function FloatingAssistant() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [quickOptions, setQuickOptions] = useState(initialOptions);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(CONVERSATION_KEY);
@@ -56,8 +64,9 @@ export function FloatingAssistant() {
       {
         role: "assistant",
         content:
-          "Hola, soy el asistente FZAC. Puedo orientarte con materiales, cantidades aproximadas, stock, pagos, envios, retiro y derivacion a atencion comercial.",
-        createdAt: new Date().toISOString()
+          "Hola, soy AI Chatbot FZAC. Puedo ayudarte con materiales, stock, pagos, retiro y envio paso a paso. Elegi una opcion o escribi tu duda.",
+        createdAt: new Date().toISOString(),
+        options: initialOptions
       }
     ];
   });
@@ -71,6 +80,10 @@ export function FloatingAssistant() {
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
   }, [messages]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [messages, loading]);
+
   async function ask(text: string) {
     const message = text.trim();
     if (!message || loading) return;
@@ -80,10 +93,14 @@ export function FloatingAssistant() {
     setInput("");
     setLoading(true);
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12_000);
+
     try {
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message,
           conversationId,
@@ -92,11 +109,16 @@ export function FloatingAssistant() {
         })
       });
 
-      const data = (await response.json()) as { message?: string; conversationId?: string };
+      const data = (await response.json()) as AssistantResponse;
+      if (!response.ok) throw new Error(data.message || "No pude responder esa consulta.");
 
       if (data.conversationId) {
         setConversationId(data.conversationId);
         window.localStorage.setItem(CONVERSATION_KEY, data.conversationId);
+      }
+
+      if (Array.isArray(data.options) && data.options.length) {
+        setQuickOptions(data.options.slice(0, 4));
       }
 
       setMessages((current) => [
@@ -105,21 +127,27 @@ export function FloatingAssistant() {
           role: "assistant",
           content:
             data.message ||
-            "No pude resolver esa consulta con seguridad. Te recomiendo escribir por WhatsApp para que un asesor FZAC lo revise.",
-          createdAt: new Date().toISOString()
+            "Puedo seguir ayudandote con compra, stock, pagos o envio. Elegi una opcion y avanzamos paso a paso.",
+          createdAt: new Date().toISOString(),
+          options: data.options?.slice(0, 4)
         }
       ]);
-    } catch {
+    } catch (error) {
+      const timedOut = error instanceof DOMException && error.name === "AbortError";
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content:
-            "No pude conectar con el asistente en este momento. Podés escribir por WhatsApp y continuar la consulta con atención humana.",
-          createdAt: new Date().toISOString()
+          content: timedOut
+            ? "La respuesta tardo mas de lo esperado. Te dejo opciones rapidas para seguir sin perder la conversacion."
+            : "No pude conectar con el asistente en este momento. Proba de nuevo o usa WhatsApp si necesitas resolverlo ahora.",
+          createdAt: new Date().toISOString(),
+          options: ["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"]
         }
       ]);
+      setQuickOptions(["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"]);
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
   }
@@ -135,7 +163,7 @@ export function FloatingAssistant() {
         <section className="floating-chat" aria-label="Asistente FZAC">
           <header className="floating-chat__head">
             <span>
-              <Bot size={18} /> AI BOT FZAC
+              <Bot size={18} /> AI CHATBOT FZAC
             </span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">
               <X size={18} />
@@ -144,17 +172,29 @@ export function FloatingAssistant() {
 
           <div className="floating-chat__messages">
             {messages.map((message, index) => (
-              <div className={`chatbot__message ${message.role === "user" ? "chatbot__message--user" : ""}`} key={`${message.createdAt}-${index}`}>
-                {message.content}
+              <div className={`chatbot__turn ${message.role === "user" ? "chatbot__turn--user" : ""}`} key={`${message.createdAt}-${index}`}>
+                <div className={`chatbot__message ${message.role === "user" ? "chatbot__message--user" : ""}`}>
+                  {message.content}
+                </div>
+                {message.role === "assistant" && message.options?.length ? (
+                  <div className="chatbot__inline-options">
+                    {message.options.slice(0, 4).map((option) => (
+                      <button disabled={loading} key={option} type="button" onClick={() => ask(option)}>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
-            {loading ? <div className="chatbot__message">Estoy revisando catálogo, pagos y reglas de entrega...</div> : null}
+            {loading ? <div className="chatbot__message">Estoy revisando catalogo, pagos y reglas de entrega...</div> : null}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="chatbot__quick">
-            {starters.map((starter) => (
-              <button key={starter} type="button" onClick={() => ask(starter)}>
-                {starter}
+            {quickOptions.slice(0, 4).map((option) => (
+              <button disabled={loading} key={option} type="button" onClick={() => ask(option)}>
+                {option}
               </button>
             ))}
           </div>

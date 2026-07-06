@@ -209,6 +209,10 @@
   text-transform: uppercase;
 }
 
+.admin-table td[data-label]::before {
+  content: "";
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
@@ -356,5 +360,55 @@
 
   .admin-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .admin-panel {
+    padding: 13px;
+  }
+
+  .admin-table {
+    min-width: 0;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: #101010;
+    padding: 8px;
+  }
+
+  .admin-table tr + tr {
+    margin-top: 10px;
+  }
+
+  .admin-table td {
+    border-bottom: 0;
+    padding: 8px;
+  }
+
+  .admin-table td[data-label] {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.42fr) 1fr;
+    gap: 10px;
+  }
+
+  .admin-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 }

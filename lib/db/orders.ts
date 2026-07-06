@@ -7,6 +7,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
+import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import type { PaymentProvider, Product } from "@/types/domain";
 
@@ -29,8 +30,14 @@ export class InsufficientStockError extends Error {
   }
 }
 
-function shippingCost() {
-  return 0;
+export class ShippingQuoteError extends Error {
+  quote?: ShippingQuote;
+
+  constructor(message: string, quote?: ShippingQuote) {
+    super(message);
+    this.name = "ShippingQuoteError";
+    this.quote = quote;
+  }
 }
 
 function isUuid(value: string | undefined | null) {
@@ -179,7 +186,15 @@ export async function createCheckout(input: unknown) {
   });
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const delivery = shippingCost();
+  const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
+  if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available)) {
+    throw new ShippingQuoteError(
+      shippingQuote?.reason || "No pudimos cotizar el envio con datos reales. Revisa la direccion o elegi retiro.",
+      shippingQuote ?? undefined
+    );
+  }
+
+  const delivery = shippingQuote?.available ? shippingQuote.amount : 0;
   const total = subtotal + delivery;
   const provider: PaymentProvider = payload.paymentProvider === "NARANJAX" ? "NARANJAX" : "MERCADOPAGO";
 
@@ -199,7 +214,7 @@ export async function createCheckout(input: unknown) {
       shipping_cost: delivery,
       subtotal,
       total,
-      address_snapshot: payload.address ?? null,
+      address_snapshot: shippingQuote?.available ? { ...payload.address, shippingQuote } : payload.address,
       notes: payload.notes ?? null
     })
     .select("id")
@@ -235,6 +250,16 @@ export async function createCheckout(input: unknown) {
     link_to: `${getAdminConsolePath()}/pedidos?order=${order.id}`
   });
 
+  if (provider === "MERCADOPAGO" && payload.paymentFlow === "CARD") {
+    return {
+      orderId: order.id,
+      pending: true,
+      card: true,
+      total,
+      provider
+    };
+  }
+
   if (provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
     const preference = await createMercadoPagoPreference({
       orderId: order.id,
@@ -244,7 +269,7 @@ export async function createCheckout(input: unknown) {
       total
     });
 
-    if (!preference?.url) throw new Error("Mercado Pago no devolvio una URL de pago.");
+    if (!preference?.url) throw new Error("El proveedor de pago no devolvio una URL valida.");
 
     await admin
       .from("payments")
@@ -255,8 +280,8 @@ export async function createCheckout(input: unknown) {
       orderId: order.id,
       url: preference.url,
       init_point: preference.initPoint,
-      sandbox_init_point: preference.sandboxInitPoint,
       preference_id: preference.preferenceId,
+      total,
       provider
     };
   }

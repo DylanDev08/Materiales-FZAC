@@ -45,6 +45,44 @@ function normalizeCategory(row: Record<string, unknown>): Category {
   };
 }
 
+function shortReference(value: string | null | undefined) {
+  if (!value) return "-";
+  return String(value).slice(0, 8).toUpperCase();
+}
+
+function friendlyStatus(value: string | null | undefined) {
+  const status = String(value ?? "").toUpperCase();
+  const labels: Record<string, string> = {
+    PAID: "Pagado",
+    APPROVED: "Aprobado",
+    COMPLETED: "Completado",
+    DELIVERED: "Entregado",
+    PENDING: "Pendiente",
+    PENDING_PAYMENT: "Pendiente de pago",
+    FAILED: "Rechazado",
+    REJECTED: "Rechazado",
+    CANCELLED: "Cancelado",
+    OPEN: "Abierto",
+    WAITING_ADMIN: "Revisar",
+    CLOSED: "Cerrado"
+  };
+  return labels[status] ?? (status ? status.replaceAll("_", " ") : "-");
+}
+
+function friendlyRole(value: string | null | undefined) {
+  const role = String(value ?? "").toUpperCase();
+  if (role === "ADMIN") return "Administrador";
+  if (role === "OPERATOR") return "Operador";
+  return "Cliente";
+}
+
+function friendlyProvider(value: string | null | undefined) {
+  const provider = String(value ?? "").toUpperCase();
+  if (provider === "MERCADOPAGO") return "Mercado Pago";
+  if (provider === "TRANSFER") return "Transferencia";
+  return provider || "-";
+}
+
 export async function getAdminProducts() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackProducts;
@@ -97,8 +135,8 @@ export async function getAdminOrderTableRows(limit = 200) {
       Telefono: order.customer_phone,
       Productos: orderItems.map((item) => `${item.quantity} x ${item.name}`).join("; ") || "-",
       Total: currency(order.total),
-      Estado: order.status,
-      Pago: payment ? `${payment.provider} / ${payment.status}` : "Pendiente",
+      Estado: friendlyStatus(order.status),
+      Pago: payment ? `${friendlyProvider(payment.provider)} - ${friendlyStatus(payment.status)}` : "Pendiente",
       Envio: order.shipping_method === "DELIVERY" ? "Envio a coordinar" : "Retiro",
       Fecha: adminDate(order.created_at)
     };
@@ -123,14 +161,12 @@ export async function getAdminPaymentTableRows(limit = 200) {
   return (payments ?? []).map((payment) => {
     const order = (orders ?? []).find((item) => item.id === payment.order_id);
     return {
-      Estado: payment.status,
-      Proveedor: payment.provider,
+      Estado: friendlyStatus(payment.status),
+      Proveedor: friendlyProvider(payment.provider),
       Monto: currency(payment.amount),
-      Orden: payment.order_id,
+      Referencia: shortReference(payment.order_id),
       Cliente: order?.customer_name ?? "-",
       Email: order?.customer_email ?? "-",
-      ProviderPaymentId: payment.provider_payment_id ?? "-",
-      PreferenceId: payment.provider_preference_id ?? "-",
       Fecha: adminDate(payment.created_at)
     };
   });
@@ -239,20 +275,20 @@ export async function getAdminDashboardData() {
       { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} con bajo stock` },
       { label: "Chats pendientes", value: String(chats?.length ?? 0), helper: "AI o soporte humano" }
     ],
-    statusCounts: Object.entries(statusMap).map(([status, count]) => ({ status, count })),
+    statusCounts: Object.entries(statusMap).map(([status, count]) => ({ status: friendlyStatus(status), count })),
     recentOrders: (recentOrders ?? []).map((order) => ({
       Cliente: order.customer_name,
       Email: order.customer_email,
-      Estado: order.status,
+      Estado: friendlyStatus(order.status),
       Total: currency(order.total),
-      Fecha: order.created_at
+      Fecha: adminDate(order.created_at)
     })),
     recentTickets: (recentTickets ?? []).map((ticket) => ({
       Numero: ticket.number,
       Cliente: ticket.customer_name,
       Total: currency(ticket.total),
-      Estado: ticket.status,
-      Fecha: ticket.issued_at
+      Estado: friendlyStatus(ticket.status),
+      Fecha: adminDate(ticket.issued_at)
     }))
   };
 }
@@ -286,7 +322,7 @@ export async function getAdminCustomerRows() {
       Email: profile.email,
       Nombre: profile.full_name,
       Telefono: profile.phone,
-      Rol: profile.role,
+      Rol: friendlyRole(profile.role),
       Registro: adminDate(profile.created_at),
       UltimoLogin: adminDate(profile.last_login_at),
       Compras: paidOrders.length,
@@ -294,7 +330,7 @@ export async function getAdminCustomerRows() {
       Pedidos: profileOrders.length,
       Direccion: address ? `${address.street} ${address.number}, ${address.city}` : "-",
       Provincia: address?.province ?? "-",
-      Entrega: lastOrder?.status ?? "-",
+      Entrega: friendlyStatus(lastOrder?.status),
       Chats: openChats
     };
   });

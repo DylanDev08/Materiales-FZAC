@@ -1,9 +1,15 @@
 import { getSupabaseConfig } from "@/lib/supabase/config";
+import { getApiAdmin } from "@/lib/auth/api-guards";
+import { canQuoteShipping } from "@/lib/shipping/quote";
+import { jsonError } from "@/lib/utils/api";
 import { hasRealValue } from "@/lib/utils/env";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const profile = await getApiAdmin();
+  if (!profile) return jsonError("No autorizado.", 401);
+
   const supabase = getSupabaseConfig();
 
   return Response.json(
@@ -15,6 +21,7 @@ export async function GET() {
       paymentsEnabled: process.env.PAYMENTS_ENABLED === "true",
       mercadoPagoPublic: hasRealValue(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY),
       mercadoPagoServer: hasRealValue(process.env.MERCADOPAGO_ACCESS_TOKEN),
+      shippingQuoteReady: canQuoteShipping(),
       adminEmails: hasRealValue(process.env.ADMIN_EMAILS)
     },
     { headers: { "Cache-Control": "no-store" } }

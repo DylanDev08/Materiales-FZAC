@@ -3,11 +3,11 @@ import { isMercadoPagoConfigured, isPaymentsEnabled } from "@/lib/payments/confi
 export async function GET() {
   const enabled = isMercadoPagoConfigured();
   return Response.json({
-    provider: "MERCADOPAGO",
+    provider: "CONFIGURED_PAYMENT_PROVIDER",
     enabled,
     paymentsEnabled: isPaymentsEnabled(),
     message: enabled
-      ? "Mercado Pago esta configurado para crear preferencias server-side."
+      ? "El proveedor de pago online esta configurado para operar server-side."
       : "El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion."
   });
 }

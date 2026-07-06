@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { hasSqlMeta } from "@/lib/validations/security";
-import type { PaymentProvider } from "@/types/domain";
+import type { PaymentFlow, PaymentProvider } from "@/types/domain";
 
 const safeString = (label: string, min = 0, max = 500) =>
   z
@@ -55,6 +55,11 @@ const addressSchema = z
     notes: value.notes
   }));
 
+const requiredCheckoutAddressSchema = addressSchema.refine(
+  (value) => Boolean(value.street?.trim() && value.number?.trim() && value.city?.trim() && value.province?.trim()),
+  "Completa la direccion del comprador para continuar."
+);
+
 export const checkoutSchema = z.object({
   items: z
     .array(checkoutItemSchema)
@@ -65,24 +70,25 @@ export const checkoutSchema = z.object({
     phone: safeString("Telefono", 6, 40)
   }),
   shippingMethod: z.enum(["PICKUP", "DELIVERY"]),
-  address: addressSchema
-    .nullable()
-    .optional(),
+  address: requiredCheckoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
-  paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional()
+  paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
+  paymentFlow: z.enum(["CHECKOUT_PRO", "CARD"]).optional()
 });
 
-export const checkoutCreateSchema = z
-  .object({
-    customer_name: safeString("Nombre", 2, 120),
-    customer_email: z.string().trim().email("Ingresa un email valido.").max(160),
-    customer_phone: safeString("Telefono", 6, 40),
-    shipping_method: z.enum(["PICKUP", "DELIVERY"]),
-    address_snapshot: addressSchema.nullable().optional(),
-    notes: safeString("Notas", 0, 500).optional(),
-    items: z.array(checkoutItemSchema).min(1, "El carrito esta vacio.")
-  })
-  .transform((value) => ({
+const checkoutCreateFieldsSchema = z.object({
+  customer_name: safeString("Nombre", 2, 120),
+  customer_email: z.string().trim().email("Ingresa un email valido.").max(160),
+  customer_phone: safeString("Telefono", 6, 40),
+  shipping_method: z.enum(["PICKUP", "DELIVERY"]),
+  address_snapshot: requiredCheckoutAddressSchema,
+  notes: safeString("Notas", 0, 500).optional(),
+  payment_flow: z.enum(["CHECKOUT_PRO", "CARD"]).optional(),
+  items: z.array(checkoutItemSchema).min(1, "El carrito esta vacio.")
+});
+
+function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchema>) {
+  return {
     items: value.items,
     customer: {
       name: value.customer_name,
@@ -90,9 +96,34 @@ export const checkoutCreateSchema = z
       phone: value.customer_phone
     },
     shippingMethod: value.shipping_method,
-    address: value.address_snapshot ?? null,
+    address: value.address_snapshot,
     notes: value.notes,
-    paymentProvider: "MERCADOPAGO" as PaymentProvider
+    paymentProvider: "MERCADOPAGO" as PaymentProvider,
+    paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow
+  };
+}
+
+export const checkoutCreateSchema = checkoutCreateFieldsSchema
+  .transform((value) => ({
+    ...checkoutCreateTransform(value)
+  }));
+
+export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
+  .extend({
+    payment_flow: z.literal("CARD").optional(),
+    card: z.object({
+      token: safeString("Token de tarjeta", 8, 220),
+      payment_method_id: safeString("Medio de pago", 2, 60),
+      issuer_id: safeString("Banco emisor", 0, 80).optional(),
+      installments: z.coerce.number().int().min(1).max(24),
+      identification_type: safeString("Tipo de documento", 2, 20),
+      identification_number: safeString("Documento", 5, 20),
+      cardholder_email: z.string().trim().email("Ingresa un email valido.").max(160)
+    })
+  })
+  .transform((value) => ({
+    checkout: checkoutCreateTransform({ ...value, payment_flow: "CARD" }),
+    card: value.card
   }));
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
