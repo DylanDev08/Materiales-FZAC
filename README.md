@@ -63,13 +63,38 @@ La app separa responsabilidades entre cliente y servidor. El frontend solo captu
 
 No se documentan claves, tokens ni credenciales privadas dentro del repositorio. La configuracion sensible debe gestionarse desde el entorno seguro del deploy o del equipo responsable.
 
+## Integracion Mercado Pago - Modo Prueba
+
+1. Crear una aplicacion en Mercado Pago Developers.
+2. Copiar las credenciales de prueba desde el panel de Mercado Pago.
+3. Completar en el entorno local seguro el `MERCADOPAGO_ACCESS_TOKEN`.
+4. Completar la Public Key de prueba: `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=APP_USR-28bf9eb7-40a9-45ce-8c88-e3cfafa5d882`.
+5. Activar `PAYMENTS_ENABLED=true`.
+6. Usar `PAYMENTS_ENV=test` y `PAYMENTS_PROVIDER=mercadopago`.
+7. Ejecutar `npm run dev`.
+8. Agregar un producto al carrito y completar checkout.
+9. Pagar con un usuario comprador de prueba desde Mercado Pago.
+10. Verificar en admin que el pedido, pago, stock, ticket y notificaciones cambien segun el estado confirmado.
+
+No guardar en README, codigo ni archivos versionados: Access Token, usuarios de prueba, contrasenas o codigos de verificacion.
+
+## Pasar A Produccion
+
+1. Cambiar el Access Token por la credencial productiva.
+2. Cambiar la Public Key por la credencial productiva.
+3. Configurar `PAYMENTS_ENV=production`.
+4. Mantener `PAYMENTS_ENABLED=true`.
+5. Configurar el webhook publico: `https://DOMINIO/api/webhooks/mercadopago`.
+6. Probar una compra real de bajo monto.
+7. Verificar admin, pagos, eventos, tickets y stock.
+
 ## Estado Del Proyecto
 
 La base de la tienda ya esta preparada como e-commerce real: catalogo, checkout, auth, admin, storage, stock, pagos externos y webhook. Para operar comercialmente solo resta cargar credenciales reales del proveedor de pagos, datos definitivos del negocio y productos finales.
 
 
 # Como correr el proyecto
-bash
+```bash
 npm run dev
 npm run lint
-
+```

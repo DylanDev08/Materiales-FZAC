@@ -61,6 +61,10 @@ export async function getOrderReceipt(orderId?: string) {
     admin.from("payments").select("provider,status,amount,currency,updated_at").eq("order_id", order.id).maybeSingle()
   ]);
 
+  const paymentConfirmed =
+    Boolean(ticket) || String(order.status ?? "").toUpperCase() === "PAID" || String(payment?.status ?? "").toUpperCase() === "PAID";
+  if (!paymentConfirmed) return null;
+
   const { data: ticketItems } = ticket?.id
     ? await admin
         .from("purchase_ticket_items")

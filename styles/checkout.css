@@ -222,6 +222,25 @@
   margin: 12px 0;
 }
 
+.payment-env-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: 999px;
+  background: rgba(244, 196, 0, 0.1);
+  color: var(--color-yellow);
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.payment-env-badge span {
+  color: var(--color-muted);
+  font-weight: 750;
+}
+
 .payment-mode-button {
   min-height: 92px;
   display: grid;
@@ -232,6 +251,10 @@
   background: #101010;
   color: var(--color-white);
   padding: 12px;
+}
+
+.payment-mode-button--redirect {
+  border-color: rgba(244, 196, 0, 0.28);
 }
 
 .payment-mode-button svg,
@@ -246,6 +269,17 @@
 
 .payment-mode-button span {
   color: var(--color-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.payment-method-hint {
+  margin: 4px 0 12px;
+  border: 1px solid rgba(244, 196, 0, 0.22);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 196, 0, 0.07);
+  color: var(--color-muted);
+  padding: 10px 12px;
   font-size: 0.84rem;
   line-height: 1.45;
 }
@@ -317,6 +351,91 @@
 
 .checkout-summary h2 {
   margin: 0 0 14px;
+}
+
+.checkout-floating-products {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.checkout-floating-product {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(17, 17, 17, 0.98)),
+    #101010;
+  padding: 10px;
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.checkout-floating-product:hover {
+  border-color: var(--color-yellow-border);
+  transform: translateY(-1px);
+}
+
+.checkout-floating-product img {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: #0b0b0b;
+}
+
+.checkout-floating-product div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.checkout-floating-product strong {
+  color: var(--color-white);
+}
+
+.checkout-floating-product span {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+}
+
+.checkout-floating-product .status-pill {
+  width: fit-content;
+  font-size: 0.72rem;
+}
+
+.checkout-floating-product__actions {
+  justify-items: end;
+}
+
+.checkout-floating-product__actions > strong {
+  color: var(--color-yellow);
+  white-space: nowrap;
+}
+
+.checkout-floating-product__actions span {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.checkout-floating-product__actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #0b0b0b;
+  color: var(--color-white);
+}
+
+.checkout-floating-product__actions button:hover {
+  border-color: var(--color-yellow-border);
+  color: var(--color-yellow);
 }
 
 .checkout-summary__payment,

@@ -1,7 +1,10 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { getAdminConsolePath } from "@/lib/utils/env";
 import type { ReactNode } from "react";
 
 export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
+  const adminPath = getAdminConsolePath();
+
   return (
     <main className="page-section">
       <div className="container">
@@ -14,8 +17,8 @@ export function AdminShell({ title, children }: { title: string; children: React
         </div>
 
         <div className="admin-layout">
-          <AdminSidebar />
-          <div>{children}</div>
+          <AdminSidebar adminPath={adminPath} />
+          <div className="admin-content">{children}</div>
         </div>
       </div>
     </main>

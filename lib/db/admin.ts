@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
+import { isTestPaymentEnv } from "@/lib/payments/config";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import type { Category, Product } from "@/types/domain";
 
@@ -59,6 +60,7 @@ function friendlyStatus(value: string | null | undefined) {
     DELIVERED: "Entregado",
     PENDING: "Pendiente",
     PENDING_PAYMENT: "Pendiente de pago",
+    PENDING_ADMIN_APPROVAL: "Validacion admin",
     FAILED: "Rechazado",
     REJECTED: "Rechazado",
     CANCELLED: "Cancelado",
@@ -130,6 +132,8 @@ export async function getAdminOrderTableRows(limit = 200) {
     const payment = (payments ?? []).find((item) => item.order_id === order.id);
 
     return {
+      Id: order.id,
+      Referencia: shortReference(order.id),
       Cliente: order.customer_name,
       Email: order.customer_email,
       Telefono: order.customer_phone,
@@ -146,6 +150,7 @@ export async function getAdminOrderTableRows(limit = 200) {
 export async function getAdminPaymentTableRows(limit = 200) {
   const admin = getSupabaseAdminClient();
   if (!admin) return [];
+  const paymentEnv = isTestPaymentEnv() ? "TEST" : "PROD";
 
   const { data: payments } = await admin
     .from("payments")
@@ -162,14 +167,74 @@ export async function getAdminPaymentTableRows(limit = 200) {
     const order = (orders ?? []).find((item) => item.id === payment.order_id);
     return {
       Estado: friendlyStatus(payment.status),
+      Ambiente: paymentEnv,
       Proveedor: friendlyProvider(payment.provider),
       Monto: currency(payment.amount),
       Referencia: shortReference(payment.order_id),
+      Preferencia: shortReference(payment.provider_preference_id),
+      PagoProveedor: shortReference(payment.provider_payment_id),
       Cliente: order?.customer_name ?? "-",
       Email: order?.customer_email ?? "-",
       Fecha: adminDate(payment.created_at)
     };
   });
+}
+
+export async function getAdminPaymentEventRows(limit = 200) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data: events } = await admin
+    .from("payment_events")
+    .select("provider,provider_event_id,provider_payment_id,order_id,event_type,status,error_message,created_at,processed_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (events ?? []).map((event) => ({
+    Estado: friendlyStatus(event.status),
+    Proveedor: friendlyProvider(event.provider),
+    Evento: event.event_type ?? "-",
+    Pedido: shortReference(event.order_id),
+    PagoProveedor: shortReference(event.provider_payment_id),
+    EventoProveedor: shortReference(event.provider_event_id),
+    Error: event.error_message ? String(event.error_message).slice(0, 90) : "-",
+    Recibido: adminDate(event.created_at),
+    Procesado: adminDate(event.processed_at)
+  }));
+}
+
+export async function getAdminLogRows(limit = 120) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const [{ data: notifications }, { data: paymentEvents }, { data: inventory }] = await Promise.all([
+    admin.from("notifications").select("type,title,message,link_to,created_at").order("created_at", { ascending: false }).limit(limit),
+    admin.from("payment_events").select("status,event_type,error_message,provider_payment_id,order_id,created_at").order("created_at", { ascending: false }).limit(40),
+    admin.from("inventory_movements").select("type,quantity,reason,order_id,created_at").order("created_at", { ascending: false }).limit(40)
+  ]);
+
+  const rows = [
+    ...(notifications ?? []).map((item) => ({
+      Tipo: friendlyStatus(item.type),
+      Mensaje: item.message || item.title,
+      Referencia: item.link_to ? String(item.link_to).split("=").pop() : "-",
+      Fecha: adminDate(item.created_at)
+    })),
+    ...(paymentEvents ?? []).map((item) => ({
+      Tipo: `Pago - ${friendlyStatus(item.status)}`,
+      Mensaje: item.error_message || `Evento ${item.event_type || "payment"} recibido desde Mercado Pago.`,
+      Referencia: shortReference(item.order_id || item.provider_payment_id),
+      Fecha: adminDate(item.created_at)
+    })),
+    ...(inventory ?? []).map((item) => ({
+      Tipo: `Stock - ${friendlyStatus(item.type)}`,
+      Mensaje: `${item.reason || "Movimiento de inventario"} (${item.quantity ?? 0}).`,
+      Referencia: shortReference(item.order_id),
+      Fecha: adminDate(item.created_at)
+    }))
+  ];
+
+  return rows.slice(0, limit);
 }
 
 function startOfDay() {
@@ -219,20 +284,32 @@ export async function getAdminDashboardData() {
     { data: paidOrders },
     { data: monthOrders },
     { data: pendingOrders },
+    { data: approvalOrders },
+    { data: allOrderRows },
     { data: products },
     { data: payments },
+    { data: allProfiles },
     { data: profiles },
+    { data: newTodayProfiles },
     { data: chats },
+    { data: inventoryMovements },
+    { data: paymentEvents },
     { data: recentOrders },
     { data: recentTickets }
   ] = await Promise.all([
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", today),
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", month),
     admin.from("orders").select("id,status").eq("status", "PENDING_PAYMENT"),
+    admin.from("orders").select("id,status,total").eq("status", "PENDING_ADMIN_APPROVAL"),
+    admin.from("orders").select("id,status,total"),
     admin.from("products").select("id, active, stock, stock_minimum").eq("active", true),
     admin.from("payments").select("id,status,amount"),
+    admin.from("profiles").select("id,created_at,last_login_at"),
     admin.from("profiles").select("id,created_at,last_login_at").gte("created_at", month),
+    admin.from("profiles").select("id,created_at").gte("created_at", today),
     admin.from("chat_conversations").select("id,status").in("status", ["OPEN", "WAITING_ADMIN"]),
+    admin.from("inventory_movements").select("id,type,quantity,reason,created_at").order("created_at", { ascending: false }).limit(6),
+    admin.from("payment_events").select("id,status,event_type,error_message,created_at").order("created_at", { ascending: false }).limit(6),
     admin
       .from("orders")
       .select("id,customer_name,customer_email,status,total,created_at")
@@ -250,13 +327,18 @@ export async function getAdminDashboardData() {
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
   const pendingPayments = (payments ?? []).filter((payment) => payment.status === "PENDING");
   const rejectedPayments = (payments ?? []).filter((payment) => payment.status === "FAILED");
+  const paidOrderCount = (allOrderRows ?? []).filter((order) => order.status === "PAID").length;
+  const pendingAmount = (payments ?? [])
+    .filter((payment) => payment.status === "PENDING")
+    .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
   const lowStock = (products ?? []).filter((product) => Number(product.stock ?? 0) <= Number(product.stock_minimum ?? 0));
+  const noStock = (products ?? []).filter((product) => Number(product.stock ?? 0) <= 0);
   const averageTicket = approvedPayments.length
     ? approvedPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0) / approvedPayments.length
     : 0;
 
-  const allOrders = recentOrders ?? [];
-  const statusMap = allOrders.reduce<Record<string, number>>((acc, order) => {
+  const recentOrderRows = recentOrders ?? [];
+  const statusMap = recentOrderRows.reduce<Record<string, number>>((acc, order) => {
     const status = String(order.status ?? "SIN_ESTADO");
     acc[status] = (acc[status] ?? 0) + 1;
     return acc;
@@ -266,13 +348,19 @@ export async function getAdminDashboardData() {
     metrics: [
       { label: "Ventas del dia", value: currency(salesToday), helper: "Pagos aprobados hoy" },
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
+      { label: "Usuarios registrados", value: String(allProfiles?.length ?? 0), helper: `${newTodayProfiles?.length ?? 0} nuevos hoy` },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },
+      { label: "Aprobacion admin", value: String(approvalOrders?.length ?? 0), helper: "Compras grandes" },
+      { label: "Pedidos pagados", value: String(paidOrderCount), helper: "Ordenes confirmadas" },
       { label: "Pagos pendientes", value: String(pendingPayments.length), helper: "Esperando proveedor" },
+      { label: "Total pendiente", value: currency(pendingAmount), helper: "Pagos sin confirmar" },
       { label: "Pagos aprobados", value: String(approvedPayments.length), helper: "Confirmados por proveedor" },
       { label: "Pagos rechazados", value: String(rejectedPayments.length), helper: "Sin stock descontado" },
       { label: "Ticket promedio", value: currency(averageTicket), helper: "Promedio de pagos aprobados" },
       { label: "Clientes nuevos", value: String(profiles?.length ?? 0), helper: "Altas del mes" },
-      { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} con bajo stock` },
+      { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} bajo stock` },
+      { label: "Productos sin stock", value: String(noStock.length), helper: "Reponer primero" },
+      { label: "Tickets emitidos", value: String(recentTickets?.length ?? 0), helper: "Ultimos registros" },
       { label: "Chats pendientes", value: String(chats?.length ?? 0), helper: "AI o soporte humano" }
     ],
     statusCounts: Object.entries(statusMap).map(([status, count]) => ({ status: friendlyStatus(status), count })),
@@ -289,6 +377,18 @@ export async function getAdminDashboardData() {
       Total: currency(ticket.total),
       Estado: friendlyStatus(ticket.status),
       Fecha: adminDate(ticket.issued_at)
+    })),
+    recentInventory: (inventoryMovements ?? []).map((movement) => ({
+      Tipo: friendlyStatus(movement.type),
+      Cantidad: String(movement.quantity ?? 0),
+      Motivo: movement.reason ?? "-",
+      Fecha: adminDate(movement.created_at)
+    })),
+    recentPaymentEvents: (paymentEvents ?? []).map((event) => ({
+      Estado: friendlyStatus(event.status),
+      Evento: event.event_type ?? "-",
+      Error: event.error_message ?? "-",
+      Fecha: adminDate(event.created_at)
     }))
   };
 }
@@ -298,7 +398,11 @@ export async function getAdminCustomerRows() {
   if (!admin) return [];
 
   const [{ data: profiles }, { data: orders }, { data: addresses }, { data: chats }] = await Promise.all([
-    admin.from("profiles").select("id,email,full_name,phone,role,created_at,last_login_at").order("created_at", { ascending: false }).limit(500),
+    admin
+      .from("profiles")
+      .select("id,email,full_name,phone,avatar_url,role,created_at,last_login_at")
+      .order("created_at", { ascending: false })
+      .limit(500),
     admin
       .from("orders")
       .select("id,user_id,customer_email,status,total,shipping_method,address_snapshot,created_at")
@@ -308,30 +412,72 @@ export async function getAdminCustomerRows() {
     admin.from("chat_conversations").select("user_id,status").limit(1000)
   ]);
 
+  const orderIds = (orders ?? []).map((order) => order.id);
+  const [{ data: payments }, { data: tickets }] = orderIds.length
+    ? await Promise.all([
+        admin.from("payments").select("order_id,status,provider,amount,created_at,updated_at").in("order_id", orderIds),
+        admin.from("purchase_tickets").select("order_id,number,status,issued_at,total").in("order_id", orderIds)
+      ])
+    : [{ data: [] }, { data: [] }];
+
   return (profiles ?? []).map((profile) => {
     const profileOrders = (orders ?? []).filter(
       (order) => order.user_id === profile.id || String(order.customer_email).toLowerCase() === String(profile.email).toLowerCase()
     );
     const paidOrders = profileOrders.filter((order) => ["PAID", "COMPLETED", "DELIVERED"].includes(String(order.status)));
+    const pendingOrders = profileOrders.filter((order) => ["PENDING_PAYMENT", "PENDING_ADMIN_APPROVAL"].includes(String(order.status)));
+    const cancelledOrders = profileOrders.filter((order) => String(order.status) === "CANCELLED");
     const totalSpent = paidOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+    const averageTicket = paidOrders.length ? totalSpent / paidOrders.length : 0;
     const address = (addresses ?? []).find((item) => item.user_id === profile.id);
     const openChats = (chats ?? []).filter((chat) => chat.user_id === profile.id && chat.status !== "CLOSED").length;
     const lastOrder = profileOrders[0];
+    const profilePayments = (payments ?? []).filter((payment) => profileOrders.some((order) => order.id === payment.order_id));
+    const approvedPayments = profilePayments.filter((payment) => payment.status === "PAID");
+    const pendingPayments = profilePayments.filter((payment) => payment.status === "PENDING");
+    const lastPayment = profilePayments[0];
+    const profileTickets = (tickets ?? []).filter((ticket) => profileOrders.some((order) => order.id === ticket.order_id));
+    const authProvider = profile.avatar_url || String(profile.email).toLowerCase().endsWith("@gmail.com") ? "Gmail" : "Email";
+    const frequent = paidOrders.length >= 3 || totalSpent >= 250000;
+    const active = Boolean(profile.last_login_at);
+    const status = frequent ? "Cliente frecuente" : active ? "Activo" : paidOrders.length ? "Activo" : "Sin compras";
+    const recentActivity = [
+      profile.last_login_at ? `Inicio de sesion: ${adminDate(profile.last_login_at)}` : null,
+      lastOrder ? `Pedido ${shortReference(lastOrder.id)}: ${friendlyStatus(lastOrder.status)} por ${currency(lastOrder.total)}` : null,
+      lastPayment ? `Pago: ${friendlyStatus(lastPayment.status)} (${friendlyProvider(lastPayment.provider)})` : null,
+      profileTickets[0] ? `Ticket emitido: ${profileTickets[0].number}` : null,
+      openChats ? `${openChats} chat(s) pendientes` : null
+    ].filter((item): item is string => Boolean(item));
 
     return {
+      Id: profile.id,
       Email: profile.email,
       Nombre: profile.full_name,
+      AvatarUrl: profile.avatar_url,
       Telefono: profile.phone,
       Rol: friendlyRole(profile.role),
+      AuthProvider: authProvider,
+      Verificado: authProvider === "Gmail" ? "Verificado" : "-",
       Registro: adminDate(profile.created_at),
       UltimoLogin: adminDate(profile.last_login_at),
+      EstadoCliente: status,
       Compras: paidOrders.length,
+      PagosAprobados: approvedPayments.length,
+      PagosPendientes: pendingPayments.length,
+      PedidosPendientes: pendingOrders.length,
+      PedidosCancelados: cancelledOrders.length,
       TotalGastado: currency(totalSpent),
+      TotalGastadoNumero: totalSpent,
+      TicketPromedio: currency(averageTicket),
       Pedidos: profileOrders.length,
       Direccion: address ? `${address.street} ${address.number}, ${address.city}` : "-",
       Provincia: address?.province ?? "-",
+      MetodoEnvio: lastOrder?.shipping_method === "DELIVERY" ? "Envio" : "Retiro",
       Entrega: friendlyStatus(lastOrder?.status),
-      Chats: openChats
+      UltimoPedido: lastOrder ? adminDate(lastOrder.created_at) : "-",
+      UltimoPago: friendlyStatus(lastPayment?.status),
+      Chats: openChats,
+      Actividad: recentActivity
     };
   });
 }

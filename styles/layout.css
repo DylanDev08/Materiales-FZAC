@@ -117,6 +117,7 @@
 .brand__mark--logo {
   background: #050505;
   border: 1px solid rgba(244, 196, 0, 0.28);
+  border-radius: 999px;
 }
 
 .brand__mark--logo img {

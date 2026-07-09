@@ -17,12 +17,35 @@ function ticketNumber() {
   return `FZAC-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
+function isMissingRpcError(error: { code?: string; message?: string }) {
+  const message = String(error.message ?? "").toLowerCase();
+  return error.code === "PGRST202" || message.includes("finalize_paid_order") || message.includes("could not find the function");
+}
+
+async function tryFinalizePaidOrderRpc(input: ConfirmationInput) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("Supabase admin no esta configurado para confirmar pagos reales.");
+
+  const { data, error } = await admin.rpc("finalize_paid_order", {
+    order_id: input.orderId,
+    provider_payment_id: input.providerPaymentId ?? null,
+    raw: input.raw ?? {}
+  });
+
+  if (!error) return { handled: true, data };
+  if (isMissingRpcError(error)) return { handled: false, data: null };
+  throw new Error("No pudimos finalizar la orden aprobada desde la base de datos.");
+}
+
 export async function confirmApprovedPayment(input: ConfirmationInput) {
   const admin = getSupabaseAdminClient();
   const adminPath = getAdminConsolePath();
   if (!admin) {
     throw new Error("Supabase admin no esta configurado para confirmar pagos reales.");
   }
+
+  const rpcResult = await tryFinalizePaidOrderRpc(input);
+  if (rpcResult.handled) return { ok: true, source: "rpc", result: rpcResult.data };
 
   const { data: existingTicket } = await admin
     .from("purchase_tickets")

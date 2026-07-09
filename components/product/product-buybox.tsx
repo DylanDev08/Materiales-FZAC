@@ -97,10 +97,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
       {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estas seleccionando el maximo disponible.</p> : null}
 
       {added ? (
-        <div className="notice notice--success product-added">
+        <div className="product-added-toast">
           <strong>
-            <CheckCircle size={18} /> Tu producto fue agregado
+            <CheckCircle size={18} /> Producto agregado al carrito
           </strong>
+          <span>
+            {product.name} - Cantidad: {quantity}
+          </span>
           <div>
             <Link className="btn" href="/carrito">
               Ver carrito

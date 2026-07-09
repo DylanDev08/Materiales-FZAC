@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
     const result = await createCheckout(payload);
-    return Response.json(result);
+    return Response.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return jsonError(error.issues[0]?.message ?? "Datos de checkout invalidos.", 422);
@@ -30,7 +30,8 @@ export async function POST(request: Request) {
       return Response.json(
         {
           ok: false,
-          error: "PAYMENT_PROVIDER_NOT_CONFIGURED",
+          code: "MERCADOPAGO_NOT_CONFIGURED",
+          error: "MERCADOPAGO_NOT_CONFIGURED",
           message: error.message,
           orderId: error.orderId
         },
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           error: "PAYMENT_PREFERENCE_REJECTED",
-          message: error.message
+          message: "No pudimos iniciar Mercado Pago. Revisamos la configuracion del retorno y podes intentar nuevamente."
         },
         { status: 502 }
       );

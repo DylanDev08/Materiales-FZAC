@@ -2,16 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
   CreditCard,
+  ExternalLink,
+  Landmark,
   Loader2,
   MapPin,
   MessageCircle,
+  Minus,
   Package,
+  Plus,
   ShieldCheck,
+  Trash2,
   Truck,
   UserRound
 } from "lucide-react";
@@ -58,9 +64,15 @@ function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
   }));
 }
 
-export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
+export function CheckoutForm({
+  paymentsTestMode = false,
+  profile
+}: {
+  paymentsTestMode?: boolean;
+  profile: SessionProfile | null;
+}) {
   const router = useRouter();
-  const { hydrated, items, subtotal } = useCart();
+  const { hydrated, items, subtotal, updateQuantity, removeItem } = useCart();
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
   const [step, setStep] = useState<CheckoutStep>("customer");
   const [customer, setCustomer] = useState({
@@ -86,7 +98,9 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("MERCADOPAGO");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const checkoutInFlightRef = useRef(false);
+  const checkoutIntentRef = useRef("");
   const helpHref = getWhatsAppHref("Hola FZAC, necesito ayuda con mi checkout antes de pagar.");
   const deliveryHref = getWhatsAppHref("Hola FZAC, quiero coordinar un envio antes de pagar.");
 
@@ -95,6 +109,16 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   const stepIndex = checkoutSteps.findIndex((item) => item.id === step);
   const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
   const customerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim() && addressComplete);
+
+  function checkoutIntentKey() {
+    if (!checkoutIntentRef.current) {
+      checkoutIntentRef.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `fzac-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return checkoutIntentRef.current;
+  }
 
   async function validateStock(signal?: AbortSignal) {
     if (!items.length) {
@@ -172,6 +196,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
 
   useEffect(() => {
     if (!items.length) return;
+    checkoutIntentRef.current = "";
 
     const controller = new AbortController();
     window.queueMicrotask(() => {
@@ -239,6 +264,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   function selectPaymentMode(mode: PaymentMode) {
     setPaymentMode(mode);
     setError("");
+    setInfo("");
   }
 
   function requestTermsAcceptance() {
@@ -264,6 +290,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     checkoutInFlightRef.current = true;
     setLoading(true);
     setError("");
+    setInfo("");
 
     try {
       const quoted = await quoteShipping();
@@ -283,15 +310,21 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           shipping_method: shippingMethod,
           address_snapshot: address,
           notes,
-          payment_flow: "CHECKOUT_PRO"
+          payment_flow: "CHECKOUT_PRO",
+          idempotency_key: checkoutIntentKey()
         })
       });
 
       const data = (await response.json()) as {
+        redirect_url?: string;
         url?: string;
         init_point?: string;
+        sandbox_init_point?: string;
         pending?: boolean;
         orderId?: string;
+        order_id?: string;
+        order_status?: string;
+        requires_admin_approval?: boolean;
         preference_id?: string;
         message?: string;
         error?: string;
@@ -317,7 +350,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           response.status === 503 &&
           (data.error === "PAYMENT_PROVIDER_NOT_CONFIGURED" || data.error === "MERCADOPAGO_NOT_CONFIGURED")
         ) {
-          setError("No pudimos iniciar el pago online en este momento. La orden queda preparada para seguimiento.");
+          setError("Mercado Pago todavia no esta configurado para iniciar pagos. Completa el Access Token y reinicia el servidor.");
           return;
         }
         if (response.status === 502 && data.error === "PAYMENT_PREFERENCE_REJECTED") {
@@ -327,14 +360,25 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
         throw new Error(data.message || "No pudimos crear el checkout.");
       }
 
-      const paymentUrl = data.init_point || data.url;
+      const paymentUrl = data.redirect_url || data.url || data.sandbox_init_point || data.init_point;
+      const orderId = data.orderId || data.order_id;
+
+      if (data.requires_admin_approval && orderId) {
+        setInfo(
+          data.message ||
+            "Tu compra requiere validacion de FZAC por el monto o volumen del pedido. El equipo la revisara y te contactara."
+        );
+        router.push(`/checkout/pending?orderId=${orderId}&approval=1`);
+        return;
+      }
+
       if (paymentUrl) {
         window.location.assign(paymentUrl);
         return;
       }
 
-      if (data.pending && data.orderId) {
-        router.push(`/pago/pendiente?order_id=${data.orderId}`);
+      if (data.pending && orderId) {
+        router.push(`/checkout/pending?orderId=${orderId}`);
         return;
       }
 
@@ -353,6 +397,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     checkoutInFlightRef.current = true;
     setLoading(true);
     setError("");
+    setInfo("");
 
     try {
       const quoted = await quoteShipping();
@@ -373,6 +418,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           address_snapshot: address,
           notes,
           payment_flow: "CARD",
+          idempotency_key: checkoutIntentKey(),
           card
         })
       });
@@ -654,14 +700,40 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
 
           <aside className={`checkout-summary ${step === "payment" ? "checkout-summary--final" : ""}`}>
             <h2>{step === "payment" ? "Pago" : "Resumen"}</h2>
-            {items.map((item) => (
-              <div className="summary-line" key={item.productId}>
-                <span>
-                  {item.quantity} x {item.product.name}
-                </span>
-                <strong>{currency(item.product.price * item.quantity)}</strong>
-              </div>
-            ))}
+            <div className="checkout-floating-products">
+              {items.map((item) => (
+                <article className="checkout-floating-product" key={item.productId}>
+                  <Image src={item.product.image_url} alt={item.product.name} width={58} height={58} />
+                  <div>
+                    <strong>{item.product.name}</strong>
+                    <span>
+                      {item.quantity} x {currency(item.product.price)}
+                    </span>
+                    <small className={item.product.stock > 0 ? "status-pill status-pill--success" : "status-pill status-pill--danger"}>
+                      Stock {item.product.stock}
+                    </small>
+                  </div>
+                  <div className="checkout-floating-product__actions">
+                    <strong>{currency(item.product.price * item.quantity)}</strong>
+                    <span>
+                      <button type="button" disabled={item.quantity <= 1} onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
+                        <Minus size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={item.quantity >= item.product.stock}
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                      >
+                        <Plus size={13} />
+                      </button>
+                      <button type="button" onClick={() => removeItem(item.productId)}>
+                        <Trash2 size={13} />
+                      </button>
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
             <div className="summary-line">
               <span>Subtotal</span>
               <strong>{currency(subtotal)}</strong>
@@ -688,30 +760,41 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
 
             {step === "payment" ? (
               <>
+                {paymentsTestMode ? (
+                  <div className="payment-env-badge" aria-label="Entorno de prueba de pagos">
+                    <strong>Entorno de prueba</strong>
+                    <span>No se cobrara dinero real.</span>
+                  </div>
+                ) : null}
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
                   <button
                     type="button"
-                    className="payment-mode-button"
+                    className="payment-mode-button payment-mode-button--redirect"
                     aria-pressed={paymentMode === "MERCADOPAGO"}
                     disabled={loading}
                     onClick={() => selectPaymentMode("MERCADOPAGO")}
                   >
-                    <CreditCard size={18} />
-                    <strong>Pagar con Mercado Pago</strong>
-                    <span>Cuenta, dinero disponible y medios habilitados por Mercado Pago.</span>
+                    <Landmark size={18} />
+                    <strong>Ir a Mercado Pago</strong>
+                    <span>Redireccion segura con el total cerrado para usar dinero en cuenta, transferencia o medios habilitados.</span>
                   </button>
                   <button
                     type="button"
-                    className="payment-mode-button"
+                    className="payment-mode-button payment-mode-button--card"
                     aria-pressed={paymentMode === "CARD"}
                     disabled={loading}
                     onClick={() => selectPaymentMode("CARD")}
                   >
                     <CreditCard size={18} />
-                    <strong>Pagar con tarjeta</strong>
-                    <span>Debito o credito con DNI/CUIT y validacion del proveedor.</span>
+                    <strong>Tarjeta dentro de la web</strong>
+                    <span>Debito o credito con DNI/CUIT. FZAC no guarda datos sensibles de tarjeta.</span>
                   </button>
                 </div>
+                <p className="payment-method-hint">
+                  {paymentMode === "MERCADOPAGO"
+                    ? "Mercado Pago abre su checkout con el monto exacto del pedido y muestra los medios disponibles para la cuenta del comprador."
+                    : "El pago con tarjeta se procesa en campos seguros de Mercado Pago sin salir del e-commerce."}
+                </p>
                 <div className="terms-checkbox">
                   <input
                     type="checkbox"
@@ -738,10 +821,11 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                   </div>
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
+                {info ? <p className="notice notice--success">{info}</p> : null}
                 {paymentMode === "MERCADOPAGO" ? (
                   <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startMercadoPagoPayment()}>
-                    {loading ? <Loader2 size={18} /> : <CreditCard size={18} />}
-                    {loading ? "Generando transaccion..." : "Pagar con Mercado Pago"}
+                    {loading ? <Loader2 size={18} /> : <ExternalLink size={18} />}
+                    {loading ? "Creando link seguro..." : "Continuar a Mercado Pago"}
                   </button>
                 ) : (
                   <MercadoPagoCardForm

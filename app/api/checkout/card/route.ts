@@ -55,6 +55,18 @@ export async function POST(request: Request) {
     const total = Number(checkout.total ?? 0);
 
     if (!orderId || !total) return jsonError("No pudimos preparar la orden para pagar con tarjeta.", 400);
+    if (checkout.requires_admin_approval) {
+      return Response.json(
+        {
+          ok: true,
+          orderId,
+          status: checkout.order_status,
+          redirectUrl: `/checkout/pending?orderId=${orderId}&approval=1`,
+          message: checkout.message || "La compra requiere aprobacion del administrador antes de pagar."
+        },
+        { status: 201 }
+      );
+    }
 
     const payment = await createMercadoPagoCardPayment({
       orderId,

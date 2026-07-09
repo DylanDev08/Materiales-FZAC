@@ -67,16 +67,79 @@ function orderStatusFromMercadoPago(status: string) {
   return "PENDING_PAYMENT";
 }
 
+function extractEventType(url: URL, body: Record<string, unknown>) {
+  return String(body.type || body.topic || body.action || url.searchParams.get("topic") || "payment");
+}
+
+function extractEventId(body: Record<string, unknown>, paymentId: string) {
+  const data = body.data as Record<string, unknown> | undefined;
+  return String(body.id || data?.id || paymentId || "");
+}
+
+async function createPaymentEvent(input: {
+  eventType: string;
+  providerEventId: string;
+  providerPaymentId: string;
+  raw: Record<string, unknown>;
+}) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data } = await admin
+    .from("payment_events")
+    .insert({
+      provider: "MERCADOPAGO",
+      provider_event_id: input.providerEventId || null,
+      provider_payment_id: input.providerPaymentId || null,
+      event_type: input.eventType,
+      status: "RECEIVED",
+      raw: input.raw
+    })
+    .select("id")
+    .maybeSingle();
+
+  return data?.id ? String(data.id) : null;
+}
+
+async function updatePaymentEvent(
+  eventId: string | null,
+  input: { status: "PROCESSED" | "IGNORED" | "FAILED"; orderId?: string; errorMessage?: string }
+) {
+  if (!eventId) return;
+
+  const admin = getSupabaseAdminClient();
+  if (!admin) return;
+
+  await admin
+    .from("payment_events")
+    .update({
+      status: input.status,
+      order_id: input.orderId || null,
+      error_message: input.errorMessage || null,
+      processed_at: new Date().toISOString()
+    })
+    .eq("id", eventId);
+}
+
 export async function handleMercadoPagoWebhook(request: Request): Promise<WebhookResult> {
   const url = new URL(request.url);
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const paymentId = extractPaymentId(url, body);
+  const eventType = extractEventType(url, body);
+  const eventId = await createPaymentEvent({
+    eventType,
+    providerEventId: extractEventId(body, paymentId),
+    providerPaymentId: paymentId,
+    raw: body
+  }).catch(() => null);
 
   if (!paymentId) {
+    await updatePaymentEvent(eventId, { status: "IGNORED", errorMessage: "Evento sin payment id." }).catch(() => undefined);
     return { status: 200, body: { ok: true, received: true, ignored: true } };
   }
 
   if (!isValidWebhookSignature(request, paymentId)) {
+    await updatePaymentEvent(eventId, { status: "FAILED", errorMessage: "Firma invalida." }).catch(() => undefined);
     return { status: 401, body: { ok: false, message: "Firma invalida." } };
   }
 
@@ -87,11 +150,17 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     const status = String(payment.status ?? "");
 
     if (!orderId) {
+      await updatePaymentEvent(eventId, { status: "IGNORED", errorMessage: "Pago sin external_reference." }).catch(() => undefined);
       return { status: 200, body: { ok: true, received: true, ignored: true } };
     }
 
     const admin = getSupabaseAdminClient();
     if (!admin) {
+      await updatePaymentEvent(eventId, {
+        status: "FAILED",
+        orderId,
+        errorMessage: "Backend de pagos no disponible."
+      }).catch(() => undefined);
       return { status: 200, body: { ok: false, received: true, message: "Backend de pagos no disponible." } };
     }
 
@@ -103,6 +172,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         raw: payment,
         status: "PAID"
       });
+      await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
       return { status: 200, body: { ok: true, received: true, status: "PAID", orderId } };
     }
 
@@ -132,11 +202,17 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       link_to: `${getAdminConsolePath()}/pedidos?order=${orderId}`
     });
 
+    await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
     return { status: 200, body: { ok: true, received: true, status: paymentStatus, orderId } };
   } catch (error) {
     if (error instanceof MercadoPagoNotConfiguredError) {
+      await updatePaymentEvent(eventId, { status: "FAILED", errorMessage: error.message }).catch(() => undefined);
       return { status: 200, body: { ok: false, received: true, message: error.message } };
     }
+    await updatePaymentEvent(eventId, {
+      status: "FAILED",
+      errorMessage: error instanceof Error ? error.message.slice(0, 500) : "No pudimos procesar el webhook."
+    }).catch(() => undefined);
     return { status: 200, body: { ok: false, received: true, message: "No pudimos procesar el webhook." } };
   }
 }

@@ -67,23 +67,25 @@ export const checkoutSchema = z.object({
   customer: z.object({
     name: safeString("Nombre", 2, 120),
     email: z.string().trim().email("Ingresa un email valido.").max(160),
-    phone: safeString("Telefono", 6, 40)
+    phone: safeString("Telefono", 8, 40)
   }),
   shippingMethod: z.enum(["PICKUP", "DELIVERY"]),
   address: requiredCheckoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
   paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
-  paymentFlow: z.enum(["CHECKOUT_PRO", "CARD"]).optional()
+  paymentFlow: z.enum(["CHECKOUT_PRO", "CARD"]).optional(),
+  idempotencyKey: safeString("Intento de compra", 8, 120).optional()
 });
 
 const checkoutCreateFieldsSchema = z.object({
   customer_name: safeString("Nombre", 2, 120),
   customer_email: z.string().trim().email("Ingresa un email valido.").max(160),
-  customer_phone: safeString("Telefono", 6, 40),
+  customer_phone: safeString("Telefono", 8, 40),
   shipping_method: z.enum(["PICKUP", "DELIVERY"]),
   address_snapshot: requiredCheckoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
   payment_flow: z.enum(["CHECKOUT_PRO", "CARD"]).optional(),
+  idempotency_key: safeString("Intento de compra", 8, 120).optional(),
   items: z.array(checkoutItemSchema).min(1, "El carrito esta vacio.")
 });
 
@@ -99,7 +101,8 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
     address: value.address_snapshot,
     notes: value.notes,
     paymentProvider: "MERCADOPAGO" as PaymentProvider,
-    paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow
+    paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow,
+    idempotencyKey: value.idempotency_key
   };
 }
 

@@ -130,17 +130,38 @@
   font-size: 1.25rem;
 }
 
-.product-added {
+.product-added,
+.product-added-toast {
   display: grid;
   gap: 12px;
 }
 
 .product-added strong,
-.product-added div {
+.product-added div,
+.product-added-toast strong,
+.product-added-toast div {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.product-added-toast {
+  border: 1px solid rgba(22, 131, 74, 0.42);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(22, 131, 74, 0.14), rgba(17, 17, 17, 0.98)),
+    var(--color-panel);
+  padding: 12px;
+}
+
+.product-added-toast strong {
+  color: #74d7a3;
+}
+
+.product-added-toast span {
+  color: var(--color-muted);
+  font-size: 0.88rem;
 }
 
 .product-info-grid {

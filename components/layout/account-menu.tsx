@@ -34,6 +34,25 @@ function initials(profile: HeaderProfile) {
     .join("");
 }
 
+function ProfileAvatar({ large = false, profile }: { large?: boolean; profile: HeaderProfile }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [profile.avatar_url]);
+
+  return (
+    <span className={`account-menu__avatar ${large ? "account-menu__avatar--large" : ""}`}>
+      {profile.avatar_url && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      ) : (
+        initials(profile)
+      )}
+    </span>
+  );
+}
+
 export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,28 +86,14 @@ export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) 
   return (
     <div className="account-menu" ref={ref}>
       <button className="account-menu__trigger" type="button" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-        <span className="account-menu__avatar">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" />
-          ) : (
-            initials(profile)
-          )}
-        </span>
+        <ProfileAvatar profile={profile} />
         <ChevronDown size={15} />
       </button>
 
       {open ? (
         <section className="account-menu__panel" aria-label="Menu de cuenta">
           <header>
-            <span className="account-menu__avatar account-menu__avatar--large">
-              {profile.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar_url} alt="" />
-              ) : (
-                initials(profile)
-              )}
-            </span>
+            <ProfileAvatar large profile={profile} />
             <div>
               <strong>{profile.full_name || "Cuenta FZAC"}</strong>
               <span>{profile.email}</span>

@@ -2,6 +2,7 @@ export type UserRole = "USER" | "ADMIN" | "OPERATOR";
 
 export type OrderStatus =
   | "PENDING_PAYMENT"
+  | "PENDING_ADMIN_APPROVAL"
   | "PAID"
   | "CONFIRMED"
   | "PREPARING"

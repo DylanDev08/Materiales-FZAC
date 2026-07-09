@@ -1,4 +1,5 @@
-import { AdminDataTable } from "@/components/admin/admin-data-table";
+import { AdminOrdersView } from "@/components/admin/admin-orders-view";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminOrderTableRows } from "@/lib/db/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
@@ -7,10 +8,8 @@ export default async function Page() {
   const rows = await getAdminOrderTableRows();
 
   return (
-    <AdminDataTable
-      title="Pedidos"
-      columns={["Cliente", "Email", "Telefono", "Productos", "Total", "Estado", "Pago", "Envio", "Fecha"]}
-      rows={rows}
-    />
+    <AdminShell title="Pedidos">
+      <AdminOrdersView rows={rows} />
+    </AdminShell>
   );
 }

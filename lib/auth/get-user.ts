@@ -15,6 +15,14 @@ export type SessionProfile = {
   role: UserRole;
 };
 
+function metadataText(metadata: Record<string, unknown> | undefined, keys: string[]) {
+  for (const key of keys) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
 export async function getCurrentUser() {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return null;
@@ -31,24 +39,33 @@ export async function getUserProfile(): Promise<SessionProfile | null> {
 
   const admin = getSupabaseAdminClient();
   const role: UserRole = isAdminEmail(user.email) ? "ADMIN" : "USER";
+  const metadata = user.user_metadata as Record<string, unknown> | undefined;
+  const metadataName = metadataText(metadata, ["full_name", "name"]);
+  const metadataAvatar = metadataText(metadata, ["avatar_url", "picture", "photo_url"]);
 
   if (!admin) {
     return {
       id: user.id,
       email: user.email,
-      full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+      full_name: metadataName,
       phone: user.phone ?? null,
-      avatar_url: user.user_metadata?.avatar_url ?? null,
+      avatar_url: metadataAvatar,
       role
     };
   }
 
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("full_name,phone,avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const payload = {
     id: user.id,
     email: user.email,
-    full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
-    phone: user.phone ?? null,
-    avatar_url: user.user_metadata?.avatar_url ?? null,
+    full_name: metadataName ?? existingProfile?.full_name ?? null,
+    phone: user.phone ?? existingProfile?.phone ?? null,
+    avatar_url: metadataAvatar ?? existingProfile?.avatar_url ?? null,
     role,
     last_login_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
