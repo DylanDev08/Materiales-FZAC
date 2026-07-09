@@ -2,13 +2,14 @@ import Link from "next/link";
 import { AlertTriangle, CreditCard, FileText, Home, Package, ShoppingBag, TrendingUp, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
-import { isMercadoPagoConfigured } from "@/lib/payments/config";
+import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
 import { getAdminConsolePath } from "@/lib/utils/env";
 
 export async function AdminDashboard() {
   const data = await getAdminDashboardData();
   const adminPath = getAdminConsolePath();
   const paymentsReady = isMercadoPagoConfigured();
+  const paymentsTestMode = isMercadoPagoTestMode();
   const icons = [CreditCard, TrendingUp, ShoppingBag, CreditCard, CreditCard, AlertTriangle, FileText, Users, Package, ShoppingBag];
   const statusTotal = data.statusCounts.reduce((sum, item) => sum + item.count, 0) || 1;
 
@@ -17,6 +18,18 @@ export async function AdminDashboard() {
       {!paymentsReady ? (
         <section className="admin-payment-status">
           El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion.
+        </section>
+      ) : null}
+      {paymentsReady ? (
+        <section className={`admin-payment-status ${paymentsTestMode ? "admin-payment-status--test" : "admin-payment-status--ready"}`}>
+          <div>
+            <strong>{paymentsTestMode ? "Mercado Pago en modo prueba" : "Mercado Pago listo para operar"}</strong>
+            <span>
+              {paymentsTestMode
+                ? "Usa el checkout para crear preferencias, simular aprobados/rechazados y revisar pedidos, pagos, stock y comprobantes."
+                : "Credenciales productivas activas. Verifica webhook publico antes de recibir ventas reales."}
+            </span>
+          </div>
         </section>
       ) : null}
 
@@ -51,6 +64,18 @@ export async function AdminDashboard() {
           <Home size={20} />
           <span>Vista cliente</span>
         </Link>
+      </section>
+
+      <section className="admin-panel admin-test-checklist">
+        <h2>Checklist de prueba de pagos</h2>
+        <p className="admin-help">Para probar sin confundir al equipo, usa pedidos chicos y revisa cada estado desde Pedidos, Pagos, Stock y Tickets.</p>
+        <div>
+          <span>1. Crear pedido desde checkout y verificar preferencia de pago.</span>
+          <span>2. Simular pago aprobado y confirmar que se emite comprobante.</span>
+          <span>3. Revisar que el stock se descuente una sola vez.</span>
+          <span>4. Simular pago rechazado y confirmar que no descuente stock.</span>
+          <span>5. Probar webhook con URL publica y revisar notificaciones.</span>
+        </div>
       </section>
 
       <section className="admin-panel">

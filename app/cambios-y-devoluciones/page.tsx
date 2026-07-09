@@ -1,4 +1,10 @@
+import { getWhatsAppHref } from "@/lib/utils/contact";
+
 export default function Page() {
+  const refundHref = getWhatsAppHref(
+    "Hola FZAC, quiero solicitar revision o devolucion de mercaderia. Tengo comprobante/orden y puedo enviar fotos del producto."
+  );
+
   return (
     <main className="page-section legal-page">
       <div className="container">
@@ -14,6 +20,9 @@ export default function Page() {
             Para iniciar el tramite debe conservar el comprobante y contactar a FZAC indicando orden, producto, cantidad,
             motivo, telefono y direccion de retiro si corresponde. El equipo confirma los pasos por los canales oficiales.
           </p>
+          <a className="btn legal-action-button" href={refundHref} target="_blank" rel="noreferrer">
+            Solicitar revision o devolucion por WhatsApp
+          </a>
 
           <h2>Condicion del producto</h2>
           <p>

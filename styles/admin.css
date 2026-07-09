@@ -60,14 +60,42 @@
 }
 
 .admin-payment-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
   border: 1px solid var(--color-yellow-border);
   border-radius: var(--radius-sm);
   background: rgba(244, 196, 0, 0.08);
   color: var(--color-yellow);
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-size: 0.9rem;
   font-weight: 850;
+}
+
+.admin-payment-status div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-payment-status span {
+  color: var(--color-muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.admin-payment-status--ready {
+  border-color: rgba(22, 131, 74, 0.45);
+  background: rgba(22, 131, 74, 0.12);
+  color: #74d7a3;
+}
+
+.admin-payment-status--test {
+  border-color: var(--color-yellow-border);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.14), rgba(17, 17, 17, 0.96)),
+    var(--color-panel);
 }
 
 .admin-quick-actions {
@@ -146,6 +174,27 @@
   font-weight: 900;
   white-space: nowrap;
 }
+
+.admin-test-checklist div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-test-checklist span {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #101010;
+  color: var(--color-white);
+  padding: 12px;
+  line-height: 1.45;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 
 .admin-toolbar {
   display: grid;
@@ -346,6 +395,7 @@
 
   .metrics-grid,
   .appearance-grid,
+  .admin-test-checklist div,
   .admin-quick-actions {
     grid-template-columns: 1fr 1fr;
   }
@@ -354,6 +404,7 @@
 @media (max-width: 620px) {
   .metrics-grid,
   .appearance-grid,
+  .admin-test-checklist div,
   .admin-quick-actions {
     grid-template-columns: 1fr;
   }

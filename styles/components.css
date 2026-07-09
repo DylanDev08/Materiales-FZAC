@@ -184,6 +184,11 @@
   line-height: 1.7;
 }
 
+.legal-action-button {
+  width: fit-content;
+  margin: 4px 0 8px;
+}
+
 .payment-page h1 {
   margin: 10px 0 12px;
   font-size: clamp(2.2rem, 4.5vw, 4rem);

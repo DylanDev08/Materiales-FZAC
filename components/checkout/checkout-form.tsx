@@ -80,6 +80,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
   });
   const [notes, setNotes] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("MERCADOPAGO");
@@ -235,6 +236,20 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
     })();
   }
 
+  function selectPaymentMode(mode: PaymentMode) {
+    setPaymentMode(mode);
+    setError("");
+  }
+
+  function requestTermsAcceptance() {
+    setTermsOpen(true);
+  }
+
+  function acceptTerms() {
+    setAccepted(true);
+    setTermsOpen(false);
+  }
+
   async function goToPayment() {
     setError("");
     const quoted = await quoteShipping();
@@ -303,6 +318,10 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           (data.error === "PAYMENT_PROVIDER_NOT_CONFIGURED" || data.error === "MERCADOPAGO_NOT_CONFIGURED")
         ) {
           setError("No pudimos iniciar el pago online en este momento. La orden queda preparada para seguimiento.");
+          return;
+        }
+        if (response.status === 502 && data.error === "PAYMENT_PREFERENCE_REJECTED") {
+          setError(data.message || "Mercado Pago rechazo la preferencia. Revisa la configuracion del sitio y volve a intentar.");
           return;
         }
         throw new Error(data.message || "No pudimos crear el checkout.");
@@ -675,7 +694,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                     className="payment-mode-button"
                     aria-pressed={paymentMode === "MERCADOPAGO"}
                     disabled={loading}
-                    onClick={() => setPaymentMode("MERCADOPAGO")}
+                    onClick={() => selectPaymentMode("MERCADOPAGO")}
                   >
                     <CreditCard size={18} />
                     <strong>Pagar con Mercado Pago</strong>
@@ -686,7 +705,7 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                     className="payment-mode-button"
                     aria-pressed={paymentMode === "CARD"}
                     disabled={loading}
-                    onClick={() => setPaymentMode("CARD")}
+                    onClick={() => selectPaymentMode("CARD")}
                   >
                     <CreditCard size={18} />
                     <strong>Pagar con tarjeta</strong>
@@ -698,19 +717,25 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
                     type="checkbox"
                     id="accept-terms"
                     checked={accepted}
-                    onChange={(event) => setAccepted(event.target.checked)}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        requestTermsAcceptance();
+                      } else {
+                        setAccepted(false);
+                      }
+                    }}
                   />
-                  <label htmlFor="accept-terms">
-                    Acepto los{" "}
-                    <Link href="/terminos" target="_blank" rel="noopener noreferrer">
+                  <div className="terms-checkbox__copy">
+                    <span>Acepto los{" "}</span>
+                    <button className="terms-inline-button" type="button" onClick={requestTermsAcceptance}>
                       Terminos y condiciones
-                    </Link>{" "}
-                    y la{" "}
+                    </button>{" "}
+                    <span>y la{" "}</span>
                     <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
                       Politica de privacidad
                     </Link>
                     .
-                  </label>
+                  </div>
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {paymentMode === "MERCADOPAGO" ? (
@@ -736,6 +761,72 @@ export function CheckoutForm({ profile }: { profile: SessionProfile | null }) {
           </aside>
         </div>
       </div>
+      {termsOpen ? (
+        <div className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
+          <div className="terms-modal__panel">
+            <header>
+              <span className="kicker">Legal FZAC</span>
+              <h2 id="terms-modal-title">Terminos y condiciones</h2>
+              <p>Revisa estas condiciones antes de confirmar el pago. Se mantienen disponibles en la seccion legal de la tienda.</p>
+            </header>
+            <div className="terms-modal__content">
+              <section>
+                <h3>Compra y comprobante</h3>
+                <p>
+                  La compra se confirma solo cuando el proveedor de pago aprueba la operacion. No se descuenta stock ni
+                  se emite comprobante hasta que el pago queda aprobado.
+                </p>
+              </section>
+              <section>
+                <h3>Entrega y retiro</h3>
+                <p>
+                  El cliente debe revisar la mercaderia antes de firmar el remito. Para defectos ocultos o errores no
+                  visibles, debe informar a FZAC dentro de las 48 horas habiles con fotos y comprobante.
+                </p>
+              </section>
+              <section>
+                <h3>Derecho de revocacion</h3>
+                <p>
+                  Conforme a la Ley 24.240, el cliente puede revocar compras a distancia dentro de los diez (10) dias
+                  corridos desde la entrega o celebracion del contrato, segun corresponda.
+                </p>
+              </section>
+              <section>
+                <h3>Excepciones por materiales de obra</h3>
+                <p>
+                  Pueden quedar excluidos materiales a granel, fraccionados, cortados a medida, preparados a pedido o
+                  deteriorados por humedad, mala estiba, uso, instalacion o exposicion climatica.
+                </p>
+              </section>
+              <section>
+                <h3>Garantias</h3>
+                <p>
+                  Herramientas y maquinas cuentan con garantia legal contra defectos de fabricacion. Las garantias de
+                  marca deben gestionarse con factura o comprobante en centros autorizados cuando corresponda.
+                </p>
+              </section>
+              <section>
+                <h3>Pagos seguros</h3>
+                <p>
+                  FZAC no solicita ni almacena numeros de tarjeta, codigos de seguridad ni datos sensibles de medios de
+                  pago. Las tarjetas se procesan mediante proveedor habilitado.
+                </p>
+              </section>
+            </div>
+            <footer>
+              <Link className="btn btn--ghost" href="/terminos" target="_blank" rel="noopener noreferrer">
+                Ver texto completo
+              </Link>
+              <button className="btn btn--ghost" type="button" onClick={() => setTermsOpen(false)}>
+                Volver
+              </button>
+              <button className="btn" type="button" onClick={acceptTerms}>
+                Acepto terminos y condiciones
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

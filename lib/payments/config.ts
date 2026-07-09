@@ -16,7 +16,7 @@ export class MercadoPagoNotConfiguredError extends Error {
 }
 
 export function isPaymentsEnabled() {
-  return getEnv("PAYMENTS_ENABLED").toLowerCase() === "true";
+  return getEnv("PAYMENTS_ENABLED").toLowerCase() === "true" || getEnv("PAYMENT_ENABLED").toLowerCase() === "true";
 }
 
 export function getMercadoPagoConfig() {
@@ -32,6 +32,11 @@ export function getMercadoPagoConfig() {
 export function isMercadoPagoConfigured() {
   const config = getMercadoPagoConfig();
   return config.paymentsEnabled && hasRealValue(config.accessToken);
+}
+
+export function isMercadoPagoTestMode() {
+  const config = getMercadoPagoConfig();
+  return config.accessToken.startsWith("TEST-") || config.publicKey.startsWith("TEST-");
 }
 
 export function assertMercadoPagoConfigured(orderId?: string) {

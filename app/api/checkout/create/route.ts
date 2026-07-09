@@ -48,6 +48,25 @@ export async function POST(request: Request) {
         { status: 422 }
       );
     }
+    if (error instanceof Error && error.message.startsWith("El proveedor de pago rechazo")) {
+      return Response.json(
+        {
+          error: "PAYMENT_PREFERENCE_REJECTED",
+          message: error.message
+        },
+        { status: 502 }
+      );
+    }
+    if (
+      error instanceof Error &&
+      [
+        "No pudimos crear la orden.",
+        "No pudimos validar los productos del carrito.",
+        "Un producto del carrito ya no esta disponible."
+      ].includes(error.message)
+    ) {
+      return jsonError(error.message, 400);
+    }
     return jsonError("No pudimos crear el checkout. Revisa los datos e intenta nuevamente.", 400);
   }
 }

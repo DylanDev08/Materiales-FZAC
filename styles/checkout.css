@@ -426,10 +426,16 @@
   cursor: pointer;
 }
 
-.terms-checkbox label {
+.terms-checkbox__copy {
   cursor: default;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.terms-checkbox__copy span,
+.terms-checkbox__copy a,
+.terms-inline-button {
+  vertical-align: baseline;
 }
 
 .terms-checkbox a {
@@ -440,10 +446,101 @@
   cursor: pointer;
 }
 
+.terms-inline-button {
+  border: 0;
+  background: transparent;
+  color: var(--color-yellow);
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 .stock-issue-list {
   margin: 8px 0 0;
   padding-left: 18px;
   color: var(--color-muted);
+}
+
+.terms-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.76);
+  padding: 18px;
+}
+
+.terms-modal__panel {
+  width: min(780px, 100%);
+  max-height: min(760px, 92vh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.1), rgba(17, 17, 17, 0.98)),
+    var(--color-panel);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.terms-modal__panel header,
+.terms-modal__panel footer {
+  padding: 18px;
+}
+
+.terms-modal__panel header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.terms-modal__panel header h2 {
+  margin: 6px 0;
+}
+
+.terms-modal__panel header p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.terms-modal__content {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.terms-modal__content section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.terms-modal__content h3,
+.terms-modal__content p {
+  margin: 0;
+}
+
+.terms-modal__content h3 {
+  margin-bottom: 6px;
+}
+
+.terms-modal__content p {
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.terms-modal__panel footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (max-width: 920px) {
@@ -503,6 +600,23 @@
   }
 
   .checkout-panel__actions .btn {
+    width: 100%;
+  }
+
+  .terms-modal {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .terms-modal__panel {
+    max-height: 94vh;
+  }
+
+  .terms-modal__panel footer {
+    flex-direction: column;
+  }
+
+  .terms-modal__panel footer .btn {
     width: 100%;
   }
 }

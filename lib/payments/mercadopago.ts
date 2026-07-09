@@ -30,12 +30,33 @@ type CardPaymentInput = {
   };
 };
 
+function publicUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    if (["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname)) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function checkoutPictureUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function isMercadoPagoEnabled() {
   return isMercadoPagoConfigured();
 }
 
 export async function createMercadoPagoPreference(input: PreferenceInput) {
   const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId);
+  const publicSiteUrl = publicUrl(siteUrl);
   const orderQuery = `order_id=${encodeURIComponent(input.orderId)}`;
   const items = input.items.map(({ product, quantity }) => ({
     id: product.id,
@@ -43,7 +64,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     quantity,
     unit_price: Number(product.price),
     currency_id: "ARS",
-    picture_url: product.image_url
+    ...(checkoutPictureUrl(product.image_url) ? { picture_url: checkoutPictureUrl(product.image_url) } : {})
   }));
 
   if (input.shippingCost > 0) {
@@ -52,10 +73,21 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
       title: "Entrega coordinada FZAC",
       quantity: 1,
       unit_price: input.shippingCost,
-      currency_id: "ARS",
-      picture_url: ""
+      currency_id: "ARS"
     });
   }
+
+  const redirects = publicSiteUrl
+    ? {
+        back_urls: {
+          success: `${publicSiteUrl.origin}/pago/aprobado?${orderQuery}`,
+          pending: `${publicSiteUrl.origin}/pago/pendiente?${orderQuery}`,
+          failure: `${publicSiteUrl.origin}/pago/rechazado?${orderQuery}`
+        },
+        auto_return: "approved",
+        notification_url: `${publicSiteUrl.origin}/api/webhooks/mercadopago`
+      }
+    : {};
 
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
@@ -71,13 +103,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
         email: input.customer.email,
         phone: { number: input.customer.phone }
       },
-      back_urls: {
-        success: `${siteUrl}/pago/aprobado?${orderQuery}`,
-        pending: `${siteUrl}/pago/pendiente?${orderQuery}`,
-        failure: `${siteUrl}/pago/rechazado?${orderQuery}`
-      },
-      auto_return: "approved",
-      notification_url: `${siteUrl}/api/webhooks/mercadopago`,
+      ...redirects,
       statement_descriptor: "FZAC",
       metadata: {
         order_id: input.orderId,
