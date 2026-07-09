@@ -8,7 +8,7 @@ export default async function Page() {
   const rows = await getAdminLogRows();
 
   return (
-    <AdminShell title="Logs del sistema">
+    <AdminShell title="Actividad">
       <AdminLogsView rows={rows} />
     </AdminShell>
   );

@@ -60,7 +60,9 @@ function friendlyStatus(value: string | null | undefined) {
     DELIVERED: "Entregado",
     PENDING: "Pendiente",
     PENDING_PAYMENT: "Pendiente de pago",
+    PENDING_TRANSFER: "Pendiente de transferencia",
     PENDING_ADMIN_APPROVAL: "Validacion admin",
+    COORDINATE: "Coordinar",
     FAILED: "Rechazado",
     REJECTED: "Rechazado",
     CANCELLED: "Cancelado",
@@ -81,8 +83,23 @@ function friendlyRole(value: string | null | undefined) {
 function friendlyProvider(value: string | null | undefined) {
   const provider = String(value ?? "").toUpperCase();
   if (provider === "MERCADOPAGO") return "Mercado Pago";
-  if (provider === "TRANSFER") return "Transferencia";
+  if (provider === "BANK_TRANSFER" || provider === "TRANSFER") return "Transferencia FZAC";
+  if (provider === "WHATSAPP") return "WhatsApp FZAC";
+  if (provider === "MOCK") return "Prueba";
   return provider || "-";
+}
+
+function friendlyPaymentMethod(payment: {
+  provider?: string | null;
+  provider_session_id?: string | null;
+  provider_preference_id?: string | null;
+}) {
+  const session = String(payment.provider_session_id ?? "").toLowerCase();
+  if (session.includes("-transfer")) return "Transferencia FZAC";
+  if (session.includes("-bank_transfer")) return "Transferencia FZAC";
+  if (session.includes("-whatsapp")) return "Coordinacion FZAC";
+  if (!payment.provider_preference_id && String(payment.provider ?? "").toUpperCase() === "MERCADOPAGO") return "Mercado Pago pendiente";
+  return friendlyProvider(payment.provider);
 }
 
 export async function getAdminProducts() {
@@ -123,7 +140,7 @@ export async function getAdminOrderTableRows(limit = 200) {
   const [{ data: items }, { data: payments }] = orderIds.length
     ? await Promise.all([
         admin.from("order_items").select("order_id,name,quantity").in("order_id", orderIds),
-        admin.from("payments").select("order_id,provider,status,provider_payment_id").in("order_id", orderIds)
+        admin.from("payments").select("order_id,provider,status,provider_payment_id,provider_preference_id,provider_session_id").in("order_id", orderIds)
       ])
     : [{ data: [] }, { data: [] }];
 
@@ -140,7 +157,7 @@ export async function getAdminOrderTableRows(limit = 200) {
       Productos: orderItems.map((item) => `${item.quantity} x ${item.name}`).join("; ") || "-",
       Total: currency(order.total),
       Estado: friendlyStatus(order.status),
-      Pago: payment ? `${friendlyProvider(payment.provider)} - ${friendlyStatus(payment.status)}` : "Pendiente",
+      Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(payment.status)}` : "Pendiente",
       Envio: order.shipping_method === "DELIVERY" ? "Envio a coordinar" : "Retiro",
       Fecha: adminDate(order.created_at)
     };
@@ -154,7 +171,7 @@ export async function getAdminPaymentTableRows(limit = 200) {
 
   const { data: payments } = await admin
     .from("payments")
-    .select("id,order_id,provider,status,amount,currency,provider_payment_id,provider_preference_id,created_at")
+    .select("id,order_id,provider,status,amount,currency,provider_payment_id,provider_preference_id,provider_session_id,created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -168,7 +185,7 @@ export async function getAdminPaymentTableRows(limit = 200) {
     return {
       Estado: friendlyStatus(payment.status),
       Ambiente: paymentEnv,
-      Proveedor: friendlyProvider(payment.provider),
+      Proveedor: friendlyPaymentMethod(payment),
       Monto: currency(payment.amount),
       Referencia: shortReference(payment.order_id),
       Preferencia: shortReference(payment.provider_preference_id),

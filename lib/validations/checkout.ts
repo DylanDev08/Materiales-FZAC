@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { hasSqlMeta } from "@/lib/validations/security";
-import type { PaymentFlow, PaymentProvider } from "@/types/domain";
+import type { PaymentFlow, PaymentMethod, PaymentProvider } from "@/types/domain";
 
 const safeString = (label: string, min = 0, max = 500) =>
   z
@@ -73,7 +73,8 @@ export const checkoutSchema = z.object({
   address: requiredCheckoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
   paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
-  paymentFlow: z.enum(["CHECKOUT_PRO", "CARD"]).optional(),
+  paymentMethod: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
+  paymentFlow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
   idempotencyKey: safeString("Intento de compra", 8, 120).optional()
 });
 
@@ -84,12 +85,16 @@ const checkoutCreateFieldsSchema = z.object({
   shipping_method: z.enum(["PICKUP", "DELIVERY"]),
   address_snapshot: requiredCheckoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
-  payment_flow: z.enum(["CHECKOUT_PRO", "CARD"]).optional(),
+  payment_method: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
+  payment_flow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
   idempotency_key: safeString("Intento de compra", 8, 120).optional(),
   items: z.array(checkoutItemSchema).min(1, "El carrito esta vacio.")
 });
 
 function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchema>) {
+  const fallbackMethod =
+    value.payment_flow === "TRANSFER" ? "BANK_TRANSFER" : value.payment_flow === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
+
   return {
     items: value.items,
     customer: {
@@ -101,6 +106,7 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
     address: value.address_snapshot,
     notes: value.notes,
     paymentProvider: "MERCADOPAGO" as PaymentProvider,
+    paymentMethod: (value.payment_method ?? fallbackMethod) as PaymentMethod,
     paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow,
     idempotencyKey: value.idempotency_key
   };

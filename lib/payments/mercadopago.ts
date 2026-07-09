@@ -1,5 +1,6 @@
 import "server-only";
 
+import { MercadoPagoConfig, Preference } from "mercadopago";
 import { assertMercadoPagoConfigured, isMercadoPagoConfigured, isTestPaymentEnv } from "@/lib/payments/config";
 import type { Product } from "@/types/domain";
 
@@ -81,6 +82,17 @@ function mercadoPagoPreferenceErrorMessage(detail: string) {
   return "Mercado Pago rechazo la preferencia. Revisa los datos del checkout e intenta nuevamente.";
 }
 
+function createMercadoPagoClient(accessToken: string) {
+  return new MercadoPagoConfig({ accessToken });
+}
+
+function sdkPreferenceErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return mercadoPagoPreferenceErrorMessage(error.message);
+  }
+  return "Mercado Pago rechazo la preferencia. Revisa los datos del checkout e intenta nuevamente.";
+}
+
 export function isMercadoPagoEnabled() {
   return isMercadoPagoConfigured();
 }
@@ -109,60 +121,53 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     });
   }
 
-  const redirects = checkoutSiteUrl
+  const redirects = checkoutSiteUrl && isPublicHttpsUrl(checkoutSiteUrl)
     ? {
         back_urls: {
           success: `${checkoutSiteUrl.origin}/checkout/success?${orderQuery}`,
           pending: `${checkoutSiteUrl.origin}/checkout/pending?${orderQuery}`,
           failure: `${checkoutSiteUrl.origin}/checkout/failure?${orderQuery}`
         },
-        ...(isPublicHttpsUrl(checkoutSiteUrl) ? { auto_return: "approved" } : {}),
+        auto_return: "approved",
         ...(webhookSiteUrl ? { notification_url: `${webhookSiteUrl.origin}/api/webhooks/mercadopago` } : {})
       }
     : {};
 
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "X-Idempotency-Key": input.idempotencyKey || `fzac-pref-${input.orderId}`
-    },
-    body: JSON.stringify({
-      items,
-      external_reference: input.orderId,
-      payer: {
-        name: input.customer.name,
-        email: input.customer.email,
-        phone: { number: input.customer.phone }
+  const preference = new Preference(createMercadoPagoClient(accessToken));
+  const data = (await preference
+    .create({
+      body: {
+        items,
+        external_reference: input.orderId,
+        payer: {
+          name: input.customer.name,
+          email: input.customer.email,
+          phone: { number: input.customer.phone }
+        },
+        payment_methods: {
+          excluded_payment_methods: [],
+          excluded_payment_types: [],
+          installments: 12
+        },
+        ...redirects,
+        statement_descriptor: "FZAC",
+        metadata: {
+          order_id: input.orderId,
+          source: "materiales-fzac-next"
+        }
       },
-      payment_methods: {
-        excluded_payment_methods: [],
-        excluded_payment_types: [],
-        installments: 12
-      },
-      ...redirects,
-      statement_descriptor: "FZAC",
-      metadata: {
-        order_id: input.orderId,
-        source: "materiales-fzac-next"
-      }
+      requestOptions: { idempotencyKey: input.idempotencyKey || `fzac-pref-${input.orderId}` }
     })
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`El proveedor de pago rechazo la preferencia: ${mercadoPagoPreferenceErrorMessage(detail)}`);
-  }
-
-  const data = (await response.json()) as { id: string; init_point?: string; sandbox_init_point?: string };
+    .catch((error) => {
+      throw new Error(`El proveedor de pago rechazo la preferencia: ${sdkPreferenceErrorMessage(error)}`);
+    })) as { id?: string; init_point?: string; sandbox_init_point?: string };
   const redirectUrl = isTestPaymentEnv()
     ? data.sandbox_init_point || data.init_point || null
     : data.init_point || data.sandbox_init_point || null;
 
   return {
-    preference_id: data.id,
-    preferenceId: data.id,
+    preference_id: data.id ?? "",
+    preferenceId: data.id ?? "",
     init_point: data.init_point ?? null,
     initPoint: data.init_point ?? null,
     sandbox_init_point: data.sandbox_init_point ?? null,
@@ -173,21 +178,20 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
 
 export async function getMercadoPagoPreference(preferenceId: string) {
   const { accessToken } = assertMercadoPagoConfigured();
-  const response = await fetch(`https://api.mercadopago.com/checkout/preferences/${preferenceId}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store"
-  });
-
-  if (!response.ok) return null;
-
-  const data = (await response.json()) as { id: string; init_point?: string; sandbox_init_point?: string };
+  const preference = new Preference(createMercadoPagoClient(accessToken));
+  const data = (await preference.get({ preferenceId }).catch(() => null)) as {
+    id?: string;
+    init_point?: string;
+    sandbox_init_point?: string;
+  } | null;
+  if (!data) return null;
   const redirectUrl = isTestPaymentEnv()
     ? data.sandbox_init_point || data.init_point || null
     : data.init_point || data.sandbox_init_point || null;
 
   return {
-    preference_id: data.id,
-    preferenceId: data.id,
+    preference_id: data.id ?? "",
+    preferenceId: data.id ?? "",
     init_point: data.init_point ?? null,
     initPoint: data.init_point ?? null,
     sandbox_init_point: data.sandbox_init_point ?? null,

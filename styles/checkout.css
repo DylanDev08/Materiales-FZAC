@@ -253,7 +253,9 @@
   padding: 12px;
 }
 
-.payment-mode-button--redirect {
+.payment-mode-button--redirect,
+.payment-mode-button--transfer,
+.payment-mode-button--whatsapp {
   border-color: rgba(244, 196, 0, 0.28);
 }
 
@@ -289,6 +291,20 @@
   min-height: 48px;
   margin-top: 12px;
   font-size: 1rem;
+}
+
+.mp-wallet-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius);
+  background: rgba(244, 196, 0, 0.06);
+  padding: 12px;
+}
+
+.mp-wallet-panel__container {
+  min-height: 52px;
 }
 
 .card-payment-panel {

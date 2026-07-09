@@ -41,6 +41,18 @@ export async function notifyAdminPaymentPending(order: { id: string; customerNam
   });
 }
 
+export async function notifyAdminTransferPending(order: { id: string; customerName: string; total: number; flow: "BANK_TRANSFER" | "WHATSAPP" }) {
+  await notifyAdmin({
+    type: order.flow === "BANK_TRANSFER" ? "TRANSFER_PENDING" : "PAYMENT_COORDINATION_PENDING",
+    title: order.flow === "BANK_TRANSFER" ? "Nuevo pedido por transferencia pendiente" : "Pago para coordinar",
+    message:
+      order.flow === "BANK_TRANSFER"
+        ? `${order.customerName} genero un pedido por $${Math.round(order.total).toLocaleString("es-AR")} y espera datos de transferencia.`
+        : `${order.customerName} genero un pedido por $${Math.round(order.total).toLocaleString("es-AR")} para coordinar por WhatsApp.`,
+    linkTo: `${getAdminConsolePath()}/pedidos?order=${order.id}`
+  });
+}
+
 export async function notifyAdminPaymentApproved(order: { id: string; customerName: string; ticketNumber?: string }) {
   await notifyAdmin({
     type: "PURCHASE_APPROVED",

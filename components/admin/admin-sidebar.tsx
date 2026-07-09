@@ -23,7 +23,7 @@ const linkGroups = [
     title: "Control",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
-      { path: "/logs", label: "Logs destacados", icon: Activity },
+      { path: "/logs", label: "Actividad", icon: Activity },
       { path: "?tab=notifications", label: "Notificaciones", icon: Bell }
     ]
   },

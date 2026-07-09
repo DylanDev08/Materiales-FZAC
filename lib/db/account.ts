@@ -34,7 +34,7 @@ type ProductStockRow = {
 };
 
 const paidStatuses = new Set(["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"]);
-const pendingStatuses = new Set(["PENDING_PAYMENT", "PENDING_ADMIN_APPROVAL"]);
+const pendingStatuses = new Set(["PENDING_PAYMENT", "PENDING_ADMIN_APPROVAL", "PENDING_TRANSFER", "COORDINATE"]);
 
 function numberValue(value: number | string | null | undefined) {
   return Number(value ?? 0);

@@ -61,7 +61,7 @@ export async function AdminDashboard() {
     { href: `${adminPath}/productos`, label: "Productos", helper: "Stock, precios e imagenes", icon: Package },
     { href: `${adminPath}/clientes`, label: "Clientes", helper: "Usuarios, compras y actividad", icon: Users },
     { href: `${adminPath}/tickets`, label: "Tickets", helper: "Comprobantes emitidos", icon: FileText },
-    { href: `${adminPath}/logs`, label: "Logs", helper: "Eventos importantes del sistema", icon: Activity }
+    { href: `${adminPath}/logs`, label: "Actividad", helper: "Eventos importantes del sistema", icon: Activity }
   ];
 
   return (
@@ -123,10 +123,10 @@ export async function AdminDashboard() {
           <header>
             <div>
               <span className="kicker">Prioridad</span>
-              <h2>Logs destacados</h2>
+              <h2>Actividad destacada</h2>
             </div>
             <Link href={`${adminPath}/logs`}>
-              Ver logs <ArrowRight size={16} />
+              Ver actividad <ArrowRight size={16} />
             </Link>
           </header>
           <div className="admin-mini-list">
@@ -139,7 +139,7 @@ export async function AdminDashboard() {
                 </article>
               ))
             ) : (
-              <p className="admin-help">Sin logs criticos recientes.</p>
+              <p className="admin-help">Sin avisos criticos recientes.</p>
             )}
           </div>
         </aside>

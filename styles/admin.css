@@ -476,6 +476,21 @@
   grid-template-columns: minmax(240px, 1fr) 180px 180px;
 }
 
+.admin-table-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.admin-table-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .admin-search {
   display: flex;
   align-items: center;
@@ -521,6 +536,31 @@
 .admin-search input {
   border: 0;
   padding: 0;
+}
+
+.admin-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-filter-chips button {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #101010;
+  color: var(--color-muted);
+  padding: 0 12px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.admin-filter-chips button:hover,
+.admin-filter-chips button[aria-pressed="true"] {
+  border-color: var(--color-yellow-border);
+  background: rgba(244, 196, 0, 0.12);
+  color: var(--color-yellow);
 }
 
 .admin-table-wrap {
@@ -1230,8 +1270,17 @@
 
   .admin-toolbar,
   .admin-toolbar--users,
+  .admin-table-controls,
   .admin-skeleton-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .admin-table-actions {
+    justify-content: stretch;
+  }
+
+  .admin-table-actions .btn {
+    width: 100%;
   }
 
   .admin-panel {

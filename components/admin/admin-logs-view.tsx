@@ -15,8 +15,8 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
       <section className="admin-panel admin-logs-priority">
         <div>
           <span className="kicker">Revision rapida</span>
-          <h2>Logs destacados</h2>
-          <p className="admin-help">Eventos de pagos, stock o errores que conviene revisar antes que el historial completo.</p>
+          <h2>Actividad destacada</h2>
+          <p className="admin-help">Eventos de pagos, stock o situaciones que conviene revisar antes que el historial completo.</p>
         </div>
         <div className="admin-logs-priority__grid">
           {importantRows.length ? (
@@ -33,7 +33,7 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
           ) : (
             <article className="admin-logs-priority__ok">
               <CheckCircle2 size={18} />
-              <strong>Sin alertas urgentes</strong>
+              <strong>Sin avisos urgentes</strong>
               <span>El sistema no marco eventos criticos recientes.</span>
               <small>Revisa el historial si necesitas auditar una accion puntual.</small>
             </article>
@@ -45,7 +45,7 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
         <div className="admin-table-heading">
           <div>
             <span className="kicker">Historial</span>
-            <h2>Todos los eventos</h2>
+            <h2>Registro completo</h2>
           </div>
           <Activity size={22} />
         </div>

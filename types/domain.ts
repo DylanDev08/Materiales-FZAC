@@ -13,8 +13,9 @@ export type OrderStatus =
   | "CANCELLED";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "EXPIRED" | "REFUNDED";
-export type PaymentProvider = "MERCADOPAGO" | "NARANJAX";
-export type PaymentFlow = "CHECKOUT_PRO" | "CARD";
+export type PaymentProvider = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP" | "MOCK" | "NARANJAX";
+export type PaymentMethod = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
+export type PaymentFlow = "CHECKOUT_PRO" | "CARD" | "TRANSFER" | "WHATSAPP";
 export type ShippingMethod = "PICKUP" | "DELIVERY";
 
 export type Category = {
@@ -78,6 +79,7 @@ export type CheckoutPayload = {
   address?: AddressPayload | null;
   notes?: string;
   paymentProvider?: PaymentProvider;
+  paymentMethod?: PaymentMethod;
   paymentFlow?: PaymentFlow;
 };
 

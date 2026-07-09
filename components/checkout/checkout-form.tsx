@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  CreditCard,
   ExternalLink,
   Landmark,
   Loader2,
@@ -22,14 +21,13 @@ import {
   UserRound
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
-import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
 type CheckoutStep = "customer" | "delivery" | "review" | "payment";
-type PaymentMode = "MERCADOPAGO" | "CARD";
+type PaymentMode = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
 
 type StockIssue = {
   productId: string;
@@ -110,14 +108,14 @@ export function CheckoutForm({
   const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
   const customerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim() && addressComplete);
 
-  function checkoutIntentKey() {
+  function checkoutIntentKey(scope = "") {
     if (!checkoutIntentRef.current) {
       checkoutIntentRef.current =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `fzac-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     }
-    return checkoutIntentRef.current;
+    return scope ? `${checkoutIntentRef.current}-${scope}` : checkoutIntentRef.current;
   }
 
   async function validateStock(signal?: AbortSignal) {
@@ -310,8 +308,8 @@ export function CheckoutForm({
           shipping_method: shippingMethod,
           address_snapshot: address,
           notes,
-          payment_flow: "CHECKOUT_PRO",
-          idempotency_key: checkoutIntentKey()
+          payment_method: "MERCADOPAGO",
+          idempotency_key: checkoutIntentKey("mercadopago")
         })
       });
 
@@ -391,7 +389,7 @@ export function CheckoutForm({
     }
   }
 
-  async function startCardPayment(card: MercadoPagoCardPayload) {
+  async function startCoordinatedPayment(method: "BANK_TRANSFER" | "WHATSAPP") {
     if (!canSubmit || loading || checkoutInFlightRef.current) return;
 
     checkoutInFlightRef.current = true;
@@ -406,7 +404,7 @@ export function CheckoutForm({
       const stockOk = await validateStock();
       if (!stockOk) return;
 
-      const response = await fetch("/api/checkout/card", {
+      const response = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -417,14 +415,16 @@ export function CheckoutForm({
           shipping_method: shippingMethod,
           address_snapshot: address,
           notes,
-          payment_flow: "CARD",
-          idempotency_key: checkoutIntentKey(),
-          card
+          payment_method: method,
+          idempotency_key: checkoutIntentKey(method.toLowerCase())
         })
       });
 
       const data = (await response.json()) as {
-        redirectUrl?: string;
+        orderId?: string;
+        order_id?: string;
+        whatsapp_url?: string;
+        whatsappUrl?: string;
         message?: string;
         error?: string;
         items?: StockIssue[];
@@ -445,17 +445,18 @@ export function CheckoutForm({
           setStep("delivery");
           return;
         }
-        throw new Error(data.message || "No pudimos procesar el pago con tarjeta.");
+        throw new Error(data.message || "No pudimos generar el pedido.");
       }
 
-      if (data.redirectUrl) {
-        router.push(data.redirectUrl);
+      const orderId = data.orderId || data.order_id;
+      if (orderId) {
+        router.push(`/checkout/pending?orderId=${orderId}&${method === "BANK_TRANSFER" ? "transfer" : "whatsapp"}=1`);
         return;
       }
 
-      throw new Error("El proveedor no devolvio un resultado valido.");
-    } catch (cardError) {
-      setError(cardError instanceof Error ? cardError.message : "No pudimos procesar el pago con tarjeta.");
+      setInfo(data.message || "Pedido generado correctamente. FZAC revisara la informacion para coordinar el pago.");
+    } catch (coordinationError) {
+      setError(coordinationError instanceof Error ? coordinationError.message : "No pudimos generar el pedido.");
     } finally {
       checkoutInFlightRef.current = false;
       setLoading(false);
@@ -775,25 +776,38 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("MERCADOPAGO")}
                   >
                     <Landmark size={18} />
-                    <strong>Ir a Mercado Pago</strong>
-                    <span>Redireccion segura con el total cerrado para usar dinero en cuenta, transferencia o medios habilitados.</span>
+                    <strong>Pagar con Mercado Pago</strong>
+                    <span>Redireccion segura con el total cerrado. Mercado Pago muestra sus medios disponibles.</span>
                   </button>
                   <button
                     type="button"
-                    className="payment-mode-button payment-mode-button--card"
-                    aria-pressed={paymentMode === "CARD"}
+                    className="payment-mode-button payment-mode-button--transfer"
+                    aria-pressed={paymentMode === "BANK_TRANSFER"}
                     disabled={loading}
-                    onClick={() => selectPaymentMode("CARD")}
+                    onClick={() => selectPaymentMode("BANK_TRANSFER")}
                   >
-                    <CreditCard size={18} />
-                    <strong>Tarjeta dentro de la web</strong>
-                    <span>Debito o credito con DNI/CUIT. FZAC no guarda datos sensibles de tarjeta.</span>
+                    <Landmark size={18} />
+                    <strong>Solicitar transferencia</strong>
+                    <span>Genera el pedido y FZAC te indicara los datos bancarios para transferir.</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="payment-mode-button payment-mode-button--whatsapp"
+                    aria-pressed={paymentMode === "WHATSAPP"}
+                    disabled={loading}
+                    onClick={() => selectPaymentMode("WHATSAPP")}
+                  >
+                    <MessageCircle size={18} />
+                    <strong>Coordinar con FZAC</strong>
+                    <span>Deja el pedido preparado y continua la coordinacion por WhatsApp.</span>
                   </button>
                 </div>
                 <p className="payment-method-hint">
                   {paymentMode === "MERCADOPAGO"
-                    ? "Mercado Pago abre su checkout con el monto exacto del pedido y muestra los medios disponibles para la cuenta del comprador."
-                    : "El pago con tarjeta se procesa en campos seguros de Mercado Pago sin salir del e-commerce."}
+                    ? "Solo esta opcion crea preferencia y abre Mercado Pago."
+                    : paymentMode === "BANK_TRANSFER"
+                      ? "Transferencia no abre Mercado Pago: el pedido queda pendiente para que FZAC revise stock, total y te envie los datos bancarios."
+                      : "WhatsApp no abre Mercado Pago: FZAC recibira el pedido y podras coordinar pago, retiro o entrega."}
                 </p>
                 <div className="terms-checkbox">
                   <input
@@ -825,15 +839,18 @@ export function CheckoutForm({
                 {paymentMode === "MERCADOPAGO" ? (
                   <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startMercadoPagoPayment()}>
                     {loading ? <Loader2 size={18} /> : <ExternalLink size={18} />}
-                    {loading ? "Creando link seguro..." : "Continuar a Mercado Pago"}
+                    {loading ? "Creando preferencia..." : "Pagar con Mercado Pago"}
+                  </button>
+                ) : paymentMode === "BANK_TRANSFER" ? (
+                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startCoordinatedPayment("BANK_TRANSFER")}>
+                    {loading ? <Loader2 size={18} /> : <Landmark size={18} />}
+                    {loading ? "Generando pedido..." : "Generar pedido por transferencia"}
                   </button>
                 ) : (
-                  <MercadoPagoCardForm
-                    amount={total}
-                    customerEmail={customer.email}
-                    disabled={!canSubmit || loading}
-                    onSubmit={(payload) => void startCardPayment(payload)}
-                  />
+                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startCoordinatedPayment("WHATSAPP")}>
+                    {loading ? <Loader2 size={18} /> : <MessageCircle size={18} />}
+                    {loading ? "Generando pedido..." : "Coordinar por WhatsApp"}
+                  </button>
                 )}
                 <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("review")}>
                   <ArrowLeft size={17} /> Revisar datos

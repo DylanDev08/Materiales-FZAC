@@ -8,10 +8,12 @@ import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
+import { getWhatsAppHref } from "@/lib/utils/contact";
 import {
   notifyAdminLargePurchase,
   notifyAdminNewOrder,
-  notifyAdminPaymentPending
+  notifyAdminPaymentPending,
+  notifyAdminTransferPending
 } from "@/lib/notifications/admin-notifier";
 import { getEnv } from "@/lib/utils/env";
 import type { PaymentProvider, Product } from "@/types/domain";
@@ -124,6 +126,7 @@ function checkoutSuccessResponse(input: {
   pending?: boolean;
   card?: boolean;
   message?: string;
+  whatsappUrl?: string | null;
 }) {
   return {
     ok: true,
@@ -135,6 +138,10 @@ function checkoutSuccessResponse(input: {
     payment_id: input.paymentId,
     order_status: input.orderStatus,
     requires_admin_approval: input.requiresAdminApproval,
+    redirect_url: null,
+    url: null,
+    init_point: null,
+    sandbox_init_point: null,
     ...(input.preference
       ? {
           url: input.preference.redirect_url,
@@ -146,6 +153,7 @@ function checkoutSuccessResponse(input: {
       : {}),
     ...(input.pending ? { pending: true } : {}),
     ...(input.card ? { card: true } : {}),
+    ...(input.whatsappUrl ? { whatsapp_url: input.whatsappUrl, whatsappUrl: input.whatsappUrl } : {}),
     total: input.total,
     provider: input.provider
   };
@@ -195,6 +203,7 @@ async function resumeCheckoutByIdempotencyKey(
   admin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
   idempotencyKey: string,
   provider: PaymentProvider,
+  paymentMethod?: CheckoutInput["paymentMethod"],
   paymentFlow?: CheckoutInput["paymentFlow"]
 ) {
   // TODO(prod-db): for a hard cross-container guarantee, add a unique DB constraint
@@ -218,6 +227,7 @@ async function resumeCheckoutByIdempotencyKey(
   if (!order || String(order.status) === "CANCELLED") return null;
 
   if (String(order.status) === "PENDING_ADMIN_APPROVAL") {
+    const coordinationFlow = paymentMethod === "BANK_TRANSFER" || paymentMethod === "WHATSAPP";
     return checkoutSuccessResponse({
       orderId: order.id,
       paymentId: payment.id,
@@ -226,7 +236,31 @@ async function resumeCheckoutByIdempotencyKey(
       pending: true,
       total: Number(order.total ?? payment.amount ?? 0),
       provider,
-      message: "Compra creada correctamente. Requiere aprobacion del administrador."
+      message: coordinationFlow
+        ? paymentMethod === "WHATSAPP"
+          ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
+          : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia."
+        : "Compra creada correctamente. Requiere aprobacion del administrador."
+    });
+  }
+
+  if (provider === "BANK_TRANSFER" || provider === "WHATSAPP") {
+    return checkoutSuccessResponse({
+      orderId: order.id,
+      paymentId: payment.id,
+      orderStatus: String(order.status),
+      requiresAdminApproval: true,
+      pending: true,
+      total: Number(order.total ?? payment.amount ?? 0),
+      provider,
+      message:
+        provider === "WHATSAPP"
+          ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
+          : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
+      whatsappUrl:
+        provider === "WHATSAPP"
+          ? getWhatsAppHref(`Hola FZAC, genere un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
+          : null
     });
   }
 
@@ -315,7 +349,9 @@ export async function validateCheckoutStock(input: unknown) {
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const provider: PaymentProvider = payload.paymentProvider === "NARANJAX" ? "NARANJAX" : "MERCADOPAGO";
+  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  const provider: PaymentProvider =
+    paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : paymentMethod === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
   const idempotencyKey = payload.idempotencyKey?.trim();
 
   const currentUser = await getCurrentUser();
@@ -323,7 +359,7 @@ export async function createCheckout(input: unknown) {
     currentUser?.email?.trim().toLowerCase() === payload.customer.email.trim().toLowerCase() ? currentUser.id : null;
   const { admin, products, items } = await getProductsForItems(payload.items);
   if (admin && idempotencyKey) {
-    const resumed = await resumeCheckoutByIdempotencyKey(admin, idempotencyKey, provider, payload.paymentFlow);
+    const resumed = await resumeCheckoutByIdempotencyKey(admin, idempotencyKey, provider, paymentMethod, payload.paymentFlow);
     if (resumed) return resumed;
   }
 
@@ -356,9 +392,18 @@ export async function createCheckout(input: unknown) {
   const delivery = shippingQuote?.available ? shippingQuote.amount : 0;
   const total = subtotal + delivery;
   const approvalLimit = purchaseAutoApprovalLimit();
-  const requiresAdminApproval = total > approvalLimit;
-  const orderStatus = requiresAdminApproval ? "PENDING_ADMIN_APPROVAL" : "PENDING_PAYMENT";
-  if (!requiresAdminApproval && provider === "MERCADOPAGO" && !isMercadoPagoEnabled()) {
+  const isBankTransfer = paymentMethod === "BANK_TRANSFER";
+  const isWhatsApp = paymentMethod === "WHATSAPP";
+  const isLargePurchase = total > approvalLimit;
+  const requiresAdminApproval = isLargePurchase || isBankTransfer || isWhatsApp;
+  const orderStatus = isLargePurchase
+    ? "PENDING_ADMIN_APPROVAL"
+    : isBankTransfer
+      ? "PENDING_TRANSFER"
+      : isWhatsApp
+        ? "COORDINATE"
+        : "PENDING_PAYMENT";
+  if (paymentMethod === "MERCADOPAGO" && !isLargePurchase && !isMercadoPagoEnabled()) {
     throw new MercadoPagoNotConfiguredError();
   }
 
@@ -414,6 +459,33 @@ export async function createCheckout(input: unknown) {
   if (paymentError || !payment) throw new Error("No pudimos registrar el pago pendiente.");
 
   await notifyAdminNewOrder({ id: order.id, customerName: payload.customer.name, total });
+
+  if (isBankTransfer || isWhatsApp) {
+    await notifyAdminTransferPending({
+      id: order.id,
+      customerName: payload.customer.name,
+      total,
+      flow: isWhatsApp ? "WHATSAPP" : "BANK_TRANSFER"
+    });
+    return {
+      ...checkoutSuccessResponse({
+        orderId: order.id,
+        paymentId: payment.id,
+        orderStatus,
+        requiresAdminApproval: true,
+        pending: true,
+        total,
+        provider,
+        message:
+          isWhatsApp
+            ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
+            : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
+        whatsappUrl: isWhatsApp
+          ? getWhatsAppHref(`Hola FZAC, genere un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
+          : null
+      })
+    };
+  }
 
   if (requiresAdminApproval) {
     await notifyAdminLargePurchase({ id: order.id, customerName: payload.customer.name, total, limit: approvalLimit });
