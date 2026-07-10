@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
+import { AdminInteractiveTable } from "@/components/admin/admin-interactive-table";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 type OrderRow = Record<string, string | number | null | undefined>;
@@ -28,7 +29,7 @@ export function AdminOrdersView({ rows }: { rows: OrderRow[] }) {
     if (response.ok) window.location.reload();
   }
 
-  const approvalRows = rows.filter((row) => row.Estado === "Validacion admin");
+  const approvalRows = rows.filter((row) => row.Estado === "Requiere revision");
 
   return (
     <>
@@ -59,40 +60,7 @@ export function AdminOrdersView({ rows }: { rows: OrderRow[] }) {
         </section>
       ) : null}
       {message ? <p className="notice notice--success">{message}</p> : null}
-      <section className="admin-panel">
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                {columns.map((column) => (
-                  <th key={column}>{column}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length ? (
-                rows.map((row) => (
-                  <tr key={row.Id}>
-                    {columns.map((column) => (
-                      <td data-label={column} key={column}>
-                        {column === "Estado" && row[column] === "Validacion admin" ? (
-                          <span className="status-pill status-pill--warning">{row[column]}</span>
-                        ) : (
-                          (row[column] ?? "-")
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.length}>No hay registros para mostrar.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <AdminInteractiveTable title="Pedidos" columns={columns} rows={rows} />
     </>
   );
 }

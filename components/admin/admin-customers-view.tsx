@@ -157,7 +157,7 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
           <table className="admin-table admin-users-table">
             <thead>
               <tr>
-                {["Usuario", "Contacto", "Registro", "Ultimo acceso", "Estado", "Pedidos", "Total", "Acciones"].map((column) => (
+                {["Cliente", "Email", "Telefono", "Metodo login", "Ultimo acceso", "Pedidos", "Total gastado", "Estado", "Accion"].map((column) => (
                   <th key={column}>{column}</th>
                 ))}
               </tr>
@@ -166,7 +166,7 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
               {visibleRows.length ? (
                 visibleRows.map((row) => (
                   <tr key={row.Id || row.Email} className={selected?.Id === row.Id ? "is-selected" : ""}>
-                    <td data-label="Usuario">
+                    <td data-label="Cliente">
                       <button className="admin-user-cell" type="button" onClick={() => setSelected(row)}>
                         <UserAvatar row={row} />
                         <span>
@@ -175,23 +175,24 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
                         </span>
                       </button>
                     </td>
-                    <td data-label="Contacto">
+                    <td data-label="Email">
                       <div className="admin-customer-stack">
                         <strong>{row.Email}</strong>
-                        <span>{row.Telefono || "-"}</span>
-                        <small className="status-pill">{row.AuthProvider}</small>
                       </div>
                     </td>
-                    <td data-label="Registro">{row.Registro || "-"}</td>
+                    <td data-label="Telefono">{row.Telefono || "-"}</td>
+                    <td data-label="Metodo login">
+                      <small className="status-pill">{row.AuthProvider}</small>
+                    </td>
                     <td data-label="Ultimo acceso">{row.UltimoLogin || "-"}</td>
+                    <td data-label="Pedidos">{row.Pedidos ?? 0}</td>
+                    <td data-label="Total gastado">{row.TotalGastado || "$0"}</td>
                     <td data-label="Estado">
                       <span className={`status-pill ${row.EstadoCliente === "Cliente frecuente" ? "status-pill--warning" : "status-pill--success"}`}>
                         {row.EstadoCliente || "Sin compras"}
                       </span>
                     </td>
-                    <td data-label="Pedidos">{row.Pedidos ?? 0}</td>
-                    <td data-label="Total">{row.TotalGastado || "$0"}</td>
-                    <td data-label="Acciones">
+                    <td data-label="Accion">
                       <button className="admin-icon-button" type="button" onClick={() => setSelected(row)} aria-label="Ver detalle">
                         <ChevronRight size={17} />
                       </button>
@@ -200,7 +201,7 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8}>No hay usuarios para esos filtros.</td>
+                  <td colSpan={9}>No hay usuarios para esos filtros.</td>
                 </tr>
               )}
             </tbody>
@@ -254,7 +255,6 @@ function UserDetailDrawer({ row, onClose }: { row: CustomerRow; onClose: () => v
             {row.Verificado === "Verificado" ? <span className="status-pill status-pill--success">Verificado</span> : null}
             <span className="status-pill status-pill--warning">{row.EstadoCliente}</span>
           </div>
-          <small>ID: {row.Id ? `${row.Id.slice(0, 8)}...${row.Id.slice(-6)}` : "-"}</small>
         </div>
       </div>
 
@@ -293,12 +293,28 @@ function UserDetailDrawer({ row, onClose }: { row: CustomerRow; onClose: () => v
             <dd>{row.Direccion || "-"}</dd>
           </div>
           <div>
+            <dt>Registro</dt>
+            <dd>{row.Registro || "-"}</dd>
+          </div>
+          <div>
+            <dt>Ultimo login</dt>
+            <dd>{row.UltimoLogin || "-"}</dd>
+          </div>
+          <div>
             <dt>Ultimo pedido</dt>
             <dd>{row.UltimoPedido || "-"}</dd>
           </div>
           <div>
+            <dt>Ultimo pago</dt>
+            <dd>{row.UltimoPago || "-"}</dd>
+          </div>
+          <div>
             <dt>Metodo preferido</dt>
             <dd>{row.MetodoEnvio || "-"}</dd>
+          </div>
+          <div>
+            <dt>Preferencias</dt>
+            <dd>{row.Entrega || row.MetodoEnvio || "-"}</dd>
           </div>
           <div>
             <dt>Pagos pendientes</dt>

@@ -53,6 +53,8 @@ export function CatalogFilters({
             <option value="newest">Mas recientes</option>
             <option value="price_asc">Menor precio</option>
             <option value="price_desc">Mayor precio</option>
+            <option value="stock_desc">Mas stock disponible</option>
+            <option value="offers">Ofertas primero</option>
             <option value="name_asc">Nombre A-Z</option>
           </select>
         </label>

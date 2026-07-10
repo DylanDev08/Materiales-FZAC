@@ -54,16 +54,16 @@ function shortReference(value: string | null | undefined) {
 function friendlyStatus(value: string | null | undefined) {
   const status = String(value ?? "").toUpperCase();
   const labels: Record<string, string> = {
-    PAID: "Pagado",
+    PAID: "Aprobado",
     APPROVED: "Aprobado",
     COMPLETED: "Completado",
     DELIVERED: "Entregado",
     PENDING: "Pendiente",
-    PENDING_PAYMENT: "Pendiente de pago",
-    PENDING_TRANSFER: "Pendiente de transferencia",
-    PENDING_ADMIN_APPROVAL: "Validacion admin",
-    COORDINATE: "Coordinar",
-    FAILED: "Rechazado",
+    PENDING_PAYMENT: "Pago pendiente",
+    PENDING_TRANSFER: "Transferencia pendiente",
+    PENDING_ADMIN_APPROVAL: "Requiere revision",
+    COORDINATE: "Coordinacion por WhatsApp",
+    FAILED: "Denegado",
     REJECTED: "Rechazado",
     CANCELLED: "Cancelado",
     OPEN: "Abierto",
@@ -83,8 +83,8 @@ function friendlyRole(value: string | null | undefined) {
 function friendlyProvider(value: string | null | undefined) {
   const provider = String(value ?? "").toUpperCase();
   if (provider === "MERCADOPAGO") return "Mercado Pago";
-  if (provider === "BANK_TRANSFER" || provider === "TRANSFER") return "Transferencia FZAC";
-  if (provider === "WHATSAPP") return "WhatsApp FZAC";
+  if (provider === "BANK_TRANSFER" || provider === "TRANSFER") return "Transferencia pendiente";
+  if (provider === "WHATSAPP") return "Coordinacion por WhatsApp";
   if (provider === "MOCK") return "Prueba";
   return provider || "-";
 }
@@ -95,9 +95,9 @@ function friendlyPaymentMethod(payment: {
   provider_preference_id?: string | null;
 }) {
   const session = String(payment.provider_session_id ?? "").toLowerCase();
-  if (session.includes("-transfer")) return "Transferencia FZAC";
-  if (session.includes("-bank_transfer")) return "Transferencia FZAC";
-  if (session.includes("-whatsapp")) return "Coordinacion FZAC";
+  if (session.includes("-transfer")) return "Transferencia pendiente";
+  if (session.includes("-bank_transfer")) return "Transferencia pendiente";
+  if (session.includes("-whatsapp")) return "Coordinacion por WhatsApp";
   if (!payment.provider_preference_id && String(payment.provider ?? "").toUpperCase() === "MERCADOPAGO") return "Mercado Pago pendiente";
   return friendlyProvider(payment.provider);
 }
@@ -188,8 +188,6 @@ export async function getAdminPaymentTableRows(limit = 200) {
       Proveedor: friendlyPaymentMethod(payment),
       Monto: currency(payment.amount),
       Referencia: shortReference(payment.order_id),
-      Preferencia: shortReference(payment.provider_preference_id),
-      PagoProveedor: shortReference(payment.provider_payment_id),
       Cliente: order?.customer_name ?? "-",
       Email: order?.customer_email ?? "-",
       Fecha: adminDate(payment.created_at)
@@ -212,8 +210,8 @@ export async function getAdminPaymentEventRows(limit = 200) {
     Proveedor: friendlyProvider(event.provider),
     Evento: event.event_type ?? "-",
     Pedido: shortReference(event.order_id),
-    PagoProveedor: shortReference(event.provider_payment_id),
-    EventoProveedor: shortReference(event.provider_event_id),
+    "Referencia Mercado Pago": shortReference(event.provider_payment_id),
+    "Evento proveedor": shortReference(event.provider_event_id),
     Error: event.error_message ? String(event.error_message).slice(0, 90) : "-",
     Recibido: adminDate(event.created_at),
     Procesado: adminDate(event.processed_at)

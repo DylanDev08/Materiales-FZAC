@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getCurrentUser } from "@/lib/auth/get-user";
-import { checkoutSchema, type CheckoutInput } from "@/lib/validations/checkout";
+import { checkoutSchema, checkoutStockSchema, type CheckoutInput } from "@/lib/validations/checkout";
 import { fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
@@ -128,6 +128,8 @@ function checkoutSuccessResponse(input: {
   message?: string;
   whatsappUrl?: string | null;
 }) {
+  const paymentMethod =
+    input.provider === "BANK_TRANSFER" ? "BANK_TRANSFER" : input.provider === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
   return {
     ok: true,
     status: 201,
@@ -137,6 +139,8 @@ function checkoutSuccessResponse(input: {
     paymentId: input.paymentId,
     payment_id: input.paymentId,
     order_status: input.orderStatus,
+    payment_method: paymentMethod,
+    paymentMethod,
     requires_admin_approval: input.requiresAdminApproval,
     redirect_url: null,
     url: null,
@@ -206,8 +210,7 @@ async function resumeCheckoutByIdempotencyKey(
   paymentMethod?: CheckoutInput["paymentMethod"],
   paymentFlow?: CheckoutInput["paymentFlow"]
 ) {
-  // TODO(prod-db): for a hard cross-container guarantee, add a unique DB constraint
-  // or RPC lock on payments.provider_session_id. This pass avoids SQL/RLS changes by request.
+  // The DB migration payments_idempotency_guard adds the cross-container guard.
   const { data: payment } = await admin
     .from("payments")
     .select("id,order_id,provider,status,amount,provider_preference_id")
@@ -300,6 +303,7 @@ async function resumeCheckoutByIdempotencyKey(
 
     preference = await createMercadoPagoPreference({
       orderId: order.id,
+      paymentId: payment.id,
       customer: {
         name: String(order.customer_name),
         email: String(order.customer_email),
@@ -330,7 +334,7 @@ async function resumeCheckoutByIdempotencyKey(
 }
 
 export async function validateCheckoutStock(input: unknown) {
-  const payload = checkoutSchema.pick({ items: true }).parse(input);
+  const payload = checkoutStockSchema.parse(input);
   const { products, items } = await getProductsForItems(payload.items);
 
   const issues = items.flatMap((item) => {
@@ -522,6 +526,7 @@ export async function createCheckout(input: unknown) {
   if (provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
     const preference = await createMercadoPagoPreference({
       orderId: order.id,
+      paymentId: payment.id,
       customer: payload.customer,
       items: lines.map(({ product, quantity }) => ({ product, quantity })),
       shippingCost: delivery,

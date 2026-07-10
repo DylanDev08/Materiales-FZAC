@@ -3,14 +3,27 @@ import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/li
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { checkoutCreateSchema } from "@/lib/validations/checkout";
+
+function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info("[checkout.legacy]", {
+    payment_method: result.payment_method ?? "-",
+    order_id: result.order_id ?? result.orderId ?? null,
+    redirect_url_exists: Boolean(result.redirect_url)
+  });
+}
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Proba nuevamente en un minuto.", 429);
 
   try {
-    const payload = await request.json();
+    const rawPayload = await request.json();
+    const parsedPayload = checkoutCreateSchema.safeParse(rawPayload);
+    const payload = parsedPayload.success ? parsedPayload.data : rawPayload;
     const result = await createCheckout(payload);
+    logCheckoutResult(result);
     return Response.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {

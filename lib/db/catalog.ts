@@ -15,7 +15,7 @@ export type ProductFilters = {
   inStock?: boolean;
   onSale?: boolean;
   featured?: boolean;
-  order?: "price_asc" | "price_desc" | "newest" | "name_asc";
+  order?: "price_asc" | "price_desc" | "stock_desc" | "offers" | "newest" | "name_asc";
   limit?: number;
 };
 
@@ -97,6 +97,12 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
     case "name_asc":
       result = result.sort((a, b) => a.name.localeCompare(b.name));
       break;
+    case "stock_desc":
+      result = result.sort((a, b) => b.stock - a.stock);
+      break;
+    case "offers":
+      result = result.sort((a, b) => Number(b.on_sale) - Number(a.on_sale) || b.stock - a.stock);
+      break;
     default:
       result = result.sort((a, b) => Number(b.featured) - Number(a.featured));
   }
@@ -150,6 +156,8 @@ export async function getProducts(filters: ProductFilters = {}) {
 
   if (filters.order === "price_asc") query = query.order("price", { ascending: true });
   else if (filters.order === "price_desc") query = query.order("price", { ascending: false });
+  else if (filters.order === "stock_desc") query = query.order("stock", { ascending: false });
+  else if (filters.order === "offers") query = query.order("on_sale", { ascending: false }).order("stock", { ascending: false });
   else if (filters.order === "name_asc") query = query.order("name", { ascending: true });
   else query = query.order("created_at", { ascending: false });
 

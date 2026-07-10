@@ -6,6 +6,7 @@ import type { Product } from "@/types/domain";
 
 type PreferenceInput = {
   orderId: string;
+  paymentId?: string;
   customer: {
     name: string;
     email: string;
@@ -57,6 +58,40 @@ function publicWebhookUrl(value: string) {
 function isPublicHttpsUrl(url: URL | null) {
   if (!url || url.protocol !== "https:") return false;
   return !["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname);
+}
+
+function safePreferenceLogContext(input: {
+  orderId: string;
+  paymentId?: string;
+  itemsCount: number;
+  total: number;
+  checkoutSiteUrl: URL | null;
+  webhookSiteUrl: URL | null;
+}) {
+  return {
+    order_id: input.orderId,
+    payment_id: input.paymentId ?? null,
+    external_reference: input.orderId,
+    items_count: input.itemsCount,
+    total: input.total,
+    has_back_urls: Boolean(input.checkoutSiteUrl),
+    has_notification_url: Boolean(input.webhookSiteUrl),
+    uses_public_return_url: isPublicHttpsUrl(input.checkoutSiteUrl)
+  };
+}
+
+function safeMercadoPagoError(error: unknown) {
+  const detail = error as {
+    message?: unknown;
+    status?: unknown;
+    statusCode?: unknown;
+    cause?: unknown;
+  };
+  return {
+    status: typeof detail.status === "number" ? detail.status : typeof detail.statusCode === "number" ? detail.statusCode : undefined,
+    message: typeof detail.message === "string" ? detail.message.slice(0, 220) : "Mercado Pago rechazo la preferencia.",
+    cause: Array.isArray(detail.cause) ? detail.cause.slice(0, 3) : undefined
+  };
 }
 
 function checkoutPictureUrl(value: string) {
@@ -121,19 +156,28 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     });
   }
 
-  const redirects = checkoutSiteUrl && isPublicHttpsUrl(checkoutSiteUrl)
+  const redirects = checkoutSiteUrl
     ? {
         back_urls: {
           success: `${checkoutSiteUrl.origin}/checkout/success?${orderQuery}`,
           pending: `${checkoutSiteUrl.origin}/checkout/pending?${orderQuery}`,
           failure: `${checkoutSiteUrl.origin}/checkout/failure?${orderQuery}`
         },
-        auto_return: "approved",
+        ...(isPublicHttpsUrl(checkoutSiteUrl) ? { auto_return: "approved" } : {}),
         ...(webhookSiteUrl ? { notification_url: `${webhookSiteUrl.origin}/api/webhooks/mercadopago` } : {})
       }
     : {};
 
   const preference = new Preference(createMercadoPagoClient(accessToken));
+  console.info("[mercadopago.preference.create]", safePreferenceLogContext({
+    orderId: input.orderId,
+    paymentId: input.paymentId,
+    itemsCount: items.length,
+    total: input.total,
+    checkoutSiteUrl,
+    webhookSiteUrl
+  }));
+
   const data = (await preference
     .create({
       body: {
@@ -159,11 +203,30 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
       requestOptions: { idempotencyKey: input.idempotencyKey || `fzac-pref-${input.orderId}` }
     })
     .catch((error) => {
+      console.error("[mercadopago.preference.error]", {
+        ...safePreferenceLogContext({
+          orderId: input.orderId,
+          paymentId: input.paymentId,
+          itemsCount: items.length,
+          total: input.total,
+          checkoutSiteUrl,
+          webhookSiteUrl
+        }),
+        ...safeMercadoPagoError(error)
+      });
       throw new Error(`El proveedor de pago rechazo la preferencia: ${sdkPreferenceErrorMessage(error)}`);
     })) as { id?: string; init_point?: string; sandbox_init_point?: string };
   const redirectUrl = isTestPaymentEnv()
     ? data.sandbox_init_point || data.init_point || null
     : data.init_point || data.sandbox_init_point || null;
+
+  console.info("[mercadopago.preference.created]", {
+    order_id: input.orderId,
+    payment_id: input.paymentId ?? null,
+    external_reference: input.orderId,
+    preference_id: data.id ?? null,
+    redirect_url_exists: Boolean(redirectUrl)
+  });
 
   return {
     preference_id: data.id ?? "",

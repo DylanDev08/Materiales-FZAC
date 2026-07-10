@@ -1,4 +1,5 @@
-import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AdminInteractiveTable } from "@/components/admin/admin-interactive-table";
 
 type AdminLogRow = Record<string, string | number | null | undefined>;
 
@@ -41,42 +42,7 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
         </div>
       </section>
 
-      <section className="admin-panel">
-        <div className="admin-table-heading">
-          <div>
-            <span className="kicker">Historial</span>
-            <h2>Registro completo</h2>
-          </div>
-          <Activity size={22} />
-        </div>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                {["Tipo", "Mensaje", "Referencia", "Fecha"].map((column) => (
-                  <th key={column}>{column}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length ? (
-                rows.map((row, index) => (
-                  <tr key={`${row.Tipo}-${row.Fecha}-${index}`}>
-                    <td data-label="Tipo">{row.Tipo ?? "-"}</td>
-                    <td data-label="Mensaje">{row.Mensaje ?? "-"}</td>
-                    <td data-label="Referencia">{row.Referencia ?? "-"}</td>
-                    <td data-label="Fecha">{row.Fecha ?? "-"}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4}>No hay logs para mostrar.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <AdminInteractiveTable title="Actividad" columns={["Tipo", "Mensaje", "Referencia", "Fecha"]} rows={rows} />
     </div>
   );
 }

@@ -55,12 +55,13 @@ const addressSchema = z
     notes: value.notes
   }));
 
-const requiredCheckoutAddressSchema = addressSchema.refine(
-  (value) => Boolean(value.street?.trim() && value.number?.trim() && value.city?.trim() && value.province?.trim()),
-  "Completa la direccion del comprador para continuar."
-);
+const checkoutAddressSchema = addressSchema.optional().transform((value) => value ?? {});
 
-export const checkoutSchema = z.object({
+function addressIsComplete(value: { street?: string; number?: string; city?: string; province?: string }) {
+  return Boolean(value.street?.trim() && value.number?.trim() && value.city?.trim() && value.province?.trim());
+}
+
+const checkoutBaseSchema = z.object({
   items: z
     .array(checkoutItemSchema)
     .min(1, "El carrito esta vacio."),
@@ -70,7 +71,7 @@ export const checkoutSchema = z.object({
     phone: safeString("Telefono", 8, 40)
   }),
   shippingMethod: z.enum(["PICKUP", "DELIVERY"]),
-  address: requiredCheckoutAddressSchema,
+  address: checkoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
   paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
   paymentMethod: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
@@ -78,12 +79,24 @@ export const checkoutSchema = z.object({
   idempotencyKey: safeString("Intento de compra", 8, 120).optional()
 });
 
+export const checkoutStockSchema = checkoutBaseSchema.pick({ items: true });
+
+export const checkoutSchema = checkoutBaseSchema.superRefine((value, context) => {
+  if (value.shippingMethod === "DELIVERY" && !addressIsComplete(value.address)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["address"],
+      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
+    });
+  }
+});
+
 const checkoutCreateFieldsSchema = z.object({
   customer_name: safeString("Nombre", 2, 120),
   customer_email: z.string().trim().email("Ingresa un email valido.").max(160),
   customer_phone: safeString("Telefono", 8, 40),
   shipping_method: z.enum(["PICKUP", "DELIVERY"]),
-  address_snapshot: requiredCheckoutAddressSchema,
+  address_snapshot: checkoutAddressSchema,
   notes: safeString("Notas", 0, 500).optional(),
   payment_method: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
   payment_flow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),

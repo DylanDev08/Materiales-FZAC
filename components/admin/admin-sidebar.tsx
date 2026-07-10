@@ -32,7 +32,7 @@ const linkGroups = [
     links: [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
-      { path: "/pagos/eventos", label: "Eventos de pago", icon: Activity },
+      { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
       { path: "/tickets", label: "Tickets", icon: FileText },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/chats", label: "Chats", icon: MessageCircle }

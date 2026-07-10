@@ -8,8 +8,8 @@ export default async function Page() {
 
   return (
     <AdminDataTable
-      title="Eventos de pago"
-      columns={["Estado", "Proveedor", "Evento", "Pedido", "PagoProveedor", "EventoProveedor", "Error", "Recibido", "Procesado"]}
+      title="Comprobantes de pago"
+      columns={["Estado", "Proveedor", "Evento", "Pedido", "Error", "Recibido", "Procesado"]}
       rows={rows}
     />
   );

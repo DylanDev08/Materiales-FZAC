@@ -1,7 +1,8 @@
-import { BadgePercent, Search, ShieldCheck, Truck } from "lucide-react";
+import { BadgePercent, MessageCircle, Search, ShieldCheck, Truck } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { getCategories, getProducts } from "@/lib/db/catalog";
+import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { ProductFilters } from "@/lib/db/catalog";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -33,6 +34,7 @@ export async function CatalogPage({
   };
 
   const [categories, products] = await Promise.all([getCategories(), getProducts(filters)]);
+  const helpHref = getWhatsAppHref("Hola FZAC, necesito asesoramiento para elegir materiales del catalogo.");
   const filterValues = {
     search: value(searchParams, "search"),
     category: forcedFilters.category ?? value(searchParams, "category"),
@@ -84,6 +86,16 @@ export async function CatalogPage({
               <span className="status-pill">Vista grid</span>
             </div>
             <ProductGrid products={products} />
+            <div className="catalog-help-band">
+              <div>
+                <span className="kicker">Asesoramiento</span>
+                <h2>¿También necesitás accesorios o cantidades?</h2>
+                <p>FZAC puede ayudarte a completar el pedido con materiales relacionados, medidas y disponibilidad real.</p>
+              </div>
+              <a className="btn btn--ghost" href={helpHref} target="_blank" rel="noreferrer">
+                <MessageCircle size={18} /> Consultar por WhatsApp
+              </a>
+            </div>
           </section>
         </div>
       </section>

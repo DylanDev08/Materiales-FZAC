@@ -106,7 +106,8 @@ export function CheckoutForm({
   const total = subtotal + shippingCost;
   const stepIndex = checkoutSteps.findIndex((item) => item.id === step);
   const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
-  const customerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim() && addressComplete);
+  const basicCustomerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim());
+  const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || addressComplete);
 
   function checkoutIntentKey(scope = "") {
     if (!checkoutIntentRef.current) {
@@ -243,8 +244,8 @@ export function CheckoutForm({
   }
 
   function goToDelivery() {
-    if (!customerComplete) {
-      setError("Completa tus datos y direccion para continuar.");
+    if (!basicCustomerComplete) {
+      setError("Completa nombre, email y telefono para continuar.");
       return;
     }
     setError("");
@@ -777,7 +778,7 @@ export function CheckoutForm({
                   >
                     <Landmark size={18} />
                     <strong>Pagar con Mercado Pago</strong>
-                    <span>Redireccion segura con el total cerrado. Mercado Pago muestra sus medios disponibles.</span>
+                    <span>Paga online con los medios disponibles dentro de Mercado Pago.</span>
                   </button>
                   <button
                     type="button"
@@ -788,7 +789,7 @@ export function CheckoutForm({
                   >
                     <Landmark size={18} />
                     <strong>Solicitar transferencia</strong>
-                    <span>Genera el pedido y FZAC te indicara los datos bancarios para transferir.</span>
+                    <span>Genera el pedido y FZAC te enviara los datos para transferir.</span>
                   </button>
                   <button
                     type="button"
@@ -799,7 +800,7 @@ export function CheckoutForm({
                   >
                     <MessageCircle size={18} />
                     <strong>Coordinar con FZAC</strong>
-                    <span>Deja el pedido preparado y continua la coordinacion por WhatsApp.</span>
+                    <span>Genera el pedido y coordina el pago o entrega con FZAC.</span>
                   </button>
                 </div>
                 <p className="payment-method-hint">
@@ -837,17 +838,38 @@ export function CheckoutForm({
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {info ? <p className="notice notice--success">{info}</p> : null}
                 {paymentMode === "MERCADOPAGO" ? (
-                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startMercadoPagoPayment()}>
+                  <button
+                    className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
+                    ref={primaryActionRef}
+                    type="button"
+                    disabled={!canSubmit || loading}
+                    aria-busy={loading}
+                    onClick={() => void startMercadoPagoPayment()}
+                  >
                     {loading ? <Loader2 size={18} /> : <ExternalLink size={18} />}
-                    {loading ? "Creando preferencia..." : "Pagar con Mercado Pago"}
+                    {loading ? "Preparando pago seguro..." : "Pagar con Mercado Pago"}
                   </button>
                 ) : paymentMode === "BANK_TRANSFER" ? (
-                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startCoordinatedPayment("BANK_TRANSFER")}>
+                  <button
+                    className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
+                    ref={primaryActionRef}
+                    type="button"
+                    disabled={!canSubmit || loading}
+                    aria-busy={loading}
+                    onClick={() => void startCoordinatedPayment("BANK_TRANSFER")}
+                  >
                     {loading ? <Loader2 size={18} /> : <Landmark size={18} />}
                     {loading ? "Generando pedido..." : "Generar pedido por transferencia"}
                   </button>
                 ) : (
-                  <button className="btn checkout-pay-button" ref={primaryActionRef} type="button" disabled={!canSubmit || loading} onClick={() => void startCoordinatedPayment("WHATSAPP")}>
+                  <button
+                    className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
+                    ref={primaryActionRef}
+                    type="button"
+                    disabled={!canSubmit || loading}
+                    aria-busy={loading}
+                    onClick={() => void startCoordinatedPayment("WHATSAPP")}
+                  >
                     {loading ? <Loader2 size={18} /> : <MessageCircle size={18} />}
                     {loading ? "Generando pedido..." : "Coordinar por WhatsApp"}
                   </button>
