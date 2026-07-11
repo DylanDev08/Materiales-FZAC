@@ -127,10 +127,31 @@ export async function AdminDashboard() {
   const rejectedPayments = getMetric(data.metrics, "Pagos rechazados");
   const averageTicket = getMetric(data.metrics, "Ticket promedio");
   const newCustomers = getMetric(data.metrics, "Clientes nuevos");
+  const usersRegistered = getMetric(data.metrics, "Usuarios registrados");
   const activeProducts = getMetric(data.metrics, "Productos activos");
   const noStock = getMetric(data.metrics, "Productos sin stock");
   const pendingTotal = getMetric(data.metrics, "Total pendiente");
   const tickets = getMetric(data.metrics, "Tickets emitidos");
+  const chats = getMetric(data.metrics, "Chats pendientes");
+  const lowStockCount = activeProducts.helper.match(/\d+/)?.[0] ?? "0";
+
+  const metricCards = [
+    { label: "Ventas del dia", value: salesToday.value, helper: salesToday.helper, badge: "Hoy", tone: "success", icon: TrendingUp },
+    { label: "Ventas del mes", value: salesMonth.value, helper: salesMonth.helper, badge: "Mes", tone: "success", icon: BarChart3 },
+    { label: "Usuarios registrados", value: usersRegistered.value, helper: usersRegistered.helper, badge: "Clientes", tone: "info", icon: Users },
+    { label: "Clientes nuevos", value: newCustomers.value, helper: newCustomers.helper, badge: "Alta", tone: "info", icon: Users },
+    { label: "Pedidos pendientes", value: pendingOrders.value, helper: pendingOrders.helper, badge: "Atender", tone: "warning", icon: ShoppingBag },
+    { label: "Compras grandes", value: adminApproval.value, helper: adminApproval.helper, badge: "Revision", tone: "warning", icon: ShieldCheck },
+    { label: "Pagos aprobados", value: approvedPayments.value, helper: approvedPayments.helper, badge: "OK", tone: "success", icon: CreditCard },
+    { label: "Pagos pendientes", value: pendingPayments.value, helper: pendingPayments.helper, badge: "Pendiente", tone: "warning", icon: CreditCard },
+    { label: "Pagos rechazados", value: rejectedPayments.value, helper: rejectedPayments.helper, badge: "Denegado", tone: "danger", icon: CreditCard },
+    { label: "Total pendiente", value: pendingTotal.value, helper: pendingTotal.helper, badge: "Control", tone: "warning", icon: FileText },
+    { label: "Ticket promedio", value: averageTicket.value, helper: averageTicket.helper, badge: "Promedio", tone: "default", icon: Activity },
+    { label: "Productos activos", value: activeProducts.value, helper: activeProducts.helper, badge: "Catalogo", tone: "success", icon: Package },
+    { label: "Sin stock", value: noStock.value, helper: noStock.helper, badge: "Reponer", tone: "danger", icon: Package },
+    { label: "Bajo stock", value: lowStockCount, helper: "Productos por debajo del minimo", badge: "Stock", tone: "warning", icon: Package },
+    { label: "Chats pendientes", value: chats.value, helper: chats.helper, badge: "Soporte", tone: "info", icon: Activity }
+  ];
 
   const plainMetrics = [
     { label: "Ingresos del mes", value: salesMonth.value, helper: `${salesToday.value} registrado hoy` },
@@ -183,7 +204,7 @@ export async function AdminDashboard() {
   ];
 
   return (
-    <AdminShell title="Dashboard">
+    <AdminShell title="Dashboard" description="Resumen general de ventas, pedidos, pagos y actividad.">
       <section className={`admin-payment-status ${paymentsReady ? (paymentsTestMode ? "admin-payment-status--test" : "admin-payment-status--ready") : ""}`}>
         <div>
           <strong>{paymentsReady ? (paymentsTestMode ? "Mercado Pago en modo prueba" : "Mercado Pago listo") : "Pagos pendientes de configurar"}</strong>
@@ -200,14 +221,28 @@ export async function AdminDashboard() {
       <section className="admin-simple-dashboard" aria-label="Metricas del e-commerce FZAC">
         <header className="admin-simple-head">
           <div>
-            <span className="kicker">Panel principal</span>
-            <h2>Lo importante para atender hoy</h2>
-            <p>Una vista simple para revisar ventas, pagos, stock y avisos sin entrar perdido al sistema.</p>
+            <span className="kicker">Command center FZAC</span>
+            <h2>Resumen general de ventas, pedidos, pagos y actividad</h2>
+            <p>Lectura rapida para decidir que cobrar, preparar, reponer o revisar sin entrar a modulos tecnicos.</p>
           </div>
           <Link className="btn btn--ghost" href={`${adminPath}/logs`}>
             Ver actividad <ArrowRight size={17} />
           </Link>
         </header>
+
+        <div className="admin-command-metrics" aria-label="Metricas principales">
+          {metricCards.map(({ label, value, helper, badge, tone, icon: Icon }) => (
+            <article className={`admin-command-metric admin-command-metric--${tone}`} key={label}>
+              <header>
+                <Icon size={18} />
+                <span className={`status-pill status-pill--${tone === "default" ? "warning" : tone}`}>{badge}</span>
+              </header>
+              <strong>{value}</strong>
+              <span>{label}</span>
+              <small>{helper}</small>
+            </article>
+          ))}
+        </div>
 
         <div className="admin-simple-grid admin-simple-grid--metrics-first">
           <section className="admin-simple-panel admin-simple-panel--main admin-simple-panel--metrics">

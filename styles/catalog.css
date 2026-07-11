@@ -362,11 +362,17 @@
 }
 
 .product-card__toast strong,
-.product-card__toast span {
+.product-card__toast span,
+.product-card__toast small {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.product-card__toast small {
+  color: #b7e8cb;
+  line-height: 1.35;
 }
 
 .product-card__toast a {

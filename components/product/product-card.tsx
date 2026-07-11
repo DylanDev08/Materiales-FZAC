@@ -79,8 +79,11 @@ export function ProductCard({ product }: { product: Product }) {
         {added ? (
           <div className="product-card__toast">
             <strong>
-              <CheckCircle size={15} /> Tu producto fue agregado
+              <CheckCircle size={15} /> Producto agregado al carrito.
             </strong>
+            <small>
+              {product.name} · Cantidad 1
+            </small>
             <span>
               <Link href="/carrito">Ver carrito</Link>
               <Link href="/productos">Seguir comprando</Link>

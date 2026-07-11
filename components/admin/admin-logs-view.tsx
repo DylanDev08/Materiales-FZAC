@@ -8,8 +8,34 @@ function isImportantLog(row: AdminLogRow) {
   return ["rechaz", "error", "conflicto", "stock", "pago", "revisar", "pendiente"].some((word) => value.includes(word));
 }
 
+function logStatus(row: AdminLogRow) {
+  const value = `${row.Tipo ?? ""} ${row.Mensaje ?? ""}`.toLowerCase();
+  if (["rechaz", "error", "deneg", "fall"].some((word) => value.includes(word))) return "Denegado";
+  if (["pendiente", "revisar", "stock", "esper"].some((word) => value.includes(word))) return "Pendiente";
+  if (["aprob", "pagado", "confirm", "emitido"].some((word) => value.includes(word))) return "Aprobado";
+  return "Informativo";
+}
+
+function logAction(row: AdminLogRow) {
+  const value = `${row.Tipo ?? ""} ${row.Mensaje ?? ""}`.toLowerCase();
+  if (value.includes("pago")) return "Revisar pagos";
+  if (value.includes("pedido")) return "Revisar pedido";
+  if (value.includes("stock")) return "Revisar stock";
+  if (value.includes("chat")) return "Responder chat";
+  return "Ver detalle";
+}
+
 export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
   const importantRows = rows.filter(isImportantLog).slice(0, 6);
+  const tableRows = rows.map((row) => ({
+    Fecha: row.Fecha,
+    Tipo: row.Tipo,
+    Estado: logStatus(row),
+    Descripcion: row.Mensaje,
+    Referencia: row.Referencia,
+    Accion: logAction(row),
+    Mensaje: row.Mensaje
+  }));
 
   return (
     <div className="admin-logs-view">
@@ -42,7 +68,7 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
         </div>
       </section>
 
-      <AdminInteractiveTable title="Actividad" columns={["Tipo", "Mensaje", "Referencia", "Fecha"]} rows={rows} />
+      <AdminInteractiveTable title="Actividad" columns={["Fecha", "Tipo", "Estado", "Descripcion", "Referencia", "Accion"]} rows={tableRows} />
     </div>
   );
 }

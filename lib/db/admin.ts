@@ -185,7 +185,7 @@ export async function getAdminPaymentTableRows(limit = 200) {
     return {
       Estado: friendlyStatus(payment.status),
       Ambiente: paymentEnv,
-      Proveedor: friendlyPaymentMethod(payment),
+      "Medio de pago": friendlyPaymentMethod(payment),
       Monto: currency(payment.amount),
       Referencia: shortReference(payment.order_id),
       Cliente: order?.customer_name ?? "-",
@@ -207,7 +207,7 @@ export async function getAdminPaymentEventRows(limit = 200) {
 
   return (events ?? []).map((event) => ({
     Estado: friendlyStatus(event.status),
-    Proveedor: friendlyProvider(event.provider),
+    "Medio de pago": friendlyProvider(event.provider),
     Evento: event.event_type ?? "-",
     Pedido: shortReference(event.order_id),
     "Referencia Mercado Pago": shortReference(event.provider_payment_id),

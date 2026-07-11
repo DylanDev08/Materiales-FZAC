@@ -3,7 +3,7 @@ import { AdminTableSkeleton } from "@/components/admin/admin-skeletons";
 
 export default function Loading() {
   return (
-    <AdminShell title="Comprobaciones de pago">
+    <AdminShell title="Comprobantes de pago" description="Facturas, tickets y eventos de pago listos para revisar.">
       <AdminTableSkeleton rows={8} />
     </AdminShell>
   );

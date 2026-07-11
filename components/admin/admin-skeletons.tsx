@@ -13,6 +13,31 @@ export function AdminMetricSkeleton({ count = 8 }: { count?: number }) {
   );
 }
 
+export function AdminDashboardSkeleton() {
+  return (
+    <section className="admin-simple-dashboard" aria-label="Cargando dashboard">
+      <div className="admin-skeleton-toolbar">
+        <span className="admin-skeleton admin-skeleton--wide" />
+        <span className="admin-skeleton admin-skeleton--button" />
+      </div>
+      <div className="admin-command-metrics">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <article className="admin-command-metric" key={index}>
+            <span className="admin-skeleton admin-skeleton--icon" />
+            <strong className="admin-skeleton admin-skeleton--value" />
+            <span className="admin-skeleton admin-skeleton--label" />
+            <small className="admin-skeleton admin-skeleton--text" />
+          </article>
+        ))}
+      </div>
+      <div className="admin-simple-panel admin-simple-panel--metrics">
+        <span className="admin-skeleton admin-skeleton--wide" />
+        <span className="admin-skeleton admin-skeleton--floating-card" />
+      </div>
+    </section>
+  );
+}
+
 export function AdminTableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <section className="admin-panel" aria-label="Cargando tabla">

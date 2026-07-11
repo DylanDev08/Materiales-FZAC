@@ -2,7 +2,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import type { ReactNode } from "react";
 
-export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
+export function AdminShell({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   const adminPath = getAdminConsolePath();
 
   return (
@@ -12,7 +12,7 @@ export function AdminShell({ title, children }: { title: string; children: React
           <div>
             <span className="kicker">Panel admin</span>
             <h1>{title}</h1>
-            <p>Operaciones protegidas. Las claves privadas no se usan en el navegador.</p>
+            <p>{description ?? "Gestion comercial de pedidos, clientes, pagos, catalogo y actividad FZAC."}</p>
           </div>
         </div>
 

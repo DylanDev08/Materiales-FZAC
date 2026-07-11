@@ -32,7 +32,6 @@ const linkGroups = [
     links: [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
-      { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
       { path: "/tickets", label: "Tickets", icon: FileText },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/chats", label: "Chats", icon: MessageCircle }
@@ -43,6 +42,14 @@ const linkGroups = [
     links: [
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorias", icon: Grid3X3 },
+      { path: "/productos?view=inventario", label: "Inventario", icon: Package }
+    ]
+  },
+  {
+    title: "Sistema",
+    links: [
+      { path: "/logs", label: "Actividad", icon: Activity },
+      { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
       { path: "/apariencia", label: "Apariencia", icon: Palette },
       { path: "/ajustes", label: "Ajustes", icon: Settings }
     ]
@@ -74,8 +81,8 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
         <span>
           <Image src="/logoFZAC.jpg" alt="FZAC" width={44} height={44} unoptimized />
         </span>
-        <strong>FZAC</strong>
-        <small>Materiales</small>
+        <strong>FZAC Materiales</strong>
+        <small>Panel comercial</small>
       </Link>
       <nav aria-label="Secciones de administracion">
         {linkGroups.map((group) => (

@@ -9,7 +9,7 @@ export default async function Page() {
   return (
     <AdminDataTable
       title="Pagos"
-      columns={["Estado", "Ambiente", "Proveedor", "Monto", "Referencia", "Cliente", "Email", "Fecha"]}
+      columns={["Estado", "Ambiente", "Medio de pago", "Monto", "Referencia", "Cliente", "Email", "Fecha"]}
       rows={rows}
     />
   );

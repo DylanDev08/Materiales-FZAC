@@ -8,7 +8,7 @@ export default async function Page() {
   const rows = await getAdminLogRows();
 
   return (
-    <AdminShell title="Actividad">
+    <AdminShell title="Actividad" description="Historial humano de eventos importantes, pagos, pedidos, stock y soporte.">
       <AdminLogsView rows={rows} />
     </AdminShell>
   );

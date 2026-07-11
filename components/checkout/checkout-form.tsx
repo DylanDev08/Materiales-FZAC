@@ -525,6 +525,10 @@ export function CheckoutForm({
                   <h2>
                     <UserRound size={18} /> Datos del comprador
                   </h2>
+                  <p className="checkout-panel__hint">
+                    Nombre, email y telefono son obligatorios. La direccion se usa para envio; si elegis retiro, podes
+                    completarla despues al coordinar con FZAC.
+                  </p>
                   <div className="form-grid">
                     <label>
                       Nombre y apellido

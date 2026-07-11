@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Mail, MessageCircle, Search, SlidersHorizontal, UserRound, X } from "lucide-react";
+import { ChevronRight, Download, Mail, MessageCircle, Search, SlidersHorizontal, UserRound, X } from "lucide-react";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 type CustomerRow = {
@@ -65,6 +65,10 @@ function sortRows(rows: CustomerRow[], sort: string) {
   });
 }
 
+function csvEscape(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
 function UserAvatar({ row, large = false }: { row: CustomerRow; large?: boolean }) {
   const [failed, setFailed] = useState(false);
 
@@ -103,6 +107,39 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  function clearFilters() {
+    setSearch("");
+    setFilter("all");
+    setSort("recent");
+    setPage(1);
+  }
+
+  function exportCsv() {
+    const columns = ["Cliente", "Email", "Telefono", "Metodo login", "Registro", "Ultimo acceso", "Estado", "Pedidos", "Total gastado"];
+    const csvRows = filtered.map((row) =>
+      [
+        row.Nombre || "Sin nombre",
+        row.Email || "-",
+        row.Telefono || "-",
+        row.AuthProvider || "-",
+        row.Registro || "-",
+        row.UltimoLogin || "-",
+        row.EstadoCliente || "Sin compras",
+        String(row.Pedidos ?? 0),
+        row.TotalGastado || "$0"
+      ]
+        .map(csvEscape)
+        .join(",")
+    );
+    const blob = new Blob([[columns.map(csvEscape).join(","), ...csvRows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "clientes-fzac.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="admin-users-layout">
@@ -151,6 +188,14 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
             <option value="spent">Mas gasto</option>
             <option value="login">Ultimo acceso</option>
           </select>
+          <div className="admin-table-actions">
+            <button className="btn btn--ghost" type="button" onClick={clearFilters} disabled={!search && filter === "all" && sort === "recent"}>
+              <X size={16} /> Limpiar
+            </button>
+            <button className="btn btn--ghost" type="button" onClick={exportCsv} disabled={!filtered.length}>
+              <Download size={16} /> Exportar CSV
+            </button>
+          </div>
         </div>
 
         <div className="admin-table-wrap">
