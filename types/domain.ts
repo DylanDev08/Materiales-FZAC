@@ -2,7 +2,9 @@ export type UserRole = "USER" | "ADMIN" | "OPERATOR";
 
 export type OrderStatus =
   | "PENDING_PAYMENT"
+  | "PENDING_TRANSFER"
   | "PENDING_ADMIN_APPROVAL"
+  | "COORDINATE"
   | "PAID"
   | "CONFIRMED"
   | "PREPARING"
@@ -81,6 +83,7 @@ export type CheckoutPayload = {
   paymentProvider?: PaymentProvider;
   paymentMethod?: PaymentMethod;
   paymentFlow?: PaymentFlow;
+  idempotencyKey?: string;
 };
 
 export type AdminMetric = {

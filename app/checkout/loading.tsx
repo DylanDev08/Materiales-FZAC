@@ -1,15 +1,27 @@
-import { CheckoutSummarySkeleton } from "@/components/checkout/checkout-summary-skeleton";
+import {
+  CheckoutPaymentMethodSkeleton,
+  CheckoutProductCardSkeleton,
+  CheckoutStepSkeleton,
+  CheckoutSummarySkeleton
+} from "@/components/checkout/checkout-summary-skeleton";
 
 export default function Loading() {
   return (
     <main className="page-section">
       <div className="container checkout-layout">
-        <section className="checkout-panel">
-          <span className="kicker">Checkout FZAC</span>
-          <h1>Preparando tu compra</h1>
-          <p className="checkout-summary__payment">Estamos cargando carrito, stock y medios de pago.</p>
-        </section>
-        <CheckoutSummarySkeleton />
+        <div className="checkout-steps">
+          <CheckoutStepSkeleton />
+          <div className="payment-mode-grid">
+            <CheckoutPaymentMethodSkeleton />
+            <CheckoutPaymentMethodSkeleton />
+            <CheckoutPaymentMethodSkeleton />
+          </div>
+        </div>
+        <aside className="checkout-summary checkout-summary-skeleton-wrap">
+          <CheckoutProductCardSkeleton />
+          <CheckoutProductCardSkeleton />
+          <CheckoutSummarySkeleton />
+        </aside>
       </div>
     </main>
   );

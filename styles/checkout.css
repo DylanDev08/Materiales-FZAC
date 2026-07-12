@@ -41,6 +41,139 @@
   min-height: 48px;
 }
 
+.checkout-summary-skeleton-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.checkout-product-skeleton,
+.checkout-payment-method-skeleton,
+.checkout-step-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.checkout-product-skeleton::after,
+.checkout-payment-method-skeleton::after,
+.checkout-step-skeleton::after,
+.checkout-summary-skeleton span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(244, 196, 0, 0.13) 46%, transparent 76%);
+  animation: checkout-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.checkout-summary-skeleton span,
+.checkout-product-skeleton span,
+.checkout-payment-method-skeleton span,
+.checkout-step-skeleton span {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.checkout-product-skeleton {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 74px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #101010;
+  padding: 10px;
+}
+
+.checkout-product-skeleton > span:first-child {
+  width: 58px;
+  height: 58px;
+}
+
+.checkout-product-skeleton div {
+  display: grid;
+  gap: 8px;
+}
+
+.checkout-product-skeleton div span {
+  min-height: 12px;
+}
+
+.checkout-product-skeleton div span:first-child {
+  min-height: 18px;
+}
+
+.checkout-product-skeleton > span:last-child {
+  min-height: 28px;
+}
+
+.checkout-payment-method-skeleton {
+  min-height: 134px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #101010;
+  padding: 12px;
+}
+
+.checkout-payment-method-skeleton span:first-child {
+  width: 34px;
+  min-height: 34px;
+}
+
+.checkout-payment-method-skeleton span:nth-child(2) {
+  width: 72%;
+  min-height: 18px;
+}
+
+.checkout-payment-method-skeleton span:last-child {
+  width: 100%;
+  min-height: 44px;
+}
+
+.checkout-step-skeleton {
+  display: grid;
+  gap: 14px;
+}
+
+.checkout-step-skeleton > span:first-child {
+  width: 180px;
+  min-height: 28px;
+}
+
+.checkout-step-skeleton > span:nth-child(2) {
+  width: min(560px, 100%);
+  min-height: 44px;
+}
+
+.checkout-step-skeleton div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.checkout-step-skeleton div span {
+  min-height: 48px;
+}
+
+.checkout-step-skeleton > span:last-child {
+  justify-self: end;
+  width: 172px;
+  min-height: 44px;
+}
+
+@keyframes checkout-skeleton-shimmer {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(110%);
+  }
+}
+
 .cart-line {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr) minmax(132px, auto);
@@ -344,6 +477,134 @@
 
 .checkout-pay-button--processing svg {
   animation: checkout-spin 0.8s linear infinite;
+}
+
+.checkout-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(244, 196, 0, 0.12), transparent 32%),
+    rgba(0, 0, 0, 0.82);
+  padding: 18px;
+  backdrop-filter: blur(8px);
+}
+
+.checkout-loading-card {
+  width: min(520px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.1), rgba(31, 31, 31, 0.98)),
+    var(--color-panel);
+  box-shadow: var(--shadow-soft);
+  padding: 24px;
+  text-align: center;
+}
+
+.checkout-loading-logo {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: 999px;
+  background: #060606;
+  box-shadow: 0 0 0 6px rgba(244, 196, 0, 0.07);
+}
+
+.checkout-loading-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-loading-card h2,
+.checkout-loading-card p {
+  margin: 0;
+}
+
+.checkout-loading-card p {
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.checkout-loading-card small {
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.checkout-loading-progress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.checkout-loading-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-yellow), var(--color-yellow-hover));
+  box-shadow: 0 0 26px rgba(244, 196, 0, 0.35);
+  transition: width 220ms ease;
+}
+
+.checkout-loading-steps {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.checkout-loading-step {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 11, 11, 0.55);
+  color: var(--color-muted);
+  padding: 0 12px;
+  font-weight: 850;
+}
+
+.checkout-loading-step svg {
+  flex: 0 0 auto;
+}
+
+.checkout-loading-step--active {
+  border-color: var(--color-yellow-border);
+  color: var(--color-white);
+  background: rgba(244, 196, 0, 0.1);
+}
+
+.checkout-loading-step--active svg {
+  color: var(--color-yellow);
+  animation: checkout-spin 0.85s linear infinite;
+}
+
+.checkout-loading-step--done {
+  color: #74d7a3;
+  border-color: rgba(22, 131, 74, 0.36);
+  background: rgba(22, 131, 74, 0.12);
+}
+
+.checkout-loading-step--error {
+  color: #ff9a9a;
+  border-color: rgba(200, 50, 50, 0.4);
+  background: rgba(200, 50, 50, 0.14);
 }
 
 @keyframes checkout-spin {
@@ -800,6 +1061,18 @@
   .payment-mode-grid,
   .card-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .checkout-step-skeleton div {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-product-skeleton {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .checkout-product-skeleton > span:last-child {
+    grid-column: 1 / -1;
   }
 
   .checkout-panel__actions {

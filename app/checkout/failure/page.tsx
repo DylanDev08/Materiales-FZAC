@@ -17,7 +17,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
         <div>
           <XCircle size={42} />
           <h1>No pudimos confirmar el pago</h1>
-          <p>No pudimos confirmar el pago. Podes intentarlo nuevamente o consultar con FZAC.</p>
+          <p>No pudimos confirmar el pago. Podes reintentar con Mercado Pago o coordinar la compra con FZAC.</p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href={retryHref}>
             Reintentar pago

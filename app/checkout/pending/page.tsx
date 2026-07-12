@@ -35,7 +35,7 @@ export default async function Page({
       ? "Generamos tu pedido. Podes continuar por WhatsApp para coordinar pago, retiro o entrega con el equipo de FZAC."
       : requiresApproval
         ? "Tu compra requiere validacion de FZAC por el monto o volumen del pedido. El equipo la revisara y te contactara."
-        : "Tu pago quedo pendiente. Te avisaremos cuando Mercado Pago confirme la operacion.";
+        : "Tu pedido quedo pendiente. Te avisaremos cuando el pago o la revision esten confirmados.";
 
   return (
     <main className="page-section">

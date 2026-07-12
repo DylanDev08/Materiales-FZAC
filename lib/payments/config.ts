@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getEnv, getSiteUrl, hasRealValue } from "@/lib/utils/env";
+import { getEnv, getSiteUrl as readSiteUrl, hasRealValue } from "@/lib/utils/env";
 
 export const MERCADOPAGO_NOT_CONFIGURED_MESSAGE =
   "Mercado Pago no esta configurado para iniciar pagos online.";
@@ -32,7 +32,7 @@ export function getPaymentConfig() {
     accessToken: getEnv("MERCADOPAGO_ACCESS_TOKEN"),
     publicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY") || getEnv("MERCADOPAGO_PUBLIC_KEY"),
     webhookSecret: getEnv("MERCADOPAGO_WEBHOOK_SECRET"),
-    siteUrl: getSiteUrl(),
+    siteUrl: readSiteUrl(),
     paymentsEnabled: isPaymentsEnabled(),
     paymentsEnv: getPaymentsEnvironment(),
     provider: getEnv("PAYMENTS_PROVIDER") || "mercadopago"
@@ -40,6 +40,7 @@ export function getPaymentConfig() {
 }
 
 export const getMercadoPagoConfig = getPaymentConfig;
+export const getSiteUrl = readSiteUrl;
 
 export function isMercadoPagoConfigured() {
   const config = getPaymentConfig();

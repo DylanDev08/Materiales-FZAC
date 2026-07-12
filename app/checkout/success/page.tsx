@@ -22,7 +22,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
           <h1>{receipt ? "Pago confirmado" : "Confirmacion recibida"}</h1>
           <p>
             {receipt
-              ? "Tu pago fue confirmado. Ya emitimos el comprobante FZAC de la compra."
+              ? "Recibimos la confirmacion de Mercado Pago. Ya emitimos el comprobante FZAC y el equipo esta validando tu pedido."
               : "Recibimos la confirmacion de Mercado Pago. FZAC esta validando tu pedido y actualizara el estado automaticamente."}
           </p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}

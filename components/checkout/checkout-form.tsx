@@ -21,6 +21,7 @@ import {
   UserRound
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
+import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/checkout/checkout-loading-screen";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { SessionProfile } from "@/lib/auth/get-user";
@@ -28,6 +29,8 @@ import type { ShippingMethod } from "@/types/domain";
 
 type CheckoutStep = "customer" | "delivery" | "review" | "payment";
 type PaymentMode = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
+type CheckoutProcessPhase = CheckoutLoadingPhase | "idle";
+type CartItems = ReturnType<typeof useCart>["items"];
 
 type StockIssue = {
   productId: string;
@@ -60,6 +63,53 @@ function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
     product_id: item.productId,
     quantity: item.quantity
   }));
+}
+
+const CHECKOUT_IDEMPOTENCY_STORAGE_KEY = "fzac.checkout.intent.v1";
+
+type CheckoutIntentSnapshot = {
+  fingerprint: string;
+  paymentMode: PaymentMode;
+  key: string;
+  createdAt: number;
+};
+
+function createCheckoutIntentId() {
+  const random =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `fzac-checkout-${random}`;
+}
+
+function checkoutCartFingerprint(items: CartItems) {
+  return items
+    .map((item) => `${item.productId}:${item.quantity}`)
+    .sort()
+    .join("|");
+}
+
+function readCheckoutIntentSnapshot(): CheckoutIntentSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = window.sessionStorage.getItem(CHECKOUT_IDEMPOTENCY_STORAGE_KEY);
+    if (!value) return null;
+    const parsed = JSON.parse(value) as CheckoutIntentSnapshot;
+    if (!parsed?.key || !parsed.fingerprint || !parsed.paymentMode) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCheckoutIntentSnapshot(snapshot: CheckoutIntentSnapshot) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(CHECKOUT_IDEMPOTENCY_STORAGE_KEY, JSON.stringify(snapshot));
+}
+
+function clearCheckoutIntentSnapshot() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(CHECKOUT_IDEMPOTENCY_STORAGE_KEY);
 }
 
 export function CheckoutForm({
@@ -95,6 +145,7 @@ export function CheckoutForm({
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("MERCADOPAGO");
   const [loading, setLoading] = useState(false);
+  const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const checkoutInFlightRef = useRef(false);
@@ -108,15 +159,21 @@ export function CheckoutForm({
   const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
   const basicCustomerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim());
   const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || addressComplete);
+  const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
+  const showLoadingScreen = loading && processPhase !== "idle";
+  const activeLoadingPhase: CheckoutLoadingPhase = processPhase === "idle" ? "validating" : processPhase;
 
-  function checkoutIntentKey(scope = "") {
+  function checkoutIntentKey() {
     if (!checkoutIntentRef.current) {
-      checkoutIntentRef.current =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `fzac-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      checkoutIntentRef.current = createCheckoutIntentId();
+      writeCheckoutIntentSnapshot({
+        fingerprint: cartFingerprint,
+        paymentMode,
+        key: checkoutIntentRef.current,
+        createdAt: Date.now()
+      });
     }
-    return scope ? `${checkoutIntentRef.current}-${scope}` : checkoutIntentRef.current;
+    return checkoutIntentRef.current;
   }
 
   async function validateStock(signal?: AbortSignal) {
@@ -194,8 +251,29 @@ export function CheckoutForm({
   }
 
   useEffect(() => {
+    if (!hydrated || !items.length) {
+      checkoutIntentRef.current = "";
+      clearCheckoutIntentSnapshot();
+      return;
+    }
+
+    const existing = readCheckoutIntentSnapshot();
+    if (existing?.fingerprint === cartFingerprint && existing.paymentMode === paymentMode) {
+      checkoutIntentRef.current = existing.key;
+      return;
+    }
+
+    checkoutIntentRef.current = createCheckoutIntentId();
+    writeCheckoutIntentSnapshot({
+      fingerprint: cartFingerprint,
+      paymentMode,
+      key: checkoutIntentRef.current,
+      createdAt: Date.now()
+    });
+  }, [hydrated, items.length, cartFingerprint, paymentMode]);
+
+  useEffect(() => {
     if (!items.length) return;
-    checkoutIntentRef.current = "";
 
     const controller = new AbortController();
     window.queueMicrotask(() => {
@@ -255,8 +333,15 @@ export function CheckoutForm({
   function goToReview() {
     setError("");
     void (async () => {
-      const quoted = await quoteShipping();
-      if (quoted) setStep("review");
+      setLoading(true);
+      setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "idle");
+      try {
+        const quoted = await quoteShipping();
+        if (quoted) setStep("review");
+      } finally {
+        setLoading(false);
+        setProcessPhase("idle");
+      }
     })();
   }
 
@@ -277,10 +362,18 @@ export function CheckoutForm({
 
   async function goToPayment() {
     setError("");
-    const quoted = await quoteShipping();
-    if (!quoted) return;
-    const stockOk = await validateStock();
-    if (stockOk) setStep("payment");
+    setLoading(true);
+    setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "validating");
+    try {
+      const quoted = await quoteShipping();
+      if (!quoted) return;
+      setProcessPhase("validating");
+      const stockOk = await validateStock();
+      if (stockOk) setStep("payment");
+    } finally {
+      setLoading(false);
+      setProcessPhase("idle");
+    }
   }
 
   async function startMercadoPagoPayment() {
@@ -288,16 +381,20 @@ export function CheckoutForm({
 
     checkoutInFlightRef.current = true;
     setLoading(true);
+    setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "validating");
     setError("");
     setInfo("");
+    let keepBusy = false;
 
     try {
       const quoted = await quoteShipping();
       if (!quoted) return;
 
+      setProcessPhase("validating");
       const stockOk = await validateStock();
       if (!stockOk) return;
 
+      setProcessPhase("creating");
       const response = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -310,7 +407,7 @@ export function CheckoutForm({
           address_snapshot: address,
           notes,
           payment_method: "MERCADOPAGO",
-          idempotency_key: checkoutIntentKey("mercadopago")
+          idempotency_key: checkoutIntentKey()
         })
       });
 
@@ -363,6 +460,8 @@ export function CheckoutForm({
       const orderId = data.orderId || data.order_id;
 
       if (data.requires_admin_approval && orderId) {
+        setProcessPhase("confirming");
+        keepBusy = true;
         setInfo(
           data.message ||
             "Tu compra requiere validacion de FZAC por el monto o volumen del pedido. El equipo la revisara y te contactara."
@@ -372,21 +471,29 @@ export function CheckoutForm({
       }
 
       if (paymentUrl) {
+        setProcessPhase("redirecting");
+        keepBusy = true;
         window.location.assign(paymentUrl);
         return;
       }
 
       if (data.pending && orderId) {
+        setProcessPhase("confirming");
+        keepBusy = true;
         router.push(`/checkout/pending?orderId=${orderId}`);
         return;
       }
 
       throw new Error("El checkout no devolvio un resultado valido.");
     } catch (checkoutError) {
+      setProcessPhase("error");
       setError(checkoutError instanceof Error ? checkoutError.message : "No pudimos iniciar el pago.");
     } finally {
-      checkoutInFlightRef.current = false;
-      setLoading(false);
+      checkoutInFlightRef.current = keepBusy;
+      if (!keepBusy) {
+        setLoading(false);
+        setProcessPhase("idle");
+      }
     }
   }
 
@@ -395,16 +502,20 @@ export function CheckoutForm({
 
     checkoutInFlightRef.current = true;
     setLoading(true);
+    setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "validating");
     setError("");
     setInfo("");
+    let keepBusy = false;
 
     try {
       const quoted = await quoteShipping();
       if (!quoted) return;
 
+      setProcessPhase("validating");
       const stockOk = await validateStock();
       if (!stockOk) return;
 
+      setProcessPhase("creating");
       const response = await fetch("/api/checkout/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -417,7 +528,7 @@ export function CheckoutForm({
           address_snapshot: address,
           notes,
           payment_method: method,
-          idempotency_key: checkoutIntentKey(method.toLowerCase())
+          idempotency_key: checkoutIntentKey()
         })
       });
 
@@ -451,16 +562,22 @@ export function CheckoutForm({
 
       const orderId = data.orderId || data.order_id;
       if (orderId) {
+        setProcessPhase("confirming");
+        keepBusy = true;
         router.push(`/checkout/pending?orderId=${orderId}&${method === "BANK_TRANSFER" ? "transfer" : "whatsapp"}=1`);
         return;
       }
 
       setInfo(data.message || "Pedido generado correctamente. FZAC revisara la informacion para coordinar el pago.");
     } catch (coordinationError) {
+      setProcessPhase("error");
       setError(coordinationError instanceof Error ? coordinationError.message : "No pudimos generar el pedido.");
     } finally {
-      checkoutInFlightRef.current = false;
-      setLoading(false);
+      checkoutInFlightRef.current = keepBusy;
+      if (!keepBusy) {
+        setLoading(false);
+        setProcessPhase("idle");
+      }
     }
   }
 
@@ -544,11 +661,11 @@ export function CheckoutForm({
                     </label>
                     <label>
                       Calle
-                      <input value={address.street} onChange={(event) => setAddress({ ...address, street: event.target.value })} required />
+                      <input value={address.street} onChange={(event) => setAddress({ ...address, street: event.target.value })} />
                     </label>
                     <label>
                       Numero
-                      <input value={address.number} onChange={(event) => setAddress({ ...address, number: event.target.value })} required />
+                      <input value={address.number} onChange={(event) => setAddress({ ...address, number: event.target.value })} />
                     </label>
                     <label>
                       Departamento
@@ -556,11 +673,11 @@ export function CheckoutForm({
                     </label>
                     <label>
                       Ciudad
-                      <input value={address.city} onChange={(event) => setAddress({ ...address, city: event.target.value })} required />
+                      <input value={address.city} onChange={(event) => setAddress({ ...address, city: event.target.value })} />
                     </label>
                     <label>
                       Provincia
-                      <input value={address.province} onChange={(event) => setAddress({ ...address, province: event.target.value })} required />
+                      <input value={address.province} onChange={(event) => setAddress({ ...address, province: event.target.value })} />
                     </label>
                     <label>
                       Codigo postal
@@ -569,7 +686,7 @@ export function CheckoutForm({
                   </div>
                   {error ? <p className="notice notice--danger">{error}</p> : null}
                   <div className="checkout-panel__actions">
-                    <button className="btn" ref={primaryActionRef} type="button" onClick={goToDelivery}>
+                    <button className="btn" ref={primaryActionRef} type="button" disabled={loading} onClick={goToDelivery}>
                       Continuar <ArrowRight size={17} />
                     </button>
                   </div>
@@ -648,11 +765,12 @@ export function CheckoutForm({
                   ) : null}
 
                   <div className="checkout-panel__actions">
-                    <button className="btn btn--ghost" type="button" onClick={() => setStep("customer")}>
+                    <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("customer")}>
                       <ArrowLeft size={17} /> Volver
                     </button>
-                    <button className="btn" ref={primaryActionRef} type="button" onClick={goToReview}>
-                      Continuar <ArrowRight size={17} />
+                    <button className="btn" ref={primaryActionRef} type="button" disabled={loading} onClick={goToReview}>
+                      {loading ? <Loader2 size={17} /> : <ArrowRight size={17} />}
+                      Continuar
                     </button>
                   </div>
                 </section>
@@ -692,11 +810,12 @@ export function CheckoutForm({
                     </div>
                   ) : null}
                   <div className="checkout-panel__actions">
-                    <button className="btn btn--ghost" type="button" onClick={() => setStep("delivery")}>
+                    <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("delivery")}>
                       <ArrowLeft size={17} /> Volver
                     </button>
-                    <button className="btn" ref={primaryActionRef} type="button" disabled={stockState.status === "loading"} onClick={() => void goToPayment()}>
-                      Continuar al pago <ArrowRight size={17} />
+                    <button className="btn" ref={primaryActionRef} type="button" disabled={loading || stockState.status === "loading"} onClick={() => void goToPayment()}>
+                      {loading ? <Loader2 size={17} /> : <ArrowRight size={17} />}
+                      Continuar al pago
                     </button>
                   </div>
                 </section>
@@ -792,7 +911,7 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("BANK_TRANSFER")}
                   >
                     <Landmark size={18} />
-                    <strong>Solicitar transferencia</strong>
+                    <strong>Solicitar pago por transferencia</strong>
                     <span>Genera el pedido y FZAC te enviara los datos para transferir.</span>
                   </button>
                   <button
@@ -803,7 +922,7 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("WHATSAPP")}
                   >
                     <MessageCircle size={18} />
-                    <strong>Coordinar con FZAC</strong>
+                    <strong>Coordinar por WhatsApp</strong>
                     <span>Genera el pedido y coordina el pago o entrega con FZAC.</span>
                   </button>
                 </div>
@@ -888,6 +1007,9 @@ export function CheckoutForm({
           </aside>
         </div>
       </div>
+      {showLoadingScreen ? (
+        <CheckoutLoadingScreen method={paymentMode} phase={activeLoadingPhase} errorMessage={error} />
+      ) : null}
       {termsOpen ? (
         <div className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
           <div className="terms-modal__panel">

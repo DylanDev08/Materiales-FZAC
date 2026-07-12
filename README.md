@@ -66,15 +66,18 @@ No se documentan claves, tokens ni credenciales privadas dentro del repositorio.
 ## Integracion Mercado Pago - Modo Prueba
 
 1. Crear una aplicacion en Mercado Pago Developers.
-2. Copiar las credenciales de prueba desde el panel de Mercado Pago.
-3. Completar en el entorno local seguro el `MERCADOPAGO_ACCESS_TOKEN`.
-4. Completar la Public Key de prueba: `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=APP_USR-28bf9eb7-40a9-45ce-8c88-e3cfafa5d882`.
-5. Activar `PAYMENTS_ENABLED=true`.
-6. Usar `PAYMENTS_ENV=test` y `PAYMENTS_PROVIDER=mercadopago`.
-7. Ejecutar `npm run dev`.
-8. Agregar un producto al carrito y completar checkout.
-9. Pagar con un usuario comprador de prueba desde Mercado Pago.
+2. Elegir integracion web y copiar las credenciales de prueba desde el panel.
+3. En `.env.local`, completar `MERCADOPAGO_ACCESS_TOKEN` y `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
+4. Activar `PAYMENTS_ENABLED=true`.
+5. Usar `PAYMENTS_ENV=test` y `PAYMENTS_PROVIDER=mercadopago`.
+6. Ejecutar `npm install` y luego `npm run dev`.
+7. Agregar un producto al carrito y completar checkout.
+8. Elegir “Pagar con Mercado Pago” para crear la preferencia y redirigir al checkout de prueba.
+9. Pagar con un usuario comprador de prueba distinto a la cuenta vendedora.
 10. Verificar en admin que el pedido, pago, stock, ticket y notificaciones cambien segun el estado confirmado.
+11. Para probar webhook local usar ngrok o desplegar en Vercel; Mercado Pago no puede notificar directamente a `localhost`.
+12. Configurar en Mercado Pago el webhook publico: `https://DOMINIO/api/webhooks/mercadopago`.
+13. Eventos recomendados: pagos y ordenes comerciales si estan disponibles para la cuenta.
 
 No guardar en README, codigo ni archivos versionados: Access Token, usuarios de prueba, contrasenas o codigos de verificacion.
 
