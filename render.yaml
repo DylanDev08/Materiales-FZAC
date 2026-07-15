@@ -35,12 +35,6 @@ services:
         value: test
       - key: PAYMENTS_PROVIDER
         value: mercadopago
-      - key: MERCADOPAGO_ACCESS_TOKEN
-        sync: false
-      - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-        sync: false
-      - key: MERCADOPAGO_WEBHOOK_SECRET
-        sync: false
       - key: ADMIN_EMAILS
         sync: false
       - key: ADMIN_CONSOLE_PATH

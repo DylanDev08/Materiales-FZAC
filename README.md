@@ -108,9 +108,9 @@ El Blueprint incluido en `render.yaml` configura:
 - servidor Next.js escuchando en todas las interfaces;
 - health check publico en `/api/health`;
 - despliegues automaticos desde `main`;
-- variables publicas y secretos requeridos por Supabase, Mercado Pago y el panel administrativo.
+- variables publicas y secretos requeridos por Supabase y el panel administrativo.
 
-Al crear el servicio en Render hay que completar las variables marcadas como secretas. Mercado Pago queda desactivado de forma segura hasta cargar credenciales validas y habilitar `PAYMENTS_ENABLED=true`.
+Al crear el servicio en Render hay que completar las variables marcadas como secretas. Mercado Pago queda desactivado de forma segura; sus credenciales pueden agregarse luego desde el entorno de Render antes de habilitar `PAYMENTS_ENABLED=true`.
 
 
 # Como correr el proyecto
