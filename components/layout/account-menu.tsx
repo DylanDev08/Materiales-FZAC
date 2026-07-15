@@ -37,10 +37,6 @@ function initials(profile: HeaderProfile) {
 function ProfileAvatar({ large = false, profile }: { large?: boolean; profile: HeaderProfile }) {
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    setFailed(false);
-  }, [profile.avatar_url]);
-
   return (
     <span className={`account-menu__avatar ${large ? "account-menu__avatar--large" : ""}`}>
       {profile.avatar_url && !failed ? (
@@ -86,14 +82,14 @@ export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) 
   return (
     <div className="account-menu" ref={ref}>
       <button className="account-menu__trigger" type="button" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-        <ProfileAvatar profile={profile} />
+        <ProfileAvatar key={profile.avatar_url || "avatar-placeholder"} profile={profile} />
         <ChevronDown size={15} />
       </button>
 
       {open ? (
         <section className="account-menu__panel" aria-label="Menu de cuenta">
           <header>
-            <ProfileAvatar large profile={profile} />
+            <ProfileAvatar key={profile.avatar_url || "avatar-placeholder"} large profile={profile} />
             <div>
               <strong>{profile.full_name || "Cuenta FZAC"}</strong>
               <span>{profile.email}</span>

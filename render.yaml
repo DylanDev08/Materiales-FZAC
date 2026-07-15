@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: materiales-fzac
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://materiales-fzac.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: https://materiales-fzac.onrender.com/api
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://gooxgjzetziwnxhuymmx.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_PRODUCT_IMAGES_BUCKET
+        value: product-images
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: PAYMENT_ENABLED
+        value: "false"
+      - key: PAYMENTS_ENV
+        value: test
+      - key: PAYMENTS_PROVIDER
+        value: mercadopago
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ADMIN_CONSOLE_PATH
+        value: /fzac-admin-crs-2026
+      - key: NEXT_PUBLIC_FZAC_WHATSAPP
+        value: "+5493415847000"
+      - key: FZAC_WHATSAPP
+        value: "+5493415847000"
+      - key: NEXT_PUBLIC_FZAC_EMAIL
+        value: fortalezaconstruccionesrosario@gmail.com
+      - key: FZAC_EMAIL
+        value: fortalezaconstruccionesrosario@gmail.com
+      - key: FZAC_INSTAGRAM
+        value: "@fzaconstrucciones"
+      - key: NARANJAX_ENABLED
+        value: "false"

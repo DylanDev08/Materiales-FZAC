@@ -95,6 +95,23 @@ No guardar en README, codigo ni archivos versionados: Access Token, usuarios de 
 
 La base de la tienda ya esta preparada como e-commerce real: catalogo, checkout, auth, admin, storage, stock, pagos externos y webhook. Para operar comercialmente solo resta cargar credenciales reales del proveedor de pagos, datos definitivos del negocio y productos finales.
 
+## Deploy En Render
+
+El proyecto se despliega como un unico **Web Service de Next.js**. La interfaz, las APIs, el checkout, la autenticacion y los webhooks forman parte de la misma aplicacion y no deben separarse en dos servicios.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DylanDev08/Materiales-FZAC)
+
+El Blueprint incluido en `render.yaml` configura:
+
+- instalacion reproducible con `npm ci`;
+- build de produccion con `npm run build`;
+- servidor Next.js escuchando en todas las interfaces;
+- health check publico en `/api/health`;
+- despliegues automaticos desde `main`;
+- variables publicas y secretos requeridos por Supabase, Mercado Pago y el panel administrativo.
+
+Al crear el servicio en Render hay que completar las variables marcadas como secretas. Mercado Pago queda desactivado de forma segura hasta cargar credenciales validas y habilitar `PAYMENTS_ENABLED=true`.
+
 
 # Como correr el proyecto
 ```bash
