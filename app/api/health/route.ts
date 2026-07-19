@@ -5,11 +5,13 @@ export async function GET() {
     {
       status: "ok",
       service: "materiales-fzac",
+      git_sha: process.env.RENDER_GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || null,
       timestamp: new Date().toISOString()
     },
     {
       headers: {
-        "Cache-Control": "no-store"
+        "Cache-Control": "no-store",
+        ...(process.env.RENDER_GIT_COMMIT ? { "X-FZAC-Commit": process.env.RENDER_GIT_COMMIT } : {})
       }
     }
   );
