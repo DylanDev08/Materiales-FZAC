@@ -5,7 +5,7 @@ services:
     plan: free
     branch: main
     buildCommand: npm ci --include=dev && NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run build
-    startCommand: NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run start
+    startCommand: NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run start -- -p $PORT
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
