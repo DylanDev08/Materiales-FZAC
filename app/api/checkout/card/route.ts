@@ -107,7 +107,10 @@ export async function POST(request: Request) {
           : "El proveedor devolvio el pago pendiente o rechazado. No se descuenta stock si no queda aprobado."
     });
   } catch (error) {
-    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos de pago invalidos.", 422);
+    if (error instanceof ZodError) {
+      const issue = error.issues[0]?.message;
+      return jsonError(issue && issue !== "Required" ? issue : "Completa los datos requeridos para pagar con tarjeta.", 422);
+    }
     if (error instanceof InsufficientStockError) {
       return Response.json(
         {
