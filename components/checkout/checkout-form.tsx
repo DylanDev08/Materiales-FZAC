@@ -22,13 +22,14 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/checkout/checkout-loading-screen";
+import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
 type CheckoutStep = "customer" | "delivery" | "review" | "payment";
-type PaymentMode = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
+type PaymentMode = "CARD" | "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
 type CheckoutProcessPhase = CheckoutLoadingPhase | "idle";
 type CartItems = ReturnType<typeof useCart>["items"];
 
@@ -143,7 +144,7 @@ export function CheckoutForm({
   const [termsOpen, setTermsOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>("MERCADOPAGO");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("CARD");
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
   const [error, setError] = useState("");
@@ -488,6 +489,105 @@ export function CheckoutForm({
     } catch (checkoutError) {
       setProcessPhase("error");
       setError(checkoutError instanceof Error ? checkoutError.message : "No pudimos iniciar el pago.");
+    } finally {
+      checkoutInFlightRef.current = keepBusy;
+      if (!keepBusy) {
+        setLoading(false);
+        setProcessPhase("idle");
+      }
+    }
+  }
+
+  async function startCardPayment(card: MercadoPagoCardPayload) {
+    if (!canSubmit || loading || checkoutInFlightRef.current) return;
+
+    checkoutInFlightRef.current = true;
+    setLoading(true);
+    setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "validating");
+    setError("");
+    setInfo("");
+    let keepBusy = false;
+
+    try {
+      const quoted = await quoteShipping();
+      if (!quoted) return;
+
+      setProcessPhase("validating");
+      const stockOk = await validateStock();
+      if (!stockOk) return;
+
+      if (!card.token || !card.payment_method_id || !card.identification_type || !card.identification_number) {
+        setError("Completa los datos de la tarjeta y del titular para pagar dentro de FZAC.");
+        return;
+      }
+
+      setProcessPhase("creating");
+      const response = await fetch("/api/checkout/card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: checkoutItems(items),
+          customer_name: customer.name,
+          customer_email: customer.email,
+          customer_phone: customer.phone,
+          shipping_method: shippingMethod,
+          address_snapshot: address,
+          notes,
+          payment_method: "MERCADOPAGO",
+          payment_flow: "CARD",
+          idempotency_key: checkoutIntentKey(),
+          card
+        })
+      });
+
+      const data = (await response.json()) as {
+        redirectUrl?: string;
+        redirect_url?: string;
+        orderId?: string;
+        order_id?: string;
+        message?: string;
+        error?: string;
+        items?: StockIssue[];
+      };
+
+      if (!response.ok) {
+        if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
+          setStockState({
+            status: "error",
+            message: data.message || "No hay stock suficiente para completar la compra.",
+            items: data.items ?? []
+          });
+          setStep("review");
+          return;
+        }
+        if (response.status === 422 && data.error === "SHIPPING_QUOTE_UNAVAILABLE") {
+          setError(data.message || "No pudimos cotizar el envio con datos reales.");
+          setStep("delivery");
+          return;
+        }
+        throw new Error(data.message || "No pudimos procesar el pago con tarjeta.");
+      }
+
+      const redirectUrl = data.redirectUrl || data.redirect_url;
+      if (redirectUrl) {
+        setProcessPhase("confirming");
+        keepBusy = true;
+        router.push(redirectUrl);
+        return;
+      }
+
+      const orderId = data.orderId || data.order_id;
+      if (orderId) {
+        setProcessPhase("confirming");
+        keepBusy = true;
+        router.push(`/pago/pendiente?order_id=${encodeURIComponent(orderId)}`);
+        return;
+      }
+
+      throw new Error("El pago no devolvio un resultado valido.");
+    } catch (checkoutError) {
+      setProcessPhase("error");
+      setError(checkoutError instanceof Error ? checkoutError.message : "No pudimos procesar el pago con tarjeta.");
     } finally {
       checkoutInFlightRef.current = keepBusy;
       if (!keepBusy) {
@@ -894,6 +994,17 @@ export function CheckoutForm({
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
                   <button
                     type="button"
+                    className="payment-mode-button payment-mode-button--card"
+                    aria-pressed={paymentMode === "CARD"}
+                    disabled={loading}
+                    onClick={() => selectPaymentMode("CARD")}
+                  >
+                    <ShieldCheck size={18} />
+                    <strong>Pagar con tarjeta en FZAC</strong>
+                    <span>Completa los datos dentro de la web. La tarjeta se tokeniza de forma segura con Mercado Pago.</span>
+                  </button>
+                  <button
+                    type="button"
                     className="payment-mode-button payment-mode-button--redirect"
                     aria-pressed={paymentMode === "MERCADOPAGO"}
                     disabled={loading}
@@ -927,7 +1038,9 @@ export function CheckoutForm({
                   </button>
                 </div>
                 <p className="payment-method-hint">
-                  {paymentMode === "MERCADOPAGO"
+                  {paymentMode === "CARD"
+                    ? "Esta opcion procesa la tarjeta dentro de FZAC con campos seguros de Mercado Pago. Para pruebas usa tarjetas y comprador de prueba."
+                    : paymentMode === "MERCADOPAGO"
                     ? "Solo esta opcion crea preferencia y abre Mercado Pago."
                     : paymentMode === "BANK_TRANSFER"
                       ? "Transferencia no abre Mercado Pago: el pedido queda pendiente para que FZAC revise stock, total y te envie los datos bancarios."
@@ -960,7 +1073,14 @@ export function CheckoutForm({
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {info ? <p className="notice notice--success">{info}</p> : null}
-                {paymentMode === "MERCADOPAGO" ? (
+                {paymentMode === "CARD" ? (
+                  <MercadoPagoCardForm
+                    amount={total}
+                    customerEmail={customer.email}
+                    disabled={!canSubmit || loading}
+                    onSubmit={(payload) => void startCardPayment(payload)}
+                  />
+                ) : paymentMode === "MERCADOPAGO" ? (
                   <button
                     className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
                     ref={primaryActionRef}
@@ -1008,7 +1128,7 @@ export function CheckoutForm({
         </div>
       </div>
       {showLoadingScreen ? (
-        <CheckoutLoadingScreen method={paymentMode} phase={activeLoadingPhase} errorMessage={error} />
+        <CheckoutLoadingScreen method={paymentMode === "CARD" ? "MERCADOPAGO" : paymentMode} phase={activeLoadingPhase} errorMessage={error} />
       ) : null}
       {termsOpen ? (
         <div className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">

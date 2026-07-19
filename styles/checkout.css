@@ -401,7 +401,7 @@
 
 .payment-mode-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin: 16px 0;
 }
@@ -441,6 +441,7 @@
 }
 
 .payment-mode-button--redirect,
+.payment-mode-button--card,
 .payment-mode-button--transfer,
 .payment-mode-button--whatsapp {
   border-color: rgba(244, 196, 0, 0.28);
