@@ -97,7 +97,12 @@ function friendlyPaymentMethod(payment: {
   provider?: string | null;
   provider_session_id?: string | null;
   provider_preference_id?: string | null;
+  raw?: unknown;
 }) {
+  const raw = payment.raw && typeof payment.raw === "object" ? (payment.raw as Record<string, unknown>) : {};
+  const method = String(raw.method ?? "").toUpperCase();
+  if (method === "BANK_TRANSFER") return "Transferencia pendiente";
+  if (method === "WHATSAPP") return "Coordinacion por WhatsApp";
   const session = String(payment.provider_session_id ?? "").toLowerCase();
   if (session.includes("-transfer")) return "Transferencia pendiente";
   if (session.includes("-bank_transfer")) return "Transferencia pendiente";
@@ -144,7 +149,7 @@ export async function getAdminOrderTableRows(limit = 200) {
   const [{ data: items }, { data: payments }] = orderIds.length
     ? await Promise.all([
         admin.from("order_items").select("order_id,name,quantity").in("order_id", orderIds),
-        admin.from("payments").select("order_id,provider,status,provider_payment_id,provider_preference_id,provider_session_id").in("order_id", orderIds)
+        admin.from("payments").select("order_id,provider,status,provider_payment_id,provider_preference_id,provider_session_id,raw").in("order_id", orderIds)
       ])
     : [{ data: [] }, { data: [] }];
 

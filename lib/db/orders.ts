@@ -115,6 +115,17 @@ function purchaseAutoApprovalLimit() {
   return Number.isFinite(configured) && configured > 0 ? configured : 250000;
 }
 
+function compatibleOrderStatus(status: string) {
+  if (status === "PENDING_TRANSFER" || status === "PENDING_ADMIN_APPROVAL" || status === "COORDINATE") {
+    return "PENDING_PAYMENT";
+  }
+  return status;
+}
+
+function compatiblePaymentProvider(provider: PaymentProvider) {
+  return provider === "BANK_TRANSFER" || provider === "WHATSAPP" ? "MOCK" : provider;
+}
+
 function checkoutSuccessResponse(input: {
   orderId: string;
   paymentId: string;
@@ -407,6 +418,8 @@ export async function createCheckout(input: unknown) {
       : isWhatsApp
         ? "COORDINATE"
         : "PENDING_PAYMENT";
+  const dbOrderStatus = compatibleOrderStatus(orderStatus);
+  const dbProvider = compatiblePaymentProvider(provider);
   if (paymentMethod === "MERCADOPAGO" && !isLargePurchase && !isMercadoPagoEnabled()) {
     throw new MercadoPagoNotConfiguredError();
   }
@@ -419,7 +432,7 @@ export async function createCheckout(input: unknown) {
     .from("orders")
     .insert({
       user_id: userId,
-      status: orderStatus,
+      status: dbOrderStatus,
       customer_name: payload.customer.name,
       customer_email: payload.customer.email,
       customer_phone: payload.customer.phone,
@@ -451,11 +464,17 @@ export async function createCheckout(input: unknown) {
     .from("payments")
     .insert({
       order_id: order.id,
-      provider,
+      provider: dbProvider,
       status: "PENDING",
       amount: total,
       currency: "ars",
-      provider_session_id: idempotencyKey || null
+      provider_session_id: idempotencyKey || null,
+      raw: {
+        method: paymentMethod,
+        provider,
+        flow: payload.paymentFlow ?? null,
+        requested_order_status: orderStatus
+      }
     })
     .select("id")
     .single();
