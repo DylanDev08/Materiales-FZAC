@@ -28,17 +28,33 @@ services:
       - key: SUPABASE_PRODUCT_IMAGES_BUCKET
         value: product-images
       - key: PAYMENTS_ENABLED
-        value: "false"
+        value: "true"
       - key: PAYMENT_ENABLED
-        value: "false"
+        value: "true"
       - key: PAYMENTS_ENV
         value: test
       - key: PAYMENTS_PROVIDER
         value: mercadopago
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
+        sync: false
+      - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: PURCHASE_AUTO_APPROVAL_LIMIT
+        value: "250000"
       - key: ADMIN_EMAILS
         sync: false
       - key: ADMIN_CONSOLE_PATH
         value: /fzac-admin-crs-2026
+      - key: SENDER_API_KEY
+        sync: false
+      - key: SENDER_FROM_EMAIL
+        sync: false
+      - key: SENDER_FROM_NAME
+        value: Materiales FZAC
+      - key: ASSISTANT_PERSISTENCE_ENABLED
+        value: "true"
       - key: NEXT_PUBLIC_FZAC_WHATSAPP
         value: "+5493415847000"
       - key: FZAC_WHATSAPP
