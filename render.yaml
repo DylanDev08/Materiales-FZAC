@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free
     branch: main
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
+    buildCommand: npm ci && NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run build
+    startCommand: NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
@@ -15,10 +15,6 @@ services:
         value: production
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
-      - key: NEXT_PUBLIC_SITE_URL
-        value: https://materiales-fzac.onrender.com
-      - key: NEXT_PUBLIC_API_URL
-        value: https://materiales-fzac.onrender.com/api
       - key: NEXT_PUBLIC_SUPABASE_URL
         value: https://gooxgjzetziwnxhuymmx.supabase.co
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
