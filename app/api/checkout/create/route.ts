@@ -2,7 +2,7 @@ import { ZodError } from "zod";
 import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { checkoutCreateSchema } from "@/lib/validations/checkout";
 
 function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
@@ -16,7 +16,7 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-create"), 12, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) return jsonError("Demasiados intentos. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = checkoutCreateSchema.parse(await request.json());
@@ -25,7 +25,15 @@ export async function POST(request: Request) {
     return Response.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
-      return jsonError(error.issues[0]?.message ?? "Datos de checkout invalidos.", 422);
+      const issue = error.issues[0]?.message;
+      return Response.json(
+        {
+          ok: false,
+          error: "VALIDATION_ERROR",
+          message: issue && issue !== "Required" ? issue : "Completa los datos requeridos para continuar."
+        },
+        { status: 422 }
+      );
     }
     if (error instanceof InsufficientStockError) {
       return Response.json(
@@ -59,11 +67,15 @@ export async function POST(request: Request) {
         { status: 422 }
       );
     }
-    if (error instanceof Error && error.message.startsWith("El proveedor de pago rechazo")) {
+    if (
+      error instanceof Error &&
+      (error.message.startsWith("El proveedor de pago rechazo") ||
+        error.message.startsWith("El proveedor de pago no devolvio"))
+    ) {
       return Response.json(
         {
           error: "PAYMENT_PREFERENCE_REJECTED",
-          message: "No pudimos iniciar Mercado Pago. Revisamos la configuracion del retorno y podes intentar nuevamente."
+          message: "No pudimos iniciar Mercado Pago. Revisa que las credenciales correspondan al entorno configurado."
         },
         { status: 502 }
       );

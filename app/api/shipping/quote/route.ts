@@ -1,7 +1,7 @@
 import { ZodError, z } from "zod";
 import { quoteDeliveryForAddress } from "@/lib/shipping/quote";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { hasSqlMeta } from "@/lib/validations/security";
 
 const addressSchema = z
@@ -18,7 +18,7 @@ const addressSchema = z
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "shipping-quote"), 24, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas cotizaciones. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) return jsonError("Demasiadas cotizaciones. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = addressSchema.parse(await request.json());

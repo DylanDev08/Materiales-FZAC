@@ -29,28 +29,34 @@ export function ProductDetail({ product, related }: { product: Product; related:
 
         <section className="product-info-grid">
           <article>
-            <h2>Descripcion</h2>
+            <h2>Descripción</h2>
             <p>{product.description}</p>
           </article>
           <article>
-            <h2>Ficha tecnica</h2>
-            <ul>
-              {Object.entries(product.specifications).map(([key, value]) => (
-                <li key={key}>
-                  <strong>{key}:</strong> {String(value)}
-                </li>
-              ))}
-            </ul>
+            <details open>
+              <summary>Ficha técnica</summary>
+              <ul>
+                {Object.entries(product.specifications).map(([key, value]) => (
+                  <li key={key}>
+                    <strong>{key}:</strong> {String(value)}
+                  </li>
+                ))}
+              </ul>
+            </details>
           </article>
           <article>
             <h2>Entrega y retiro</h2>
-            <p>Retiro coordinado en FZAC o envio a domicilio acordado por administracion segun direccion y disponibilidad.</p>
+            <p>Retiro coordinado en FZAC o envío a domicilio acordado por administración según dirección y disponibilidad.</p>
+          </article>
+          <article>
+            <h2>Medios de pago</h2>
+            <p>Mercado Pago, transferencia pendiente de revisión o coordinación por WhatsApp desde el checkout.</p>
           </article>
         </section>
 
         <section className="page-section">
           <SectionHeader eyebrow="Complementarios" title="Productos relacionados" />
-          <ProductGrid products={related} />
+          <ProductGrid products={related} variant="rail" />
         </section>
       </div>
     </main>

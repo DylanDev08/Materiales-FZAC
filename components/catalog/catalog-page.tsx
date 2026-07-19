@@ -1,8 +1,11 @@
-import { BadgePercent, MessageCircle, Search, ShieldCheck, Truck } from "lucide-react";
+import { Suspense } from "react";
+import Link from "next/link";
+import { ArrowRight, Boxes, ChevronRight, PackageSearch } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
-import { getCategories, getProducts } from "@/lib/db/catalog";
-import { getWhatsAppHref } from "@/lib/utils/contact";
+import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
+import { CatalogViewToggle } from "@/components/catalog/catalog-view-toggle";
+import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -14,11 +17,13 @@ function value(params: SearchParams, key: string) {
 
 export async function CatalogPage({
   searchParams,
-  title = "Catalogo FZAC",
+  title = "Catálogo FZAC",
+  description,
   forcedFilters = {}
 }: {
   searchParams: SearchParams;
   title?: string;
+  description?: string;
   forcedFilters?: ProductFilters;
 }) {
   const filters: ProductFilters = {
@@ -29,12 +34,12 @@ export async function CatalogPage({
     maxPrice: value(searchParams, "maxPrice") ? Number(value(searchParams, "maxPrice")) : undefined,
     inStock: value(searchParams, "inStock") === "true",
     onSale: value(searchParams, "onSale") === "true",
+    featured: value(searchParams, "featured") === "true",
     order: value(searchParams, "order") as ProductFilters["order"],
     ...forcedFilters
   };
 
-  const [categories, products] = await Promise.all([getCategories(), getProducts(filters)]);
-  const helpHref = getWhatsAppHref("Hola FZAC, necesito asesoramiento para elegir materiales del catalogo.");
+  const [categories, products, facets] = await Promise.all([getCategories(), getProducts(filters), getCatalogFacets()]);
   const filterValues = {
     search: value(searchParams, "search"),
     category: forcedFilters.category ?? value(searchParams, "category"),
@@ -43,60 +48,81 @@ export async function CatalogPage({
     maxPrice: value(searchParams, "maxPrice"),
     order: value(searchParams, "order"),
     inStock: value(searchParams, "inStock"),
-    onSale: forcedFilters.onSale ? "true" : value(searchParams, "onSale")
+    onSale: forcedFilters.onSale ? "true" : value(searchParams, "onSale"),
+    featured: forcedFilters.featured ? "true" : value(searchParams, "featured")
   };
+  const view = value(searchParams, "view") === "list" ? "list" : "grid";
+  const lockedCategory = forcedFilters.category;
+  const lead =
+    description ||
+    (lockedCategory
+      ? "Explorá productos del rubro, compará disponibilidad y filtrá sin salir de la categoría."
+      : "Encontrá materiales por rubro, marca, precio y disponibilidad real.");
 
   return (
-    <main>
-      <section className="catalog-filter-band">
-        <div className="container">
-          <CatalogFilters categories={categories} values={filterValues} />
-        </div>
-      </section>
-
-      <section className="catalog-hero">
-        <div className="container catalog-hero__inner">
+    <main className="catalog-page">
+      <section className="catalog-masthead">
+        <div className="container catalog-masthead__inner">
           <div>
-            <span className="kicker">Tienda online</span>
+            <span className="kicker">Tienda FZAC</span>
             <h1>{title}</h1>
-            <p>Busca, filtra y compra materiales con stock y precios validados al iniciar el checkout.</p>
+            <p>{lead}</p>
           </div>
-          <div className="catalog-hero__chips" aria-label="Ventajas del catalogo">
+          <Link className="catalog-masthead__categories" href="/categorias">
+            <Boxes size={22} />
             <span>
-              <Search size={17} /> Busqueda instantanea
+              <small>Explorar por proyecto</small>
+              <strong>Ver todos los rubros</strong>
             </span>
-            <span>
-              <BadgePercent size={17} /> Ofertas visibles
-            </span>
-            <span>
-              <Truck size={17} /> Envio o retiro
-            </span>
-            <span>
-              <ShieldCheck size={17} /> Pago seguro
-            </span>
-          </div>
+            <ChevronRight size={18} />
+          </Link>
         </div>
       </section>
 
-      <section className="page-section">
+      <section className="catalog-controls-shell">
         <div className="container">
-          <section className="catalog-content">
-            <div className="catalog-toolbar">
-              <p>{products.length} productos visibles</p>
-              <span className="status-pill">Vista grid</span>
+          <nav className="catalog-category-rail" aria-label="Rubros de productos">
+            <Link href="/productos" className={!lockedCategory ? "is-active" : ""}>
+              Todos
+            </Link>
+            {categories.map((category) => (
+              <Link
+                href={`/categoria/${category.slug}`}
+                className={lockedCategory === category.slug ? "is-active" : ""}
+                key={category.id}
+              >
+                {category.name}
+              </Link>
+            ))}
+          </nav>
+          <Suspense fallback={<CatalogFiltersSkeleton />}>
+            <CatalogFilters categories={categories} brands={facets.brands} lockedCategory={lockedCategory} values={filterValues} />
+          </Suspense>
+        </div>
+      </section>
+
+      <section className="catalog-results page-section">
+        <div className="container">
+          <div className="catalog-toolbar">
+            <div>
+              <strong>{products.length}</strong>
+              <span>{products.length === 1 ? "producto encontrado" : "productos encontrados"}</span>
             </div>
-            <ProductGrid products={products} />
-            <div className="catalog-help-band">
-              <div>
-                <span className="kicker">Asesoramiento</span>
-                <h2>¿También necesitás accesorios o cantidades?</h2>
-                <p>FZAC puede ayudarte a completar el pedido con materiales relacionados, medidas y disponibilidad real.</p>
-              </div>
-              <a className="btn btn--ghost" href={helpHref} target="_blank" rel="noreferrer">
-                <MessageCircle size={18} /> Consultar por WhatsApp
-              </a>
+            <Suspense fallback={<CatalogViewToggleSkeleton />}>
+              <CatalogViewToggle />
+            </Suspense>
+          </div>
+          <ProductGrid products={products} variant={view} />
+          <div className="catalog-help-band">
+            <PackageSearch size={24} />
+            <div>
+              <h2>¿No encontrás la medida o el material?</h2>
+              <p>Usá el centro de ayuda para buscar equivalencias, calcular cantidades o revisar disponibilidad.</p>
             </div>
-          </section>
+            <Link className="btn btn--ghost" href="/contacto?tema=productos">
+              Centro de ayuda <ArrowRight size={17} />
+            </Link>
+          </div>
         </div>
       </section>
     </main>

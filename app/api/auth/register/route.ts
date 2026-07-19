@@ -1,14 +1,16 @@
 import { ZodError } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { createSignupWithSender } from "@/lib/auth/email-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getSiteUrl } from "@/lib/utils/env";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-register"), 5, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429);
+  if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = registerSchema.parse(await request.json());
@@ -16,37 +18,50 @@ export async function POST(request: Request) {
 
     if (admin) {
       const { data: existingProfile } = await admin.from("profiles").select("id").eq("email", payload.email).maybeSingle();
-      if (existingProfile) return jsonError("Ya existe una cuenta con ese email. Inicia sesion.", 409);
+      if (existingProfile) return jsonError("Ya existe una cuenta con este email. Proba iniciar sesion.", 409);
     }
 
-    const supabase = await getSupabaseServerClient();
-    if (!supabase) return jsonError("El registro no esta disponible en este momento.", 503);
-
-    const { data, error } = await supabase.auth.signUp({
+    let user = null;
+    const senderSignup = await createSignupWithSender({
       email: payload.email,
       password: payload.password,
-      options: {
-        data: { full_name: payload.name, phone: payload.phone || null },
-        emailRedirectTo: `${new URL(request.url).origin}/auth/callback`
-      }
+      name: payload.name,
+      phone: payload.phone || null
     });
 
-    if (error) {
-      const duplicate = /already|registered|exists/i.test(error.message);
-      return jsonError(
-        duplicate ? "Ya existe una cuenta con ese email. Inicia sesion." : "No pudimos crear la cuenta. Revisa los datos e intenta nuevamente.",
-        duplicate ? 409 : 400
-      );
+    if (senderSignup) {
+      user = senderSignup.user;
+    } else {
+      const supabase = await getSupabaseServerClient();
+      if (!supabase) return jsonError("El registro no esta disponible en este momento.", 503);
+
+      const { data, error } = await supabase.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: { full_name: payload.name, phone: payload.phone || null },
+          emailRedirectTo: `${getSiteUrl()}/auth/callback`
+        }
+      });
+
+      if (error) {
+        const duplicate = /already|registered|exists/i.test(error.message);
+        return jsonError(
+          duplicate ? "Ya existe una cuenta con este email. Proba iniciar sesion." : "No pudimos crear la cuenta. Revisa los datos e intenta nuevamente.",
+          duplicate ? 409 : 400
+        );
+      }
+      user = data.user;
     }
 
-    if (admin && data.user?.id && isAdminEmail(payload.email)) {
+    if (admin && user?.id && isAdminEmail(payload.email)) {
       await admin.from("profiles").upsert(
         {
-          id: data.user.id,
+          id: user.id,
           email: payload.email,
           full_name: payload.name,
           phone: payload.phone || null,
-          avatar_url: data.user.user_metadata?.avatar_url ?? null,
+          avatar_url: user.user_metadata?.avatar_url ?? null,
           role: "ADMIN",
           updated_at: new Date().toISOString()
         },
@@ -54,9 +69,12 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({ target: "/login?registered=true" });
+    return Response.json({ target: "/login?registered=true", message: "Cuenta creada correctamente. Revisa tu email para confirmar el acceso." });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
+    if (error instanceof Error && /already|registered|exists/i.test(error.message)) {
+      return jsonError("Ya existe una cuenta con este email. Proba iniciar sesion.", 409);
+    }
     return jsonError("No pudimos crear la cuenta.", 500);
   }
 }

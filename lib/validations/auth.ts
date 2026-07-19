@@ -16,6 +16,7 @@ export function passwordChecks(password: string, email = "", name = "") {
     { id: "length", label: "8 caracteres minimo", ok: password.length >= 8 },
     { id: "letter", label: "Una letra", ok: /[A-Za-z]/.test(password) },
     { id: "number", label: "Un numero", ok: /\d/.test(password) },
+    { id: "trim", label: "Sin espacios al inicio o final", ok: password === password.trim() },
     { id: "common", label: "No comun ni obvia", ok: !COMMON_PASSWORDS.some((item) => normalizedPassword.includes(item)) },
     {
       id: "personal",
@@ -40,18 +41,36 @@ const safeText = (label: string, min: number, max: number) =>
     .max(max)
     .refine((value) => !hasSqlMeta(value), `${label} contiene caracteres no permitidos.`);
 
+const nameSchema = safeText("Nombre", 2, 120).refine(
+  (value) => /^[\p{L}\p{M}\s.'-]+$/u.test(value),
+  "Completa tu nombre con caracteres validos."
+);
+
+const phoneSchema = safeText("Telefono", 6, 40).refine(
+  (value) => /^\+?[0-9\s().-]{6,40}$/.test(value),
+  "Ingresa un telefono valido."
+);
+
+const passwordSchema = z
+  .string()
+  .min(8, "La contrasena debe tener al menos 8 caracteres, una letra y un numero.")
+  .max(128, "La contrasena es demasiado larga.")
+  .refine((value) => value === value.trim(), "La contrasena no puede empezar o terminar con espacios.")
+  .refine((value) => /[A-Za-z]/.test(value), "La contrasena debe tener al menos una letra.")
+  .refine((value) => /\d/.test(value), "La contrasena debe tener al menos un numero.");
+
 export const loginSchema = z.object({
   email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
-  password: z.string().min(1, "Ingresa tu contrasena."),
+  password: passwordSchema,
   hp: z.string().max(0).optional()
 });
 
 export const registerSchema = z
   .object({
-    name: safeText("Nombre", 2, 120),
-    phone: safeText("Telefono", 6, 40).optional().or(z.literal("")),
+    name: nameSchema,
+    phone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
-    password: z.string().min(8, "La contrasena debe tener al menos 8 caracteres."),
+    password: passwordSchema,
     confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres."),
     acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar terminos y privacidad." }) }),
     hp: z.string().max(0).optional()
@@ -62,6 +81,22 @@ export const registerSchema = z
     }
 
     for (const check of passwordChecks(value.password, value.email, value.name)) {
+      if (!check.ok) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contrasena debe cumplir: ${check.label}.` });
+      }
+    }
+  });
+
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres.")
+  })
+  .superRefine((value, context) => {
+    if (value.password !== value.confirmPassword) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Las contrasenas no coinciden." });
+    }
+    for (const check of passwordChecks(value.password)) {
       if (!check.ok) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contrasena debe cumplir: ${check.label}.` });
       }

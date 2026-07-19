@@ -90,3 +90,21 @@ export function PaymentCardSkeleton() {
 export function ProductFloatingCardSkeleton() {
   return <span className="admin-skeleton admin-skeleton--product-card" aria-label="Cargando producto" />;
 }
+
+export function ProductFloatingItemSkeleton() {
+  return <span className="admin-skeleton admin-skeleton--floating-product-item" aria-label="Cargando producto" />;
+}
+
+export function ProductDetailSkeleton() {
+  return (
+    <section className="admin-skeleton-product-detail" aria-label="Cargando detalle de producto">
+      <span className="admin-skeleton admin-skeleton--product-gallery" />
+      <aside>
+        <span className="admin-skeleton admin-skeleton--wide" />
+        <span className="admin-skeleton admin-skeleton--value" />
+        <span className="admin-skeleton admin-skeleton--text" />
+        <span className="admin-skeleton admin-skeleton--button-wide" />
+      </aside>
+    </section>
+  );
+}

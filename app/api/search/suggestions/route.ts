@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getProductSuggestions } from "@/lib/db/catalog";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 const schema = z.object({
   q: z.string().optional()
@@ -10,7 +10,7 @@ const schema = z.object({
 
 export async function GET(request: Request) {
   const limit = rateLimit(getRequestKey(request, "search-suggestions"), 90, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas busquedas. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) return jsonError("Demasiadas busquedas. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const parsed = schema.safeParse(params);

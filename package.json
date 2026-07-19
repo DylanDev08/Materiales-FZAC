@@ -13,6 +13,8 @@
     "start": "next start -H 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "security:check": "node scripts/security-check.mjs",
+    "test:load": "node scripts/load-smoke.mjs",
     "db:types": "supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
     "db:push": "supabase db push",
     "db:seed": "supabase db reset --linked"

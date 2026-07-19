@@ -17,8 +17,8 @@ export async function GET() {
 
   const { data, error } = await admin
     .from("notifications")
-    .select("*")
-    .or("target_role.eq.ADMIN,user_id.is.null")
+    .select("id,type,title,message,link_to,read,created_at")
+    .eq("target_role", "ADMIN")
     .order("created_at", { ascending: false })
     .limit(100);
 

@@ -1,14 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Loader2, LogIn, MailWarning } from "lucide-react";
+import { CheckCircle, Loader2, LogIn } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
 
+type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | "confirmPassword" | "acceptedTerms", string>>;
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
+  const submitInFlightRef = useRef(false);
+  const googleInFlightRef = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,59 +20,65 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [phone, setPhone] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hp, setHp] = useState("");
-  const [emailExists, setEmailExists] = useState(false);
-  const [checkingEmail, setCheckingEmail] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [successLocked, setSuccessLocked] = useState(false);
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
 
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
   const checks = useMemo(() => passwordChecks(password, normalizedEmail, name), [password, normalizedEmail, name]);
   const passwordOk = checks.every((check) => check.ok);
 
-  useEffect(() => {
-    if (mode !== "register" || !normalizedEmail.includes("@")) {
-      return;
+  function clearFieldError(field: keyof AuthFieldErrors) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function validateClientForm() {
+    const errors: AuthFieldErrors = {};
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      errors.email = "Ingresa un email valido.";
+    }
+    if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || password !== password.trim()) {
+      errors.password = "La contrasena debe tener al menos 8 caracteres, una letra y un numero.";
     }
 
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setCheckingEmail(true);
-      try {
-        const response = await fetch("/api/auth/email-exists", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: normalizedEmail }),
-          signal: controller.signal
-        });
-        const data = (await response.json()) as { exists?: boolean };
-        setEmailExists(Boolean(data.exists));
-      } catch {
-        if (!controller.signal.aborted) setEmailExists(false);
-      } finally {
-        if (!controller.signal.aborted) setCheckingEmail(false);
-      }
-    }, 180);
+    if (mode === "register") {
+      if (name.trim().length < 2) errors.name = "Completa tu nombre.";
+      if (name.trim() && !/^[\p{L}\p{M}\s.'-]+$/u.test(name.trim())) errors.name = "Completa tu nombre con caracteres validos.";
+      if (phone.trim() && !/^\+?[0-9\s().-]{6,40}$/.test(phone.trim())) errors.phone = "Ingresa un telefono valido.";
+      if (!passwordOk) errors.password = "La contrasena debe cumplir todas las reglas.";
+      if (password !== confirmPassword) errors.confirmPassword = "Las contrasenas no coinciden.";
+      if (!acceptedTerms) errors.acceptedTerms = "Acepta terminos y privacidad para crear la cuenta.";
+    }
 
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [mode, normalizedEmail]);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setMessage("Revisa los campos marcados antes de continuar.");
+      return false;
+    }
+    return true;
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitInFlightRef.current || successLocked) return;
+    if (!validateClientForm()) return;
+
+    submitInFlightRef.current = true;
     setLoading(true);
     setMessage("");
 
     if (mode === "register") {
-      if (emailExists) {
-        setMessage("Ya existe una cuenta con ese email. Inicia sesion.");
-        setLoading(false);
-        return;
-      }
       if (!passwordOk || password !== confirmPassword || !acceptedTerms) {
         setMessage("Revisa contrasena, confirmacion y terminos antes de registrarte.");
         setLoading(false);
+        submitInFlightRef.current = false;
         return;
       }
     }
@@ -85,64 +95,69 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       });
       const data = (await response.json()) as { target?: string; message?: string };
       if (!response.ok) throw new Error(data.message || "No pudimos completar la operacion.");
+      if (mode === "register") {
+        setSuccessLocked(true);
+        setMessage(data.message || "Cuenta creada correctamente. Revisa tu sesion para continuar.");
+        window.setTimeout(() => router.push(data.target || "/login?registered=true"), 750);
+        return;
+      }
       router.push(data.target || (mode === "login" ? "/cuenta" : "/login?registered=true"));
     } catch (authError) {
       setMessage(authError instanceof Error ? authError.message : "No pudimos conectar con el servidor.");
     } finally {
       setLoading(false);
+      submitInFlightRef.current = false;
     }
   }
 
   async function googleLogin() {
+    if (googleInFlightRef.current) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setMessage("El ingreso con Google no esta disponible en este momento.");
       return;
     }
 
+    googleInFlightRef.current = true;
+    setGoogleLoading(true);
+    setMessage("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
 
-    if (error) setMessage("No pudimos iniciar sesion con Google. Proba nuevamente o ingresa con email.");
-  }
-
-  async function recoverPassword() {
-    if (!normalizedEmail) {
-      setMessage("Ingresa tu email para enviar el link de recuperacion.");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/recover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail })
-      });
-      const data = (await response.json()) as { message?: string };
-      if (!response.ok) throw new Error(data.message || "No pudimos enviar el email de recuperacion.");
-      setMessage(data.message || "Te enviamos el link de recuperacion a tu email.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No pudimos enviar el email de recuperacion.");
+    if (error) {
+      setMessage("No pudimos conectar con Google. Intenta nuevamente.");
+      googleInFlightRef.current = false;
+      setGoogleLoading(false);
     }
   }
 
   return (
     <main className="auth-page">
       <section className="auth-panel">
-        <span className="brand__mark brand__mark--logo auth-logo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logoFZAC.jpg" alt="FZAC" />
-        </span>
-        <span className="kicker">{mode === "login" ? "Ingresar" : "Registro"}</span>
-        <h1>{mode === "login" ? "Accede a tu cuenta FZAC" : "Crea tu cuenta FZAC"}</h1>
-        <p>Ingresa con email o Google. Tus datos se validan de forma segura y el acceso admin se controla desde servidor.</p>
+        <div className="auth-panel__head">
+          <span className="brand__mark brand__mark--logo auth-logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logoFZAC.jpg" alt="FZAC" />
+          </span>
+          <div>
+            <span className="kicker">{mode === "login" ? "Ingresar" : "Registro"}</span>
+            <h1>{mode === "login" ? "Accede a tu cuenta FZAC" : "Crea tu cuenta FZAC"}</h1>
+            <p>Ingresa con email o Google. Tus datos se validan de forma segura y el acceso admin se controla desde servidor.</p>
+          </div>
+        </div>
 
-        <button className="btn btn--ghost" type="button" onClick={googleLogin}>
-          <LogIn size={18} />
+        <button className="btn btn--ghost auth-google" type="button" onClick={googleLogin} disabled={loading || googleLoading || successLocked}>
+          {googleLoading ? <Loader2 size={18} /> : <LogIn size={18} />}
           Continuar con Google
         </button>
+
+        <div className="auth-divider">
+          <span />
+          <small>o ingresa con email</small>
+          <span />
+        </div>
 
         <form onSubmit={submit}>
           <input aria-hidden="true" className="auth-hp" tabIndex={-1} value={hp} onChange={(event) => setHp(event.target.value)} />
@@ -150,11 +165,32 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             <>
               <label className="field">
                 Nombre y apellido
-                <input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} autoComplete="name" />
+                <input
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    clearFieldError("name");
+                  }}
+                  required
+                  minLength={2}
+                  autoComplete="name"
+                  aria-invalid={Boolean(fieldErrors.name)}
+                />
+                {fieldErrors.name ? <span className="auth-field-error">{fieldErrors.name}</span> : null}
               </label>
               <label className="field">
-                Telefono
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} required minLength={6} autoComplete="tel" />
+                Telefono (opcional)
+                <input
+                  value={phone}
+                  onChange={(event) => {
+                    setPhone(event.target.value);
+                    clearFieldError("phone");
+                  }}
+                  minLength={6}
+                  autoComplete="tel"
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                />
+                {fieldErrors.phone ? <span className="auth-field-error">{fieldErrors.phone}</span> : null}
               </label>
             </>
           ) : null}
@@ -164,30 +200,30 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               type="email"
               value={email}
               onChange={(event) => {
-                const next = event.target.value;
-                setEmail(next);
-                if (!next.includes("@")) setEmailExists(false);
+                setEmail(event.target.value);
+                clearFieldError("email");
               }}
               required
               autoComplete="email"
+              aria-invalid={Boolean(fieldErrors.email)}
             />
+            {fieldErrors.email ? <span className="auth-field-error">{fieldErrors.email}</span> : null}
           </label>
-          {mode === "register" && checkingEmail ? <p className="auth-inline">Verificando email...</p> : null}
-          {mode === "register" && emailExists ? (
-            <p className="notice notice--danger">
-              <MailWarning size={17} /> Ya existe una cuenta con ese email. Inicia sesion.
-            </p>
-          ) : null}
           <label className="field">
             Contrasena
             <input
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                clearFieldError("password");
+              }}
               required
               minLength={mode === "register" ? 8 : 1}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
+              aria-invalid={Boolean(fieldErrors.password)}
             />
+            {fieldErrors.password ? <span className="auth-field-error">{fieldErrors.password}</span> : null}
           </label>
           {mode === "register" ? (
             <>
@@ -203,15 +239,27 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 <input
                   type="password"
                   value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    clearFieldError("confirmPassword");
+                  }}
                   required
                   minLength={8}
                   autoComplete="new-password"
+                  aria-invalid={Boolean(fieldErrors.confirmPassword)}
                 />
+                {fieldErrors.confirmPassword ? <span className="auth-field-error">{fieldErrors.confirmPassword}</span> : null}
               </label>
               <label className="field auth-terms">
                 <span>
-                  <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} /> Acepto{" "}
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(event) => {
+                      setAcceptedTerms(event.target.checked);
+                      clearFieldError("acceptedTerms");
+                    }}
+                  /> Acepto{" "}
                   <Link href="/terminos" target="_blank">
                     terminos
                   </Link>{" "}
@@ -221,22 +269,25 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   </Link>
                   .
                 </span>
+                {fieldErrors.acceptedTerms ? <span className="auth-field-error">{fieldErrors.acceptedTerms}</span> : null}
               </label>
             </>
           ) : null}
-          <button className="btn" type="submit" disabled={loading || (mode === "register" && emailExists)}>
+          <button className="btn" type="submit" disabled={loading || successLocked}>
             {loading ? <Loader2 size={18} /> : null}
-            {mode === "login" ? "Ingresar" : "Registrarme"}
+            {loading ? "Validando..." : mode === "login" ? "Ingresar" : "Registrarme"}
           </button>
         </form>
 
         {mode === "login" ? (
-          <button className="auth-link-button" type="button" onClick={recoverPassword}>
-            Recuperar contrasena
-          </button>
+          <Link className="auth-link-button" href="/recuperar">Recuperar contrasena</Link>
         ) : null}
 
-        {message ? <p className={message.includes("enviamos") ? "notice notice--success" : "notice notice--danger"}>{message}</p> : null}
+        {message ? (
+          <p className={message.includes("enviamos") || message.includes("Cuenta creada") ? "notice notice--success" : "notice notice--danger"}>
+            {message}
+          </p>
+        ) : null}
 
         <p>
           {mode === "login" ? (

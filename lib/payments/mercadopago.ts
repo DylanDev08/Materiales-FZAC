@@ -1,7 +1,12 @@
 import "server-only";
 
 import { MercadoPagoConfig, Preference } from "mercadopago";
-import { assertMercadoPagoConfigured, isMercadoPagoConfigured, isTestPaymentEnv } from "@/lib/payments/config";
+import {
+  assertMercadoPagoConfigured,
+  getMercadoPagoEnvironmentState,
+  isMercadoPagoConfigured,
+  isTestPaymentEnv
+} from "@/lib/payments/config";
 import type { Product } from "@/types/domain";
 
 type PreferenceInput = {
@@ -34,6 +39,23 @@ type CardPaymentInput = {
   };
 };
 
+type RefundInput = {
+  providerPaymentId: string;
+  idempotencyKey: string;
+};
+
+export class MercadoPagoRefundError extends Error {
+  code: string;
+  status: number;
+
+  constructor(code: string, status: number) {
+    super("Mercado Pago no pudo procesar el reembolso.");
+    this.name = "MercadoPagoRefundError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 function safeUrl(value: string) {
   try {
     const url = new URL(value);
@@ -63,12 +85,18 @@ function isPublicHttpsUrl(url: URL | null) {
 function safePreferenceLogContext(input: {
   orderId: string;
   paymentId?: string;
+  payerEmail?: string;
   itemsCount: number;
   total: number;
   checkoutSiteUrl: URL | null;
   webhookSiteUrl: URL | null;
+  preferenceId?: string | null;
+  redirectUrl?: string | null;
+  initPoint?: string | null;
+  sandboxInitPoint?: string | null;
 }) {
   return {
+    ...getMercadoPagoEnvironmentState(),
     order_id: input.orderId,
     payment_id: input.paymentId ?? null,
     external_reference: input.orderId,
@@ -76,8 +104,21 @@ function safePreferenceLogContext(input: {
     total: input.total,
     has_back_urls: Boolean(input.checkoutSiteUrl),
     has_notification_url: Boolean(input.webhookSiteUrl),
-    uses_public_return_url: isPublicHttpsUrl(input.checkoutSiteUrl)
+    uses_public_return_url: isPublicHttpsUrl(input.checkoutSiteUrl),
+    preference_id: input.preferenceId ?? null,
+    redirect_url_exists: Boolean(input.redirectUrl),
+    sandbox_init_point_exists: Boolean(input.sandboxInitPoint),
+    init_point_exists: Boolean(input.initPoint)
   };
+}
+
+function developmentPaymentLog(
+  level: "info" | "warn" | "error",
+  message: string,
+  context: Record<string, unknown>
+) {
+  if (process.env.NODE_ENV === "production") return;
+  console[level](message, context);
 }
 
 function safeMercadoPagoError(error: unknown) {
@@ -169,14 +210,16 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     : {};
 
   const preference = new Preference(createMercadoPagoClient(accessToken));
-  console.info("[mercadopago.preference.create]", safePreferenceLogContext({
+  const createLogContext = safePreferenceLogContext({
     orderId: input.orderId,
     paymentId: input.paymentId,
+    payerEmail: input.customer.email,
     itemsCount: items.length,
     total: input.total,
     checkoutSiteUrl,
     webhookSiteUrl
-  }));
+  });
+  developmentPaymentLog("info", "[mercadopago.preference.create]", createLogContext);
 
   const data = (await preference
     .create({
@@ -203,10 +246,11 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
       requestOptions: { idempotencyKey: input.idempotencyKey || `fzac-pref-${input.orderId}` }
     })
     .catch((error) => {
-      console.error("[mercadopago.preference.error]", {
+      developmentPaymentLog("error", "[mercadopago.preference.error]", {
         ...safePreferenceLogContext({
           orderId: input.orderId,
           paymentId: input.paymentId,
+          payerEmail: input.customer.email,
           itemsCount: items.length,
           total: input.total,
           checkoutSiteUrl,
@@ -216,17 +260,30 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
       });
       throw new Error(`El proveedor de pago rechazo la preferencia: ${sdkPreferenceErrorMessage(error)}`);
     })) as { id?: string; init_point?: string; sandbox_init_point?: string };
-  const redirectUrl = isTestPaymentEnv()
-    ? data.sandbox_init_point || data.init_point || null
-    : data.init_point || data.sandbox_init_point || null;
-
-  console.info("[mercadopago.preference.created]", {
-    order_id: input.orderId,
-    payment_id: input.paymentId ?? null,
-    external_reference: input.orderId,
-    preference_id: data.id ?? null,
-    redirect_url_exists: Boolean(redirectUrl)
+  const testMode = isTestPaymentEnv();
+  const redirectUrl = testMode ? data.sandbox_init_point || data.init_point || null : data.init_point || null;
+  const createdLogContext = safePreferenceLogContext({
+    orderId: input.orderId,
+    paymentId: input.paymentId,
+    payerEmail: input.customer.email,
+    itemsCount: items.length,
+    total: input.total,
+    checkoutSiteUrl,
+    webhookSiteUrl,
+    preferenceId: data.id ?? null,
+    redirectUrl,
+    initPoint: data.init_point ?? null,
+    sandboxInitPoint: data.sandbox_init_point ?? null
   });
+
+  if (testMode && !data.sandbox_init_point && data.init_point) {
+    developmentPaymentLog("warn", "[mercadopago.preference.test_fallback]", {
+      ...createdLogContext,
+      message: "PAYMENTS_ENV=test pero Mercado Pago no devolvio sandbox_init_point; se usa init_point como fallback."
+    });
+  }
+
+  developmentPaymentLog("info", "[mercadopago.preference.created]", createdLogContext);
 
   return {
     preference_id: data.id ?? "",
@@ -248,9 +305,7 @@ export async function getMercadoPagoPreference(preferenceId: string) {
     sandbox_init_point?: string;
   } | null;
   if (!data) return null;
-  const redirectUrl = isTestPaymentEnv()
-    ? data.sandbox_init_point || data.init_point || null
-    : data.init_point || data.sandbox_init_point || null;
+  const redirectUrl = isTestPaymentEnv() ? data.sandbox_init_point || data.init_point || null : data.init_point || null;
 
   return {
     preference_id: data.id ?? "",
@@ -273,6 +328,42 @@ export async function getMercadoPagoPayment(paymentId: string) {
 
   if (!response.ok) throw new Error("No pudimos consultar el pago en el proveedor configurado.");
   return response.json() as Promise<Record<string, unknown>>;
+}
+
+export async function createMercadoPagoRefund(input: RefundInput) {
+  const { accessToken } = assertMercadoPagoConfigured();
+  const providerPaymentId = input.providerPaymentId.trim();
+  const idempotencyKey = input.idempotencyKey.trim().slice(0, 64);
+  if (!providerPaymentId || !idempotencyKey) throw new MercadoPagoRefundError("INVALID_REFUND_REQUEST", 422);
+
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${encodeURIComponent(providerPaymentId)}/refunds`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idempotencyKey
+      },
+      body: "{}",
+      cache: "no-store"
+    }
+  );
+
+  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) {
+    const cause = Array.isArray(data.cause) ? (data.cause[0] as Record<string, unknown> | undefined) : undefined;
+    const code = String(data.error ?? cause?.code ?? `MP_REFUND_${response.status}`).slice(0, 80);
+    throw new MercadoPagoRefundError(code, response.status);
+  }
+
+  return {
+    id: data.id ? String(data.id) : null,
+    paymentId: data.payment_id ? String(data.payment_id) : providerPaymentId,
+    status: String(data.status ?? "approved"),
+    amount: Number(data.amount ?? 0),
+    raw: data
+  };
 }
 
 export async function createMercadoPagoCardPayment(input: CardPaymentInput) {

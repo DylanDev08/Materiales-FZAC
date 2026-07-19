@@ -44,15 +44,45 @@ export const getSiteUrl = readSiteUrl;
 
 export function isMercadoPagoConfigured() {
   const config = getPaymentConfig();
-  return config.paymentsEnabled && hasRealValue(config.accessToken) && hasRealValue(config.siteUrl);
+  const baseConfigured =
+    config.paymentsEnabled &&
+    config.provider.toLowerCase() === "mercadopago" &&
+    hasRealValue(config.accessToken) &&
+    hasRealValue(config.siteUrl);
+  if (!baseConfigured) return false;
+  if (config.paymentsEnv === "test") return true;
+
+  try {
+    const siteUrl = new URL(config.siteUrl);
+    const publicHttps = siteUrl.protocol === "https:" && !["localhost", "127.0.0.1", "0.0.0.0"].includes(siteUrl.hostname);
+    return publicHttps && hasRealValue(config.webhookSecret);
+  } catch {
+    return false;
+  }
 }
 
 export function isTestPaymentEnv() {
-  const config = getPaymentConfig();
-  return config.paymentsEnv === "test" || config.accessToken.startsWith("TEST-") || config.publicKey.startsWith("TEST-");
+  return getPaymentConfig().paymentsEnv === "test";
 }
 
 export const isMercadoPagoTestMode = isTestPaymentEnv;
+
+export function paymentLiveModeMatchesEnvironment(liveMode: unknown) {
+  if (typeof liveMode !== "boolean") return true;
+  return getPaymentConfig().paymentsEnv === "production" ? liveMode : !liveMode;
+}
+
+export function getMercadoPagoEnvironmentState() {
+  const config = getPaymentConfig();
+  return {
+    paymentsEnv: config.paymentsEnv,
+    paymentsEnabled: config.paymentsEnabled,
+    isMercadoPagoConfigured: isMercadoPagoConfigured(),
+    hasAccessToken: hasRealValue(config.accessToken),
+    hasPublicKey: hasRealValue(config.publicKey),
+    hasWebhookSecret: hasRealValue(config.webhookSecret)
+  };
+}
 
 export function assertMercadoPagoConfigured(orderId?: string) {
   if (!isMercadoPagoConfigured()) throw new MercadoPagoNotConfiguredError(orderId);

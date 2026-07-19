@@ -6,8 +6,35 @@ import { currency } from "@/lib/formatters/currency";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
+
+type AssistantHistoryItem = {
+  role: "user" | "assistant";
+  content: string;
+  createdAt?: string;
+};
+
+type AssistantState = {
+  topic: AssistantIntent;
+  stage: string;
+  gathered: Record<string, string>;
+  unresolvedAttempts: number;
+  lastReply: string;
+};
+
+type AssistantAction = {
+  label: string;
+  message?: string;
+  href?: string;
+};
+
+type ConversationContext = {
+  conversationId: string | null;
+  history: AssistantHistoryItem[];
+  state: AssistantState | null;
+  waitingAdmin: boolean;
+};
 
 const schema = z.object({
   message: z.string().trim().min(1).max(500),
@@ -20,7 +47,17 @@ const schema = z.object({
 });
 
 function needsHuman(message: string) {
-  return ["reclamo urgente", "denuncia", "no me entregaron", "cobro duplicado"].some((term) => message.includes(term));
+  return [
+    "reclamo urgente",
+    "denuncia",
+    "no me entregaron",
+    "no entregaron",
+    "cobro duplicado",
+    "me cobraron dos veces",
+    "datos de tarjeta",
+    "problema de seguridad",
+    "reclamo legal"
+  ].some((term) => message.includes(term));
 }
 
 function includesAny(message: string, terms: string[]) {
@@ -32,29 +69,37 @@ const deliveryTerms = ["envio", "entrega", "zona", "flete", "domicilio", "distan
 const paymentTerms = ["pago", "pagar", "tarjeta", "mercado", "mercadopago", "transferencia", "comprobante", "cuotas", "debito", "credito"];
 
 function fourOptions(options: string[]) {
-  return options.slice(0, 4);
+  const uniqueOptions = Array.from(new Set(options.map((option) => option.trim()).filter(Boolean)));
+  for (const fallback of defaultOptions) {
+    if (uniqueOptions.length >= 4) break;
+    if (!uniqueOptions.includes(fallback)) uniqueOptions.push(fallback);
+  }
+  return uniqueOptions.slice(0, 4);
 }
 
 function deliveryDistance(message: string) {
-  if (includesAny(message, ["dentro de rosario", "rosario", "zona centro", "zona norte", "zona sur", "zona oeste"])) return "ROSARIO";
-  if (/\b(3[0-9]|[1-2]?[0-9])\s?km\b/.test(message) || includesAny(message, ["30km", "30 km", "hasta 30"])) return "30KM";
   if (includesAny(message, ["+50", "mas de 50", "50km", "50 km"])) return "50KM";
+  if (/\b(3[0-9]|[1-2]?[0-9])\s?km\b/.test(message) || includesAny(message, ["30km", "30 km", "hasta 30"])) return "30KM";
+  if (includesAny(message, ["dentro de rosario", "rosario", "zona centro", "zona norte", "zona sur", "zona oeste"])) return "ROSARIO";
   if (includesAny(message, ["retiro", "retirar", "busco", "paso por"])) return "PICKUP";
   return null;
 }
 
-function userContext(message: string, history: Array<{ role: "user" | "assistant"; content: string }> = []) {
-  return [message, ...history.filter((item) => item.role === "user").slice(-4).map((item) => item.content.toLowerCase())].join(" ");
+function userContext(message: string, history: AssistantHistoryItem[] = []) {
+  const words = message.trim().split(/\s+/).filter(Boolean);
+  if (words.length > 2) return message;
+  const previous = history.filter((item) => item.role === "user").at(-1)?.content.toLowerCase() ?? "";
+  return `${previous} ${message}`.trim();
 }
 
-function recentAssistantReplies(history: Array<{ role: "user" | "assistant"; content: string }> = []) {
+function recentAssistantReplies(history: AssistantHistoryItem[] = []) {
   return history
     .filter((item) => item.role === "assistant")
     .slice(-4)
     .map((item) => item.content.trim());
 }
 
-function chooseReply(candidates: string[], history: Array<{ role: "user" | "assistant"; content: string }> = []) {
+function chooseReply(candidates: string[], history: AssistantHistoryItem[] = []) {
   const recent = recentAssistantReplies(history);
   return candidates.find((candidate) => !recent.includes(candidate)) ?? candidates[recent.length % candidates.length] ?? candidates[0];
 }
@@ -63,9 +108,7 @@ function currentMessageLooksLikePayment(message: string) {
   return includesAny(message, paymentTerms) || includesAny(message, ["pagar online", "pagar con tarjeta", "pago pendiente", "pago rechazado"]);
 }
 
-function guidedReply(message: string, intent: AssistantIntent, history: Array<{ role: "user" | "assistant"; content: string }> = []) {
-  const context = userContext(message, history);
-
+function guidedReply(message: string, intent: AssistantIntent, history: AssistantHistoryItem[] = []) {
   if (intent === "greeting" || includesAny(message, ["hola", "buenas", "buen dia", "buenas tardes", "buenas noches", "hey"])) {
     return {
       message: chooseReply(
@@ -84,13 +127,13 @@ function guidedReply(message: string, intent: AssistantIntent, history: Array<{ 
     return {
       message: chooseReply(
         [
-          "Los pagos se inician desde el checkout seguro. Podes elegir Mercado Pago o tarjeta. FZAC no guarda numeros de tarjeta ni CVV; el proveedor tokeniza y confirma la operacion.",
-          "Para pagar, termina los datos del comprador y revisa stock. Despues elegis Mercado Pago o tarjeta, confirmas identidad con DNI/CUIT y el sistema genera una sola transaccion.",
-          "Si el pago queda aprobado, la orden pasa a preparacion, se descuenta stock y se genera comprobante. Si queda pendiente o rechazado, no se descuenta stock."
+          "En checkout podes pagar online con Mercado Pago, generar un pedido por transferencia o coordinar por WhatsApp. Solo Mercado Pago abre el sitio del proveedor; FZAC no guarda datos de tarjeta.",
+          "Para pagar, completa los datos del comprador y revisa stock. Mercado Pago redirige al pago online; transferencia y WhatsApp generan un pedido pendiente para continuar por su propio canal.",
+          "El stock se descuenta cuando el pago queda aprobado o cuando administracion confirma el pedido. Un pago pendiente o rechazado no descuenta unidades."
         ],
         history
       ),
-      options: fourOptions(["Pagar con Mercado Pago", "Pagar con tarjeta", "Pago pendiente", "Pago rechazado"])
+      options: fourOptions(["Pagar con Mercado Pago", "Solicitar transferencia", "Coordinar por WhatsApp", "Pago pendiente"])
     };
   }
 
@@ -161,15 +204,15 @@ function guidedReply(message: string, intent: AssistantIntent, history: Array<{ 
     };
   }
 
-  if (intent === "stock" || includesAny(context, ["stock", "disponible", "cantidad", "faltante", "reposicion"])) {
+  if (intent === "stock" || intent === "price" || includesAny(message, ["stock", "disponible", "cantidad", "faltante", "reposicion", "precio", "cuanto sale", "cuanto cuesta"])) {
     return {
       message:
-        "El stock visible se valida otra vez en servidor antes de crear la orden. Si falta stock, baja la cantidad o busca un producto equivalente. Decime producto y cantidad para orientarte.",
-      options: fourOptions(["Buscar equivalente", "Bajar cantidad", "Ver carrito", "Consultar reposicion"])
+        "Decime el nombre del producto para consultar precio y stock visibles en el catalogo. El checkout vuelve a validar ambos datos antes de crear la orden.",
+      options: fourOptions(["Buscar producto", "Consultar stock", "Ver ofertas", "Ver carrito"])
     };
   }
 
-  if (intent === "estimate" || includesAny(context, ["presupuesto", "calcular", "m2", "metro", "obra", "construir", "reparar", "material"])) {
+  if (intent === "estimate" || includesAny(message, ["presupuesto", "calcular", "m2", "metro", "obra", "construir", "reparar", "material"])) {
     return {
       message:
         "Para armar una recomendacion necesito superficie aproximada, uso interior o exterior, tipo de material y terminacion. Con esos datos puedo sugerir una lista inicial y margen de compra.",
@@ -177,7 +220,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Array<{ 
     };
   }
 
-  if (intent === "order_status" || includesAny(context, ["pedido", "orden", "estado", "comprobante", "factura", "compra"])) {
+  if (intent === "order_status" || includesAny(message, ["pedido", "orden", "estado", "comprobante", "factura", "compra"])) {
     return {
       message:
         "El estado del pedido se revisa desde Mi cuenta > Pedidos. Si el pago esta aprobado, administracion actualiza preparacion, retiro, entrega o comprobante. Usa el email de compra para ubicarlo.",
@@ -185,7 +228,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Array<{ 
     };
   }
 
-  if (intent === "returns" || includesAny(context, ["devolucion", "devolver", "cambio", "garantia"])) {
+  if (intent === "returns" || includesAny(message, ["devolucion", "devolver", "cambio", "garantia"])) {
     return {
       message:
         "Para cambios o devoluciones, conserva el comprobante e indica producto, motivo y estado del material. Si fue pedido especial o ya se uso en obra, FZAC revisa el caso antes de aprobar el cambio.",
@@ -193,7 +236,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Array<{ 
     };
   }
 
-  if (intent === "human" || includesAny(context, ["humano", "persona", "asesor", "vendedor", "whatsapp", "llamar"])) {
+  if (intent === "human" || includesAny(message, ["humano", "persona", "asesor", "vendedor", "whatsapp", "llamar"])) {
     return {
       message:
         "Antes de derivarte, puedo intentar resolverlo aca. Elegi el motivo y te doy pasos claros; si queda algo sensible, recien ahi conviene contactar a FZAC con el carrito o numero de pedido.",
@@ -274,20 +317,161 @@ function advisoryReply(message: string, history: Array<{ role: "user" | "assista
   );
 }
 
-async function persistConversation(input: {
+function parseAssistantState(value: unknown): AssistantState | null {
+  if (!value || typeof value !== "object") return null;
+  const state = value as Partial<AssistantState>;
+  if (typeof state.topic !== "string" || typeof state.stage !== "string") return null;
+  return {
+    topic: state.topic as AssistantIntent,
+    stage: state.stage,
+    gathered: state.gathered && typeof state.gathered === "object" ? (state.gathered as Record<string, string>) : {},
+    unresolvedAttempts: typeof state.unresolvedAttempts === "number" ? state.unresolvedAttempts : 0,
+    lastReply: typeof state.lastReply === "string" ? state.lastReply : ""
+  };
+}
+
+async function resolveConversationContext(input: {
   conversationId?: string | null;
+  visitorId?: string;
+  userId?: string | null;
+  clientHistory: AssistantHistoryItem[];
+}): Promise<ConversationContext> {
+  const fallback: ConversationContext = {
+    conversationId: null,
+    history: input.clientHistory.slice(-12),
+    state: null,
+    waitingAdmin: false
+  };
+  const admin = getSupabaseAdminClient();
+  if (!admin || !input.conversationId) return fallback;
+
+  const { data: conversation } = await admin
+    .from("chat_conversations")
+    .select("id,user_id,visitor_id,status")
+    .eq("id", input.conversationId)
+    .maybeSingle();
+  if (!conversation) return fallback;
+
+  const ownsConversation = input.userId
+    ? conversation.user_id === input.userId
+    : !conversation.user_id && Boolean(input.visitorId) && conversation.visitor_id === input.visitorId;
+  if (!ownsConversation) return fallback;
+
+  const { data: rows } = await admin
+    .from("chat_messages")
+    .select("role,content,metadata,created_at")
+    .eq("conversation_id", conversation.id)
+    .order("created_at", { ascending: false })
+    .limit(12);
+  const chronological = [...(rows ?? [])].reverse();
+  const history = chronological
+    .filter((row) => row.role === "USER" || row.role === "ASSISTANT")
+    .map((row) => ({
+      role: row.role === "USER" ? ("user" as const) : ("assistant" as const),
+      content: row.content,
+      createdAt: row.created_at
+    }));
+  const lastAssistant = [...chronological].reverse().find((row) => row.role === "ASSISTANT");
+  const metadata = lastAssistant?.metadata && typeof lastAssistant.metadata === "object"
+    ? (lastAssistant.metadata as Record<string, unknown>)
+    : null;
+
+  return {
+    conversationId: conversation.id,
+    history: history.length ? history : fallback.history,
+    state: parseAssistantState(metadata?.assistant_state),
+    waitingAdmin: conversation.status === "WAITING_ADMIN"
+  };
+}
+
+function deriveAssistantState(input: {
+  intent: AssistantIntent;
+  message: string;
+  reply: string;
+  previous: AssistantState | null;
+}) {
+  const topic = input.intent === "fallback" && input.previous?.topic ? input.previous.topic : input.intent;
+  const sameTopic = input.previous?.topic === topic;
+  const gathered = sameTopic ? { ...input.previous?.gathered } : {};
+  const distance = topic === "delivery" ? deliveryDistance(input.message) : null;
+  if (distance) gathered.distance = distance;
+
+  let stage = topic === "fallback" ? "NEEDS_CONTEXT" : "ANSWERED";
+  if (topic === "delivery") stage = distance ? "LOCATION_RECEIVED" : "AWAITING_LOCATION";
+  if (topic === "stock" || topic === "price") stage = "AWAITING_PRODUCT";
+  if (topic === "estimate") stage = includesAny(input.message, ["m2", "metro", "medida", "alto", "ancho"])
+    ? "MEASUREMENTS_RECEIVED"
+    : "AWAITING_MEASUREMENTS";
+
+  return {
+    topic,
+    stage,
+    gathered,
+    unresolvedAttempts: input.intent === "fallback" ? (sameTopic ? (input.previous?.unresolvedAttempts ?? 0) + 1 : 1) : 0,
+    lastReply: input.reply.slice(0, 240)
+  } satisfies AssistantState;
+}
+
+function actionFor(label: string): AssistantAction {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("mis pedidos") || normalized.includes("estado de pedido")) return { label, href: "/cuenta/pedidos" };
+  if (normalized.includes("direccion")) return { label, href: "/cuenta/direcciones" };
+  if (normalized.includes("carrito")) return { label, href: "/carrito" };
+  if (normalized.includes("terminos")) return { label, href: "/terminos" };
+  if (normalized.includes("categorias")) return { label, href: "/categorias" };
+  if (normalized.includes("mercado pago") || normalized.includes("transferencia")) return { label, href: "/checkout" };
+  if (normalized.includes("ver productos") || normalized.includes("seguir comprando") || normalized.includes("armar carrito")) {
+    return { label, href: "/productos" };
+  }
+  return { label, message: label };
+}
+
+async function ownOrderStatus(userId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("orders")
+    .select("status,total,created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const order = data?.[0];
+  if (!order) return "No encontre pedidos asociados a tu cuenta. Podes iniciar una compra desde el catalogo y seguirla luego en Mi cuenta.";
+  const statusLabels: Record<string, string> = {
+    PENDING_PAYMENT: "pago pendiente",
+    PENDING_TRANSFER: "transferencia pendiente",
+    PENDING_ADMIN_APPROVAL: "en revision",
+    COORDINATE: "para coordinar",
+    PAID: "aprobado",
+    CANCELLED: "cancelado",
+    FAILED: "rechazado"
+  };
+  const status = statusLabels[order.status] ?? "en seguimiento";
+  return `Tu pedido mas reciente figura ${status}, por ${currency(Number(order.total ?? 0))}. Podes ver el detalle y el historial desde Mi cuenta > Compras.`;
+}
+
+async function persistConversation(input: {
+  conversationId: string | null;
   visitorId?: string;
   userId?: string | null;
   message: string;
   reply: string;
-  waitingAdmin?: boolean;
+  intent: AssistantIntent;
+  state: AssistantState;
+  options: string[];
+  waitingAdmin: boolean;
+  wasWaitingAdmin: boolean;
+  skipPersistence?: boolean;
 }) {
+  if (input.skipPersistence || process.env.ASSISTANT_PERSISTENCE_ENABLED?.trim().toLowerCase() === "false") {
+    return input.conversationId;
+  }
   const admin = getSupabaseAdminClient();
-  if (!admin) return input.conversationId ?? null;
+  if (!admin || (!input.userId && !input.visitorId)) return input.conversationId;
   const adminPath = getAdminConsolePath();
 
   try {
-    let conversationId = input.conversationId ?? null;
+    let conversationId = input.conversationId;
     const status = input.waitingAdmin ? "WAITING_ADMIN" : "OPEN";
 
     if (!conversationId) {
@@ -295,7 +479,7 @@ async function persistConversation(input: {
         .from("chat_conversations")
         .insert({
           user_id: input.userId ?? null,
-          visitor_id: input.visitorId ?? null,
+          visitor_id: input.userId ? null : input.visitorId ?? null,
           channel: "AI",
           status,
           subject: input.message.slice(0, 80),
@@ -313,11 +497,26 @@ async function persistConversation(input: {
     }
 
     await admin.from("chat_messages").insert([
-      { conversation_id: conversationId, sender_id: input.userId ?? null, role: "USER", content: input.message },
-      { conversation_id: conversationId, role: "ASSISTANT", content: input.reply }
+      {
+        conversation_id: conversationId,
+        sender_id: input.userId ?? null,
+        role: "USER",
+        content: input.message,
+        metadata: { intent: input.intent }
+      },
+      {
+        conversation_id: conversationId,
+        role: "ASSISTANT",
+        content: input.reply,
+        metadata: {
+          assistant_state: input.state,
+          options: input.options.slice(0, 4),
+          engine: "FZAC_LOCAL_HYBRID"
+        }
+      }
     ]);
 
-    if (input.waitingAdmin) {
+    if (input.waitingAdmin && !input.wasWaitingAdmin) {
       await admin.from("notifications").insert({
         target_role: "ADMIN",
         type: "CHAT_WAITING_ADMIN",
@@ -329,13 +528,13 @@ async function persistConversation(input: {
 
     return conversationId;
   } catch {
-    return input.conversationId ?? null;
+    return input.conversationId;
   }
 }
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "assistant"), 30, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas consultas al asistente.", 429);
+  if (!limit.ok) return jsonError("Demasiadas consultas al asistente.", 429, retryAfterHeaders(limit));
 
   let payload: z.infer<typeof schema>;
   try {
@@ -348,46 +547,144 @@ export async function POST(request: Request) {
 
   const message = sanitizeSearchTerm(payload.message, 500).toLowerCase();
   const user = await getCurrentUser();
-  const waitingAdmin = needsHuman(message);
-
-  const words = message
+  const readOnlyLoadTest = process.env.NODE_ENV !== "production" && request.headers.get("x-fzac-load-test") === "readonly";
+  const conversation = await resolveConversationContext({
+    conversationId: payload.conversationId,
+    visitorId: payload.visitorId,
+    userId: user?.id ?? null,
+    clientHistory: payload.history ?? []
+  });
+  const classification = classifyAssistantIntent(message, conversation.history);
+  const criticalEscalation = needsHuman(message);
+  const genericTerms = new Set([
+    "comprar", "buscar", "quiero", "necesito", "material", "producto", "precio", "cuanto", "sale", "cuesta",
+    "stock", "disponible", "disponibilidad", "unidades", "unidad", "tenes", "tienen", "oferta", "valor",
+    "que", "cual", "cuales", "tiene", "hay", "algun", "alguna", "dame", "mostrame", "mostrar",
+    "para", "con", "del", "los", "las", "una", "uno", "por", "favor"
+  ]);
+  const query = message
     .split(/\s+/)
-    .filter((word) => word.length > 3)
-    .slice(0, 4);
-  const query = words.join(" ");
-  const classification = classifyAssistantIntent(message, payload.history ?? []);
-  const productSearchAllowed = classification.intent === "product_search" || classification.intent === "estimate";
+    .map((word) => word.replace(/[^a-z0-9-]/g, ""))
+    .filter((word) => word.length > 2 && !genericTerms.has(word))
+    .slice(0, 3)
+    .join(" ");
+  const productSearchAllowed = ["product_search", "estimate", "stock", "price"].includes(classification.intent);
 
-  if (query && !waitingAdmin && productSearchAllowed) {
+  if (query && !criticalEscalation && productSearchAllowed) {
     const products = await getProducts({ search: query, limit: 3 });
     if (products.length) {
-      const reply = `Encontre opciones reales del catalogo: ${products
-        .map((product) => `${product.name} (${product.sku}) a ${currency(product.price)}, stock visible ${product.stock} ${product.unit}`)
-        .join("; ")}. Te recomiendo entrar al detalle, revisar unidad de venta y agregar margen si es para obra.`;
+      const reply = `Encontre estas opciones del catalogo: ${products
+        .map((product) => `${product.name} a ${currency(product.price)}, con ${product.stock} ${product.unit} visibles`)
+        .join("; ")}. Revisa la unidad de venta y suma margen si es para una obra.`;
+      const options = fourOptions([
+        ...products.map((product) => `Ver ${product.name}`).slice(0, 3),
+        classification.intent === "stock" ? "Consultar otra cantidad" : "Calcular cantidad"
+      ]);
+      const productActions: AssistantAction[] = [
+        ...products.map((product) => ({ label: `Ver ${product.name}`, href: `/producto/${product.slug}` })),
+        { label: "Calcular cantidad", message: "Quiero calcular la cantidad de materiales" },
+        ...options.map(actionFor)
+      ];
+      const actions = productActions
+        .filter((action, index, allActions) => allActions.findIndex((item) => item.label === action.label) === index)
+        .slice(0, 4);
+      const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
       const conversationId = await persistConversation({
-        conversationId: payload.conversationId,
+        conversationId: conversation.conversationId,
         visitorId: payload.visitorId,
         userId: user?.id ?? null,
         message: payload.message,
-        reply
+        reply,
+        intent: classification.intent,
+        state,
+        options,
+        waitingAdmin: false,
+        wasWaitingAdmin: conversation.waitingAdmin,
+        skipPersistence: readOnlyLoadTest
       });
       return Response.json({
+        intent: classification.intent,
         message: reply,
         conversationId,
-        options: fourOptions(["Ver detalle", "Agregar al carrito", "Consultar stock", "Calcular cantidad"])
+        options,
+        actions,
+        handoff_required: false,
+        suggested_products: products.map((product) => ({
+          name: product.name,
+          slug: product.slug,
+          price: product.price,
+          stock: product.stock,
+          unit: product.unit
+        }))
       });
     }
+
+    const reply = `No encontre "${query}" en el catalogo activo. Proba con marca, tipo o una palabra mas corta. Si vuelve a faltar, puedo dejar el material solicitado en seguimiento para FZAC.`;
+    const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
+    state.stage = "PRODUCT_NOT_FOUND";
+    state.unresolvedAttempts = conversation.state?.topic === classification.intent
+      ? conversation.state.unresolvedAttempts + 1
+      : 1;
+    const waitingAdmin = state.unresolvedAttempts >= 2;
+    const options = fourOptions(["Buscar otro nombre", "Ver categorias", "Ver productos", "Hablar con FZAC"]);
+    const conversationId = await persistConversation({
+      conversationId: conversation.conversationId,
+      visitorId: payload.visitorId,
+      userId: user?.id ?? null,
+      message: payload.message,
+      reply,
+      intent: classification.intent,
+      state,
+      options,
+      waitingAdmin,
+      wasWaitingAdmin: conversation.waitingAdmin,
+      skipPersistence: readOnlyLoadTest
+    });
+    return Response.json({
+      intent: "product_not_found",
+      message: reply,
+      conversationId,
+      waitingAdmin,
+      options,
+      actions: options.map(actionFor),
+      handoff_required: waitingAdmin,
+      suggested_products: []
+    });
   }
 
-  const guided = guidedReply(message, classification.intent, payload.history ?? []);
-  const reply = guided.message || advisoryReply(message, payload.history ?? []);
+  const guided = guidedReply(message, classification.intent, conversation.history);
+  let reply = guided.message || advisoryReply(message, conversation.history);
+  if (classification.intent === "order_status" && user?.id) {
+    reply = (await ownOrderStatus(user.id)) ?? reply;
+  }
+  const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
+  const waitingAdmin = criticalEscalation || state.unresolvedAttempts >= 2;
+  if (!criticalEscalation && state.unresolvedAttempts >= 2) {
+    reply = `${reply} Como ya intentamos aclararlo dos veces, deje la consulta en seguimiento para que FZAC pueda revisarla si no logras resolverla con estas opciones.`;
+    state.lastReply = reply.slice(0, 240);
+  }
+  const options = fourOptions(guided.options ?? defaultOptions);
   const conversationId = await persistConversation({
-    conversationId: payload.conversationId,
+    conversationId: conversation.conversationId,
     visitorId: payload.visitorId,
     userId: user?.id ?? null,
     message: payload.message,
     reply,
-    waitingAdmin
+    intent: classification.intent,
+    state,
+    options,
+    waitingAdmin,
+    wasWaitingAdmin: conversation.waitingAdmin,
+    skipPersistence: readOnlyLoadTest
   });
-  return Response.json({ message: reply, conversationId, waitingAdmin, options: guided.options });
+  return Response.json({
+    intent: classification.intent,
+    message: reply,
+    conversationId,
+    waitingAdmin,
+    options,
+    actions: options.map(actionFor),
+    handoff_required: waitingAdmin,
+    suggested_products: []
+  });
 }

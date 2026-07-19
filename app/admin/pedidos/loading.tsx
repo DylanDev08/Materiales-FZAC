@@ -1,10 +1,5 @@
-import { AdminShell } from "@/components/admin/admin-shell";
-import { AdminTableSkeleton } from "@/components/admin/admin-skeletons";
+import { AdminLoadingScreen } from "@/components/admin/admin-loading-screen";
 
 export default function Loading() {
-  return (
-    <AdminShell title="Pedidos">
-      <AdminTableSkeleton rows={8} />
-    </AdminShell>
-  );
+  return <AdminLoadingScreen title="Cargando pedidos FZAC" description="Estamos validando compras, estados, stock y aprobaciones." />;
 }

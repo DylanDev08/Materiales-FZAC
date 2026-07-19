@@ -62,12 +62,15 @@ export type AccountOverview = {
   reservedProducts: number;
   lastOrderDate: string;
   addresses: Array<{
+    id: string;
     label: string;
     street: string;
     number: string;
+    apartment: string;
     city: string;
     province: string;
     postalCode: string;
+    notes: string;
   }>;
   orders: Array<{
     id: string;
@@ -126,7 +129,7 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       .limit(80),
     admin
       .from("addresses")
-      .select("label,street,number,city,province,postal_code")
+      .select("id,label,street,number,apartment,city,province,postal_code,notes")
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(6),
@@ -179,12 +182,15 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
     reservedProducts: pendingItems.reduce((sum, item) => sum + numberValue(item.quantity), 0),
     lastOrderDate: shortDate(orders[0]?.created_at),
     addresses: (addresses ?? []).map((address) => ({
+      id: String(address.id),
       label: String(address.label ?? "Principal"),
       street: String(address.street ?? ""),
       number: String(address.number ?? ""),
+      apartment: String(address.apartment ?? ""),
       city: String(address.city ?? ""),
       province: String(address.province ?? ""),
-      postalCode: String(address.postal_code ?? "")
+      postalCode: String(address.postal_code ?? ""),
+      notes: String(address.notes ?? "")
     })),
     orders: orders.slice(0, 8).map((order) => ({
       id: order.id,

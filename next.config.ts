@@ -12,6 +12,21 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" }
     ]
   },
+  async redirects() {
+    if (adminConsolePath === "/admin") return [];
+    return [
+      {
+        source: "/admin",
+        destination: adminConsolePath,
+        permanent: false
+      },
+      {
+        source: "/admin/:path*",
+        destination: `${adminConsolePath}/:path*`,
+        permanent: false
+      }
+    ];
+  },
   async rewrites() {
     return [
       {

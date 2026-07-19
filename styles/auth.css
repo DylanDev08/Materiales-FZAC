@@ -1,25 +1,42 @@
 .auth-page {
-  min-height: 620px;
+  min-height: 680px;
   display: grid;
   place-items: center;
-  padding: 54px 0;
+  padding: 64px 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(244, 196, 0, 0.12), transparent 28%),
+    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.05), transparent 24%),
+    var(--color-black);
 }
 
 .auth-panel {
-  width: min(520px, calc(100% - 28px));
-  border: 1px solid var(--color-border);
+  width: min(560px, calc(100% - 28px));
+  border: 1px solid rgba(244, 196, 0, 0.24);
   border-radius: var(--radius);
-  background: var(--color-panel);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.08), rgba(31, 31, 31, 0.98)),
+    var(--color-panel);
   padding: 24px;
   box-shadow: var(--shadow-soft);
 }
 
+.auth-panel__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
 .auth-logo {
-  margin-bottom: 12px;
+  width: 76px;
+  height: 76px;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 0 0 5px rgba(244, 196, 0, 0.08);
 }
 
 .auth-panel h1 {
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .auth-panel p {
@@ -29,12 +46,52 @@
 
 .auth-panel form {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   margin-top: 18px;
 }
 
 .auth-panel .btn {
   width: 100%;
+  min-height: 48px;
+}
+
+.auth-panel .field {
+  gap: 8px;
+}
+
+.auth-panel input {
+  min-height: 48px;
+}
+
+.auth-panel input:focus {
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(244, 196, 0, 0.12);
+  outline: none;
+}
+
+.auth-panel input[aria-invalid="true"] {
+  border-color: rgba(200, 50, 50, 0.8);
+}
+
+.auth-google {
+  margin-top: 18px;
+}
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.auth-divider span {
+  height: 1px;
+  background: var(--color-border);
 }
 
 .auth-hp {
@@ -49,6 +106,12 @@
   margin: -4px 0 0;
   color: var(--color-muted);
   font-size: 0.86rem;
+}
+
+.auth-field-error {
+  color: #ffb4b4;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .password-checklist {
@@ -90,7 +153,39 @@
   font-weight: 850;
 }
 
+.auth-link-button:disabled {
+  color: var(--color-muted);
+  cursor: wait;
+}
+
+.auth-panel--recovery {
+  max-width: 540px;
+}
+
+.auth-panel--recovery .notice {
+  margin: 16px 0 0;
+}
+
+.auth-back-link {
+  display: inline-flex;
+  margin-top: 18px;
+  color: var(--color-yellow);
+  font-weight: 850;
+}
+
 @media (max-width: 520px) {
+  .auth-page {
+    padding: 36px 0;
+  }
+
+  .auth-panel {
+    padding: 18px;
+  }
+
+  .auth-panel__head {
+    grid-template-columns: 1fr;
+  }
+
   .password-checklist {
     grid-template-columns: 1fr;
   }

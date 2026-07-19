@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
-import { getUserProfile } from "@/lib/auth/get-user";
+import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getAdminConsolePath, getSiteUrl } from "@/lib/utils/env";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/cuenta";
+  const requestedNext = requestUrl.searchParams.get("next");
+  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/cuenta";
   const supabase = await getSupabaseServerClient();
 
-  if (code && supabase) {
-    await supabase.auth.exchangeCodeForSession(code);
-  }
+  if (!code || !supabase) return NextResponse.redirect(new URL("/login?auth_error=true", getSiteUrl()));
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return NextResponse.redirect(new URL("/login?auth_error=true", getSiteUrl()));
 
-  const profile = await getUserProfile();
-  const target = profile?.role === "ADMIN" ? getAdminConsolePath() : next;
+  const profile = await syncUserProfileOnLogin();
+  const target = next === "/restablecer" ? next : profile?.role === "ADMIN" ? getAdminConsolePath() : next;
   return NextResponse.redirect(new URL(target, getSiteUrl()));
 }

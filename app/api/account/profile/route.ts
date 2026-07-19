@@ -2,7 +2,7 @@ import { ZodError, z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { hasSqlMeta } from "@/lib/validations/security";
 
 const profileSchema = z.object({
@@ -29,7 +29,7 @@ const profileSchema = z.object({
 
 export async function PATCH(request: Request) {
   const limit = rateLimit(getRequestKey(request, "account-profile"), 20, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas actualizaciones. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) return jsonError("Demasiadas actualizaciones. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const user = await getCurrentUser();

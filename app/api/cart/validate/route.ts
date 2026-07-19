@@ -1,11 +1,11 @@
 import { ZodError } from "zod";
 import { InsufficientStockError, validateCheckoutStock } from "@/lib/db/orders";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "cart-validate"), 60, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas validaciones. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) return jsonError("Demasiadas validaciones. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = await request.json();

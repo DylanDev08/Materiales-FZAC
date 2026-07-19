@@ -1,22 +1,10 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import {
-  Activity,
-  ArrowRight,
-  BarChart3,
-  CreditCard,
-  FileText,
-  Home,
-  Package,
-  ShieldCheck,
-  ShoppingBag,
-  TrendingUp,
-  Users
-} from "lucide-react";
+import { CreditCard, PackageCheck, ShoppingBag, TrendingUp } from "lucide-react";
+import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
 import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
-import { getAdminConsolePath } from "@/lib/utils/env";
 
 type DashboardMetric = {
   label: string;
@@ -24,348 +12,331 @@ type DashboardMetric = {
   helper: string;
 };
 
-type DashboardSeries = {
+type StatusSegment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+type ChartSeries = {
   label: string;
   values: number[];
   color: string;
 };
 
+type DashboardPeriod = "day" | "week" | "month";
+
+const periodOptions: Array<{ value: DashboardPeriod; label: string; helper: string }> = [
+  { value: "day", label: "Dia", helper: "Hoy" },
+  { value: "week", label: "Semana", helper: "Semana actual" },
+  { value: "month", label: "Mes", helper: "Mes actual" }
+];
+
+function normalizePeriod(period: string | undefined): DashboardPeriod {
+  if (period === "day" || period === "week" || period === "month") return period;
+  return "month";
+}
+
+function periodLabel(period: DashboardPeriod) {
+  return periodOptions.find((option) => option.value === period)?.helper ?? "Mes actual";
+}
+
 function getMetric(metrics: DashboardMetric[], label: string): DashboardMetric {
-  return metrics.find((metric) => metric.label === label) ?? { label, value: "0", helper: "Sin datos cargados" };
+  return metrics.find((metric) => metric.label === label) ?? { label, value: "0", helper: "Sin datos" };
 }
 
 function numericMetric(metrics: DashboardMetric[], label: string) {
-  const metric = getMetric(metrics, label);
-  const parsed = Number(String(metric.value).replace(/[^\d.-]/g, ""));
+  const raw = getMetric(metrics, label).value;
+  const parsed = Number(String(raw).replace(/[^\d.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function percent(value: number, total: number) {
-  if (!total) return 0;
-  return Math.max(0, Math.round((value / total) * 100));
+function plus(value: string) {
+  return value.startsWith("+") ? value : `+${value}`;
 }
 
-function sparklinePoints(values: number[], width = 420, height = 152) {
+function segmentWidth(value: number, total: number) {
+  if (!total) return 0;
+  return Math.max(4, Math.round((value / total) * 100));
+}
+
+function chartPoints(values: number[], width = 520, height = 230) {
   const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(max - min, 1);
   const step = values.length > 1 ? width / (values.length - 1) : width;
+
   return values
     .map((value, index) => {
       const x = Math.round(index * step);
-      const y = Math.round(height - (value / max) * (height - 16) - 8);
+      const y = Math.round(height - ((value - min) / range) * (height - 30) - 15);
       return `${x},${y}`;
     })
     .join(" ");
 }
 
-function DashboardLineChart({
+function DashboardCycleCard({
   title,
-  helper,
-  labels,
-  series
+  amount,
+  primaryLabel,
+  primaryValue,
+  secondaryLabel,
+  secondaryValue,
+  caption,
+  footer,
+  tone,
+  icon: Icon
 }: {
   title: string;
-  helper: string;
-  labels: string[];
-  series: DashboardSeries[];
+  amount: string;
+  primaryLabel: string;
+  primaryValue: string;
+  secondaryLabel: string;
+  secondaryValue: string;
+  caption: string;
+  footer: string;
+  tone: "yellow" | "green" | "red";
+  icon: typeof TrendingUp;
 }) {
   return (
-    <article className="admin-analytics-chart">
+    <article className={`admin-model-card admin-model-card--${tone}`}>
+      <div className="admin-model-card__top">
+        <span>
+          <i />
+          {title}
+        </span>
+        <small>24/6 - 24/7</small>
+      </div>
+      <strong className="admin-model-card__amount">{amount}</strong>
+      <p>{caption}</p>
+      <div className="admin-model-card__counts">
+        <span>
+          <strong>{primaryValue}</strong>
+          {primaryLabel}
+        </span>
+        <span>
+          <strong>{secondaryValue}</strong>
+          {secondaryLabel}
+        </span>
+      </div>
+      <footer>{footer}</footer>
+      <Icon className="admin-model-card__icon" size={92} />
+      <span className="admin-model-card__watermark">FZAC</span>
+    </article>
+  );
+}
+
+function AdminModelLineChart({ labels, title, series }: { labels: string[]; title: string; series: ChartSeries[] }) {
+  return (
+    <article className="admin-model-chart">
       <header>
+        <h3>{title}</h3>
         <div>
-          <span className="kicker">Grafico</span>
-          <h3>{title}</h3>
-          <p>{helper}</p>
+          {series.map((item) => (
+            <span key={item.label}>
+              <i style={{ background: item.color }} />
+              {item.label}
+            </span>
+          ))}
         </div>
-        <BarChart3 size={22} />
       </header>
-      <svg viewBox="0 0 420 170" role="img" aria-label={title}>
-        <rect x="0" y="0" width="420" height="170" rx="10" fill="rgba(244,196,0,0.045)" />
-        {[38, 76, 114, 152].map((y) => (
-          <line key={y} x1="0" x2="420" y1={y} y2={y} stroke="rgba(255,255,255,0.08)" />
+      <svg viewBox="0 0 520 250" role="img" aria-label={title}>
+        <rect width="520" height="250" rx="8" fill="transparent" />
+        {[45, 90, 135, 180, 225].map((y) => (
+          <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="rgba(255,255,255,0.08)" />
+        ))}
+        {[0, 104, 208, 312, 416, 520].map((x) => (
+          <line key={x} x1={x} x2={x} y1="0" y2="250" stroke="rgba(255,255,255,0.035)" />
         ))}
         {series.map((item) => (
-          <polyline
-            fill="none"
-            key={item.label}
-            points={sparklinePoints(item.values)}
-            stroke={item.color}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="4"
-          />
+          <g key={item.label}>
+            <polyline
+              fill="none"
+              points={chartPoints(item.values)}
+              stroke={item.color}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="4"
+            />
+            {item.values.map((_, index) => {
+              const [x, y] = chartPoints(item.values).split(" ")[index].split(",");
+              return <circle cx={x} cy={y} fill={item.color} key={`${item.label}-${index}`} r="5" />;
+            })}
+          </g>
         ))}
       </svg>
-      <div className="admin-analytics-chart__legend">
-        {series.map((item) => (
-          <span key={item.label}>
-            <i style={{ background: item.color }} />
-            {item.label}
-          </span>
-        ))}
-      </div>
-      <div className="admin-analytics-chart__axis">
+      <div className="admin-model-chart__axis" aria-hidden="true">
         {labels.map((label) => (
-          <span key={label}>{label}</span>
+          <span key={`${title}-${label}`}>{label}</span>
         ))}
       </div>
     </article>
   );
 }
 
-export async function AdminDashboard() {
-  const data = await getAdminDashboardData();
-  const adminPath = getAdminConsolePath();
+export async function AdminDashboard({ period }: { period?: string }) {
+  const selectedPeriod = normalizePeriod(period);
+  const data = await getAdminDashboardData(selectedPeriod);
+  const metrics = data.metrics;
   const paymentsReady = isMercadoPagoConfigured();
   const paymentsTestMode = isMercadoPagoTestMode();
-  const salesToday = getMetric(data.metrics, "Ventas del dia");
-  const salesMonth = getMetric(data.metrics, "Ventas del mes");
-  const pendingOrders = getMetric(data.metrics, "Pedidos pendientes");
-  const adminApproval = getMetric(data.metrics, "Aprobacion admin");
-  const paidOrders = getMetric(data.metrics, "Pedidos pagados");
-  const pendingPayments = getMetric(data.metrics, "Pagos pendientes");
-  const approvedPayments = getMetric(data.metrics, "Pagos aprobados");
-  const rejectedPayments = getMetric(data.metrics, "Pagos rechazados");
-  const averageTicket = getMetric(data.metrics, "Ticket promedio");
-  const newCustomers = getMetric(data.metrics, "Clientes nuevos");
-  const usersRegistered = getMetric(data.metrics, "Usuarios registrados");
-  const activeProducts = getMetric(data.metrics, "Productos activos");
-  const noStock = getMetric(data.metrics, "Productos sin stock");
-  const pendingTotal = getMetric(data.metrics, "Total pendiente");
-  const tickets = getMetric(data.metrics, "Tickets emitidos");
-  const chats = getMetric(data.metrics, "Chats pendientes");
-  const lowStockCount = activeProducts.helper.match(/\d+/)?.[0] ?? "0";
 
-  const metricCards = [
-    { label: "Ventas del dia", value: salesToday.value, helper: salesToday.helper, badge: "Hoy", tone: "success", icon: TrendingUp },
-    { label: "Ventas del mes", value: salesMonth.value, helper: salesMonth.helper, badge: "Mes", tone: "success", icon: BarChart3 },
-    { label: "Usuarios registrados", value: usersRegistered.value, helper: usersRegistered.helper, badge: "Clientes", tone: "info", icon: Users },
-    { label: "Clientes nuevos", value: newCustomers.value, helper: newCustomers.helper, badge: "Alta", tone: "info", icon: Users },
-    { label: "Pedidos pendientes", value: pendingOrders.value, helper: pendingOrders.helper, badge: "Atender", tone: "warning", icon: ShoppingBag },
-    { label: "Compras grandes", value: adminApproval.value, helper: adminApproval.helper, badge: "Revision", tone: "warning", icon: ShieldCheck },
-    { label: "Pagos aprobados", value: approvedPayments.value, helper: approvedPayments.helper, badge: "OK", tone: "success", icon: CreditCard },
-    { label: "Pagos pendientes", value: pendingPayments.value, helper: pendingPayments.helper, badge: "Pendiente", tone: "warning", icon: CreditCard },
-    { label: "Pagos rechazados", value: rejectedPayments.value, helper: rejectedPayments.helper, badge: "Denegado", tone: "danger", icon: CreditCard },
-    { label: "Total pendiente", value: pendingTotal.value, helper: pendingTotal.helper, badge: "Control", tone: "warning", icon: FileText },
-    { label: "Ticket promedio", value: averageTicket.value, helper: averageTicket.helper, badge: "Promedio", tone: "default", icon: Activity },
-    { label: "Productos activos", value: activeProducts.value, helper: activeProducts.helper, badge: "Catalogo", tone: "success", icon: Package },
-    { label: "Sin stock", value: noStock.value, helper: noStock.helper, badge: "Reponer", tone: "danger", icon: Package },
-    { label: "Bajo stock", value: lowStockCount, helper: "Productos por debajo del minimo", badge: "Stock", tone: "warning", icon: Package },
-    { label: "Chats pendientes", value: chats.value, helper: chats.helper, badge: "Soporte", tone: "info", icon: Activity }
-  ];
+  const salesToday = getMetric(metrics, "Ventas del dia");
+  const salesMonth = getMetric(metrics, "Ventas del mes");
+  const periodIncome = getMetric(metrics, "Ingresos del periodo");
+  const periodExpenses = getMetric(metrics, "Egresos del periodo");
+  const periodBalance = getMetric(metrics, "Balance del periodo");
+  const pendingTotal = getMetric(metrics, "Total pendiente");
+  const pendingOrders = getMetric(metrics, "Pedidos pendientes");
+  const approvalOrders = getMetric(metrics, "Aprobacion admin");
+  const pendingPayments = getMetric(metrics, "Pagos pendientes");
+  const approvedPayments = getMetric(metrics, "Pagos aprobados");
+  const rejectedPayments = getMetric(metrics, "Pagos rechazados");
+  const averageTicket = getMetric(metrics, "Ticket promedio");
 
-  const plainMetrics = [
-    { label: "Ingresos del mes", value: salesMonth.value, helper: `${salesToday.value} registrado hoy` },
-    { label: "Pedidos pendientes", value: pendingOrders.value, helper: `${adminApproval.value} requiere aprobacion` },
-    { label: "Pagos pendientes", value: pendingPayments.value, helper: `${rejectedPayments.value} pagos denegados` },
-    { label: "Pedidos pagados", value: paidOrders.value, helper: `${approvedPayments.value} pagos aprobados` },
-    { label: "Comprobantes de pago", value: tickets.value, helper: "Facturas y tickets emitidos" },
-    { label: "Clientes nuevos", value: newCustomers.value, helper: `${activeProducts.value} productos activos` },
-    { label: "Ticket promedio", value: averageTicket.value, helper: "Promedio por compra aprobada" },
-    { label: "Total pendiente", value: pendingTotal.value, helper: `${noStock.value} productos sin stock` }
+  const statusSegments: StatusSegment[] = [
+    { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
+    { label: "Coordinadas", value: numericMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
+    { label: "En proceso", value: numericMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
+    { label: "Pendientes", value: numericMetric(metrics, "Pedidos pendientes"), color: "#274060" },
+    { label: "En conflicto", value: numericMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
+    { label: "Rechazadas", value: numericMetric(metrics, "Pagos rechazados"), color: "#c2185b" },
+    { label: "Proxima zona", value: numericMetric(metrics, "Chats pendientes"), color: "#0057d9" }
   ];
+  const statusTotal = statusSegments.reduce((sum, item) => sum + item.value, 0);
+  const visibleStatus = statusTotal
+    ? statusSegments
+    : [{ label: "Sin movimientos", value: 1, color: "#f4c400" }];
 
-  const statusSource = data.statusCounts.length
-    ? data.statusCounts
-    : [
-        { status: "Pago pendiente", count: numericMetric(data.metrics, "Pedidos pendientes") },
-        { status: "Requiere revision", count: numericMetric(data.metrics, "Aprobacion admin") },
-        { status: "Pagos pendientes", count: numericMetric(data.metrics, "Pagos pendientes") },
-        { status: "Chats pendientes", count: numericMetric(data.metrics, "Chats pendientes") }
-      ].filter((item) => item.count > 0);
-  const statusTotal = statusSource.reduce((sum, item) => sum + item.count, 0);
-  const statusColors = ["#16834a", "#f4c400", "#1c7ed6", "#b42318", "#7c3aed", "#f97316"];
-  const logHighlights = [
-    ...(data.recentPaymentEvents ?? []).map((event) => ({
-      title: event.Estado,
-      detail: event.Error !== "-" ? event.Error : event.Evento,
-      date: event.Fecha
-    })),
-    ...(data.recentInventory ?? []).map((movement) => ({
-      title: `Stock - ${movement.Tipo}`,
-      detail: `${movement.Motivo} (${movement.Cantidad})`,
-      date: movement.Fecha
-    }))
-  ].slice(0, 5);
-
-  const commercialSeries = [
-    numericMetric(data.metrics, "Clientes nuevos"),
-    numericMetric(data.metrics, "Pedidos pendientes"),
-    numericMetric(data.metrics, "Pedidos pagados"),
-    numericMetric(data.metrics, "Pagos aprobados"),
-    numericMetric(data.metrics, "Tickets emitidos")
-  ];
-  const sectionLinks = [
-    { href: `${adminPath}/pedidos`, label: "Pedidos", helper: "Compras, aprobaciones y estados", icon: ShoppingBag },
-    { href: `${adminPath}/pagos`, label: "Pagos", helper: "Cobros, transferencias y proveedor", icon: CreditCard },
-    { href: `${adminPath}/productos`, label: "Productos", helper: "Stock, precios e imagenes", icon: Package },
-    { href: `${adminPath}/clientes`, label: "Clientes", helper: "Usuarios, compras y actividad", icon: Users },
-    { href: `${adminPath}/tickets`, label: "Tickets", helper: "Comprobantes emitidos", icon: FileText },
-    { href: `${adminPath}/logs`, label: "Actividad", helper: "Alertas importantes del sistema", icon: Activity }
-  ];
+  const chartData = data.charts;
 
   return (
     <AdminShell title="Dashboard" description="Resumen general de ventas, pedidos, pagos y actividad.">
-      <section className={`admin-payment-status ${paymentsReady ? (paymentsTestMode ? "admin-payment-status--test" : "admin-payment-status--ready") : ""}`}>
-        <div>
-          <strong>{paymentsReady ? (paymentsTestMode ? "Mercado Pago en modo prueba" : "Mercado Pago listo") : "Pagos pendientes de configurar"}</strong>
-          <span>
+      <section className="admin-dashboard-model" aria-label="Dashboard administrativo FZAC">
+        <div className="admin-model-control-row">
+          <div className="admin-model-payment-state">
+            <span className={paymentsReady ? (paymentsTestMode ? "is-test" : "is-ready") : "is-warning"} />
             {paymentsReady
               ? paymentsTestMode
-                ? "Usa compradores sandbox para probar checkout, retorno y comprobantes sin cobrar dinero real."
-                : "Credenciales productivas activas. Verifica webhook publico antes de recibir ventas reales."
-              : "El panel queda operativo, pero el checkout online necesita credenciales validas para cobrar."}
-          </span>
-        </div>
-      </section>
-
-      <section className="admin-simple-dashboard" aria-label="Metricas del e-commerce FZAC">
-        <header className="admin-simple-head">
-          <div>
-            <span className="kicker">Command center FZAC</span>
-            <h2>Resumen general de ventas, pedidos, pagos y actividad</h2>
-            <p>Lectura rapida para decidir que cobrar, preparar, reponer o revisar sin entrar a modulos tecnicos.</p>
+                ? "Mercado Pago en modo prueba"
+                : "Mercado Pago listo"
+              : "Mercado Pago pendiente de configurar"}
           </div>
-          <Link className="btn btn--ghost" href={`${adminPath}/logs`}>
-            Ver actividad <ArrowRight size={17} />
-          </Link>
-        </header>
-
-        <div className="admin-command-metrics" aria-label="Metricas principales">
-          {metricCards.map(({ label, value, helper, badge, tone, icon: Icon }) => (
-            <article className={`admin-command-metric admin-command-metric--${tone}`} key={label}>
-              <header>
-                <Icon size={18} />
-                <span className={`status-pill status-pill--${tone === "default" ? "warning" : tone}`}>{badge}</span>
-              </header>
-              <strong>{value}</strong>
-              <span>{label}</span>
-              <small>{helper}</small>
-            </article>
-          ))}
+          <AdminDashboardAutoRefresh />
+          <nav className="admin-model-period-tabs" aria-label="Periodo de ingresos y egresos">
+            <strong>Ingresos / egresos</strong>
+            {periodOptions.map((option) => (
+              <Link
+                aria-current={selectedPeriod === option.value ? "page" : undefined}
+                className={selectedPeriod === option.value ? "active" : undefined}
+                href={`?period=${option.value}`}
+                key={option.value}
+              >
+                {option.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
-        <div className="admin-simple-grid admin-simple-grid--metrics-first">
-          <section className="admin-simple-panel admin-simple-panel--main admin-simple-panel--metrics">
-            <header className="admin-simple-panel__head">
-              <div>
-                <span className="kicker">Operaciones</span>
-                <h3>Como vienen las ventas</h3>
-                <p>La barra muestra donde se concentran pedidos, pagos y tareas pendientes.</p>
-              </div>
-              <TrendingUp size={22} />
-            </header>
-
-            <section className="admin-status-overview admin-status-overview--flat" aria-label="Estados de venta">
-              <header>
-                <div>
-                  <span className="kicker">Estados</span>
-                  <h3>Estado general</h3>
-                </div>
-                <strong>{statusTotal} registros</strong>
-              </header>
-              <div className="admin-status-stack">
-                {statusSource.length ? (
-                  statusSource.map((item, index) => {
-                    const style = {
-                      "--segment-width": `${Math.max(5, percent(item.count, statusTotal))}%`,
-                      "--segment-color": statusColors[index % statusColors.length]
-                    } as CSSProperties;
-                    return <span key={`${item.status}-${index}`} style={style} title={`${item.status}: ${item.count}`} />;
-                  })
-                ) : (
-                  <span style={{ "--segment-width": "100%", "--segment-color": "#f4c400" } as CSSProperties} />
-                )}
-              </div>
-              <div className="admin-status-legend">
-                {(statusSource.length ? statusSource : [{ status: "Sin operaciones pendientes", count: 0 }]).map((item, index) => (
-                  <span key={`${item.status}-legend`}>
-                    <i style={{ background: statusColors[index % statusColors.length] }} />
-                    {item.status} <strong>{item.count}</strong>
-                  </span>
-                ))}
-              </div>
-            </section>
-
-            <DashboardLineChart
-              title="Movimiento comercial"
-              helper="Clientes, pedidos, pagos y comprobantes en una sola lectura."
-              labels={["Clientes", "Pendientes", "Pagados", "Pagos", "Tickets"]}
-              series={[{ label: "E-Commerce", values: commercialSeries, color: "#f4c400" }]}
-            />
-          </section>
-
-          <aside className="admin-simple-panel admin-simple-panel--numbers">
-            <header className="admin-simple-panel__head">
-              <div>
-                <span className="kicker">Resumen facil</span>
-                <h3>Numeros que importan</h3>
-                <p>Valores utiles para decidir sin mirar datos tecnicos.</p>
-              </div>
-              <BarChart3 size={22} />
-            </header>
-            <div className="admin-plain-metrics admin-plain-metrics--dashboard">
-              {plainMetrics.map((metric) => (
-                <article key={metric.label}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                  <small>{metric.helper}</small>
-                </article>
-              ))}
-            </div>
-          </aside>
+        <div className="admin-model-cards">
+          <DashboardCycleCard
+            amount={plus(periodIncome.value)}
+            caption={periodLabel(selectedPeriod)}
+            footer={periodIncome.helper}
+            icon={TrendingUp}
+            primaryLabel="balance"
+            primaryValue={periodBalance.value}
+            secondaryLabel="egresos"
+            secondaryValue={periodExpenses.value}
+            title="INGRESOS"
+            tone="yellow"
+          />
+          <DashboardCycleCard
+            amount={plus(pendingTotal.value)}
+            caption="Pendiente de cobrar"
+            footer={`${pendingOrders.value} pendientes / ${approvalOrders.value} en revision`}
+            icon={ShoppingBag}
+            primaryLabel="pendientes"
+            primaryValue={pendingOrders.value}
+            secondaryLabel="revision"
+            secondaryValue={approvalOrders.value}
+            title="PEDIDOS"
+            tone="green"
+          />
+          <DashboardCycleCard
+            amount={plus(salesToday.value)}
+            caption="Cobros y proveedor"
+            footer={`${rejectedPayments.value} rechazados / ${pendingPayments.value} pendientes`}
+            icon={CreditCard}
+            primaryLabel="aprobados"
+            primaryValue={approvedPayments.value}
+            secondaryLabel="creados"
+            secondaryValue={pendingPayments.value}
+            title="PAGOS"
+            tone="red"
+          />
         </div>
 
-        <section className="admin-simple-panel admin-log-highlight">
+        <section className="admin-model-status">
           <header>
-            <div>
-              <span className="kicker">Avisos</span>
-              <h2>Actividad destacada</h2>
-              <p>Lo ultimo que conviene revisar antes de preparar pedidos.</p>
-            </div>
-            <ShieldCheck size={22} />
+            <h2>Estados de las ventas del mes</h2>
+            <strong>{statusTotal} ventas</strong>
           </header>
-          <div className="admin-mini-list">
-            {logHighlights.length ? (
-              logHighlights.map((item, index) => (
-                <article key={`${item.title}-${index}`}>
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                  <small>{item.date}</small>
-                </article>
-              ))
-            ) : (
-              <p className="admin-help">Sin avisos criticos recientes.</p>
-            )}
+          <div className="admin-model-status__bar" aria-hidden="true">
+            {visibleStatus.map((item) => (
+              <span
+                key={item.label}
+                style={
+                  {
+                    "--status-color": item.color,
+                    "--status-width": `${segmentWidth(item.value, statusTotal || 1)}%`
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+          <div className="admin-model-status__legend">
+            {statusSegments.map((item) => (
+              <span key={item.label}>
+                <i style={{ background: item.color }} />
+                {item.label}
+                <strong>{item.value}</strong>
+                <small>{statusTotal ? `${Math.round((item.value / statusTotal) * 100)}%` : "0%"}</small>
+              </span>
+            ))}
           </div>
         </section>
-      </section>
 
-      <section className="admin-section-grid" aria-label="Secciones administrativas">
-        <header className="admin-section-grid__head">
-          <div>
-            <span className="kicker">Gestion</span>
-            <h2>Entrar a una seccion</h2>
-            <p>Accesos separados para que cada tarea tenga su lugar.</p>
-          </div>
-        </header>
-        {sectionLinks.map(({ href, label, helper, icon: Icon }) => (
-          <Link href={href} key={href}>
-            <Icon size={20} />
-            <span>
-              <strong>{label}</strong>
-              <small>{helper}</small>
-            </span>
-            <ArrowRight size={16} />
-          </Link>
-        ))}
-        <Link href="/productos">
-          <Home size={20} />
-          <span>
-            <strong>Vista cliente</strong>
-            <small>Ver la tienda como comprador</small>
-          </span>
-          <ArrowRight size={16} />
-        </Link>
+        <div className="admin-model-charts">
+          <AdminModelLineChart
+            labels={chartData.labels}
+            series={[
+              { label: "Pedidos", values: chartData.ordersCreated, color: "#0f9d66" },
+              { label: "Pagados", values: chartData.ordersPaid, color: "#2f6bff" },
+              { label: "Tickets", values: chartData.ticketsIssued, color: "#c2185b" }
+            ]}
+            title="Pedidos y tickets por periodo"
+          />
+          <AdminModelLineChart
+            labels={chartData.labels}
+            series={[
+              { label: "Ingresos", values: chartData.income, color: "#0f9d66" },
+              { label: "Tickets $", values: chartData.ticketTotals, color: "#2f6bff" },
+              { label: "Pendientes", values: chartData.pendingOrders, color: "#c2185b" }
+            ]}
+            title="Ingresos y comprobantes"
+          />
+        </div>
+
+        <section className="admin-model-footer">
+          <PackageCheck size={19} />
+          <span>Periodo: {periodLabel(selectedPeriod)}</span>
+          <span>Mes: {salesMonth.value}</span>
+          <span>Ticket promedio: {averageTicket.value}</span>
+          <span>Stock activo: {getMetric(metrics, "Productos activos").value}</span>
+          <span>Sin stock: {getMetric(metrics, "Productos sin stock").value}</span>
+          <span>Usuarios: {getMetric(metrics, "Usuarios registrados").value}</span>
+        </section>
       </section>
     </AdminShell>
   );

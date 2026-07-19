@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+import type { User } from "@supabase/supabase-js";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -33,70 +35,86 @@ export async function getCurrentUser() {
   return data.user;
 }
 
-export async function getUserProfile(): Promise<SessionProfile | null> {
+function sessionProfileFromUser(user: User): SessionProfile {
+  const metadata = user.user_metadata as Record<string, unknown> | undefined;
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    full_name: metadataText(metadata, ["full_name", "name"]),
+    phone: user.phone ?? metadataText(metadata, ["phone"]),
+    avatar_url: metadataText(metadata, ["avatar_url", "picture", "photo_url"]),
+    role: isAdminEmail(user.email) ? "ADMIN" : "USER"
+  };
+}
+
+export const getUserProfile = cache(async (): Promise<SessionProfile | null> => {
   const user = await getCurrentUser();
   if (!user?.email) return null;
 
   const admin = getSupabaseAdminClient();
-  const role: UserRole = isAdminEmail(user.email) ? "ADMIN" : "USER";
-  const metadata = user.user_metadata as Record<string, unknown> | undefined;
-  const metadataName = metadataText(metadata, ["full_name", "name"]);
-  const metadataAvatar = metadataText(metadata, ["avatar_url", "picture", "photo_url"]);
+  const fallback = sessionProfileFromUser(user);
+  if (!admin) return fallback;
 
-  if (!admin) {
-    return {
-      id: user.id,
-      email: user.email,
-      full_name: metadataName,
-      phone: user.phone ?? null,
-      avatar_url: metadataAvatar,
-      role
-    };
-  }
+  const { data } = await admin
+    .from("profiles")
+    .select("id,email,full_name,phone,avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!data) return fallback;
+
+  return {
+    id: data.id,
+    email: data.email || user.email,
+    full_name: data.full_name ?? fallback.full_name,
+    phone: data.phone ?? fallback.phone,
+    avatar_url: data.avatar_url ?? fallback.avatar_url,
+    role: isAdminEmail(user.email) ? "ADMIN" : "USER"
+  };
+});
+
+export async function syncUserProfileOnLogin(authUser?: User | null): Promise<SessionProfile | null> {
+  const user = authUser ?? (await getCurrentUser());
+  if (!user?.email) return null;
+
+  const fallback = sessionProfileFromUser(user);
+  const admin = getSupabaseAdminClient();
+  if (!admin) return fallback;
 
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("full_name,phone,avatar_url")
     .eq("id", user.id)
     .maybeSingle();
-
+  const now = new Date().toISOString();
   const payload = {
     id: user.id,
     email: user.email,
-    full_name: metadataName ?? existingProfile?.full_name ?? null,
-    phone: user.phone ?? existingProfile?.phone ?? null,
-    avatar_url: metadataAvatar ?? existingProfile?.avatar_url ?? null,
-    role,
-    last_login_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    full_name: existingProfile?.full_name ?? fallback.full_name,
+    phone: existingProfile?.phone ?? fallback.phone,
+    avatar_url: fallback.avatar_url ?? existingProfile?.avatar_url ?? null,
+    role: fallback.role,
+    last_login_at: now,
+    updated_at: now
   };
 
   await admin.from("profiles").upsert(payload, { onConflict: "id" });
 
-  if (role === "ADMIN") {
+  if (fallback.role === "ADMIN") {
     await admin.from("notifications").insert({
       target_role: "ADMIN",
       type: "ADMIN_LOGIN",
       title: "Administrador logueado",
-      message: `${user.email} ingreso al panel o a la cuenta FZAC.`,
+      message: `${user.email} ingreso a FZAC.`,
       link_to: `${getAdminConsolePath()}/clientes`
     });
   }
 
-  const { data } = await admin
-    .from("profiles")
-    .select("id,email,full_name,phone,avatar_url,role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!data) return payload;
-
   return {
-    id: data.id,
-    email: data.email,
-    full_name: data.full_name,
-    phone: data.phone,
-    avatar_url: data.avatar_url,
-    role: isAdminEmail(data.email) ? "ADMIN" : data.role
+    id: payload.id,
+    email: payload.email,
+    full_name: payload.full_name,
+    phone: payload.phone,
+    avatar_url: payload.avatar_url,
+    role: fallback.role
   };
 }

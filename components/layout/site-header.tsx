@@ -6,21 +6,12 @@ import { CartStatus } from "@/components/layout/cart-status";
 import { SearchSuggest } from "@/components/layout/search-suggest";
 import { SiteNav } from "@/components/layout/site-nav";
 import { getUserProfile } from "@/lib/auth/get-user";
-import { getAccountOverview } from "@/lib/db/account";
 import { getCategories } from "@/lib/db/catalog";
 import { getAdminConsolePath } from "@/lib/utils/env";
 
 export async function SiteHeader() {
   const [profile, categories] = await Promise.all([getUserProfile(), getCategories()]);
-  const [overview, adminPath] = await Promise.all([profile ? getAccountOverview(profile) : null, getAdminConsolePath()]);
-  const accountOverview = overview
-    ? {
-        balance: overview.balance,
-        ordersCount: overview.ordersCount,
-        purchasedProducts: overview.purchasedProducts,
-        reservedProducts: overview.reservedProducts
-      }
-    : null;
+  const adminPath = getAdminConsolePath();
 
   return (
     <>
@@ -51,7 +42,7 @@ export async function SiteHeader() {
                 <ShieldCheck size={20} />
               </Link>
             ) : null}
-            <AccountMenu profile={profile} overview={accountOverview} adminPath={adminPath} />
+            <AccountMenu profile={profile} adminPath={adminPath} />
             <CartStatus />
           </div>
         </div>

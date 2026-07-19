@@ -1,15 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
   Bell,
+  BookOpen,
   CreditCard,
   FileText,
   Grid3X3,
+  Home,
   MessageCircle,
   Package,
   Palette,
@@ -24,6 +26,7 @@ const linkGroups = [
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
       { path: "/logs", label: "Actividad", icon: Activity },
+      { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
       { path: "?tab=notifications", label: "Notificaciones", icon: Bell }
     ]
   },
@@ -48,10 +51,10 @@ const linkGroups = [
   {
     title: "Sistema",
     links: [
-      { path: "/logs", label: "Actividad", icon: Activity },
       { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
       { path: "/apariencia", label: "Apariencia", icon: Palette },
-      { path: "/ajustes", label: "Ajustes", icon: Settings }
+      { path: "/ajustes", label: "Ajustes", icon: Settings },
+      { path: "public:/productos", label: "Vista cliente", icon: Home }
     ]
   }
 ];
@@ -65,13 +68,15 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
   const normalizedAdminPath = normalizePath(adminPath);
 
   function hrefFor(path: string) {
+    if (path.startsWith("public:")) return path.replace("public:", "");
     return path.startsWith("?") ? `${normalizedAdminPath}${path}` : `${normalizedAdminPath}${path}`;
   }
 
   function isActive(path: string) {
+    if (path.startsWith("public:")) return false;
     if (path.startsWith("?")) return false;
     const href = normalizePath(`${normalizedAdminPath}${path}`);
-    if (!path) return pathname === normalizedAdminPath || pathname === "/admin";
+    if (!path) return pathname === normalizedAdminPath;
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
@@ -79,7 +84,7 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
     <aside className="admin-sidebar">
       <Link className="admin-sidebar__brand" href={normalizedAdminPath}>
         <span>
-          <Image src="/logoFZAC.jpg" alt="FZAC" width={44} height={44} unoptimized />
+          <Image src="/logoFZAC.jpg" alt="FZAC" width={58} height={58} unoptimized />
         </span>
         <strong>FZAC Materiales</strong>
         <small>Panel comercial</small>

@@ -66,6 +66,10 @@ function friendlyStatus(value: string | null | undefined) {
     FAILED: "Denegado",
     REJECTED: "Rechazado",
     CANCELLED: "Cancelado",
+    REFUNDED: "Reembolsado",
+    EXPIRED: "Vencido",
+    PROCESSED: "Procesado",
+    RECEIVED: "Recibido",
     OPEN: "Abierto",
     WAITING_ADMIN: "Revisar",
     CLOSED: "Cerrado"
@@ -183,6 +187,10 @@ export async function getAdminPaymentTableRows(limit = 200) {
   return (payments ?? []).map((payment) => {
     const order = (orders ?? []).find((item) => item.id === payment.order_id);
     return {
+      __paymentId: payment.id,
+      __orderId: payment.order_id,
+      __provider: payment.provider,
+      __status: payment.status,
       Estado: friendlyStatus(payment.status),
       Ambiente: paymentEnv,
       "Medio de pago": friendlyPaymentMethod(payment),
@@ -210,8 +218,8 @@ export async function getAdminPaymentEventRows(limit = 200) {
     "Medio de pago": friendlyProvider(event.provider),
     Evento: event.event_type ?? "-",
     Pedido: shortReference(event.order_id),
-    "Referencia Mercado Pago": shortReference(event.provider_payment_id),
-    "Evento proveedor": shortReference(event.provider_event_id),
+    ReferenciaMercadoPago: shortReference(event.provider_payment_id),
+    EventoProveedor: shortReference(event.provider_event_id),
     Error: event.error_message ? String(event.error_message).slice(0, 90) : "-",
     Recibido: adminDate(event.created_at),
     Procesado: adminDate(event.processed_at)
@@ -258,11 +266,97 @@ function startOfDay() {
   return date.toISOString();
 }
 
+function startOfWeek() {
+  const date = new Date();
+  const day = date.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  date.setDate(date.getDate() - diff);
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
 function startOfMonth() {
   const date = new Date();
   date.setDate(1);
   date.setHours(0, 0, 0, 0);
   return date.toISOString();
+}
+
+function periodStart(period: "day" | "week" | "month") {
+  if (period === "day") return startOfDay();
+  if (period === "week") return startOfWeek();
+  return startOfMonth();
+}
+
+function periodName(period: "day" | "week" | "month") {
+  if (period === "day") return "dia";
+  if (period === "week") return "semana";
+  return "mes";
+}
+
+function dashboardBuckets(period: "day" | "week" | "month") {
+  const start = new Date(periodStart(period));
+  const buckets: Array<{ label: string; start: Date; end: Date }> = [];
+
+  if (period === "day") {
+    for (let hour = 0; hour < 24; hour += 4) {
+      const bucketStart = new Date(start);
+      bucketStart.setHours(hour, 0, 0, 0);
+      const bucketEnd = new Date(bucketStart);
+      bucketEnd.setHours(hour + 4, 0, 0, 0);
+      buckets.push({ label: `${String(hour).padStart(2, "0")}h`, start: bucketStart, end: bucketEnd });
+    }
+    return buckets;
+  }
+
+  if (period === "week") {
+    const formatter = new Intl.DateTimeFormat("es-AR", { weekday: "short" });
+    for (let day = 0; day < 7; day += 1) {
+      const bucketStart = new Date(start);
+      bucketStart.setDate(start.getDate() + day);
+      const bucketEnd = new Date(bucketStart);
+      bucketEnd.setDate(bucketStart.getDate() + 1);
+      buckets.push({ label: formatter.format(bucketStart), start: bucketStart, end: bucketEnd });
+    }
+    return buckets;
+  }
+
+  const end = new Date(start);
+  end.setMonth(start.getMonth() + 1);
+  let cursor = new Date(start);
+  while (cursor < end) {
+    const bucketStart = new Date(cursor);
+    const bucketEnd = new Date(cursor);
+    bucketEnd.setDate(bucketEnd.getDate() + 7);
+    if (bucketEnd > end) bucketEnd.setTime(end.getTime());
+    const labelEnd = new Date(bucketEnd);
+    labelEnd.setDate(Math.max(bucketStart.getDate(), labelEnd.getDate() - 1));
+    buckets.push({ label: `${bucketStart.getDate()}-${labelEnd.getDate()}`, start: bucketStart, end: bucketEnd });
+    cursor = bucketEnd;
+  }
+  return buckets;
+}
+
+function bucketSeries<T>(
+  rows: T[],
+  buckets: Array<{ start: Date; end: Date }>,
+  getDate: (row: T) => string | null | undefined,
+  getValue: (row: T) => number
+) {
+  const values = buckets.map(() => 0);
+  rows.forEach((row) => {
+    const rawDate = getDate(row);
+    if (!rawDate) return;
+    const time = new Date(rawDate).getTime();
+    const index = buckets.findIndex((bucket, bucketIndex) => {
+      const start = bucket.start.getTime();
+      const end = bucket.end.getTime();
+      const isLast = bucketIndex === buckets.length - 1;
+      return time >= start && (isLast ? time <= end : time < end);
+    });
+    if (index >= 0) values[index] += getValue(row);
+  });
+  return values;
 }
 
 function adminDate(value: string | null | undefined) {
@@ -276,27 +370,45 @@ function adminDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-export async function getAdminDashboardData() {
+export async function getAdminDashboardData(period: "day" | "week" | "month" = "month") {
   const admin = getSupabaseAdminClient();
   if (!admin) {
+    const buckets = dashboardBuckets(period);
     return {
       metrics: [
         { label: "Ventas del dia", value: currency(0), helper: "Backend administrativo sin conexion" },
+        { label: "Ingresos del periodo", value: currency(0), helper: "Backend administrativo sin conexion" },
+        { label: "Egresos del periodo", value: currency(0), helper: "Sin modulo de egresos conectado" },
+        { label: "Balance del periodo", value: currency(0), helper: "Ingresos menos egresos" },
         { label: "Ventas del mes", value: currency(0), helper: "Esperando pagos aprobados" },
         { label: "Pedidos pendientes", value: "0", helper: "Sin datos" },
         { label: "Clientes nuevos", value: "0", helper: "Sin datos" }
       ],
       statusCounts: [],
       recentOrders: [],
-      recentTickets: []
+      recentTickets: [],
+      charts: {
+        labels: buckets.map((bucket) => bucket.label),
+        ordersCreated: buckets.map(() => 0),
+        ordersPaid: buckets.map(() => 0),
+        ticketsIssued: buckets.map(() => 0),
+        income: buckets.map(() => 0),
+        ticketTotals: buckets.map(() => 0),
+        pendingOrders: buckets.map(() => 0)
+      }
     };
   }
 
   const today = startOfDay();
   const month = startOfMonth();
+  const selectedStart = periodStart(period);
+  const selectedPeriodName = periodName(period);
 
   const [
     { data: paidOrders },
+    { data: selectedPaidOrders },
+    { data: selectedOrders },
+    { data: selectedTickets },
     { data: monthOrders },
     { data: pendingOrders },
     { data: approvalOrders },
@@ -313,12 +425,15 @@ export async function getAdminDashboardData() {
     { data: recentTickets }
   ] = await Promise.all([
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", today),
+    admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", selectedStart),
+    admin.from("orders").select("id,total,created_at,status").gte("created_at", selectedStart),
+    admin.from("purchase_tickets").select("id,total,issued_at,status").gte("issued_at", selectedStart),
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", month),
     admin.from("orders").select("id,status").eq("status", "PENDING_PAYMENT"),
     admin.from("orders").select("id,status,total").eq("status", "PENDING_ADMIN_APPROVAL"),
     admin.from("orders").select("id,status,total"),
     admin.from("products").select("id, active, stock, stock_minimum").eq("active", true),
-    admin.from("payments").select("id,status,amount"),
+    admin.from("payments").select("id,status,amount,created_at"),
     admin.from("profiles").select("id,created_at,last_login_at"),
     admin.from("profiles").select("id,created_at,last_login_at").gte("created_at", month),
     admin.from("profiles").select("id,created_at").gte("created_at", today),
@@ -338,19 +453,27 @@ export async function getAdminDashboardData() {
   ]);
 
   const salesToday = (paidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+  const selectedIncome = (selectedPaidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+  const selectedExpenses = 0;
+  const selectedBalance = selectedIncome - selectedExpenses;
   const salesMonth = (monthOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
   const pendingPayments = (payments ?? []).filter((payment) => payment.status === "PENDING");
   const rejectedPayments = (payments ?? []).filter((payment) => payment.status === "FAILED");
   const paidOrderCount = (allOrderRows ?? []).filter((order) => order.status === "PAID").length;
-  const pendingAmount = (payments ?? [])
-    .filter((payment) => payment.status === "PENDING")
-    .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+  const selectedStartTime = new Date(selectedStart).getTime();
+  const selectedPendingPayments = pendingPayments.filter((payment) => new Date(payment.created_at ?? 0).getTime() >= selectedStartTime);
+  const pendingAmount = selectedPendingPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
   const lowStock = (products ?? []).filter((product) => Number(product.stock ?? 0) <= Number(product.stock_minimum ?? 0));
   const noStock = (products ?? []).filter((product) => Number(product.stock ?? 0) <= 0);
-  const averageTicket = approvedPayments.length
-    ? approvedPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0) / approvedPayments.length
-    : 0;
+  const averageTicket = (selectedPaidOrders ?? []).length ? selectedIncome / (selectedPaidOrders ?? []).length : 0;
+  const periodBuckets = dashboardBuckets(period);
+  const selectedOrderRows = selectedOrders ?? [];
+  const selectedTicketRows = selectedTickets ?? [];
+  const paidSelectedOrderRows = selectedOrderRows.filter((order) => String(order.status).toUpperCase() === "PAID");
+  const pendingSelectedOrderRows = selectedOrderRows.filter((order) =>
+    ["PENDING_PAYMENT", "PENDING_TRANSFER", "PENDING_ADMIN_APPROVAL", "COORDINATE"].includes(String(order.status).toUpperCase())
+  );
 
   const recentOrderRows = recentOrders ?? [];
   const statusMap = recentOrderRows.reduce<Record<string, number>>((acc, order) => {
@@ -362,20 +485,23 @@ export async function getAdminDashboardData() {
   return {
     metrics: [
       { label: "Ventas del dia", value: currency(salesToday), helper: "Pagos aprobados hoy" },
+      { label: "Ingresos del periodo", value: currency(selectedIncome), helper: `Ingresos de la ${selectedPeriodName} seleccionada` },
+      { label: "Egresos del periodo", value: currency(selectedExpenses), helper: "Sin modulo de egresos conectado" },
+      { label: "Balance del periodo", value: currency(selectedBalance), helper: "Ingresos menos egresos" },
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
       { label: "Usuarios registrados", value: String(allProfiles?.length ?? 0), helper: `${newTodayProfiles?.length ?? 0} nuevos hoy` },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },
       { label: "Aprobacion admin", value: String(approvalOrders?.length ?? 0), helper: "Compras grandes" },
       { label: "Pedidos pagados", value: String(paidOrderCount), helper: "Ordenes confirmadas" },
       { label: "Pagos pendientes", value: String(pendingPayments.length), helper: "Esperando proveedor" },
-      { label: "Total pendiente", value: currency(pendingAmount), helper: "Pagos sin confirmar" },
+      { label: "Total pendiente", value: currency(pendingAmount), helper: `Pagos pendientes de la ${selectedPeriodName}` },
       { label: "Pagos aprobados", value: String(approvedPayments.length), helper: "Confirmados por proveedor" },
       { label: "Pagos rechazados", value: String(rejectedPayments.length), helper: "Sin stock descontado" },
-      { label: "Ticket promedio", value: currency(averageTicket), helper: "Promedio de pagos aprobados" },
+      { label: "Ticket promedio", value: currency(averageTicket), helper: `Promedio de la ${selectedPeriodName}` },
       { label: "Clientes nuevos", value: String(profiles?.length ?? 0), helper: "Altas del mes" },
       { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} bajo stock` },
       { label: "Productos sin stock", value: String(noStock.length), helper: "Reponer primero" },
-      { label: "Tickets emitidos", value: String(recentTickets?.length ?? 0), helper: "Ultimos registros" },
+      { label: "Tickets emitidos", value: String(selectedTicketRows.length), helper: `Tickets de la ${selectedPeriodName}` },
       { label: "Chats pendientes", value: String(chats?.length ?? 0), helper: "AI o soporte humano" }
     ],
     statusCounts: Object.entries(statusMap).map(([status, count]) => ({ status: friendlyStatus(status), count })),
@@ -404,7 +530,16 @@ export async function getAdminDashboardData() {
       Evento: event.event_type ?? "-",
       Error: event.error_message ?? "-",
       Fecha: adminDate(event.created_at)
-    }))
+    })),
+    charts: {
+      labels: periodBuckets.map((bucket) => bucket.label),
+      ordersCreated: bucketSeries(selectedOrderRows, periodBuckets, (order) => order.created_at, () => 1),
+      ordersPaid: bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, () => 1),
+      ticketsIssued: bucketSeries(selectedTicketRows, periodBuckets, (ticket) => ticket.issued_at, () => 1),
+      income: bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, (order) => Number(order.total ?? 0)),
+      ticketTotals: bucketSeries(selectedTicketRows, periodBuckets, (ticket) => ticket.issued_at, (ticket) => Number(ticket.total ?? 0)),
+      pendingOrders: bucketSeries(pendingSelectedOrderRows, periodBuckets, (order) => order.created_at, () => 1)
+    }
   };
 }
 

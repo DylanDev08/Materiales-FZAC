@@ -1,46 +1,29 @@
 import Link from "next/link";
-import { CheckCircle, CreditCard, Package, Truck } from "lucide-react";
-
-const steps = [
-  { title: "Elegis productos", text: "Busca por rubro, marca, SKU o uso y agrega cantidades al carrito.", icon: Package },
-  { title: "Confirmas datos", text: "Cargas comprador, telefono y retiro o envio coordinado.", icon: Truck },
-  { title: "Pagas seguro", text: "FZAC no guarda tarjetas. El pago online se procesa con proveedor certificado.", icon: CreditCard },
-  { title: "Recibis confirmacion", text: "Con pago aprobado se descuenta stock, se emite ticket y se prepara la orden.", icon: CheckCircle }
-];
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { PurchaseGuide } from "@/components/help/purchase-guide";
 
 export default function Page() {
   return (
-    <main className="page-section payment-page">
-      <div className="container">
-        <span className="kicker">Como comprar</span>
-        <h1>Compra materiales FZAC en pocos pasos</h1>
-        <p className="payment-page__lead">
-          El flujo esta armado para comprar como en un corralon real: stock validado, pago por proveedor externo,
-          retiro o envio coordinado y seguimiento administrativo.
-        </p>
-        <section className="payment-method-grid">
-          {steps.map((step) => {
-            const Icon = step.icon;
-            return (
-              <article className="payment-method-card" key={step.title}>
-                <Icon size={28} />
-                <h2>{step.title}</h2>
-                <p>{step.text}</p>
-              </article>
-            );
-          })}
-        </section>
-        <div className="banner-band" style={{ marginTop: 18 }}>
+    <main className="help-page">
+      <section className="help-page__hero">
+        <div className="container help-page__hero-inner">
           <div>
-            <span className="kicker">Atencion comercial</span>
-            <h2>Necesitas ayuda antes de pagar?</h2>
-            <p>Consultanos por WhatsApp para stock, unidad de venta, retiro, envio o pedidos especiales.</p>
+            <span className="kicker">Cómo comprar</span>
+            <h1>De elegir el material a seguir el pedido, sin vueltas</h1>
+            <p>Avanzá por cada etapa y revisá exactamente qué necesita FZAC para validar stock, pago y preparación.</p>
           </div>
-          <Link className="btn" href="/contacto">
-            Contactar FZAC
-          </Link>
+          <span className="help-page__trust"><ShieldCheck size={20} /> Stock y total validados en servidor</span>
         </div>
-      </div>
+      </section>
+      <section className="page-section">
+        <div className="container">
+          <PurchaseGuide />
+          <div className="help-page__next">
+            <span>¿Ya sabés qué necesitás?</span>
+            <Link className="btn" href="/productos">Empezar compra <ArrowRight size={17} /></Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

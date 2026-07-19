@@ -15,44 +15,41 @@ type HeaderProfile = {
 
 type AccountMenuProps = {
   profile: HeaderProfile | null;
-  overview: {
-    balance: string;
-    ordersCount: number;
-    purchasedProducts: number;
-    reservedProducts: number;
-  } | null;
   adminPath: string;
 };
 
-function initials(profile: HeaderProfile) {
-  const source = profile.full_name || profile.email;
-  return source
-    .split(/\s|@/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
+type AccountMenuSummary = {
+  totalSpent: string;
+  pendingAmount: string;
+  ordersCount: number;
+  purchasedProducts: number;
+  reservedProducts: number;
+};
 
 function ProfileAvatar({ large = false, profile }: { large?: boolean; profile: HeaderProfile }) {
-  const [failed, setFailed] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const shouldUseProfilePhoto = profile.avatar_url && profile.avatar_url !== failedUrl;
 
   return (
     <span className={`account-menu__avatar ${large ? "account-menu__avatar--large" : ""}`}>
-      {profile.avatar_url && !failed ? (
+      {shouldUseProfilePhoto ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+        <img src={profile.avatar_url!} alt="" referrerPolicy="no-referrer" onError={() => setFailedUrl(profile.avatar_url)} />
       ) : (
-        initials(profile)
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/logoFZAC.jpg" alt="" />
       )}
     </span>
   );
 }
 
-export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) {
+export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [summary, setSummary] = useState<AccountMenuSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const summaryRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     function close(event: MouseEvent) {
@@ -60,8 +57,38 @@ export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) 
     }
 
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      const pendingRequest = summaryRequestRef.current;
+      summaryRequestRef.current = null;
+      pendingRequest?.abort();
+    };
   }, []);
+
+  function loadSummary() {
+    if (!profile || summary || summaryRequestRef.current) return;
+    const controller = new AbortController();
+    summaryRequestRef.current = controller;
+    setSummaryLoading(true);
+    void fetch("/api/account/summary", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("No pudimos cargar el resumen.");
+        return (await response.json()) as AccountMenuSummary;
+      })
+      .then(setSummary)
+      .catch(() => undefined)
+      .finally(() => {
+        if (summaryRequestRef.current !== controller) return;
+        summaryRequestRef.current = null;
+        setSummaryLoading(false);
+      });
+  }
+
+  function toggleMenu() {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen) loadSummary();
+  }
 
   async function logout() {
     const supabase = getSupabaseBrowserClient();
@@ -81,8 +108,8 @@ export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) 
 
   return (
     <div className="account-menu" ref={ref}>
-      <button className="account-menu__trigger" type="button" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-        <ProfileAvatar key={profile.avatar_url || "avatar-placeholder"} profile={profile} />
+      <button className="account-menu__trigger" type="button" aria-expanded={open} onClick={toggleMenu}>
+        <ProfileAvatar profile={profile} />
         <ChevronDown size={15} />
       </button>
 
@@ -97,22 +124,16 @@ export function AccountMenu({ profile, overview, adminPath }: AccountMenuProps) 
           </header>
 
           <div className="account-menu__stats">
-            <span>
-              <WalletCards size={16} />
-              Saldo {overview?.balance ?? "$0"}
-            </span>
-            <span>
-              <Package size={16} />
-              {overview?.purchasedProducts ?? 0} comprados
-            </span>
-            <span>
-              <ShoppingBag size={16} />
-              {overview?.ordersCount ?? 0} pedidos
-            </span>
-            <span>
-              <Package size={16} />
-              {overview?.reservedProducts ?? 0} en reserva
-            </span>
+            {summaryLoading && !summary ? (
+              <><span className="account-menu__stat-skeleton" /><span className="account-menu__stat-skeleton" /><span className="account-menu__stat-skeleton" /><span className="account-menu__stat-skeleton" /></>
+            ) : (
+              <>
+                <span><WalletCards size={16} /> Comprado {summary?.totalSpent ?? "-"}</span>
+                <span><Package size={16} /> {summary?.purchasedProducts ?? 0} comprados</span>
+                <span><ShoppingBag size={16} /> {summary?.ordersCount ?? 0} pedidos</span>
+                <span><Package size={16} /> {summary?.reservedProducts ?? 0} en reserva</span>
+              </>
+            )}
           </div>
 
           <nav>

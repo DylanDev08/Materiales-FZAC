@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  Grid3X3,
   MessageCircle,
   Package,
   Search,
@@ -11,12 +10,11 @@ import {
 } from "lucide-react";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getCategories, getProducts } from "@/lib/db/catalog";
+import { getProducts } from "@/lib/db/catalog";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 export async function HomePage() {
-  const [categories, featured, offers] = await Promise.all([
-    getCategories(),
+  const [featured, offers] = await Promise.all([
     getProducts({ featured: true, limit: 4 }),
     getProducts({ onSale: true, limit: 4 })
   ]);
@@ -26,12 +24,12 @@ export async function HomePage() {
     .slice(0, 4);
   const buyingNeeds = [
     { label: "Materiales de obra", helper: "Cemento, cal, arena, piedra, hierro y ladrillos.", href: "/productos?search=cemento" },
-    { label: "Construccion en seco", helper: "Placas, perfiles, masillas, tornillos y aislantes.", href: "/productos?search=durlock" },
-    { label: "Ferreteria", helper: "Tornilleria, adhesivos, fijaciones y accesorios.", href: "/productos?search=ferreteria" },
-    { label: "Herramientas", helper: "Manuales, electricas y consumibles para obra.", href: "/productos?search=herramientas" },
-    { label: "Electricidad", helper: "Cables, cajas, llaves, tomas y canalizacion.", href: "/productos?search=electricidad" },
-    { label: "Plomeria", helper: "Canos, conexiones, adhesivos y accesorios sanitarios.", href: "/productos?search=plomeria" },
-    { label: "Pintura e impermeabilizacion", helper: "Latex, membranas, rodillos y preparadores.", href: "/productos?search=pintura" },
+    { label: "Construcción en seco", helper: "Placas, perfiles, masillas, tornillos y aislantes.", href: "/productos?search=durlock" },
+    { label: "Ferretería", helper: "Tornillería, adhesivos, fijaciones y accesorios.", href: "/productos?search=ferreteria" },
+    { label: "Herramientas", helper: "Manuales, eléctricas y consumibles para obra.", href: "/productos?search=herramientas" },
+    { label: "Electricidad", helper: "Cables, cajas, llaves, tomas y canalización.", href: "/productos?search=electricidad" },
+    { label: "Plomería", helper: "Caños, conexiones, adhesivos y accesorios sanitarios.", href: "/productos?search=plomeria" },
+    { label: "Pintura e impermeabilización", helper: "Látex, membranas, rodillos y preparadores.", href: "/productos?search=pintura" },
     { label: "Revestimientos", helper: "Pegamentos, pastinas, placas y terminaciones.", href: "/productos?search=revestimientos" }
   ];
 
@@ -40,7 +38,7 @@ export async function HomePage() {
       <section className="home-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
           <span>
-            <Truck size={18} /> Envios coordinados
+            <Truck size={18} /> Envíos coordinados
           </span>
           <span>
             <Package size={18} /> Retiro coordinado
@@ -58,14 +56,14 @@ export async function HomePage() {
         <div className="container home-hero__grid home-hero__grid--single">
           <div className="home-hero__content home-hero__content--wide">
             <span className="kicker">E-Commerce FZAC</span>
-            <h1>Compra materiales para obra con stock visible y atencion FZAC.</h1>
+            <h1>Comprá materiales para obra con stock visible y atención FZAC.</h1>
             <p>
-              Busca por material, arma tu pedido y elegi como pagar o coordinar. FZAC valida stock, precios y datos
+              Buscá por material, armá tu pedido y elegí cómo pagar o coordinar. FZAC valida stock, precios y datos
               antes de confirmar la compra.
             </p>
             <form className="hero-search" action="/productos">
               <Search size={20} />
-              <input name="search" placeholder="Que material necesitas hoy?" aria-label="Buscar materiales" />
+              <input name="search" placeholder="¿Qué material necesitás hoy?" aria-label="Buscar materiales" />
               <button className="btn" type="submit">
                 Buscar
               </button>
@@ -78,7 +76,7 @@ export async function HomePage() {
                 Ver ofertas
               </Link>
               <a className="btn btn--ghost" href={materialHelpHref} target="_blank" rel="noreferrer">
-                <MessageCircle size={18} /> No encontras un material?
+                <MessageCircle size={18} /> ¿No encontrás un material?
               </a>
             </div>
             <div className="home-trust-row" aria-label="Garantias de compra FZAC">
@@ -104,32 +102,18 @@ export async function HomePage() {
       </section>
 
       <section className="page-section page-section--tight">
-        <div className="container category-strip">
-          <Link className="category-strip__all" href="/categorias">
-            <Grid3X3 size={20} />
-            Todos los rubros
-          </Link>
-          {categories.slice(0, 8).map((category) => (
-            <Link href={`/categoria/${category.slug}`} key={category.id}>
-              {category.name}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="page-section">
         <div className="container">
           <SectionHeader
-            eyebrow="Compra guiada"
-            title="Comprar por rubro"
-            text="La tienda esta ordenada como un corralon digital: elegi el tipo de material y arma tu pedido."
+            eyebrow="Rubros"
+            title="Comprar por necesidad"
+            text="Entrá directo al material que necesitás sin recorrer secciones de más."
             action={
               <Link className="btn btn--ghost" href="/categorias">
                 Ver rubros
               </Link>
             }
           />
-          <div className="home-need-list">
+          <div className="home-floating-rubros">
             {buyingNeeds.map((need) => (
               <Link className="home-need-link" href={need.href} key={need.label}>
                 <span>
@@ -149,14 +133,14 @@ export async function HomePage() {
           <div className="home-step-item">
             <Search size={22} />
             <span>1</span>
-            <strong>Elegis productos</strong>
-            <small>Buscas por rubro, oferta o nombre.</small>
+            <strong>Elegís productos</strong>
+            <small>Buscás por rubro, oferta o nombre.</small>
           </div>
           <div className="home-step-item">
             <ShieldCheck size={22} />
             <span>2</span>
-            <strong>Confirmas datos</strong>
-            <small>Cargamos comprador, retiro o envio.</small>
+            <strong>Confirmás datos</strong>
+            <small>Cargás comprador, retiro o envío.</small>
           </div>
           <div className="home-step-item">
             <BadgeCheck size={22} />
@@ -167,13 +151,13 @@ export async function HomePage() {
           <div className="home-step-item">
             <ShieldCheck size={22} />
             <span>4</span>
-            <strong>Pagas o coordinas</strong>
+            <strong>Pagás o coordinás</strong>
             <small>Mercado Pago, transferencia o WhatsApp.</small>
           </div>
           <div className="home-step-item">
             <Truck size={22} />
             <span>5</span>
-            <strong>Retiras o recibis</strong>
+            <strong>Retirás o recibís</strong>
             <small>Entrega y retiro se coordinan con FZAC.</small>
           </div>
         </div>
@@ -183,8 +167,8 @@ export async function HomePage() {
         <div className="container banner-band banner-band--commercial">
           <div>
             <span className="kicker">Asesoramiento FZAC</span>
-            <h2>No encontras un material?</h2>
-            <p>Pedi asesoramiento a FZAC por WhatsApp para elegir medidas, cantidades o alternativas disponibles.</p>
+            <h2>¿No encontrás un material?</h2>
+            <p>Pedí asesoramiento a FZAC por WhatsApp para elegir medidas, cantidades o alternativas disponibles.</p>
           </div>
           <a className="btn" href={materialHelpHref} target="_blank" rel="noreferrer">
             <MessageCircle size={18} /> Consultar
@@ -197,14 +181,14 @@ export async function HomePage() {
           <SectionHeader
             eyebrow="Vidriera FZAC"
             title="Productos para empezar el pedido"
-            text="Una seleccion corta para comprar rapido. El catalogo completo queda a un click."
+            text="Selección corta, rápida de escanear y lista para sumar al carrito."
             action={
               <Link className="btn btn--ghost" href="/productos">
-                Catalogo completo
+                Catálogo completo
               </Link>
             }
           />
-          <ProductGrid products={spotlightProducts} />
+          <ProductGrid products={spotlightProducts} variant="rail" />
         </div>
       </section>
 
@@ -216,7 +200,7 @@ export async function HomePage() {
             <p>Consulta condiciones legales, plazos y requisitos antes de confirmar tu pedido.</p>
           </div>
           <Link className="btn btn--ghost" href="/cambios-y-devoluciones">
-            Ver politica
+            Ver política
           </Link>
         </div>
       </section>

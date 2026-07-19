@@ -417,6 +417,18 @@
   flex: 0 0 auto;
 }
 
+.account-menu__stat-skeleton {
+  min-height: 40px;
+  border: 0 !important;
+  background: linear-gradient(90deg, #171717, #292929, #171717) !important;
+  background-size: 200% 100% !important;
+  animation: account-menu-shimmer 1.1s linear infinite;
+}
+
+@keyframes account-menu-shimmer {
+  to { background-position: -200% 0; }
+}
+
 .account-menu__panel nav {
   display: grid;
   gap: 6px;
@@ -683,7 +695,39 @@
   }
 
   .site-header__main {
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
+  }
+
+  .brand {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+    padding-right: 8px;
+  }
+
+  .header-actions {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .search-suggest {
+    min-width: 0;
+    grid-row: 2;
+  }
+
+  .brand__text {
+    min-width: 0;
+  }
+
+  .brand__text strong {
+    overflow: hidden;
+    display: block;
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .header-actions {

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Info, Search, X } from "lucide-react";
+import { AdminRefundAction } from "@/components/admin/admin-refund-action";
 
 type AdminTableRow = Record<string, string | number | null | undefined>;
 type AdminTab = { label: string; match: (row: AdminTableRow) => boolean };
@@ -35,10 +36,11 @@ function tabOptionsFor(title: string): AdminTab[] {
   if (normalized.includes("ticket")) {
     return [
       { label: "Todos", match: () => true },
-      { label: "Aprobado", match: statusIncludes("aprob") },
-      { label: "Pendiente", match: statusIncludes("pend") },
-      { label: "Denegado", match: (row) => statusIncludes("deneg")(row) || statusIncludes("rechaz")(row) },
-      { label: "Cancelado", match: statusIncludes("cancel") }
+      { label: "Aprobados", match: statusIncludes("aprob") },
+      { label: "En revision", match: (row) => statusIncludes("revis")(row) || statusIncludes("revision")(row) },
+      { label: "Pendientes", match: statusIncludes("pend") },
+      { label: "Rechazados", match: (row) => statusIncludes("deneg")(row) || statusIncludes("rechaz")(row) },
+      { label: "Cancelados", match: statusIncludes("cancel") }
     ];
   }
 
@@ -48,14 +50,14 @@ function tabOptionsFor(title: string): AdminTab[] {
       { label: "Mercado Pago", match: includes("mercado pago") },
       { label: "Transferencia", match: includes("transferencia") },
       { label: "WhatsApp", match: includes("whatsapp") },
-      { label: "Aprobado", match: (row) => statusIncludes("aprob")(row) || statusIncludes("pagado")(row) },
-      { label: "Pendiente", match: statusIncludes("pend") },
-      { label: "Denegado", match: (row) => statusIncludes("deneg")(row) || statusIncludes("rechaz")(row) }
+      { label: "Aprobados", match: (row) => statusIncludes("aprob")(row) || statusIncludes("pagado")(row) },
+      { label: "Pendientes", match: statusIncludes("pend") },
+      { label: "Rechazados", match: (row) => statusIncludes("deneg")(row) || statusIncludes("rechaz")(row) }
     ];
   }
 
   if (normalized.includes("actividad")) {
-    return ["Todos", "Login", "Pedido", "Pago", "Ticket", "Stock", "Chatbot", "Aprobado", "Pendiente", "Denegado"].map((label) => ({
+    return ["Todos", "Aprobado", "Pendiente", "Denegado", "Pedido", "Pago", "Ticket", "Stock", "Cliente", "Chatbot"].map((label) => ({
       label,
       match: label === "Todos" ? () => true : includes(label)
     }));
@@ -65,13 +67,13 @@ function tabOptionsFor(title: string): AdminTab[] {
 }
 
 function technicalKey(key: string) {
-  return /uuid|raw|json|id$|provider|preferencia|evento|referencia mercado/i.test(key);
+  return /^__|uuid|raw|json|id$|provider|preferencia|evento|referencia mercado/i.test(key);
 }
 
 function documentKindFor(title: string) {
   const normalized = title.toLowerCase();
   if (normalized.includes("ticket")) return "ticket";
-  if (normalized.includes("comprobante")) return "receipt";
+  if (normalized.includes("comprobante") || normalized.includes("comprobacion")) return "receipt";
   if (normalized.includes("pago")) return "payment";
   return null;
 }
@@ -124,6 +126,10 @@ export function AdminInteractiveTable({
   const documentKind = documentKindFor(title);
   const documentHeader = documentCopy(documentKind);
   const tabs = useMemo(() => tabOptionsFor(title), [title]);
+  const visibleColumns = useMemo(() => {
+    const safeColumns = columns.filter((column) => !technicalKey(column));
+    return safeColumns.length ? safeColumns : columns;
+  }, [columns]);
   const filters = useMemo(() => {
     if (!statusColumn) return ["Todos"];
     const values = Array.from(new Set(rows.map((row) => cellText(row[statusColumn])).filter((value) => value !== "-")));
@@ -150,7 +156,7 @@ export function AdminInteractiveTable({
   const currentPage = Math.min(page, totalPages);
   const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const selectedTechnicalEntries = selectedRow
-    ? Object.entries(selectedRow).filter(([key]) => technicalKey(key) && !columns.includes(key))
+    ? Object.entries(selectedRow).filter(([key]) => !key.startsWith("__") && (technicalKey(key) || !visibleColumns.includes(key)))
     : [];
 
   function clearFilters() {
@@ -164,8 +170,8 @@ export function AdminInteractiveTable({
 
   function exportCsv() {
     const csv = [
-      columns.map(csvEscape).join(","),
-      ...filteredRows.map((row) => columns.map((column) => csvEscape(cellText(row[column]))).join(","))
+      visibleColumns.map(csvEscape).join(","),
+      ...filteredRows.map((row) => visibleColumns.map((column) => csvEscape(cellText(row[column]))).join(","))
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -177,7 +183,7 @@ export function AdminInteractiveTable({
   }
 
   return (
-    <section className="admin-panel">
+    <section className="admin-panel admin-panel--table">
       {documentKind ? (
         <div className={`admin-document-hero admin-document-hero--${documentKind}`}>
           <div>
@@ -267,7 +273,7 @@ export function AdminInteractiveTable({
         <table className="admin-table">
           <thead>
             <tr>
-              {columns.map((column) => (
+              {visibleColumns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
             </tr>
@@ -276,7 +282,7 @@ export function AdminInteractiveTable({
             {visibleRows.length ? (
               visibleRows.map((row, index) => (
                 <tr key={index} className="admin-table-row-clickable" onClick={() => setSelectedRow(row)}>
-                  {columns.map((column) => (
+                  {visibleColumns.map((column) => (
                     <td data-label={column} key={column}>
                       {cellText(row[column])}
                     </td>
@@ -285,7 +291,7 @@ export function AdminInteractiveTable({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length}>
+                <td colSpan={visibleColumns.length}>
                   <div className="admin-empty-state">
                     <Info size={18} />
                     No hay registros para mostrar con estos filtros.
@@ -356,8 +362,16 @@ export function AdminInteractiveTable({
               </footer>
             </section>
           ) : null}
+          {documentKind === "payment" ? (
+            <AdminRefundAction
+              paymentId={selectedRow.__paymentId ? String(selectedRow.__paymentId) : undefined}
+              provider={selectedRow.__provider ? String(selectedRow.__provider) : undefined}
+              status={selectedRow.__status ? String(selectedRow.__status) : undefined}
+              reference={selectedRow.Referencia ? String(selectedRow.Referencia) : undefined}
+            />
+          ) : null}
           <dl>
-            {columns.map((column) => (
+            {visibleColumns.map((column) => (
               <div key={column}>
                 <dt>{column}</dt>
                 <dd>{cellText(selectedRow[column])}</dd>

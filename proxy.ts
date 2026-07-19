@@ -11,6 +11,15 @@ type CookieOptions = {
   expires?: Date;
 };
 
+function applySecurityHeaders(response: NextResponse, noIndex = false) {
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)");
+  if (noIndex) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,23 +30,14 @@ export async function proxy(request: NextRequest) {
   const isLegacyAdminPath = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
   const isConsolePath = request.nextUrl.pathname === adminConsolePath || request.nextUrl.pathname.startsWith(`${adminConsolePath}/`);
 
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)");
-
   if (isLegacyAdminPath) {
     const url = request.nextUrl.clone();
     url.pathname = `${adminConsolePath}${request.nextUrl.pathname.replace(/^\/admin/, "")}`;
-    return NextResponse.redirect(url);
-  }
-
-  if (isConsolePath) {
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    return applySecurityHeaders(NextResponse.redirect(url), true);
   }
 
   if (!supabaseUrl || !supabaseAnonKey || /^<.*>$/.test(supabaseAnonKey)) {
-    return response;
+    return applySecurityHeaders(response, isConsolePath);
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -59,7 +59,7 @@ export async function proxy(request: NextRequest) {
   });
 
   await supabase.auth.getUser();
-  return response;
+  return applySecurityHeaders(response, isConsolePath);
 }
 
 export const config = {

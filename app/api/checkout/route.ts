@@ -61,11 +61,15 @@ export async function POST(request: Request) {
         { status: 422 }
       );
     }
-    if (error instanceof Error && error.message.startsWith("El proveedor de pago rechazo")) {
+    if (
+      error instanceof Error &&
+      (error.message.startsWith("El proveedor de pago rechazo") ||
+        error.message.startsWith("El proveedor de pago no devolvio"))
+    ) {
       return Response.json(
         {
           error: "PAYMENT_PREFERENCE_REJECTED",
-          message: "No pudimos iniciar Mercado Pago. Revisamos la configuracion del retorno y podes intentar nuevamente."
+          message: "No pudimos iniciar Mercado Pago. Revisa que las credenciales correspondan al entorno configurado."
         },
         { status: 502 }
       );

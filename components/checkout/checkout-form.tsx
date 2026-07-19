@@ -446,17 +446,17 @@ export function CheckoutForm({
           response.status === 503 &&
           (data.error === "PAYMENT_PROVIDER_NOT_CONFIGURED" || data.error === "MERCADOPAGO_NOT_CONFIGURED")
         ) {
-          setError("Mercado Pago todavia no esta configurado para iniciar pagos. Completa el Access Token y reinicia el servidor.");
+          setError("Mercado Pago todavia no esta configurado para iniciar pagos. Completa la credencial del entorno correcto y reinicia el servidor.");
           return;
         }
         if (response.status === 502 && data.error === "PAYMENT_PREFERENCE_REJECTED") {
-          setError(data.message || "Mercado Pago rechazo la preferencia. Revisa la configuracion del sitio y volve a intentar.");
+          setError(data.message || "No pudimos iniciar Mercado Pago. Revisa que las credenciales correspondan al entorno configurado.");
           return;
         }
         throw new Error(data.message || "No pudimos crear el checkout.");
       }
 
-      const paymentUrl = data.redirect_url || data.url || data.sandbox_init_point || data.init_point;
+      const paymentUrl = data.redirect_url || data.url;
       const orderId = data.orderId || data.order_id;
 
       if (data.requires_admin_approval && orderId) {
@@ -888,7 +888,7 @@ export function CheckoutForm({
                 {paymentsTestMode ? (
                   <div className="payment-env-badge" aria-label="Entorno de prueba de pagos">
                     <strong>Entorno de prueba</strong>
-                    <span>No se cobrara dinero real.</span>
+                    <span>Usa un comprador TESTUSER de Mercado Pago. No se cobrara dinero real.</span>
                   </div>
                 ) : null}
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">

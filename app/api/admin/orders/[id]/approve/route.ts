@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
+import { getAdminConsolePath } from "@/lib/utils/env";
 
 const paramsSchema = z.object({ id: z.string().uuid("Orden invalida.") });
 
@@ -38,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     type: "ORDER_APPROVED_BY_ADMIN",
     title: "Compra aprobada por admin",
     message: `${profile.email} aprobo la compra de ${order.customer_name}.`,
-    link_to: `/admin/pedidos?order=${order.id}`
+    link_to: `${getAdminConsolePath()}/pedidos?order=${order.id}`
   });
 
   return Response.json({ ok: true, status: "PENDING_PAYMENT", message: "Compra aprobada. Ya puede continuar el flujo de pago." });

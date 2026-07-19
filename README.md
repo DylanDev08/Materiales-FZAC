@@ -63,6 +63,8 @@ La app separa responsabilidades entre cliente y servidor. El frontend solo captu
 
 No se documentan claves, tokens ni credenciales privadas dentro del repositorio. La configuracion sensible debe gestionarse desde el entorno seguro del deploy o del equipo responsable.
 
+La configuracion y las pruebas de Mercado Pago, webhooks, reembolsos, Sender, administradores y chatbot estan detalladas en [Operacion segura](docs/OPERACION_SEGURA.md).
+
 ## Integracion Mercado Pago - Modo Prueba
 
 1. Crear una aplicacion en Mercado Pago Developers.
@@ -72,7 +74,7 @@ No se documentan claves, tokens ni credenciales privadas dentro del repositorio.
 5. Usar `PAYMENTS_ENV=test` y `PAYMENTS_PROVIDER=mercadopago`.
 6. Ejecutar `npm install` y luego `npm run dev`.
 7. Agregar un producto al carrito y completar checkout.
-8. Elegir “Pagar con Mercado Pago” para crear la preferencia y redirigir al checkout de prueba.
+8. Elegir "Pagar con Mercado Pago" para crear la preferencia y redirigir al checkout de prueba.
 9. Pagar con un usuario comprador de prueba distinto a la cuenta vendedora.
 10. Verificar en admin que el pedido, pago, stock, ticket y notificaciones cambien segun el estado confirmado.
 11. Para probar webhook local usar ngrok o desplegar en Vercel; Mercado Pago no puede notificar directamente a `localhost`.
@@ -80,6 +82,18 @@ No se documentan claves, tokens ni credenciales privadas dentro del repositorio.
 13. Eventos recomendados: pagos y ordenes comerciales si estan disponibles para la cuenta.
 
 No guardar en README, codigo ni archivos versionados: Access Token, usuarios de prueba, contrasenas o codigos de verificacion.
+
+## Como probar Mercado Pago sin mezclar entornos
+
+1. Definir `PAYMENTS_ENV=test`.
+2. Cargar credenciales de prueba en el entorno local o del deploy de prueba.
+3. Reiniciar el servidor para que Next.js lea las variables actualizadas.
+4. Abrir el checkout en una ventana de incognito.
+5. Iniciar sesion en Mercado Pago con un comprador TESTUSER.
+6. No usar la cuenta vendedora como compradora.
+7. No usar una cuenta real para pagar una preferencia de prueba.
+8. No mezclar credenciales productivas con compradores de prueba.
+9. En produccion, usar `PAYMENTS_ENV=production`, credenciales productivas y webhook publico seguro.
 
 ## Pasar A Produccion
 

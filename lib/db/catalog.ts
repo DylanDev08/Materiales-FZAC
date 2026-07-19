@@ -19,6 +19,10 @@ export type ProductFilters = {
   limit?: number;
 };
 
+export type CatalogFacets = {
+  brands: string[];
+};
+
 function normalizeCategory(row: Record<string, unknown>): Category {
   return {
     id: String(row.id),
@@ -120,8 +124,28 @@ export async function getCategories() {
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
-  if (error || !data?.length) return fallbackCategories;
-  return data.map(normalizeCategory);
+  if (error) return [];
+  return (data ?? []).map(normalizeCategory);
+}
+
+export async function getCatalogFacets(): Promise<CatalogFacets> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return {
+      brands: Array.from(new Set(fallbackProducts.map((product) => product.brand).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, "es")
+      )
+    };
+  }
+
+  const { data, error } = await supabase.from("products").select("brand").eq("active", true).limit(1000);
+  if (error) return { brands: [] };
+
+  return {
+    brands: Array.from(new Set((data ?? []).map((row) => String(row.brand ?? "").trim()).filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b, "es")
+    )
+  };
 }
 
 export async function getProducts(filters: ProductFilters = {}) {
@@ -162,9 +186,8 @@ export async function getProducts(filters: ProductFilters = {}) {
   else query = query.order("created_at", { ascending: false });
 
   const { data, error } = await query;
-  if (error || !data?.length) return applyFallbackFilters(fallbackProducts, filters);
-
-  return data.map(normalizeProduct);
+  if (error) return [];
+  return (data ?? []).map(normalizeProduct);
 }
 
 export async function getProductBySlug(slug: string) {
@@ -178,7 +201,7 @@ export async function getProductBySlug(slug: string) {
     .eq("active", true)
     .maybeSingle();
 
-  if (error || !data) return fallbackProducts.find((product) => product.slug === slug) ?? null;
+  if (error || !data) return null;
   return normalizeProduct(data);
 }
 
@@ -187,11 +210,44 @@ export async function getRelatedProducts(product: Product) {
   return related.filter((item) => item.id !== product.id).slice(0, 4);
 }
 
-export async function getProductSuggestions(query: string) {
-  const search = sanitizeSearchTerm(query, 50);
-  if (search.length < 2) return [];
+export type ProductSuggestion = {
+  type: "product" | "category" | "brand" | "term";
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  sku?: string;
+  brand?: string;
+  price?: number;
+  image_url?: string;
+};
 
-  const [products, categories] = await Promise.all([getProducts({ search, limit: 6 }), getCategories()]);
+const suggestionCache = new Map<
+  string,
+  { expiresAt: number; value?: ProductSuggestion[]; pending?: Promise<ProductSuggestion[]> }
+>();
+const SUGGESTION_CACHE_TTL_MS = 30_000;
+const SUGGESTION_CACHE_MAX = 100;
+
+function trimSuggestionCache(now: number) {
+  for (const [key, entry] of suggestionCache) {
+    if (entry.expiresAt <= now && !entry.pending) suggestionCache.delete(key);
+  }
+  while (suggestionCache.size > SUGGESTION_CACHE_MAX) {
+    const oldest = suggestionCache.keys().next().value as string | undefined;
+    if (!oldest) break;
+    suggestionCache.delete(oldest);
+  }
+}
+
+async function loadProductSuggestions(search: string): Promise<ProductSuggestion[]> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const databaseResults = Promise.all([getProducts({ search, limit: 6 }), getCategories()]);
+  const timeout = new Promise<[Product[], Category[]]>((resolve) => {
+    timeoutId = setTimeout(() => resolve([[], []]), 1_200);
+  });
+  const [products, categories] = await Promise.race([databaseResults, timeout]);
+  if (timeoutId) clearTimeout(timeoutId);
   const normalized = search.toLowerCase();
   const categorySuggestions = categories
     .filter((category) =>
@@ -245,4 +301,29 @@ export async function getProductSuggestions(query: string) {
     ...brandSuggestions,
     ...termSuggestions
   ].slice(0, 10);
+}
+
+export async function getProductSuggestions(query: string): Promise<ProductSuggestion[]> {
+  const search = sanitizeSearchTerm(query, 50).toLowerCase();
+  if (search.length < 2) return [];
+
+  const now = Date.now();
+  const cached = suggestionCache.get(search);
+  if (cached && cached.expiresAt > now) {
+    if (cached.value) return cached.value;
+    if (cached.pending) return cached.pending;
+  }
+
+  const pending = loadProductSuggestions(search);
+  suggestionCache.set(search, { expiresAt: now + SUGGESTION_CACHE_TTL_MS, pending });
+  trimSuggestionCache(now);
+
+  try {
+    const value = await pending;
+    suggestionCache.set(search, { expiresAt: Date.now() + SUGGESTION_CACHE_TTL_MS, value });
+    return value;
+  } catch (error) {
+    suggestionCache.delete(search);
+    throw error;
+  }
 }

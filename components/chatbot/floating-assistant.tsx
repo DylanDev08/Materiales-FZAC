@@ -1,25 +1,40 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Bot, Send, X } from "lucide-react";
+import { ASSISTANT_OPEN_EVENT, type AssistantOpenDetail } from "@/components/chatbot/assistant-launcher";
+
+type AssistantAction = {
+  label: string;
+  message?: string;
+  href?: string;
+};
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
-  options?: string[];
+  options?: AssistantAction[];
 };
 
 type AssistantResponse = {
   message?: string;
   conversationId?: string;
   options?: string[];
+  actions?: AssistantAction[];
 };
 
 const HISTORY_KEY = "fzac-assistant-history-v1";
 const CONVERSATION_KEY = "fzac-assistant-conversation-id";
 const VISITOR_KEY = "fzac-visitor-id";
 const initialOptions = ["Comprar materiales", "Consultar envio", "Medios de pago", "Estado de pedido"];
+const initialActions = initialOptions.map((label) => ({ label, message: label }));
+
+function normalizeActions(data: AssistantResponse) {
+  if (Array.isArray(data.actions) && data.actions.length) return data.actions.slice(0, 4);
+  return (data.options ?? initialOptions).slice(0, 4).map((label) => ({ label, message: label }));
+}
 
 function WhatsappLogo() {
   return (
@@ -44,8 +59,9 @@ export function FloatingAssistant() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [quickOptions, setQuickOptions] = useState(initialOptions);
+  const [quickOptions, setQuickOptions] = useState<AssistantAction[]>(initialActions);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const askRef = useRef<(text: string) => Promise<void>>(async () => undefined);
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(CONVERSATION_KEY);
@@ -66,7 +82,7 @@ export function FloatingAssistant() {
         content:
           "Hola, soy AI Chatbot FZAC. Puedo ayudarte con materiales, stock, pagos, retiro y envio paso a paso. Elegi una opcion o escribi tu duda.",
         createdAt: new Date().toISOString(),
-        options: initialOptions
+        options: initialActions
       }
     ];
   });
@@ -83,6 +99,23 @@ export function FloatingAssistant() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    askRef.current = ask;
+  });
+
+  useEffect(() => {
+    function openFromPage(event: Event) {
+      const detail = (event as CustomEvent<AssistantOpenDetail>).detail;
+      setOpen(true);
+      if (detail?.message?.trim()) {
+        window.setTimeout(() => void askRef.current(detail.message!.trim()), 0);
+      }
+    }
+
+    window.addEventListener(ASSISTANT_OPEN_EVENT, openFromPage);
+    return () => window.removeEventListener(ASSISTANT_OPEN_EVENT, openFromPage);
+  }, []);
 
   async function ask(text: string) {
     const message = text.trim();
@@ -117,9 +150,8 @@ export function FloatingAssistant() {
         window.localStorage.setItem(CONVERSATION_KEY, data.conversationId);
       }
 
-      if (Array.isArray(data.options) && data.options.length) {
-        setQuickOptions(data.options.slice(0, 4));
-      }
+      const actions = normalizeActions(data);
+      setQuickOptions(actions);
 
       setMessages((current) => [
         ...current,
@@ -129,7 +161,7 @@ export function FloatingAssistant() {
             data.message ||
             "Puedo seguir ayudandote con compra, stock, pagos o envio. Elegi una opcion y avanzamos paso a paso.",
           createdAt: new Date().toISOString(),
-          options: data.options?.slice(0, 4)
+          options: actions
         }
       ]);
     } catch (error) {
@@ -142,10 +174,10 @@ export function FloatingAssistant() {
             ? "La respuesta tardo mas de lo esperado. Te dejo opciones rapidas para seguir sin perder la conversacion."
             : "No pude conectar con el asistente en este momento. Proba de nuevo o usa WhatsApp si necesitas resolverlo ahora.",
           createdAt: new Date().toISOString(),
-          options: ["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"]
+          options: ["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"].map((label) => ({ label, message: label }))
         }
       ]);
-      setQuickOptions(["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"]);
+      setQuickOptions(["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"].map((label) => ({ label, message: label })));
     } finally {
       window.clearTimeout(timeout);
       setLoading(false);
@@ -178,11 +210,17 @@ export function FloatingAssistant() {
                 </div>
                 {message.role === "assistant" && message.options?.length ? (
                   <div className="chatbot__inline-options">
-                    {message.options.slice(0, 4).map((option) => (
-                      <button disabled={loading} key={option} type="button" onClick={() => ask(option)}>
-                        {option}
-                      </button>
-                    ))}
+                    {message.options.slice(0, 4).map((option) =>
+                      option.href ? (
+                        <Link href={option.href} key={`${option.label}-${option.href}`} onClick={() => setOpen(false)}>
+                          {option.label}
+                        </Link>
+                      ) : (
+                        <button disabled={loading} key={`${option.label}-${option.message}`} type="button" onClick={() => ask(option.message || option.label)}>
+                          {option.label}
+                        </button>
+                      )
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -192,11 +230,17 @@ export function FloatingAssistant() {
           </div>
 
           <div className="chatbot__quick">
-            {quickOptions.slice(0, 4).map((option) => (
-              <button disabled={loading} key={option} type="button" onClick={() => ask(option)}>
-                {option}
-              </button>
-            ))}
+            {quickOptions.slice(0, 4).map((option) =>
+              option.href ? (
+                <Link href={option.href} key={`${option.label}-${option.href}`} onClick={() => setOpen(false)}>
+                  {option.label}
+                </Link>
+              ) : (
+                <button disabled={loading} key={`${option.label}-${option.message}`} type="button" onClick={() => ask(option.message || option.label)}>
+                  {option.label}
+                </button>
+              )
+            )}
           </div>
 
           <form className="chatbot__form" onSubmit={submit}>

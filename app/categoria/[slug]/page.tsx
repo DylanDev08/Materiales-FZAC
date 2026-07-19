@@ -7,12 +7,20 @@ export default async function Page({
   searchParams
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const categories = await getCategories();
   const category = categories.find((item) => item.slug === slug);
   if (!category) notFound();
 
-  return <CatalogPage searchParams={searchParams} title={category.name} forcedFilters={{ category: category.slug }} />;
+  return (
+    <CatalogPage
+      searchParams={resolvedSearchParams}
+      title={category.name}
+      description={category.description}
+      forcedFilters={{ category: category.slug }}
+    />
+  );
 }

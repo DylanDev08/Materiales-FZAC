@@ -36,7 +36,7 @@ function methodCopy(method: CheckoutPaymentMode) {
   if (method === "WHATSAPP") {
     return {
       title: "Preparando tu pedido",
-      subtitle: "Estamos dejando tu pedido listo para coordinar pago, retiro o entrega con FZAC por WhatsApp.",
+      subtitle: "Estamos preparando tu pedido para coordinar con FZAC.",
       lastStep: "Confirmando pedido"
     };
   }

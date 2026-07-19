@@ -125,7 +125,21 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
   };
 }
 
+function validateCreateAddress(
+  value: Pick<z.infer<typeof checkoutCreateFieldsSchema>, "shipping_method" | "address_snapshot">,
+  context: z.RefinementCtx
+) {
+  if (value.shipping_method === "DELIVERY" && !addressIsComplete(value.address_snapshot)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["address_snapshot"],
+      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
+    });
+  }
+}
+
 export const checkoutCreateSchema = checkoutCreateFieldsSchema
+  .superRefine(validateCreateAddress)
   .transform((value) => ({
     ...checkoutCreateTransform(value)
   }));
@@ -143,6 +157,7 @@ export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
       cardholder_email: z.string().trim().email("Ingresa un email valido.").max(160)
     })
   })
+  .superRefine(validateCreateAddress)
   .transform((value) => ({
     checkout: checkoutCreateTransform({ ...value, payment_flow: "CARD" }),
     card: value.card

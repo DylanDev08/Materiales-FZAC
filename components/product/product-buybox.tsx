@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
+import { CheckCircle, MessageCircle, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
+import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
 export function ProductBuyBox({ product }: { product: Product }) {
@@ -18,6 +19,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const maxQuantity = product.stock;
   const subtotal = product.price * quantity;
   const lowStockThreshold = 5;
+  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero consultar por ${product.name} (${product.sku}).`);
 
   function setSafeQuantity(next: number) {
     if (product.stock <= 0) {
@@ -49,8 +51,8 @@ export function ProductBuyBox({ product }: { product: Product }) {
     <aside className="product-buybox">
       <span className="kicker">{product.brand}</span>
       <h1>{product.name}</h1>
-      <p>
-        SKU {product.sku} · Categoria {product.category?.name ?? product.subcategory}
+      <p className="product-buybox__meta">
+        SKU {product.sku} - Categoría {product.category?.name ?? product.subcategory}
       </p>
 
       <div className="product-price">
@@ -120,9 +122,16 @@ export function ProductBuyBox({ product }: { product: Product }) {
         Comprar ahora
       </button>
 
-      <p>
-        Medios de pago online seguros. No solicitamos ni guardamos datos de tarjeta en FZAC.
-      </p>
+      <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
+        <MessageCircle size={18} />
+        Consultar por WhatsApp
+      </a>
+
+      <div className="product-buybox__trust">
+        <span>Retiro coordinado</span>
+        <span>Envío a cotizar</span>
+        <span>Pago seguro</span>
+      </div>
     </aside>
   );
 }
