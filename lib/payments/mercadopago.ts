@@ -282,7 +282,7 @@ export function isMercadoPagoEnabled() {
 }
 
 export async function createMercadoPagoPreference(input: PreferenceInput) {
-  const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId);
+  const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId, "checkout");
   const checkoutSiteUrl = safeUrl(input.siteUrl ?? siteUrl);
   const webhookSiteUrl = publicWebhookUrl(input.siteUrl ?? siteUrl);
   const orderQuery = `orderId=${encodeURIComponent(input.orderId)}`;
@@ -405,7 +405,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
 }
 
 export async function getMercadoPagoPreference(preferenceId: string) {
-  const { accessToken } = assertMercadoPagoConfigured();
+  const { accessToken } = assertMercadoPagoConfigured(undefined, "checkout");
   const preference = new Preference(createMercadoPagoClient(accessToken));
   const data = (await preference.get({ preferenceId }).catch(() => null)) as {
     id?: string;
@@ -427,15 +427,20 @@ export async function getMercadoPagoPreference(preferenceId: string) {
 }
 
 export async function getMercadoPagoPayment(paymentId: string) {
-  const { accessToken } = assertMercadoPagoConfigured();
-  const payment = new Payment(createMercadoPagoClient(accessToken));
-  const data = await payment.get({ id: paymentId }).catch(() => null);
-  if (!data) throw new Error("No pudimos consultar el pago en el proveedor configurado.");
-  return data as unknown as Record<string, unknown>;
+  const checkout = assertMercadoPagoConfigured(undefined, "checkout");
+  const tokens = Array.from(new Set([checkout.accessToken, checkout.cardAccessToken].filter(Boolean)));
+
+  for (const token of tokens) {
+    const payment = new Payment(createMercadoPagoClient(token));
+    const data = await payment.get({ id: paymentId }).catch(() => null);
+    if (data) return data as unknown as Record<string, unknown>;
+  }
+
+  throw new Error("No pudimos consultar el pago en el proveedor configurado.");
 }
 
 export async function createMercadoPagoRefund(input: RefundInput) {
-  const { accessToken } = assertMercadoPagoConfigured();
+  const { accessToken } = assertMercadoPagoConfigured(undefined, "checkout");
   const providerPaymentId = input.providerPaymentId.trim();
   const idempotencyKey = input.idempotencyKey.trim().slice(0, 64);
   if (!providerPaymentId || !idempotencyKey) throw new MercadoPagoRefundError("INVALID_REFUND_REQUEST", 422);
@@ -471,7 +476,7 @@ export async function createMercadoPagoRefund(input: RefundInput) {
 }
 
 export async function createMercadoPagoCardPayment(input: CardPaymentInput) {
-  const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId);
+  const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId, "card");
   const payment = new Payment(createMercadoPagoClient(accessToken));
   const webhookSiteUrl = publicWebhookUrl(siteUrl);
   const issuerId = input.issuerId ? Number(input.issuerId) : undefined;

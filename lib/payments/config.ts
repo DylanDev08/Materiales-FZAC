@@ -6,6 +6,7 @@ export const MERCADOPAGO_NOT_CONFIGURED_MESSAGE =
   "Mercado Pago no esta configurado para iniciar pagos online.";
 
 type PaymentsEnvironment = "test" | "production";
+type MercadoPagoCredentialUse = "checkout" | "card";
 
 export class MercadoPagoNotConfiguredError extends Error {
   code = "MERCADOPAGO_NOT_CONFIGURED";
@@ -28,9 +29,15 @@ function getPaymentsEnvironment(): PaymentsEnvironment {
 }
 
 export function getPaymentConfig() {
+  const accessToken = getEnv("MERCADOPAGO_ACCESS_TOKEN");
+  const publicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY") || getEnv("MERCADOPAGO_PUBLIC_KEY");
   return {
-    accessToken: getEnv("MERCADOPAGO_ACCESS_TOKEN"),
-    publicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY") || getEnv("MERCADOPAGO_PUBLIC_KEY"),
+    accessToken,
+    publicKey,
+    checkoutProAccessToken: getEnv("MERCADOPAGO_CHECKOUT_PRO_ACCESS_TOKEN") || accessToken,
+    checkoutProPublicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY") || publicKey,
+    cardAccessToken: getEnv("MERCADOPAGO_CARD_ACCESS_TOKEN") || accessToken,
+    cardPublicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY") || publicKey,
     webhookSecret: getEnv("MERCADOPAGO_WEBHOOK_SECRET"),
     siteUrl: readSiteUrl(),
     paymentsEnabled: isPaymentsEnabled(),
@@ -42,12 +49,17 @@ export function getPaymentConfig() {
 export const getMercadoPagoConfig = getPaymentConfig;
 export const getSiteUrl = readSiteUrl;
 
-export function isMercadoPagoConfigured() {
+function accessTokenForUse(use: MercadoPagoCredentialUse) {
+  const config = getPaymentConfig();
+  return use === "card" ? config.cardAccessToken : config.checkoutProAccessToken;
+}
+
+export function isMercadoPagoConfigured(use: MercadoPagoCredentialUse = "checkout") {
   const config = getPaymentConfig();
   const baseConfigured =
     config.paymentsEnabled &&
     config.provider.toLowerCase() === "mercadopago" &&
-    hasRealValue(config.accessToken) &&
+    hasRealValue(accessTokenForUse(use)) &&
     hasRealValue(config.siteUrl);
   if (!baseConfigured) return false;
   if (config.paymentsEnv === "test") return true;
@@ -78,13 +90,21 @@ export function getMercadoPagoEnvironmentState() {
     paymentsEnv: config.paymentsEnv,
     paymentsEnabled: config.paymentsEnabled,
     isMercadoPagoConfigured: isMercadoPagoConfigured(),
-    hasAccessToken: hasRealValue(config.accessToken),
+    hasAccessToken: hasRealValue(config.checkoutProAccessToken),
+    hasCheckoutProAccessToken: hasRealValue(config.checkoutProAccessToken),
+    hasCardAccessToken: hasRealValue(config.cardAccessToken),
     hasPublicKey: hasRealValue(config.publicKey),
+    hasCheckoutProPublicKey: hasRealValue(config.checkoutProPublicKey),
+    hasCardPublicKey: hasRealValue(config.cardPublicKey),
     hasWebhookSecret: hasRealValue(config.webhookSecret)
   };
 }
 
-export function assertMercadoPagoConfigured(orderId?: string) {
-  if (!isMercadoPagoConfigured()) throw new MercadoPagoNotConfiguredError(orderId);
-  return getPaymentConfig();
+export function assertMercadoPagoConfigured(orderId?: string, use: MercadoPagoCredentialUse = "checkout") {
+  if (!isMercadoPagoConfigured(use)) throw new MercadoPagoNotConfiguredError(orderId);
+  const config = getPaymentConfig();
+  return {
+    ...config,
+    accessToken: accessTokenForUse(use)
+  };
 }

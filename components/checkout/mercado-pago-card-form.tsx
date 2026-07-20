@@ -19,7 +19,10 @@ type CardPaymentSubmit = NonNullable<ComponentProps<typeof CardPayment>["onSubmi
 type CardPaymentFormData = Parameters<CardPaymentSubmit>[0];
 type CardPaymentCustomization = NonNullable<ComponentProps<typeof CardPayment>["customization"]>;
 
-const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ?? "";
+const publicKey =
+  process.env.NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY?.trim() ??
+  process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() ??
+  "";
 
 if (publicKey) {
   initMercadoPago(publicKey, {
