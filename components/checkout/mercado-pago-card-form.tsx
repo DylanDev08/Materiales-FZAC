@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { CardPayment, initMercadoPago } from "@mercadopago/sdk-react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
@@ -88,7 +88,9 @@ export function MercadoPagoCardForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  submitRef.current = onSubmit;
+  useEffect(() => {
+    submitRef.current = onSubmit;
+  }, [onSubmit]);
 
   const initialization = useMemo(
     () => ({
