@@ -14,6 +14,12 @@ function authCallbackUrl(next: string) {
   return callback.toString();
 }
 
+function authCallbackUrlForSite(siteUrl: string, next: string) {
+  const callback = new URL("/auth/callback", new URL(siteUrl));
+  callback.searchParams.set("next", next);
+  return callback.toString();
+}
+
 async function nativeRecoveryEmail(email: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return false;
@@ -53,12 +59,13 @@ export async function createSignupWithSender(input: {
   password: string;
   name: string;
   phone?: string | null;
+  siteUrl?: string;
 }): Promise<{ user: User; channel: "sender" | "supabase" } | null> {
   if (!isSenderConfigured()) return null;
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
-  const redirectTo = authCallbackUrl("/cuenta");
+  const redirectTo = input.siteUrl ? authCallbackUrlForSite(input.siteUrl, "/cuenta") : authCallbackUrl("/cuenta");
   const { data, error } = await admin.auth.admin.generateLink({
     type: "signup",
     email: input.email,

@@ -4,7 +4,7 @@ import { createSignupWithSender } from "@/lib/auth/email-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
-import { getSiteUrl } from "@/lib/utils/env";
+import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 
@@ -14,6 +14,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = registerSchema.parse(await request.json());
+    const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
 
     if (admin) {
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
       email: payload.email,
       password: payload.password,
       name: payload.name,
-      phone: payload.phone || null
+      phone: payload.phone || null,
+      siteUrl
     });
 
     if (senderSignup) {
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
         password: payload.password,
         options: {
           data: { full_name: payload.name, phone: payload.phone || null },
-          emailRedirectTo: `${getSiteUrl()}/auth/callback`
+          emailRedirectTo: `${siteUrl}/auth/callback`
         }
       });
 
