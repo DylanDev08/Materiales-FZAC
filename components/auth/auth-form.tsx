@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Loader2, LogIn } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
 
@@ -16,6 +16,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -42,24 +44,24 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   function validateClientForm() {
     const errors: AuthFieldErrors = {};
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      errors.email = "Ingresa un email valido.";
+      errors.email = "Ingresá un email válido.";
     }
     if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || password !== password.trim()) {
-      errors.password = "La contrasena debe tener al menos 8 caracteres, una letra y un numero.";
+      errors.password = "La contraseña debe tener al menos 8 caracteres, una letra y un número.";
     }
 
     if (mode === "register") {
       if (name.trim().length < 2) errors.name = "Completa tu nombre.";
       if (name.trim() && !/^[\p{L}\p{M}\s.'-]+$/u.test(name.trim())) errors.name = "Completa tu nombre con caracteres validos.";
-      if (phone.trim() && !/^\+?[0-9\s().-]{6,40}$/.test(phone.trim())) errors.phone = "Ingresa un telefono valido.";
-      if (!passwordOk) errors.password = "La contrasena debe cumplir todas las reglas.";
-      if (password !== confirmPassword) errors.confirmPassword = "Las contrasenas no coinciden.";
-      if (!acceptedTerms) errors.acceptedTerms = "Acepta terminos y privacidad para crear la cuenta.";
+      if (phone.trim() && !/^\+?[0-9\s().-]{6,40}$/.test(phone.trim())) errors.phone = "Ingresá un teléfono válido.";
+      if (!passwordOk) errors.password = "La contraseña debe cumplir todas las reglas.";
+      if (password !== confirmPassword) errors.confirmPassword = "Las contraseñas no coinciden.";
+      if (!acceptedTerms) errors.acceptedTerms = "Aceptá términos y privacidad para crear la cuenta.";
     }
 
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
-      setMessage("Revisa los campos marcados antes de continuar.");
+      setMessage("Revisá los campos marcados antes de continuar.");
       return false;
     }
     return true;
@@ -76,7 +78,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
     if (mode === "register") {
       if (!passwordOk || password !== confirmPassword || !acceptedTerms) {
-        setMessage("Revisa contrasena, confirmacion y terminos antes de registrarte.");
+        setMessage("Revisá contraseña, confirmación y términos antes de registrarte.");
         setLoading(false);
         submitInFlightRef.current = false;
         return;
@@ -97,7 +99,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       if (!response.ok) throw new Error(data.message || "No pudimos completar la operacion.");
       if (mode === "register") {
         setSuccessLocked(true);
-        setMessage(data.message || "Cuenta creada correctamente. Revisa tu sesion para continuar.");
+        setMessage(data.message || "Cuenta creada correctamente. Revisá tu email para continuar.");
         window.setTimeout(() => router.push(data.target || "/login?registered=true"), 750);
         return;
       }
@@ -127,7 +129,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     });
 
     if (error) {
-      setMessage("No pudimos conectar con Google. Intenta nuevamente.");
+      setMessage("No pudimos conectar con Google. Intentá nuevamente.");
       googleInFlightRef.current = false;
       setGoogleLoading(false);
     }
@@ -143,8 +145,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </span>
           <div>
             <span className="kicker">{mode === "login" ? "Ingresar" : "Registro"}</span>
-            <h1>{mode === "login" ? "Accede a tu cuenta FZAC" : "Crea tu cuenta FZAC"}</h1>
-            <p>Ingresa con email o Google. Tus datos se validan de forma segura y el acceso admin se controla desde servidor.</p>
+            <h1>{mode === "login" ? "Accedé a tu cuenta FZAC" : "Creá tu cuenta FZAC"}</h1>
+            <p>Ingresá con email o Google. Tus datos se validan de forma segura y los permisos se controlan desde el servidor.</p>
           </div>
         </div>
 
@@ -155,7 +157,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
         <div className="auth-divider">
           <span />
-          <small>o ingresa con email</small>
+          <small>o ingresá con email</small>
           <span />
         </div>
 
@@ -179,7 +181,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 {fieldErrors.name ? <span className="auth-field-error">{fieldErrors.name}</span> : null}
               </label>
               <label className="field">
-                Telefono (opcional)
+                Teléfono (opcional)
                 <input
                   value={phone}
                   onChange={(event) => {
@@ -210,24 +212,34 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             {fieldErrors.email ? <span className="auth-field-error">{fieldErrors.email}</span> : null}
           </label>
           <label className="field">
-            Contrasena
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                clearFieldError("password");
-              }}
-              required
-              minLength={mode === "register" ? 8 : 1}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              aria-invalid={Boolean(fieldErrors.password)}
-            />
+            Contraseña
+            <span className="auth-password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  clearFieldError("password");
+                }}
+                required
+                minLength={mode === "register" ? 8 : 1}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                aria-invalid={Boolean(fieldErrors.password)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </span>
             {fieldErrors.password ? <span className="auth-field-error">{fieldErrors.password}</span> : null}
           </label>
           {mode === "register" ? (
             <>
-              <div className="password-checklist" aria-label="Reglas de contrasena">
+              <div className="password-checklist" aria-label="Reglas de contraseña">
                 {checks.map((check) => (
                   <span className={check.ok ? "is-ok" : ""} key={check.id}>
                     <CheckCircle size={15} /> {check.label}
@@ -235,19 +247,29 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 ))}
               </div>
               <label className="field">
-                Confirmar contrasena
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => {
-                    setConfirmPassword(event.target.value);
-                    clearFieldError("confirmPassword");
-                  }}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(fieldErrors.confirmPassword)}
-                />
+                Confirmar contraseña
+                <span className="auth-password-field">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(event) => {
+                      setConfirmPassword(event.target.value);
+                      clearFieldError("confirmPassword");
+                    }}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((current) => !current)}
+                    aria-label={showConfirmPassword ? "Ocultar confirmación" : "Mostrar confirmación"}
+                    title={showConfirmPassword ? "Ocultar confirmación" : "Mostrar confirmación"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
                 {fieldErrors.confirmPassword ? <span className="auth-field-error">{fieldErrors.confirmPassword}</span> : null}
               </label>
               <label className="field auth-terms">
@@ -261,7 +283,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                     }}
                   /> Acepto{" "}
                   <Link href="/terminos" target="_blank">
-                    terminos
+                    términos
                   </Link>{" "}
                   y{" "}
                   <Link href="/privacidad" target="_blank">
@@ -280,7 +302,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </form>
 
         {mode === "login" ? (
-          <Link className="auth-link-button" href="/recuperar">Recuperar contrasena</Link>
+          <Link className="auth-link-button" href="/recuperar">Recuperar contraseña</Link>
         ) : null}
 
         {message ? (
@@ -292,11 +314,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <p>
           {mode === "login" ? (
             <>
-              No tenes cuenta? <Link href="/registro">Registrate</Link>
+              ¿No tenés cuenta? <Link href="/registro">Registrate</Link>
             </>
           ) : (
             <>
-              Ya tenes cuenta? <Link href="/login">Ingresar</Link>
+              ¿Ya tenés cuenta? <Link href="/login">Ingresar</Link>
             </>
           )}
         </p>

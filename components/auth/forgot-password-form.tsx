@@ -18,7 +18,7 @@ export function ForgotPasswordForm() {
     if (requestRef.current) return;
     const normalizedEmail = normalizeEmail(email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError("Ingresa un email valido.");
+      setError("Ingresá un email válido.");
       return;
     }
 
@@ -51,7 +51,7 @@ export function ForgotPasswordForm() {
           <div>
             <span className="kicker">Recuperar acceso</span>
             <h1>Volver a tu cuenta FZAC</h1>
-            <p>Te enviaremos un enlace seguro y temporal. Nunca te pediremos la contrasena por email.</p>
+            <p>Te enviaremos un enlace seguro y temporal. Nunca te pediremos la contraseña por email.</p>
           </div>
         </div>
         <form onSubmit={submit}>

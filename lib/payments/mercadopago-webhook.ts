@@ -7,7 +7,7 @@ import {
   getMercadoPagoConfig,
   paymentLiveModeMatchesEnvironment
 } from "@/lib/payments/config";
-import { getMercadoPagoPayment } from "@/lib/payments/mercadopago";
+import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
 
@@ -102,6 +102,21 @@ function extractEventId(body: Record<string, unknown>, paymentId: string) {
   return String(body.id || data?.id || paymentId || "");
 }
 
+function safeWebhookEvent(body: Record<string, unknown>) {
+  const data = body.data && typeof body.data === "object" ? (body.data as Record<string, unknown>) : {};
+  return {
+    id: typeof body.id === "string" || typeof body.id === "number" ? String(body.id) : undefined,
+    type: typeof body.type === "string" ? body.type : undefined,
+    action: typeof body.action === "string" ? body.action : undefined,
+    api_version: typeof body.api_version === "string" ? body.api_version : undefined,
+    date_created: typeof body.date_created === "string" ? body.date_created : undefined,
+    live_mode: typeof body.live_mode === "boolean" ? body.live_mode : undefined,
+    data: {
+      id: typeof data.id === "string" || typeof data.id === "number" ? String(data.id) : undefined
+    }
+  } satisfies Record<string, unknown>;
+}
+
 async function createPaymentEvent(input: {
   eventType: string;
   providerEventId: string;
@@ -180,7 +195,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     eventType,
     providerEventId: extractEventId(body, paymentId),
     providerPaymentId: paymentId,
-    raw: body
+    raw: safeWebhookEvent(body)
   }).catch(() => null);
 
   try {
@@ -188,6 +203,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
     const orderId = String(payment.external_reference || metadata.order_id || "");
     const status = String(payment.status ?? "");
+    const safePayment = sanitizeMercadoPagoPayment(payment);
 
     if (!orderId) {
       await updatePaymentEvent(eventId, { status: "IGNORED", errorMessage: "Pago sin external_reference." }).catch(() => undefined);
@@ -240,7 +256,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         orderId,
         provider: "MERCADOPAGO",
         providerPaymentId: providerId,
-        raw: payment,
+        raw: safePayment,
         status: "PAID"
       });
       await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
@@ -251,7 +267,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       await finalizeRefundedPayment({
         paymentId: String(localPayment.id),
         providerRefundId: providerRefundId(payment),
-        raw: payment,
+        raw: safePayment,
         reason: "Reembolso confirmado por Mercado Pago",
         actorId: null,
         actorEmail: "Mercado Pago webhook"
@@ -266,7 +282,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       .update({
         status: paymentStatus,
         provider_payment_id: providerId,
-        raw: payment,
+        raw: safePayment,
         updated_at: new Date().toISOString()
       })
       .eq("order_id", orderId);

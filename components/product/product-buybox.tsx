@@ -70,7 +70,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
       <div className="product-actions">
         <div className="quantity-stepper" aria-label="Cantidad">
-          <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1}>
+          <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
             <Minus size={16} />
           </button>
           <input
@@ -82,7 +82,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
             disabled={product.stock <= 0}
             onChange={(event) => setSafeQuantity(Number(event.target.value))}
           />
-          <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={product.stock <= 0 || quantity >= maxQuantity}>
+          <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={product.stock <= 0 || quantity >= maxQuantity} aria-label="Sumar una unidad">
             <Plus size={16} />
           </button>
         </div>
@@ -104,7 +104,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
             <CheckCircle size={18} /> Producto agregado al carrito
           </strong>
           <span>
-            {product.name} - Cantidad: {quantity}
+            {product.name} · Cantidad: {quantity}
           </span>
           <div>
             <Link className="btn" href="/carrito">

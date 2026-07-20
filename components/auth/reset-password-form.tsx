@@ -21,7 +21,7 @@ export function ResetPasswordForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (requestRef.current || !valid) {
-      setError(password !== confirmPassword ? "Las contrasenas no coinciden." : "La contrasena no cumple todas las reglas.");
+      setError(password !== confirmPassword ? "Las contraseñas no coinciden." : "La contraseña no cumple todas las reglas.");
       return;
     }
 
@@ -35,11 +35,11 @@ export function ResetPasswordForm() {
         body: JSON.stringify({ password, confirmPassword })
       });
       const data = (await response.json().catch(() => ({}))) as { target?: string; message?: string };
-      if (!response.ok) throw new Error(data.message || "No pudimos actualizar la contrasena.");
-      setMessage(data.message || "Contrasena actualizada correctamente.");
+      if (!response.ok) throw new Error(data.message || "No pudimos actualizar la contraseña.");
+      setMessage(data.message || "Contraseña actualizada correctamente.");
       window.setTimeout(() => router.push(data.target || "/login"), 900);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No pudimos actualizar la contrasena.");
+      setError(requestError instanceof Error ? requestError.message : "No pudimos actualizar la contraseña.");
     } finally {
       requestRef.current = false;
       setLoading(false);
@@ -53,27 +53,27 @@ export function ResetPasswordForm() {
           <span className="brand__mark brand__mark--logo auth-logo"><Image src="/logoFZAC.jpg" alt="FZAC" width={58} height={58} /></span>
           <div>
             <span className="kicker">Seguridad</span>
-            <h1>Defini una nueva contrasena</h1>
+            <h1>Definí una nueva contraseña</h1>
             <p>El enlace solo habilita este cambio. Al terminar, se cerraran las sesiones anteriores.</p>
           </div>
         </div>
         <form onSubmit={submit}>
           <label className="field">
-            Nueva contrasena
+            Nueva contraseña
             <input type="password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} autoComplete="new-password" minLength={8} required />
           </label>
           <div className="password-checklist">
             {checks.map((check) => <span className={check.ok ? "is-ok" : ""} key={check.id}><CheckCircle size={15} /> {check.label}</span>)}
           </div>
           <label className="field">
-            Confirmar contrasena
+            Confirmar contraseña
             <input type="password" value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setError(""); }} autoComplete="new-password" minLength={8} required />
           </label>
           {error ? <p className="notice notice--danger">{error}</p> : null}
           {message ? <p className="notice notice--success">{message}</p> : null}
           <button className="btn" type="submit" disabled={loading || !valid}>
             {loading ? <Loader2 className="is-spinning" size={18} /> : <KeyRound size={18} />}
-            {loading ? "Actualizando..." : "Guardar nueva contrasena"}
+            {loading ? "Actualizando..." : "Guardar nueva contraseña"}
           </button>
         </form>
         <Link className="auth-back-link" href="/recuperar">Solicitar otro enlace</Link>

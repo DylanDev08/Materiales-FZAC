@@ -33,8 +33,8 @@ export function CartPage() {
         <div className="container empty-state">
           <div>
             <PackageOpen size={38} />
-            <h1>Tu carrito esta vacio</h1>
-            <p>Agrega materiales del catalogo para iniciar una compra.</p>
+            <h1>Tu carrito está vacío</h1>
+            <p>Agregá materiales del catálogo para iniciar una compra.</p>
             <Link className="btn" href="/productos">
               Ver productos
             </Link>
@@ -50,7 +50,7 @@ export function CartPage() {
         <div className="section-head">
           <div>
             <span className="kicker">Carrito</span>
-            <h1>Revisa tus materiales</h1>
+            <h1>Revisá tus materiales</h1>
             <p>Las cantidades y el stock final se validan nuevamente antes de crear la orden.</p>
           </div>
         </div>
@@ -69,16 +69,19 @@ export function CartPage() {
                     <div className="quantity-control" aria-label={`Cantidad de ${item.product.name}`}>
                       <button
                         type="button"
+                        disabled={item.quantity <= 1}
                         onClick={() => {
                           updateQuantity(item.productId, item.quantity - 1);
-                          setMessage(item.quantity <= 1 ? "Producto eliminado." : "Producto actualizado.");
+                          setMessage("Producto actualizado.");
                         }}
+                        aria-label={`Restar una unidad de ${item.product.name}`}
                       >
                         <Minus size={15} />
                       </button>
                       <strong>{item.quantity}</strong>
                       <button
                         type="button"
+                        disabled={item.quantity >= item.product.stock}
                         onClick={() => {
                           if (item.quantity >= item.product.stock) {
                             setMessage(`Solo quedan ${item.product.stock} unidades disponibles.`);
@@ -87,6 +90,7 @@ export function CartPage() {
                           updateQuantity(item.productId, item.quantity + 1);
                           setMessage("Producto actualizado.");
                         }}
+                        aria-label={`Sumar una unidad de ${item.product.name}`}
                       >
                         <Plus size={15} />
                       </button>
@@ -120,7 +124,7 @@ export function CartPage() {
               <strong>{currency(subtotal)}</strong>
             </div>
             <div className="summary-line">
-              <span>Envio</span>
+              <span>Envío</span>
               <strong>Se coordina por WhatsApp</strong>
             </div>
             <div className="summary-total">
@@ -143,7 +147,7 @@ export function CartPage() {
                 type="button"
                 onClick={() => {
                   clearCart();
-                  setMessage("Carrito vacio.");
+                  setMessage("Carrito vacío.");
                 }}
               >
                 Vaciar carrito

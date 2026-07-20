@@ -8,13 +8,13 @@ type Message = {
   content: string;
 };
 
-const quickPrompts = ["Como comprar", "Envios", "Pagos", "Necesito ayuda con materiales"];
+const quickPrompts = ["Cómo comprar", "Envíos", "Pagos", "Necesito ayuda con materiales"];
 
 export function ChatbotWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hola, soy el asistente FZAC. Puedo ayudarte con compras, envios, pagos, stock y derivacion a atencion humana."
+      content: "Hola, soy el asistente FZAC. Puedo ayudarte con compras, envíos, pagos, stock y derivación a atención humana."
     }
   ]);
   const [input, setInput] = useState("");
@@ -42,7 +42,7 @@ export function ChatbotWidget() {
     } catch {
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: "No pude conectar el asistente. Podes escribir por WhatsApp para atencion humana." }
+        { role: "assistant", content: "No pude conectar el asistente. Podés escribir por WhatsApp para atención humana." }
       ]);
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export function ChatbotWidget() {
             <Bot size={16} /> Chatbot FZAC
           </span>
           <h2>Asistencia comercial</h2>
-          <p>Consultas rapidas sobre productos, pagos, envios y retiro.</p>
+          <p>Consultas rápidas sobre productos, pagos, envíos y retiro.</p>
         </div>
       </div>
 

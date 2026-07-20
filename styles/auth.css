@@ -73,6 +73,36 @@
   border-color: rgba(200, 50, 50, 0.8);
 }
 
+.auth-password-field {
+  position: relative;
+  display: block;
+}
+
+.auth-password-field input {
+  width: 100%;
+  padding-right: 50px;
+}
+
+.auth-password-field button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  transform: translateY(-50%);
+}
+
+.auth-password-field button:hover {
+  background: rgba(244, 196, 0, 0.1);
+  color: var(--color-yellow);
+}
+
 .auth-google {
   margin-top: 18px;
 }

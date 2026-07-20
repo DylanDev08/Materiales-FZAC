@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  CreditCard,
   ExternalLink,
   Landmark,
   Loader2,
@@ -18,7 +19,8 @@ import {
   ShieldCheck,
   Trash2,
   Truck,
-  UserRound
+  UserRound,
+  X
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/checkout/checkout-loading-screen";
@@ -29,7 +31,7 @@ import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
 type CheckoutStep = "customer" | "delivery" | "review" | "payment";
-type PaymentMode = "CARD" | "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
+type PaymentMode = "CARD_BRICK" | "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
 type CheckoutProcessPhase = CheckoutLoadingPhase | "idle";
 type CartItems = ReturnType<typeof useCart>["items"];
 
@@ -55,7 +57,7 @@ type ShippingQuoteState =
 const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
   { id: "customer", label: "1. Comprador" },
   { id: "delivery", label: "2. Entrega" },
-  { id: "review", label: "3. Revision" },
+  { id: "review", label: "3. Revisión" },
   { id: "payment", label: "4. Pago" }
 ];
 
@@ -144,7 +146,7 @@ export function CheckoutForm({
   const [termsOpen, setTermsOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>("CARD");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("CARD_BRICK");
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
   const [error, setError] = useState("");
@@ -214,7 +216,7 @@ export function CheckoutForm({
     }
 
     if (!addressComplete) {
-      setShippingQuote({ status: "error", message: "Completa direccion, numero, ciudad y provincia para cotizar envio." });
+      setShippingQuote({ status: "error", message: "Completá dirección, número, ciudad y provincia para cotizar el envío." });
       return false;
     }
 
@@ -307,6 +309,22 @@ export function CheckoutForm({
     return () => document.removeEventListener("keydown", handleEnter);
   }, [loading]);
 
+  useEffect(() => {
+    if (!termsOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTermsOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [termsOpen]);
+
   const canSubmit = useMemo(() => {
     if (step !== "payment") return false;
     if (!items.length || !accepted || !customerComplete) return false;
@@ -324,7 +342,7 @@ export function CheckoutForm({
 
   function goToDelivery() {
     if (!basicCustomerComplete) {
-      setError("Completa nombre, email y telefono para continuar.");
+      setError("Completá nombre, email y teléfono para continuar.");
       return;
     }
     setError("");
@@ -447,11 +465,11 @@ export function CheckoutForm({
           response.status === 503 &&
           (data.error === "PAYMENT_PROVIDER_NOT_CONFIGURED" || data.error === "MERCADOPAGO_NOT_CONFIGURED")
         ) {
-          setError("Mercado Pago todavia no esta configurado para iniciar pagos. Completa la credencial del entorno correcto y reinicia el servidor.");
+          setError("Mercado Pago todavía no está configurado para iniciar pagos. Completá la credencial del entorno correcto y reiniciá el servidor.");
           return;
         }
         if (response.status === 502 && data.error === "PAYMENT_PREFERENCE_REJECTED") {
-          setError(data.message || "No pudimos iniciar Mercado Pago. Revisa que las credenciales correspondan al entorno configurado.");
+          setError(data.message || "No pudimos iniciar Mercado Pago. Revisá que las credenciales correspondan al entorno configurado.");
           return;
         }
         throw new Error(data.message || "No pudimos crear el checkout.");
@@ -465,7 +483,7 @@ export function CheckoutForm({
         keepBusy = true;
         setInfo(
           data.message ||
-            "Tu compra requiere validacion de FZAC por el monto o volumen del pedido. El equipo la revisara y te contactara."
+            "Tu compra requiere validación de FZAC por el monto o volumen del pedido. El equipo la revisará y te contactará."
         );
         router.push(`/checkout/pending?orderId=${orderId}&approval=1`);
         return;
@@ -718,8 +736,8 @@ export function CheckoutForm({
         <div className="section-head">
           <div>
             <span className="kicker">Checkout seguro</span>
-            <h1>Confirma tu compra</h1>
-            <p>Completas los datos por pasos y al final queda solo el resumen, terminos y pago.</p>
+            <h1>Confirmá tu compra</h1>
+            <p>Avanzá paso a paso. Al final vas a ver únicamente el resumen, los términos y el medio de pago.</p>
           </div>
         </div>
 
@@ -743,45 +761,38 @@ export function CheckoutForm({
                     <UserRound size={18} /> Datos del comprador
                   </h2>
                   <p className="checkout-panel__hint">
-                    Nombre, email y telefono son obligatorios. La direccion se usa para envio; si elegis retiro, podes
-                    completarla despues al coordinar con FZAC.
+                    Usamos estos datos para identificar el pedido y enviarte sus actualizaciones. La dirección se pide
+                    únicamente si elegís envío.
                   </p>
                   <div className="form-grid">
                     <label>
                       Nombre y apellido
-                      <input value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} required />
+                      <input
+                        value={customer.name}
+                        onChange={(event) => setCustomer({ ...customer, name: event.target.value })}
+                        autoComplete="name"
+                        required
+                      />
                     </label>
                     <label>
                       Email
-                      <input type="email" value={customer.email} onChange={(event) => setCustomer({ ...customer, email: event.target.value })} required />
+                      <input
+                        type="email"
+                        value={customer.email}
+                        onChange={(event) => setCustomer({ ...customer, email: event.target.value })}
+                        autoComplete="email"
+                        required
+                      />
                     </label>
                     <label>
-                      Telefono
-                      <input value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} required />
-                    </label>
-                    <label>
-                      Calle
-                      <input value={address.street} onChange={(event) => setAddress({ ...address, street: event.target.value })} />
-                    </label>
-                    <label>
-                      Numero
-                      <input value={address.number} onChange={(event) => setAddress({ ...address, number: event.target.value })} />
-                    </label>
-                    <label>
-                      Departamento
-                      <input value={address.apartment} onChange={(event) => setAddress({ ...address, apartment: event.target.value })} />
-                    </label>
-                    <label>
-                      Ciudad
-                      <input value={address.city} onChange={(event) => setAddress({ ...address, city: event.target.value })} />
-                    </label>
-                    <label>
-                      Provincia
-                      <input value={address.province} onChange={(event) => setAddress({ ...address, province: event.target.value })} />
-                    </label>
-                    <label>
-                      Codigo postal
-                      <input value={address.postalCode} onChange={(event) => setAddress({ ...address, postalCode: event.target.value })} />
+                      Teléfono
+                      <input
+                        value={customer.phone}
+                        onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
+                        autoComplete="tel"
+                        inputMode="tel"
+                        required
+                      />
                     </label>
                   </div>
                   {error ? <p className="notice notice--danger">{error}</p> : null}
@@ -806,11 +817,12 @@ export function CheckoutForm({
                       onClick={() => {
                         setShippingMethod("PICKUP");
                         setShippingQuote({ status: "idle" });
+                        setError("");
                       }}
                     >
                       <Package size={20} />
                       <strong>Retiro coordinado</strong>
-                      <span>Retiras en FZAC cuando administracion confirme disponibilidad.</span>
+                      <span>Retirás en FZAC cuando administración confirme disponibilidad.</span>
                     </button>
                     <button
                       type="button"
@@ -818,12 +830,13 @@ export function CheckoutForm({
                       aria-pressed={shippingMethod === "DELIVERY"}
                       onClick={() => {
                         setShippingMethod("DELIVERY");
-                        window.setTimeout(() => void quoteShipping(true), 0);
+                        setShippingQuote({ status: "idle" });
+                        setError("");
                       }}
                     >
                       <Truck size={20} />
-                      <strong>Envio cotizado</strong>
-                      <span>Hasta 30 km de Rosario con direccion real y tarifa vigente configurada.</span>
+                      <strong>Envío cotizado</strong>
+                      <span>Hasta 30 km de Rosario con dirección real y tarifa vigente configurada.</span>
                     </button>
                     <a className="method-button" href={deliveryHref} target="_blank" rel="noreferrer">
                       <MessageCircle size={20} />
@@ -835,23 +848,68 @@ export function CheckoutForm({
                   {shippingMethod === "DELIVERY" ? (
                     <div className="checkout-subpanel">
                       <h3>
-                        <MapPin size={17} /> Direccion registrada
+                        <MapPin size={17} /> Dirección de entrega
                       </h3>
-                      <p>
-                        {address.street} {address.number}
-                        {address.apartment ? `, ${address.apartment}` : ""}, {address.city}, {address.province}
-                        {address.postalCode ? ` (${address.postalCode})` : ""}.
-                      </p>
-                      <button className="btn btn--ghost" type="button" onClick={() => setStep("customer")}>
-                        Editar direccion
-                      </button>
-                      <button className="btn" type="button" disabled={shippingQuote.status === "loading"} onClick={() => void quoteShipping()}>
-                        {shippingQuote.status === "loading" ? <Loader2 size={17} /> : <Truck size={17} />}
-                        Cotizar envio
-                      </button>
+                      <p>Completá el destino para calcular el costo con la tarifa vigente.</p>
+                      <div className="form-grid checkout-address-grid">
+                        <label>
+                          Calle
+                          <input
+                            value={address.street}
+                            onChange={(event) => setAddress({ ...address, street: event.target.value })}
+                            autoComplete="address-line1"
+                          />
+                        </label>
+                        <label>
+                          Número
+                          <input
+                            value={address.number}
+                            onChange={(event) => setAddress({ ...address, number: event.target.value })}
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <label>
+                          Departamento (opcional)
+                          <input
+                            value={address.apartment}
+                            onChange={(event) => setAddress({ ...address, apartment: event.target.value })}
+                            autoComplete="address-line2"
+                          />
+                        </label>
+                        <label>
+                          Ciudad
+                          <input
+                            value={address.city}
+                            onChange={(event) => setAddress({ ...address, city: event.target.value })}
+                            autoComplete="address-level2"
+                          />
+                        </label>
+                        <label>
+                          Provincia
+                          <input
+                            value={address.province}
+                            onChange={(event) => setAddress({ ...address, province: event.target.value })}
+                            autoComplete="address-level1"
+                          />
+                        </label>
+                        <label>
+                          Código postal (opcional)
+                          <input
+                            value={address.postalCode}
+                            onChange={(event) => setAddress({ ...address, postalCode: event.target.value })}
+                            autoComplete="postal-code"
+                          />
+                        </label>
+                      </div>
+                      <div className="checkout-subpanel__actions">
+                        <button className="btn" type="button" disabled={shippingQuote.status === "loading"} onClick={() => void quoteShipping()}>
+                          {shippingQuote.status === "loading" ? <Loader2 size={17} /> : <Truck size={17} />}
+                          Cotizar envío
+                        </button>
+                      </div>
                       {shippingQuote.status === "ok" ? (
                         <p className="notice notice--success">
-                          Envio cotizado: {currency(shippingQuote.amount)} ({shippingQuote.distanceKm} km
+                          Envío cotizado: {currency(shippingQuote.amount)} ({shippingQuote.distanceKm} km
                           {shippingQuote.durationText ? `, ${shippingQuote.durationText}` : ""}).
                         </p>
                       ) : null}
@@ -879,7 +937,7 @@ export function CheckoutForm({
               {step === "review" ? (
                 <section className="checkout-panel">
                   <h2>
-                    <ShieldCheck size={18} /> Revision del pedido
+                    <ShieldCheck size={18} /> Revisión del pedido
                   </h2>
                   <div className="payment-note">
                     <ShieldCheck size={18} />
@@ -890,7 +948,7 @@ export function CheckoutForm({
                     <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={500} />
                   </label>
                   {stockState.status === "loading" ? <p className="notice">Validando productos y stock disponible...</p> : null}
-                  {stockState.status === "ok" ? <p className="notice notice--success">Productos disponibles. Podes continuar al pago.</p> : null}
+                  {stockState.status === "ok" ? <p className="notice notice--success">Productos disponibles. Podés continuar al pago.</p> : null}
                   {stockState.status === "error" ? (
                     <div className="notice notice--danger">
                       <strong>{stockState.message}</strong>
@@ -964,19 +1022,19 @@ export function CheckoutForm({
               <strong>{currency(subtotal)}</strong>
             </div>
             <div className="summary-line">
-              <span>{shippingMethod === "DELIVERY" ? "Envio" : "Retiro"}</span>
+              <span>{shippingMethod === "DELIVERY" ? "Envío" : "Retiro"}</span>
               <strong>
                 {shippingMethod === "DELIVERY"
                   ? shippingQuote.status === "ok"
                     ? currency(shippingQuote.amount)
-                    : "Pendiente de cotizacion"
+                    : "Pendiente de cotización"
                   : "Sin costo"}
               </strong>
             </div>
             <p className="checkout-summary__payment">
               {shippingMethod === "DELIVERY"
-                ? "El envio se suma solo cuando hay cotizacion real por direccion y tarifa vigente."
-                : "Retiro coordinado no suma costo de envio."}
+                ? "El envío se suma solo cuando existe una cotización real para la dirección ingresada."
+                : "El retiro coordinado no suma costo de envío."}
             </p>
             <div className="summary-total">
               <span>Total</span>
@@ -988,20 +1046,20 @@ export function CheckoutForm({
                 {paymentsTestMode ? (
                   <div className="payment-env-badge" aria-label="Entorno de prueba de pagos">
                     <strong>Entorno de prueba</strong>
-                    <span>Usa un comprador TESTUSER de Mercado Pago. No se cobrara dinero real.</span>
+                    <span>Usá un comprador TESTUSER de Mercado Pago. No se cobrará dinero real.</span>
                   </div>
                 ) : null}
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
                   <button
                     type="button"
                     className="payment-mode-button payment-mode-button--card"
-                    aria-pressed={paymentMode === "CARD"}
+                    aria-pressed={paymentMode === "CARD_BRICK"}
                     disabled={loading}
-                    onClick={() => selectPaymentMode("CARD")}
+                    onClick={() => selectPaymentMode("CARD_BRICK")}
                   >
-                    <ShieldCheck size={18} />
-                    <strong>Pagar con tarjeta en FZAC</strong>
-                    <span>Completa los datos dentro de la web. La tarjeta se tokeniza de forma segura con Mercado Pago.</span>
+                    <CreditCard size={18} />
+                    <strong>Tarjeta online segura</strong>
+                    <span>Completá el Card Payment Brick oficial sin salir de FZAC.</span>
                   </button>
                   <button
                     type="button"
@@ -1012,7 +1070,7 @@ export function CheckoutForm({
                   >
                     <Landmark size={18} />
                     <strong>Pagar con Mercado Pago</strong>
-                    <span>Paga online con los medios disponibles dentro de Mercado Pago.</span>
+                    <span>Pagá online con los medios disponibles dentro de Mercado Pago.</span>
                   </button>
                   <button
                     type="button"
@@ -1023,7 +1081,7 @@ export function CheckoutForm({
                   >
                     <Landmark size={18} />
                     <strong>Solicitar pago por transferencia</strong>
-                    <span>Genera el pedido y FZAC te enviara los datos para transferir.</span>
+                    <span>Generá el pedido y FZAC te enviará los datos para transferir.</span>
                   </button>
                   <button
                     type="button"
@@ -1034,17 +1092,17 @@ export function CheckoutForm({
                   >
                     <MessageCircle size={18} />
                     <strong>Coordinar por WhatsApp</strong>
-                    <span>Genera el pedido y coordina el pago o entrega con FZAC.</span>
+                    <span>Generá el pedido y coordiná el pago o la entrega con FZAC.</span>
                   </button>
                 </div>
                 <p className="payment-method-hint">
-                  {paymentMode === "CARD"
-                    ? "Esta opcion procesa la tarjeta dentro de FZAC con campos seguros de Mercado Pago. Para pruebas usa tarjetas y comprador de prueba."
+                  {paymentMode === "CARD_BRICK"
+                    ? "El formulario es de Mercado Pago y tokeniza la tarjeta. FZAC no accede al número, CVV ni vencimiento."
                     : paymentMode === "MERCADOPAGO"
-                    ? "Solo esta opcion crea preferencia y abre Mercado Pago."
+                    ? "Solo esta opción crea una preferencia y abre Mercado Pago."
                     : paymentMode === "BANK_TRANSFER"
-                      ? "Transferencia no abre Mercado Pago: el pedido queda pendiente para que FZAC revise stock, total y te envie los datos bancarios."
-                      : "WhatsApp no abre Mercado Pago: FZAC recibira el pedido y podras coordinar pago, retiro o entrega."}
+                      ? "Transferencia no abre Mercado Pago: el pedido queda pendiente para que FZAC revise stock, total y te envíe los datos bancarios."
+                      : "WhatsApp no abre Mercado Pago: FZAC recibirá el pedido y podrás coordinar pago, retiro o entrega."}
                 </p>
                 <div className="terms-checkbox">
                   <input
@@ -1062,23 +1120,23 @@ export function CheckoutForm({
                   <div className="terms-checkbox__copy">
                     <span>Acepto los{" "}</span>
                     <button className="terms-inline-button" type="button" onClick={requestTermsAcceptance}>
-                      Terminos y condiciones
+                      Términos y condiciones
                     </button>{" "}
                     <span>y la{" "}</span>
                     <Link href="/privacidad" target="_blank" rel="noopener noreferrer">
-                      Politica de privacidad
+                      Política de privacidad
                     </Link>
                     .
                   </div>
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {info ? <p className="notice notice--success">{info}</p> : null}
-                {paymentMode === "CARD" ? (
+                {paymentMode === "CARD_BRICK" ? (
                   <MercadoPagoCardForm
                     amount={total}
                     customerEmail={customer.email}
-                    disabled={!canSubmit || loading}
-                    onSubmit={(payload) => void startCardPayment(payload)}
+                    disabled={!canSubmit}
+                    onSubmit={startCardPayment}
                   />
                 ) : paymentMode === "MERCADOPAGO" ? (
                   <button
@@ -1128,15 +1186,31 @@ export function CheckoutForm({
         </div>
       </div>
       {showLoadingScreen ? (
-        <CheckoutLoadingScreen method={paymentMode === "CARD" ? "MERCADOPAGO" : paymentMode} phase={activeLoadingPhase} errorMessage={error} />
+        <CheckoutLoadingScreen method={paymentMode === "CARD_BRICK" ? "MERCADOPAGO" : paymentMode} phase={activeLoadingPhase} errorMessage={error} />
       ) : null}
       {termsOpen ? (
         <div className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
           <div className="terms-modal__panel">
             <header>
-              <span className="kicker">Legal FZAC</span>
-              <h2 id="terms-modal-title">Terminos y condiciones</h2>
-              <p>Revisa estas condiciones antes de confirmar el pago. Se mantienen disponibles en la seccion legal de la tienda.</p>
+              <div className="terms-modal__brand">
+                <span>
+                  <Image src="/logoFZAC.jpg" alt="FZAC" width={58} height={58} />
+                </span>
+                <div>
+                  <span className="kicker">Legal FZAC</span>
+                  <h2 id="terms-modal-title">Términos y condiciones</h2>
+                </div>
+              </div>
+              <button
+                className="terms-modal__close"
+                type="button"
+                onClick={() => setTermsOpen(false)}
+                aria-label="Cerrar términos y condiciones"
+                title="Cerrar"
+              >
+                <X size={19} />
+              </button>
+              <p>Revisá estas condiciones antes de confirmar el pago. El texto completo permanece disponible en la sección legal.</p>
             </header>
             <div className="terms-modal__content">
               <section>
@@ -1154,10 +1228,10 @@ export function CheckoutForm({
                 </p>
               </section>
               <section>
-                <h3>Derecho de revocacion</h3>
+                <h3>Derecho de revocación</h3>
                 <p>
-                  Conforme a la Ley 24.240, el cliente puede revocar compras a distancia dentro de los diez (10) dias
-                  corridos desde la entrega o celebracion del contrato, segun corresponda.
+                  Conforme a la Ley 24.240, el cliente puede revocar compras a distancia dentro de los diez (10) días
+                  corridos desde la entrega o celebración del contrato, según corresponda.
                 </p>
               </section>
               <section>
@@ -1177,7 +1251,7 @@ export function CheckoutForm({
               <section>
                 <h3>Pagos seguros</h3>
                 <p>
-                  FZAC no solicita ni almacena numeros de tarjeta, codigos de seguridad ni datos sensibles de medios de
+                  FZAC no solicita ni almacena números de tarjeta, códigos de seguridad ni datos sensibles de medios de
                   pago. Las tarjetas se procesan mediante proveedor habilitado.
                 </p>
               </section>
@@ -1190,7 +1264,7 @@ export function CheckoutForm({
                 Volver
               </button>
               <button className="btn" type="button" onClick={acceptTerms}>
-                Acepto terminos y condiciones
+                Acepto términos y condiciones
               </button>
             </footer>
           </div>

@@ -18,7 +18,7 @@ export async function SiteHeader() {
       <div className="topbar">
         <div className="container topbar__inner">
           <span>Fortaleza Construcciones Rosario</span>
-          <span>Envios coordinados, retiro acordado y pagos online.</span>
+          <span>Envíos coordinados, retiro acordado y pagos online.</span>
         </div>
       </div>
 

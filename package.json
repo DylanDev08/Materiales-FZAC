@@ -20,7 +20,7 @@
     "db:seed": "supabase db reset --linked"
   },
   "dependencies": {
-    "@mercadopago/sdk-js": "^0.0.3",
+    "@mercadopago/sdk-react": "^1.0.7",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "lucide-react": "^0.468.0",
@@ -31,7 +31,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/mercadopago-sdk-js": "^2.0.17",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

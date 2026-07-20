@@ -172,7 +172,7 @@ export function FloatingAssistant() {
           role: "assistant",
           content: timedOut
             ? "La respuesta tardo mas de lo esperado. Te dejo opciones rapidas para seguir sin perder la conversacion."
-            : "No pude conectar con el asistente en este momento. Proba de nuevo o usa WhatsApp si necesitas resolverlo ahora.",
+            : "No pude conectar con el asistente en este momento. Probá de nuevo o usá WhatsApp si necesitás resolverlo ahora.",
           createdAt: new Date().toISOString(),
           options: ["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"].map((label) => ({ label, message: label }))
         }
@@ -225,7 +225,7 @@ export function FloatingAssistant() {
                 ) : null}
               </div>
             ))}
-            {loading ? <div className="chatbot__message">Estoy revisando catalogo, pagos y reglas de entrega...</div> : null}
+            {loading ? <div className="chatbot__message">Estoy revisando catálogo, pagos y reglas de entrega...</div> : null}
             <div ref={messagesEndRef} />
           </div>
 

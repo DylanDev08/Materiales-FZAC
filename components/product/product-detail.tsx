@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { ProductBuyBox } from "@/components/product/product-buybox";
+import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { Product } from "@/types/domain";
@@ -11,30 +11,21 @@ export function ProductDetail({ product, related }: { product: Product; related:
     <main className="page-section">
       <div className="container">
         <div className="product-detail">
-          <section className="product-gallery" aria-label="Galeria del producto">
-            <div className="product-gallery__main">
-              <Image src={product.image_url} alt={product.name} fill sizes="(max-width: 900px) 100vw, 52vw" />
-            </div>
-            <div className="product-gallery__thumbs">
-              {gallery.slice(0, 4).map((image) => (
-                <div className="product-gallery__thumb" key={image}>
-                  <Image src={image} alt={product.name} fill sizes="25vw" />
-                </div>
-              ))}
-            </div>
-          </section>
+          <ProductGallery name={product.name} images={gallery} />
 
           <ProductBuyBox product={product} />
         </div>
 
-        <section className="product-info-grid">
-          <article>
-            <h2>Descripción</h2>
-            <p>{product.description}</p>
-          </article>
-          <article>
-            <details open>
-              <summary>Ficha técnica</summary>
+        <section className="product-information" aria-label="Información del producto">
+          <details open>
+            <summary>Descripción</summary>
+            <div>
+              <p>{product.description}</p>
+            </div>
+          </details>
+          <details>
+            <summary>Ficha técnica</summary>
+            <div>
               <ul>
                 {Object.entries(product.specifications).map(([key, value]) => (
                   <li key={key}>
@@ -42,16 +33,20 @@ export function ProductDetail({ product, related }: { product: Product; related:
                   </li>
                 ))}
               </ul>
-            </details>
-          </article>
-          <article>
-            <h2>Entrega y retiro</h2>
-            <p>Retiro coordinado en FZAC o envío a domicilio acordado por administración según dirección y disponibilidad.</p>
-          </article>
-          <article>
-            <h2>Medios de pago</h2>
-            <p>Mercado Pago, transferencia pendiente de revisión o coordinación por WhatsApp desde el checkout.</p>
-          </article>
+            </div>
+          </details>
+          <details>
+            <summary>Entrega y retiro</summary>
+            <div>
+              <p>Retiro coordinado en FZAC o envío cotizado según dirección, distancia y disponibilidad.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Medios de pago</summary>
+            <div>
+              <p>Tarjeta segura con Mercado Pago, Checkout Pro, transferencia pendiente de revisión o coordinación por WhatsApp.</p>
+            </div>
+          </details>
         </section>
 
         <section className="page-section">

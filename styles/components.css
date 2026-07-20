@@ -192,8 +192,50 @@
 }
 
 .legal-page h1 {
-  margin: 10px 0 22px;
+  margin: 7px 0 6px;
   font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+.legal-page__head {
+  width: min(880px, 100%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--color-yellow-border);
+  padding-bottom: 20px;
+}
+
+.legal-page__head > div > p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.legal-page__logo {
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: 999px;
+  background: #050505;
+  box-shadow: 0 0 0 7px rgba(244, 196, 0, 0.06);
+}
+
+.legal-page__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.legal-page__actions {
+  width: min(880px, 100%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .legal-page section {
@@ -220,6 +262,20 @@
 .legal-action-button {
   width: fit-content;
   margin: 4px 0 8px;
+}
+
+@media (max-width: 560px) {
+  .legal-page__head {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-page__actions .btn {
+    width: 100%;
+  }
+
+  .legal-page section {
+    padding: 18px;
+  }
 }
 
 .payment-page h1 {

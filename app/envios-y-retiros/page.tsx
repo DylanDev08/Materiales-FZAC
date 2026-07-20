@@ -2,11 +2,11 @@ export default function Page() {
   return (
     <main className="page-section legal-page">
       <div className="container">
-        <span className="kicker">Logistica</span>
-        <h1>Envios y retiros</h1>
+        <span className="kicker">Logística</span>
+        <h1>Envíos y retiros</h1>
         <section>
           <p>
-            FZAC permite retiro coordinado y envio a domicilio acordado por administracion. El cliente carga la direccion
+            FZAC permite retiro coordinado y envío a domicilio acordado por administración. El cliente carga la dirección
             completa en checkout y el equipo confirma disponibilidad, horario y condiciones por los canales de contacto.
           </p>
           <p>

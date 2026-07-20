@@ -378,6 +378,11 @@
 }
 
 .product-card__toast {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 86;
+  width: min(360px, calc(100vw - 36px));
   display: grid;
   gap: 5px;
   border: 1px solid rgba(22, 131, 74, 0.4);
@@ -386,6 +391,19 @@
   padding: 8px;
   color: var(--color-white);
   font-size: 0.76rem;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5);
+  animation: product-toast-in 180ms ease-out;
+}
+
+@keyframes product-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .product-card__toast strong,
@@ -1382,5 +1400,11 @@
   .product-card__meta span:nth-child(2),
   .product-card__badges .status-pill--success {
     display: none;
+  }
+
+  .product-card__toast {
+    left: 11px;
+    bottom: 66px;
+    width: calc(100vw - 22px);
   }
 }

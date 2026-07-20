@@ -11,7 +11,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
         <div>
           <XCircle size={42} />
           <h1>Pago rechazado</h1>
-          <p>No se confirmo el pago. No se desconto stock ni se emitio comprobante. Podes volver al checkout y elegir otro medio.</p>
+          <p>No se confirmó el pago. No se descontó stock ni se emitió comprobante. Podés volver al checkout y elegir otro medio.</p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href="/checkout">
             Reintentar

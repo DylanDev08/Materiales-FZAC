@@ -2,7 +2,7 @@ import { getWhatsAppHref } from "@/lib/utils/contact";
 
 export default function Page() {
   const refundHref = getWhatsAppHref(
-    "Hola FZAC, quiero solicitar revision o devolucion de mercaderia. Tengo comprobante/orden y puedo enviar fotos del producto."
+    "Hola FZAC, quiero solicitar revisión o devolución de mercadería. Tengo comprobante/orden y puedo enviar fotos del producto."
   );
 
   return (
@@ -18,10 +18,10 @@ export default function Page() {
           </p>
           <p>
             Para iniciar el tramite debe conservar el comprobante y contactar a FZAC indicando orden, producto, cantidad,
-            motivo, telefono y direccion de retiro si corresponde. El equipo confirma los pasos por los canales oficiales.
+            motivo, teléfono y dirección de retiro si corresponde. El equipo confirma los pasos por los canales oficiales.
           </p>
           <a className="btn legal-action-button" href={refundHref} target="_blank" rel="noreferrer">
-            Solicitar revision o devolucion por WhatsApp
+            Solicitar revisión o devolución por WhatsApp
           </a>
 
           <h2>Condicion del producto</h2>
@@ -33,7 +33,7 @@ export default function Page() {
 
           <h2>Materiales excluidos</h2>
           <p>
-            Por su naturaleza tecnica y logistica, quedan excluidos materiales a granel o fraccionados, aridos, arena,
+            Por su naturaleza técnica y logística, quedan excluidos materiales a granel o fraccionados, áridos, arena,
             piedra, cemento, cal, productos despachados por peso/fraccion exacta, pinturas preparadas a pedido, piezas
             cortadas a medida y materiales deteriorados por humedad, mala estiba o exposicion climatica.
           </p>

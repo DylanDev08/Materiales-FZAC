@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     if (admin) {
       const { data: existingProfile } = await admin.from("profiles").select("id").eq("email", payload.email).maybeSingle();
-      if (existingProfile) return jsonError("Ya existe una cuenta con este email. Proba iniciar sesion.", 409);
+      if (existingProfile) return jsonError("Ya existe una cuenta con este email. Probá iniciar sesión.", 409);
     }
 
     let user = null;
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       if (error) {
         const duplicate = /already|registered|exists/i.test(error.message);
         return jsonError(
-          duplicate ? "Ya existe una cuenta con este email. Proba iniciar sesion." : "No pudimos crear la cuenta. Revisa los datos e intenta nuevamente.",
+          duplicate ? "Ya existe una cuenta con este email. Probá iniciar sesión." : "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.",
           duplicate ? 409 : 400
         );
       }
@@ -69,11 +69,11 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({ target: "/login?registered=true", message: "Cuenta creada correctamente. Revisa tu email para confirmar el acceso." });
+    return Response.json({ target: "/login?registered=true", message: "Cuenta creada correctamente. Revisá tu email para confirmar el acceso." });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
     if (error instanceof Error && /already|registered|exists/i.test(error.message)) {
-      return jsonError("Ya existe una cuenta con este email. Proba iniciar sesion.", 409);
+      return jsonError("Ya existe una cuenta con este email. Probá iniciar sesión.", 409);
     }
     return jsonError("No pudimos crear la cuenta.", 500);
   }

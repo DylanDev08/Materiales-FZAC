@@ -21,8 +21,8 @@ export function SiteFooter() {
             </span>
           </Link>
           <p>
-            E-commerce de materiales para obra, mantenimiento y construccion en Rosario. Compra online,
-            pago seguro y coordinacion comercial.
+            E-commerce de materiales para obra, mantenimiento y construcción en Rosario. Compra online,
+            pago seguro y coordinación comercial.
           </p>
         </div>
 
@@ -30,7 +30,7 @@ export function SiteFooter() {
           <h3>Tienda</h3>
           <nav>
             <Link href="/productos">Productos</Link>
-            <Link href="/categorias">Categorias</Link>
+            <Link href="/categorias">Categorías</Link>
             <Link href="/ofertas">Ofertas</Link>
             <Link href="/carrito">Carrito</Link>
           </nav>
@@ -49,10 +49,10 @@ export function SiteFooter() {
         <div>
           <h3>Legal y contacto</h3>
           <nav>
-            <Link href="/terminos">Terminos</Link>
+            <Link href="/terminos">Términos</Link>
             <Link href="/privacidad">Privacidad</Link>
             <Link href="/cambios-y-devoluciones">Cambios y devoluciones</Link>
-            <Link href="/envios-y-retiros">Envios y retiros</Link>
+            <Link href="/envios-y-retiros">Envíos y retiros</Link>
             <Link href="/medios-de-pago">Medios de pago</Link>
             <a href={`mailto:${email}`}>{email}</a>
             <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}>WhatsApp {whatsapp}</a>

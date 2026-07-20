@@ -252,9 +252,9 @@ async function resumeCheckoutByIdempotencyKey(
       provider,
       message: coordinationFlow
         ? paymentMethod === "WHATSAPP"
-          ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
-          : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia."
-        : "Compra creada correctamente. Requiere aprobacion del administrador."
+          ? "Pedido generado. Podés coordinar el pago y la entrega con FZAC por WhatsApp."
+          : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia."
+        : "Compra creada correctamente. Requiere aprobación del administrador."
     });
   }
 
@@ -269,11 +269,11 @@ async function resumeCheckoutByIdempotencyKey(
       provider,
       message:
         provider === "WHATSAPP"
-          ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
-          : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
+          ? "Pedido generado. Podés coordinar el pago y la entrega con FZAC por WhatsApp."
+          : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia.",
       whatsappUrl:
         provider === "WHATSAPP"
-          ? getWhatsAppHref(`Hola FZAC, genere un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
+          ? getWhatsAppHref(`Hola FZAC, generé un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
           : null
     });
   }
@@ -399,7 +399,7 @@ export async function createCheckout(input: unknown) {
   const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
   if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available)) {
     throw new ShippingQuoteError(
-      shippingQuote?.reason || "No pudimos cotizar el envio con datos reales. Revisa la direccion o elegi retiro.",
+      shippingQuote?.reason || "No pudimos cotizar el envío con datos reales. Revisá la dirección o elegí retiro.",
       shippingQuote ?? undefined
     );
   }
@@ -553,7 +553,7 @@ export async function createCheckout(input: unknown) {
       idempotencyKey
     });
 
-    if (!preference?.redirect_url) throw new Error("El proveedor de pago no devolvio una URL valida.");
+    if (!preference?.redirect_url) throw new Error("El proveedor de pago no devolvió una URL válida.");
 
     await admin
       .from("payments")

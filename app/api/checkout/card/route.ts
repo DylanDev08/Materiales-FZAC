@@ -1,11 +1,11 @@
 import { ZodError } from "zod";
 import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
-import { createMercadoPagoCardPayment } from "@/lib/payments/mercadopago";
+import { createMercadoPagoCardPayment, MercadoPagoCardPaymentError } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { checkoutCardCreateSchema } from "@/lib/validations/checkout";
 
 function paymentStatus(status: string) {
@@ -46,7 +46,9 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-card"), 8, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos de pago. Proba nuevamente en un minuto.", 429);
+  if (!limit.ok) {
+    return jsonError("Demasiados intentos de pago. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  }
 
   try {
     const payload = checkoutCardCreateSchema.parse(await request.json());
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
           orderId,
           status: checkout.order_status,
           redirectUrl: `/checkout/pending?orderId=${orderId}&approval=1`,
-          message: checkout.message || "La compra requiere aprobacion del administrador antes de pagar."
+          message: checkout.message || "La compra requiere aprobación del administrador antes de pagar."
         },
         { status: 201 }
       );
@@ -96,16 +98,19 @@ export async function POST(request: Request) {
       await persistPaymentStatus(orderId, payment);
     }
 
-    return Response.json({
-      ok: true,
-      orderId,
-      status,
-      redirectUrl: redirectForStatus(status, orderId),
-      message:
-        status === "approved"
-          ? "Pago aprobado."
-          : "El proveedor devolvio el pago pendiente o rechazado. No se descuenta stock si no queda aprobado."
-    });
+    return Response.json(
+      {
+        ok: true,
+        orderId,
+        status,
+        redirectUrl: redirectForStatus(status, orderId),
+        message:
+          status === "approved"
+            ? "Pago aprobado."
+            : "Mercado Pago devolvió el pago pendiente o rechazado. El stock no se descuenta sin aprobación."
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof ZodError) {
       const issue = error.issues[0]?.message;
@@ -140,6 +145,17 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
-    return jsonError(error instanceof Error ? error.message : "No pudimos procesar el pago con tarjeta.", 400);
+    if (error instanceof MercadoPagoCardPaymentError) {
+      const status = error.status === 429 ? 429 : error.status === 401 || error.status === 403 ? 503 : error.status === 409 ? 409 : 422;
+      return Response.json(
+        {
+          ok: false,
+          error: error.code,
+          message: error.message
+        },
+        { status, ...(status === 429 ? { headers: { "Retry-After": "30" } } : {}) }
+      );
+    }
+    return jsonError("No pudimos procesar el pago con tarjeta.", 500);
   }
 }

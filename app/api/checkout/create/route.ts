@@ -16,7 +16,7 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-create"), 12, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  if (!limit.ok) return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = checkoutCreateSchema.parse(await request.json());
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           error: "PAYMENT_PREFERENCE_REJECTED",
-          message: "No pudimos iniciar Mercado Pago. Revisa que las credenciales correspondan al entorno configurado."
+          message: "No pudimos iniciar Mercado Pago. Revisá que las credenciales correspondan al entorno configurado."
         },
         { status: 502 }
       );
@@ -90,6 +90,6 @@ export async function POST(request: Request) {
     ) {
       return jsonError(error.message, 400);
     }
-    return jsonError("No pudimos crear el checkout. Revisa los datos e intenta nuevamente.", 400);
+    return jsonError("No pudimos crear el checkout. Revisá los datos e intentá nuevamente.", 400);
   }
 }

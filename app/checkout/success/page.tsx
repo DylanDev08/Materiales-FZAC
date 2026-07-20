@@ -30,7 +30,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
             Ver pedido
           </Link>
           <Link className="btn btn--ghost" href="/productos">
-            Volver al catalogo
+            Volver al catálogo
           </Link>
           <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
             <MessageCircle size={17} /> Consultar por WhatsApp

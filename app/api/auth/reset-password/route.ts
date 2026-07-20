@@ -17,16 +17,16 @@ export async function POST(request: Request) {
     if (userError || !current.user) return jsonError("El enlace vencio o ya fue utilizado. Solicita uno nuevo.", 401);
 
     const { error } = await supabase.auth.updateUser({ password: payload.password });
-    if (error) return jsonError("No pudimos actualizar la contrasena. Solicita un enlace nuevo.", 400);
+    if (error) return jsonError("No pudimos actualizar la contraseña. Solicitá un enlace nuevo.", 400);
 
     await supabase.auth.signOut({ scope: "global" });
     return Response.json({
       ok: true,
       target: "/login?password_updated=true",
-      message: "Contrasena actualizada. Ya podes ingresar con tus nuevos datos."
+      message: "Contraseña actualizada. Ya podés ingresar con tus nuevos datos."
     });
   } catch (error) {
-    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Contrasena invalida.", 422);
-    return jsonError("No pudimos actualizar la contrasena.", 500);
+    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Contraseña inválida.", 422);
+    return jsonError("No pudimos actualizar la contraseña.", 500);
   }
 }

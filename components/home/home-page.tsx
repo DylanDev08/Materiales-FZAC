@@ -2,11 +2,19 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
+  Building2,
+  Droplets,
+  Hammer,
+  Layers3,
   MessageCircle,
   Package,
+  PaintRoller,
+  PanelsTopLeft,
   Search,
   ShieldCheck,
-  Truck
+  Truck,
+  Wrench,
+  Zap
 } from "lucide-react";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -23,14 +31,14 @@ export async function HomePage() {
     .filter((product, index, list) => list.findIndex((item) => item.id === product.id) === index)
     .slice(0, 4);
   const buyingNeeds = [
-    { label: "Materiales de obra", helper: "Cemento, cal, arena, piedra, hierro y ladrillos.", href: "/productos?search=cemento" },
-    { label: "Construcción en seco", helper: "Placas, perfiles, masillas, tornillos y aislantes.", href: "/productos?search=durlock" },
-    { label: "Ferretería", helper: "Tornillería, adhesivos, fijaciones y accesorios.", href: "/productos?search=ferreteria" },
-    { label: "Herramientas", helper: "Manuales, eléctricas y consumibles para obra.", href: "/productos?search=herramientas" },
-    { label: "Electricidad", helper: "Cables, cajas, llaves, tomas y canalización.", href: "/productos?search=electricidad" },
-    { label: "Plomería", helper: "Caños, conexiones, adhesivos y accesorios sanitarios.", href: "/productos?search=plomeria" },
-    { label: "Pintura e impermeabilización", helper: "Látex, membranas, rodillos y preparadores.", href: "/productos?search=pintura" },
-    { label: "Revestimientos", helper: "Pegamentos, pastinas, placas y terminaciones.", href: "/productos?search=revestimientos" }
+    { label: "Materiales de obra", helper: "Cemento, cal, arena, hierro y ladrillos.", href: "/productos?search=cemento", icon: Building2 },
+    { label: "Construcción en seco", helper: "Placas, perfiles, masillas y aislantes.", href: "/productos?search=durlock", icon: PanelsTopLeft },
+    { label: "Ferretería", helper: "Tornillería, adhesivos y fijaciones.", href: "/productos?search=ferreteria", icon: Wrench },
+    { label: "Herramientas", helper: "Manuales, eléctricas y consumibles.", href: "/productos?search=herramientas", icon: Hammer },
+    { label: "Electricidad", helper: "Cables, cajas, llaves y canalización.", href: "/productos?search=electricidad", icon: Zap },
+    { label: "Plomería", helper: "Caños, conexiones y accesorios sanitarios.", href: "/productos?search=plomeria", icon: Droplets },
+    { label: "Pintura e impermeabilización", helper: "Látex, membranas y preparadores.", href: "/productos?search=pintura", icon: PaintRoller },
+    { label: "Revestimientos", helper: "Pegamentos, pastinas y terminaciones.", href: "/productos?search=revestimientos", icon: Layers3 }
   ];
 
   return (
@@ -69,7 +77,7 @@ export async function HomePage() {
               </button>
             </form>
             <div className="hero-actions">
-              <Link className="btn" href="/catalogo">
+              <Link className="btn" href="/productos">
                 Comprar materiales <ArrowRight size={18} />
               </Link>
               <Link className="btn btn--ghost" href="/ofertas">
@@ -114,16 +122,19 @@ export async function HomePage() {
             }
           />
           <div className="home-floating-rubros">
-            {buyingNeeds.map((need) => (
-              <Link className="home-need-link" href={need.href} key={need.label}>
-                <span>
-                  <Package size={18} />
-                </span>
-                <strong>{need.label}</strong>
-                <small>{need.helper}</small>
-                <ArrowRight size={18} />
-              </Link>
-            ))}
+            {buyingNeeds.map((need) => {
+              const Icon = need.icon;
+              return (
+                <Link className="home-need-link" href={need.href} key={need.label}>
+                  <span>
+                    <Icon size={18} />
+                  </span>
+                  <strong>{need.label}</strong>
+                  <small>{need.helper}</small>
+                  <ArrowRight size={18} />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

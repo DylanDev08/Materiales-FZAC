@@ -70,7 +70,7 @@ export function CheckoutLoadingScreen({
         </div>
         <span className="kicker">Checkout FZAC</span>
         <h2>{isError ? "Necesitamos revisar el checkout" : copy.title}</h2>
-        <p>{isError ? errorMessage ?? "No pudimos completar esta accion. Revisa el mensaje del checkout." : copy.subtitle}</p>
+        <p>{isError ? errorMessage ?? "No pudimos completar esta acción. Revisá el mensaje del checkout." : copy.subtitle}</p>
 
         <div className="checkout-loading-progress" aria-hidden="true">
           <span style={{ width: `${isError ? 100 : ((activeIndex + 1) / steps.length) * 100}%` }} />

@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       password: payload.password
     });
 
-    if (error || !data.user?.email) return jsonError("No pudimos iniciar sesion. Revisa tus datos.", 401);
+    if (error || !data.user?.email) return jsonError("No pudimos iniciar sesión. Revisá tus datos.", 401);
 
     await syncUserProfileOnLogin(data.user);
     return Response.json({ target: isAdminEmail(data.user.email) ? getAdminConsolePath() : "/cuenta" });

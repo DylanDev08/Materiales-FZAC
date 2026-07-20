@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CheckCircle, ShoppingCart, Truck } from "lucide-react";
@@ -21,6 +21,12 @@ export function ProductCard({ product }: { product: Product }) {
     setAdded(true);
     window.requestAnimationFrame(() => setIsAdding(false));
   }
+
+  useEffect(() => {
+    if (!added) return;
+    const timer = window.setTimeout(() => setAdded(false), 4500);
+    return () => window.clearTimeout(timer);
+  }, [added]);
 
   return (
     <article className="product-card">
@@ -72,12 +78,12 @@ export function ProductCard({ product }: { product: Product }) {
           </Link>
         </div>
         {added ? (
-          <div className="product-card__toast">
+          <div className="product-card__toast" role="status" aria-live="polite">
             <strong>
               <CheckCircle size={15} /> Producto agregado
             </strong>
             <small>
-              {product.name} - Cantidad 1
+              {product.name} · Cantidad 1
             </small>
             <span>
               <Link href="/carrito">Ver carrito</Link>

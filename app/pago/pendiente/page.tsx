@@ -11,7 +11,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
         <div>
           <Clock3 size={42} />
           <h1>Pago pendiente</h1>
-          <p>El proveedor de pago todavia no confirmo la operacion. Cuando se apruebe, FZAC actualizara el pedido automaticamente.</p>
+          <p>El proveedor de pago todavía no confirmó la operación. Cuando se apruebe, FZAC actualizará el pedido automáticamente.</p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href="/cuenta/pedidos">
             Ver estado

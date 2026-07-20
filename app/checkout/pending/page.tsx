@@ -15,27 +15,27 @@ export default async function Page({
   const whatsappPending = params.whatsapp === "1";
   const whatsappHref = getWhatsAppHref(
     transferPending
-      ? `Hola FZAC, genere un pedido para pagar por transferencia${reference ? ` con referencia ${reference}` : ""} y necesito los datos bancarios.`
+      ? `Hola FZAC, generé un pedido para pagar por transferencia${reference ? ` con referencia ${reference}` : ""} y necesito los datos bancarios.`
       : whatsappPending
-        ? `Hola FZAC, genere un pedido${reference ? ` con referencia ${reference}` : ""} y quiero coordinar el pago.`
+        ? `Hola FZAC, generé un pedido${reference ? ` con referencia ${reference}` : ""} y quiero coordinar el pago.`
         : requiresApproval
-      ? `Hola FZAC, mi compra requiere validacion${reference ? ` con referencia ${reference}` : ""} y quiero consultar el estado.`
-      : `Hola FZAC, mi pago quedo pendiente${reference ? ` con referencia ${reference}` : ""} y quiero consultar el estado.`
+      ? `Hola FZAC, mi compra requiere validación${reference ? ` con referencia ${reference}` : ""} y quiero consultar el estado.`
+      : `Hola FZAC, mi pago quedó pendiente${reference ? ` con referencia ${reference}` : ""} y quiero consultar el estado.`
   );
   const title = transferPending
     ? "Pedido pendiente de transferencia"
     : whatsappPending
       ? "Pedido listo para coordinar"
       : requiresApproval
-        ? "Compra en validacion"
+        ? "Compra en validación"
         : "Pago pendiente";
   const description = transferPending
-    ? "Generamos tu pedido. FZAC revisara stock, total y te indicara los datos bancarios para transferir."
+    ? "Generamos tu pedido. FZAC revisará stock, total y te indicará los datos bancarios para transferir."
     : whatsappPending
-      ? "Generamos tu pedido. Podes continuar por WhatsApp para coordinar pago, retiro o entrega con el equipo de FZAC."
+      ? "Generamos tu pedido. Podés continuar por WhatsApp para coordinar pago, retiro o entrega con el equipo de FZAC."
       : requiresApproval
-        ? "Tu compra requiere validacion de FZAC por el monto o volumen del pedido. El equipo la revisara y te contactara."
-        : "Tu pedido quedo pendiente. Te avisaremos cuando el pago o la revision esten confirmados.";
+        ? "Tu compra requiere validación de FZAC por el monto o volumen del pedido. El equipo la revisará y te contactará."
+        : "Tu pedido quedó pendiente. Te avisaremos cuando el pago o la revisión estén confirmados.";
 
   return (
     <main className="page-section">
@@ -49,7 +49,7 @@ export default async function Page({
             Ver pedido
           </Link>
           <Link className="btn btn--ghost" href="/productos">
-            Volver al catalogo
+            Volver al catálogo
           </Link>
           <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
             <MessageCircle size={17} /> Consultar por WhatsApp

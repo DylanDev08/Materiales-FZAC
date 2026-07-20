@@ -5,7 +5,7 @@ import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-li
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "cart-validate"), 60, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas validaciones. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  if (!limit.ok) return jsonError("Demasiadas validaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = await request.json();

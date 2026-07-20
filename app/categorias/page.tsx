@@ -69,8 +69,8 @@ export default async function Page() {
             <div className="category-directory__empty">
               <PackageSearch size={34} />
               <div>
-                <h2>Los rubros todavia no estan publicados</h2>
-                <p>Podes explorar todos los productos disponibles o pedir ayuda para encontrar un material.</p>
+                <h2>Los rubros todavía no están publicados</h2>
+                <p>Podés explorar todos los productos disponibles o pedir ayuda para encontrar un material.</p>
               </div>
               <Link className="btn btn--ghost" href="/contacto?tema=productos">
                 Buscar con ayuda <ArrowRight size={17} />

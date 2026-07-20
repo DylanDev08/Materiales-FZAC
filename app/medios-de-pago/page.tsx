@@ -8,11 +8,11 @@ const methods = [
   },
   {
     title: "Transferencia bancaria",
-    text: "La compra queda pendiente hasta que administracion valide el comprobante desde el panel.",
+    text: "La compra queda pendiente hasta que administración valide el comprobante desde el panel.",
     icon: Banknote
   },
   {
-    title: "Validacion segura",
+    title: "Validación segura",
     text: "El stock se descuenta y el ticket se confirma solo cuando el proveedor aprueba el pago.",
     icon: ShieldCheck
   }
@@ -53,7 +53,7 @@ export default function Page() {
           </div>
           <div className="payment-transfer-panel__steps">
             <span>1. Pedido pendiente</span>
-            <span>2. Revision admin</span>
+            <span>2. Revisión admin</span>
             <span>3. Pago aprobado</span>
             <span>4. Stock y ticket</span>
           </div>

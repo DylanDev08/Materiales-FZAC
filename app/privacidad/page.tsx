@@ -3,10 +3,10 @@ export default function Page() {
     <main className="page-section legal-page">
       <div className="container">
         <span className="kicker">Legal</span>
-        <h1>Politica de privacidad</h1>
+        <h1>Política de privacidad</h1>
         <section>
           <p>
-            FZAC usa los datos de cuenta, contacto, direccion, pedidos y conversaciones para operar la tienda, coordinar
+            FZAC usa los datos de cuenta, contacto, dirección, pedidos y conversaciones para operar la tienda, coordinar
             entregas, responder consultas y cumplir obligaciones comerciales.
           </p>
           <p>

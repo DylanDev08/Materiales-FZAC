@@ -49,7 +49,7 @@ export function ReceiptTemplate({ receipt }: { receipt: NonNullable<OrderReceipt
           <p>{receipt.shipping.method}</p>
         </article>
         <article>
-          <span>Direccion</span>
+          <span>Dirección</span>
           <strong>{receipt.shipping.address}</strong>
           <p>{receipt.shipping.cost > 0 ? `Envio ${currency(receipt.shipping.cost)}` : "Envio sin cargo cargado o a coordinar"}</p>
         </article>
