@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: materiales-fzac-8xmp
+    name: materiales-fzac
     runtime: node
     plan: free
     branch: main
