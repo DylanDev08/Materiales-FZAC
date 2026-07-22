@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConsumerRefundForm } from "@/components/legal/consumer-refund-form";
 import { getEnv } from "@/lib/utils/env";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
@@ -23,15 +24,16 @@ export default function Page() {
             del tramite.
           </p>
           <p>
-            Para iniciar el pedido, indica nombre y apellido, email, telefono, numero de pedido, motivo y comentario. Si
-            corresponde, adjunta fotos del producto y comprobante por WhatsApp o email.
+            Para iniciar el pedido, completá el formulario online. Si corresponde, después podés adjuntar fotos del
+            producto y comprobante por WhatsApp o email indicando el número de trámite.
           </p>
+          <ConsumerRefundForm />
           <div className="legal-action-row">
             <a className="btn legal-action-button" href={whatsappHref} target="_blank" rel="noreferrer">
-              Iniciar por WhatsApp
+              Consultar por WhatsApp
             </a>
             <a className="btn btn--ghost" href={mailHref}>
-              Iniciar por email
+              Consultar por email
             </a>
             <Link className="btn btn--ghost" href="/cambios-y-devoluciones">
               Ver condiciones
