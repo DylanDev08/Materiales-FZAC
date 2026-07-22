@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, ChevronRight, PackageSearch } from "lucide-react";
+import { ArrowRight, Boxes, Brush, ChevronRight, Droplets, Hammer, PackageSearch, Plug, Ruler, Wrench } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
@@ -12,6 +12,45 @@ import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+const projectShortcuts = [
+  {
+    label: "Levantar pared",
+    helper: "Cemento, cal, arena y ladrillos",
+    href: "/productos?search=cemento&inStock=true",
+    icon: Ruler
+  },
+  {
+    label: "Construcción en seco",
+    helper: "Placas, perfiles, masilla y tornillos",
+    href: "/productos?search=durlock&inStock=true",
+    icon: Boxes
+  },
+  {
+    label: "Pintar o renovar",
+    helper: "Látex, esmaltes, rodillos y pinceles",
+    href: "/productos?search=pintura&inStock=true",
+    icon: Brush
+  },
+  {
+    label: "Impermeabilizar",
+    helper: "Membranas, selladores y protectores",
+    href: "/productos?search=impermeabilizante&inStock=true",
+    icon: Droplets
+  },
+  {
+    label: "Instalar electricidad",
+    helper: "Cables, cajas, fichas y térmicas",
+    href: "/productos?search=electricidad&inStock=true",
+    icon: Plug
+  },
+  {
+    label: "Ferretería y herramientas",
+    helper: "Herramientas, fijaciones y accesorios",
+    href: "/productos?search=herramientas&inStock=true",
+    icon: Hammer
+  }
+];
 
 function value(params: SearchParams, key: string) {
   const raw = params[key];
@@ -98,6 +137,30 @@ export async function CatalogPage({
           </div>
         </section>
       ) : null}
+
+      <section className="catalog-projects">
+        <div className="container">
+          <div className="catalog-projects__head">
+            <div>
+              <span className="kicker">Compra guiada</span>
+              <h2>Elegí por lo que vas a hacer</h2>
+            </div>
+            <Link className="catalog-projects__help" href="/contacto?tema=productos">
+              <Wrench size={16} />
+              Asesoramiento
+            </Link>
+          </div>
+          <div className="catalog-projects__rail" aria-label="Comprar por proyecto">
+            {projectShortcuts.map(({ href, icon: Icon, label, helper }) => (
+              <Link href={href} key={label}>
+                <span><Icon size={18} /></span>
+                <strong>{label}</strong>
+                <small>{helper}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="catalog-controls-shell">
         <div className="container">

@@ -608,6 +608,84 @@
   margin: 0;
 }
 
+.catalog-projects {
+  border-bottom: 1px solid rgba(244, 196, 0, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+    #0b0b0b;
+  padding: 20px 0;
+}
+
+.catalog-projects__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.catalog-projects__head h2 {
+  margin: 3px 0 0;
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+}
+
+.catalog-projects__help {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: 999px;
+  color: var(--color-yellow);
+  padding: 0 12px;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.catalog-projects__rail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.catalog-projects__rail a {
+  min-height: 98px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.catalog-projects__rail a:hover {
+  border-color: rgba(244, 196, 0, 0.35);
+  background: rgba(244, 196, 0, 0.075);
+}
+
+.catalog-projects__rail span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(244, 196, 0, 0.12);
+  color: var(--color-yellow);
+}
+
+.catalog-projects__rail strong {
+  color: var(--color-white);
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.catalog-projects__rail small {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
 .catalog-category-rail {
   display: flex;
   gap: 4px;
@@ -1214,6 +1292,10 @@
 }
 
 @media (max-width: 1060px) {
+  .catalog-projects__rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .catalog-filter__main {
     grid-template-columns: minmax(220px, 1fr) minmax(145px, 0.72fr) auto auto auto;
   }
@@ -1300,6 +1382,23 @@
 
   .catalog-masthead__categories {
     display: none;
+  }
+
+  .catalog-projects__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .catalog-projects__rail {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .catalog-projects__rail a {
+    min-width: 212px;
+    scroll-snap-align: start;
   }
 
   .catalog-category-rail {
