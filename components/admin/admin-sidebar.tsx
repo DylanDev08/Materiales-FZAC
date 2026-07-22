@@ -16,6 +16,7 @@ import {
   Package,
   Palette,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Users
 } from "lucide-react";
@@ -52,6 +53,7 @@ const linkGroups = [
     title: "Sistema",
     links: [
       { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
+      { path: "/sistema", label: "Estado del sistema", icon: ShieldCheck },
       { path: "/apariencia", label: "Apariencia", icon: Palette },
       { path: "/ajustes", label: "Ajustes", icon: Settings },
       { path: "public:/productos", label: "Vista cliente", icon: Home }

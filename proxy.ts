@@ -16,6 +16,22 @@ function applySecurityHeaders(response: NextResponse, noIndex = false) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)");
+  response.headers.set(
+    "Content-Security-Policy-Report-Only",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://*.supabase.co https://accounts.google.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.mercadopago.com https://*.mercadopago.com.ar https://sdk.mercadopago.com https://www.gstatic.com https://accounts.google.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://*.googleusercontent.com https://http2.mlstatic.com https://*.mercadopago.com https://*.mercadopago.com.ar",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.ar https://api.resend.com",
+      "frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://accounts.google.com"
+    ].join("; ")
+  );
   if (process.env.NODE_ENV === "production") {
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }

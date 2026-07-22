@@ -2486,6 +2486,136 @@
   line-height: 1.5;
 }
 
+.admin-system-page {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-system-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  border: 1px solid rgba(244, 196, 0, 0.22);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 88% 20%, rgba(244, 196, 0, 0.14), transparent 24%),
+    #151515;
+  padding: 22px;
+}
+
+.admin-system-hero.is-ready {
+  border-color: rgba(44, 185, 111, 0.34);
+}
+
+.admin-system-hero h2,
+.admin-system-hero p {
+  margin: 0;
+}
+
+.admin-system-hero h2 {
+  margin-top: 5px;
+  color: var(--color-white);
+}
+
+.admin-system-hero p {
+  max-width: 780px;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.admin-system-hero__badge {
+  min-width: 128px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 196, 0, 0.08);
+  color: var(--color-yellow);
+  padding: 16px;
+}
+
+.admin-system-hero__badge strong {
+  color: var(--color-white);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.admin-system-hero__badge span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-system-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-system-card {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #151515;
+  padding: 16px;
+}
+
+.admin-system-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-system-card header svg {
+  color: currentColor;
+}
+
+.admin-system-card header span {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-system-card h3,
+.admin-system-card p {
+  margin: 0;
+}
+
+.admin-system-card h3 {
+  color: var(--color-white);
+  font-size: 1rem;
+}
+
+.admin-system-card p {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-system-card--success {
+  border-color: rgba(44, 185, 111, 0.28);
+  color: #70e3a5;
+}
+
+.admin-system-card--warning {
+  border-color: rgba(244, 196, 0, 0.28);
+  color: var(--color-yellow);
+}
+
+.admin-system-card--danger {
+  border-color: rgba(255, 91, 91, 0.36);
+  color: #ff7777;
+}
+
 .admin-product-flags-field {
   grid-column: 1 / -1;
 }
