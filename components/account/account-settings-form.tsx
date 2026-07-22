@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, ImageIcon, Loader2, Save, UserRound } from "lucide-react";
 import type { SessionProfile } from "@/lib/auth/get-user";
+import { limitPhoneInput, normalizePhoneDigits } from "@/lib/validations/security";
 
 export function AccountSettingsForm({ profile }: { profile: SessionProfile }) {
   const router = useRouter();
@@ -71,7 +72,16 @@ export function AccountSettingsForm({ profile }: { profile: SessionProfile }) {
           </label>
           <label>
             Teléfono
-            <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} minLength={6} maxLength={40} required autoComplete="tel" />
+            <input
+              value={form.phone}
+              onChange={(event) => setForm((current) => ({ ...current, phone: limitPhoneInput(event.target.value) }))}
+              minLength={10}
+              maxLength={18}
+              required
+              autoComplete="tel"
+              inputMode="tel"
+            />
+            <small>{normalizePhoneDigits(form.phone).length}/13 dígitos</small>
           </label>
           <label className="field--wide">
             URL de foto personalizada (opcional)
@@ -88,7 +98,7 @@ export function AccountSettingsForm({ profile }: { profile: SessionProfile }) {
           <label className="field--wide">
             Email de acceso
             <input value={profile.email} readOnly aria-readonly="true" />
-            <small>El email se administra desde tu método de acceso de Supabase o Google.</small>
+            <small>El email se administra desde tu método de acceso de Fortaleza Construcciones o Google.</small>
           </label>
         </div>
       </div>

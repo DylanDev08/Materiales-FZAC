@@ -13,8 +13,12 @@ const nextConfig: NextConfig = {
     ]
   },
   async redirects() {
-    if (adminConsolePath === "/admin") return [];
-    return [
+    const redirects = [
+      {
+        source: "/register",
+        destination: "/registro",
+        permanent: false
+      },
       {
         source: "/admin",
         destination: adminConsolePath,
@@ -26,6 +30,8 @@ const nextConfig: NextConfig = {
         permanent: false
       }
     ];
+    if (adminConsolePath === "/admin") return redirects.slice(0, 1);
+    return redirects;
   },
   async rewrites() {
     return [

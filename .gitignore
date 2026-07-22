@@ -25,3 +25,5 @@ pnpm-debug.log*
 .turbo
 coverage
 *.tsbuildinfo
+playwright-report
+test-results

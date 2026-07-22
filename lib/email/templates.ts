@@ -29,8 +29,8 @@ function authEmailLayout(input: { title: string; preheader: string; copy: string
       <tr><td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;border:1px solid rgba(244,196,0,.3);background:#1f1f1f">
           <tr><td style="padding:24px 28px;border-bottom:3px solid #f4c400">
-            <strong style="font-size:24px;color:#f4c400">FZAC</strong>
-            <div style="margin-top:4px;color:#b8b8b8;font-size:13px">Materiales para construir</div>
+            <strong style="font-size:24px;color:#f4c400">Fortaleza Construcciones</strong>
+            <div style="margin-top:4px;color:#b8b8b8;font-size:13px">Materiales FZAC para construir</div>
           </td></tr>
           <tr><td style="padding:28px">
             <h1 style="margin:0 0 14px;font-size:24px">${escapeHtml(input.title)}</h1>
@@ -49,10 +49,10 @@ export function recoveryEmailTemplate(input: AuthEmailTemplateInput) {
   const name = input.name?.trim() ? ` ${input.name.trim()}` : "";
   const copy = `Hola${name}. Recibimos una solicitud para cambiar la contrasena de tu cuenta. Usa el enlace seguro para definir una nueva.`;
   return {
-    subject: "Recupera tu acceso a Materiales FZAC",
+    subject: "Recupera tu acceso a Fortaleza Construcciones",
     html: authEmailLayout({
       title: "Recupera tu acceso",
-      preheader: "Enlace seguro para restablecer tu contrasena FZAC.",
+      preheader: "Enlace seguro para restablecer tu contraseña en Fortaleza Construcciones.",
       copy,
       actionLabel: "Cambiar contrasena",
       actionUrl: input.actionUrl
@@ -63,12 +63,12 @@ export function recoveryEmailTemplate(input: AuthEmailTemplateInput) {
 
 export function verificationEmailTemplate(input: AuthEmailTemplateInput) {
   const name = input.name?.trim() ? ` ${input.name.trim()}` : "";
-  const copy = `Hola${name}. Confirma tu email para activar la cuenta y continuar tus compras en Materiales FZAC.`;
+  const copy = `Hola${name}. Confirma tu email para activar la cuenta y continuar tus compras en Fortaleza Construcciones.`;
   return {
-    subject: "Confirma tu cuenta de Materiales FZAC",
+    subject: "Confirma tu cuenta de Fortaleza Construcciones",
     html: authEmailLayout({
       title: "Confirma tu cuenta",
-      preheader: "Activa tu cuenta de Materiales FZAC.",
+      preheader: "Activa tu cuenta de Fortaleza Construcciones.",
       copy,
       actionLabel: "Confirmar email",
       actionUrl: input.actionUrl

@@ -107,7 +107,7 @@ export function AccountShell({
             <>
               <section className="account-section"><header className="account-section__head"><div><span className="kicker">Perfil</span><h2>Identidad y contacto</h2><p>Información usada para completar compras y mostrar tu cuenta.</p></div></header><AccountSettingsForm profile={profile} /></section>
               <AccountAddressManager initialAddresses={overview.addresses} />
-              <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Acceso protegido por Supabase Auth</strong><p>La contraseña y Google OAuth se administran fuera de esta pantalla. FZAC no puede ver tu contraseña.</p></div><Link href="/login">Gestionar acceso <ArrowRight size={15} /></Link></section>
+              <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Acceso protegido por Fortaleza Construcciones</strong><p>La contraseña y Google OAuth se administran en un flujo seguro. FZAC no puede ver tu contraseña.</p></div><Link href="/login">Gestionar acceso <ArrowRight size={15} /></Link></section>
             </>
           ) : null}
         </div>

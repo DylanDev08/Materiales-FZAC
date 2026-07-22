@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
+import { CheckoutAuthRequiredError, createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
         },
         { status: 422 }
       );
+    }
+    if (error instanceof CheckoutAuthRequiredError) {
+      return jsonError(error.message, error.status);
     }
     if (error instanceof InsufficientStockError) {
       return Response.json(

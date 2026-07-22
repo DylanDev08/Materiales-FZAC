@@ -11,7 +11,7 @@ export default function Page() {
           </p>
           <p>
             Las claves privadas, service role, tokens de pago y claves server-side nunca se exponen al cliente. Los datos
-            se protegen con RLS en Supabase y validaciones server-side.
+            se protegen con reglas de acceso por usuario y validaciones server-side.
           </p>
           <p>
             Los pagos se procesan por proveedores externos. FZAC no guarda tarjetas ni CVV. Las conversaciones del

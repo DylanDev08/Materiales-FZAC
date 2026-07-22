@@ -51,6 +51,7 @@ export function SiteFooter() {
           <nav>
             <Link href="/terminos">Términos</Link>
             <Link href="/privacidad">Privacidad</Link>
+            <Link href="/arrepentimiento">Botón de arrepentimiento</Link>
             <Link href="/cambios-y-devoluciones">Cambios y devoluciones</Link>
             <Link href="/envios-y-retiros">Envíos y retiros</Link>
             <Link href="/medios-de-pago">Medios de pago</Link>

@@ -17,6 +17,7 @@
 html {
   min-width: 320px;
   overflow-x: clip;
+  width: 100%;
   background: var(--color-black);
   color: var(--color-white);
   scroll-behavior: smooth;
@@ -24,7 +25,8 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
   overflow-x: clip;
   background:
     linear-gradient(180deg, rgba(244, 196, 0, 0.08), transparent 320px),
@@ -45,6 +47,12 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
 }
 
 button {
