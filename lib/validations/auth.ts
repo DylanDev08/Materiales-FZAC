@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { hasSqlMeta } from "@/lib/validations/security";
+import { hasSqlMeta, isValidArgentinePhone } from "@/lib/validations/security";
 
 const COMMON_PASSWORDS = ["123456", "12345678", "password", "qwerty", "admin", "fzac123"];
 
@@ -46,9 +46,9 @@ const nameSchema = safeText("Nombre", 2, 120).refine(
   "Completa tu nombre con caracteres validos."
 );
 
-const phoneSchema = safeText("Telefono", 6, 40).refine(
-  (value) => /^\+?[0-9\s().-]{6,40}$/.test(value),
-  "Ingresa un telefono valido."
+const phoneSchema = safeText("Teléfono", 1, 18).refine(
+  isValidArgentinePhone,
+  "Ingresá un teléfono argentino válido: 10 dígitos, 54 + 10 dígitos o 549 + 10 dígitos."
 );
 
 const passwordSchema = z
@@ -60,7 +60,7 @@ const passwordSchema = z
   .refine((value) => /\d/.test(value), "La contrasena debe tener al menos un numero.");
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
+  email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
   password: passwordSchema,
   hp: z.string().max(0).optional()
 });
@@ -69,7 +69,7 @@ export const registerSchema = z
   .object({
     name: nameSchema,
     phone: phoneSchema.optional().or(z.literal("")),
-    email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
+    email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
     password: passwordSchema,
     confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres."),
     acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar terminos y privacidad." }) }),

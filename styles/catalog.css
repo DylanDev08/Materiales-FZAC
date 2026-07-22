@@ -366,13 +366,13 @@
 }
 
 .product-card__actions .btn {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 10px;
   font-size: 0.8rem;
 }
 
 .product-card__detail {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 9px;
   font-size: 0.78rem;
 }
@@ -785,7 +785,7 @@
   bottom: 0;
   z-index: 71;
   width: min(420px, 100vw);
-  display: grid;
+  display: none;
   align-content: start;
   gap: 18px;
   border-left: 1px solid var(--color-yellow-border);
@@ -798,6 +798,7 @@
 }
 
 .catalog-filter__advanced.is-open {
+  display: grid;
   transform: translateX(0);
   visibility: visible;
 }
@@ -1290,8 +1291,11 @@
   }
 
   .catalog-category-rail {
-    margin-inline: -16px;
-    padding-inline: 16px;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    padding-inline: 0;
+    overscroll-behavior-inline: contain;
   }
 
   .catalog-filter__main {
@@ -1317,10 +1321,15 @@
 
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
   }
 
   .product-card {
-    grid-template-rows: 112px 1fr;
+    grid-template-rows: 104px 1fr;
+  }
+
+  .product-card__body {
+    padding: 9px;
   }
 
   .product-card__actions {
@@ -1393,18 +1402,26 @@
 }
 
 @media (max-width: 400px) {
-  .product-grid:not(.product-grid--list) {
-    grid-template-columns: 1fr;
-  }
-
   .product-card__meta span:nth-child(2),
   .product-card__badges .status-pill--success {
     display: none;
   }
 
+  .product-grid:not(.product-grid--list) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-card {
+    grid-template-rows: 98px 1fr;
+  }
+
+  .product-card__price strong {
+    font-size: 0.98rem;
+  }
+
   .product-card__toast {
     left: 11px;
-    bottom: 66px;
+    bottom: calc(66px + env(safe-area-inset-bottom));
     width: calc(100vw - 22px);
   }
 }

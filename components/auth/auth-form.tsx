@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
@@ -11,6 +11,7 @@ type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | 
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const submitInFlightRef = useRef(false);
   const googleInFlightRef = useRef(false);
   const [email, setEmail] = useState("");
@@ -31,6 +32,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
   const checks = useMemo(() => passwordChecks(password, normalizedEmail, name), [password, normalizedEmail, name]);
   const passwordOk = checks.every((check) => check.ok);
+  const requestedNext = searchParams.get("next");
+  const safeNext = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/cuenta";
 
   function clearFieldError(field: keyof AuthFieldErrors) {
     setFieldErrors((current) => {
@@ -103,7 +106,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         window.setTimeout(() => router.push(data.target || "/login?registered=true"), 750);
         return;
       }
-      router.push(data.target || (mode === "login" ? "/cuenta" : "/login?registered=true"));
+      router.push(data.target && data.target !== "/cuenta" ? data.target : safeNext);
     } catch (authError) {
       setMessage(authError instanceof Error ? authError.message : "No pudimos conectar con el servidor.");
     } finally {
@@ -125,7 +128,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setMessage("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}` }
     });
 
     if (error) {

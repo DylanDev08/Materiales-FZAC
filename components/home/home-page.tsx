@@ -210,6 +210,9 @@ export async function HomePage() {
             <strong>Compra clara, cambios y devoluciones disponibles.</strong>
             <p>Consulta condiciones legales, plazos y requisitos antes de confirmar tu pedido.</p>
           </div>
+          <Link className="btn btn--ghost" href="/arrepentimiento">
+            Botón de arrepentimiento
+          </Link>
           <Link className="btn btn--ghost" href="/cambios-y-devoluciones">
             Ver política
           </Link>

@@ -9,13 +9,13 @@ import { currency, percentOff } from "@/lib/formatters/currency";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addItem } = useCart();
+  const { addItem, hydrated } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
 
   function addToCart() {
-    if (isAdding || product.stock <= 0) return;
+    if (!hydrated || isAdding || product.stock <= 0) return;
     setIsAdding(true);
     addItem(product, 1);
     setAdded(true);
@@ -69,9 +69,9 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
 
         <div className="product-card__actions">
-          <button className="btn" type="button" disabled={product.stock <= 0 || isAdding} onClick={addToCart}>
+          <button className="btn" type="button" disabled={!hydrated || product.stock <= 0 || isAdding} onClick={addToCart}>
             <ShoppingCart size={18} />
-            {isAdding ? "Agregando..." : "Agregar"}
+            {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar"}
           </button>
           <Link className="btn btn--ghost product-card__detail" href={`/producto/${product.slug}`} aria-label={`Ver detalle de ${product.name}`}>
             Detalle <ArrowRight size={16} />

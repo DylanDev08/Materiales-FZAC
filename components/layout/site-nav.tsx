@@ -29,6 +29,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
   const [openDropdown, setOpenDropdown] = useState<"products" | "categories" | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
+  const [ready, setReady] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
   const categoryLinks =
@@ -37,6 +38,8 @@ export function SiteNav({ categories }: { categories: Category[] }) {
       : fallbackCategories;
 
   useEffect(() => {
+    const readyTimer = window.setTimeout(() => setReady(true), 0);
+
     function close(event: MouseEvent) {
       if (!navRef.current?.contains(event.target as Node)) {
         setOpenDropdown(null);
@@ -45,7 +48,10 @@ export function SiteNav({ categories }: { categories: Category[] }) {
     }
 
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    return () => {
+      window.clearTimeout(readyTimer);
+      document.removeEventListener("mousedown", close);
+    };
   }, []);
 
   function closeAll() {
@@ -110,7 +116,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
         </div>
       </nav>
 
-      <button className="mobile-menu-trigger" type="button" aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>
+      <button className="mobile-menu-trigger" type="button" aria-expanded={mobileOpen} disabled={!ready} onClick={() => setMobileOpen(!mobileOpen)}>
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         <span>Menu</span>
       </button>

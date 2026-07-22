@@ -11,7 +11,7 @@ import type { Product } from "@/types/domain";
 
 export function ProductBuyBox({ product }: { product: Product }) {
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, hydrated } = useCart();
   const [quantity, setQuantity] = useState(() => (product.stock > 0 ? 1 : 0));
   const [added, setAdded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -31,7 +31,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   }
 
   function addToCart() {
-    if (isAdding || product.stock <= 0) return;
+    if (!hydrated || isAdding || product.stock <= 0) return;
     setIsAdding(true);
     addItem(product, quantity);
     setAdded(true);
@@ -39,7 +39,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   }
 
   function buyNow() {
-    if (isAdding || product.stock <= 0) return;
+    if (!hydrated || isAdding || product.stock <= 0) return;
     setIsAdding(true);
     addItem(product, quantity);
     setAdded(true);
@@ -86,9 +86,9 @@ export function ProductBuyBox({ product }: { product: Product }) {
             <Plus size={16} />
           </button>
         </div>
-        <button className="btn" type="button" disabled={product.stock <= 0 || isAdding} onClick={addToCart}>
+        <button className="btn" type="button" disabled={!hydrated || product.stock <= 0 || isAdding} onClick={addToCart}>
           <ShoppingCart size={18} />
-          {isAdding ? "Agregando..." : "Agregar al carrito"}
+          {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar al carrito"}
         </button>
       </div>
 
@@ -117,9 +117,9 @@ export function ProductBuyBox({ product }: { product: Product }) {
         </div>
       ) : null}
 
-      <button className="btn btn--ghost" type="button" onClick={buyNow} disabled={product.stock <= 0 || isAdding}>
+      <button className="btn btn--ghost" type="button" onClick={buyNow} disabled={!hydrated || product.stock <= 0 || isAdding}>
         <Zap size={18} />
-        Comprar ahora
+        {hydrated ? "Comprar ahora" : "Cargando carrito"}
       </button>
 
       <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">

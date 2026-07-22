@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { hasSqlMeta } from "@/lib/validations/security";
+import { hasSqlMeta, isSafeUserNote, isValidArgentinePhone, normalizeUserNote } from "@/lib/validations/security";
 import type { PaymentFlow, PaymentMethod, PaymentProvider } from "@/types/domain";
 
 const safeString = (label: string, min = 0, max = 500) =>
@@ -9,6 +9,22 @@ const safeString = (label: string, min = 0, max = 500) =>
     .min(min)
     .max(max)
     .refine((value) => !hasSqlMeta(value), `${label} contiene caracteres no permitidos.`);
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(1, "Ingresá un teléfono válido.")
+  .max(18, "El teléfono es demasiado largo.")
+  .refine(isValidArgentinePhone, "Ingresá un teléfono argentino válido: 10 dígitos, 54 + 10 dígitos o 549 + 10 dígitos.");
+
+const safeNote = (label: string, max = 500) =>
+  z
+    .string()
+    .transform((value) => normalizeUserNote(value, max))
+    .refine((value) => value.length <= max, `${label} es demasiado largo.`)
+    .refine((value) => isSafeUserNote(value), `${label} contiene caracteres no permitidos.`);
+
+const optionalSafeNote = (label: string, max = 500) => safeNote(label, max).optional().or(z.literal(""));
 
 const checkoutItemSchema = z
   .object({
@@ -43,7 +59,7 @@ const addressSchema = z
     province: safeString("Provincia", 0, 80).optional(),
     postalCode: safeString("Codigo postal", 0, 30).optional(),
     postal_code: safeString("Codigo postal", 0, 30).optional(),
-    notes: safeString("Notas de direccion", 0, 240).optional()
+    notes: optionalSafeNote("Notas de dirección", 240)
   })
   .transform((value) => ({
     street: value.street,
@@ -67,12 +83,12 @@ const checkoutBaseSchema = z.object({
     .min(1, "El carrito esta vacio."),
   customer: z.object({
     name: safeString("Nombre", 2, 120),
-    email: z.string().trim().email("Ingresa un email valido.").max(160),
-    phone: safeString("Telefono", 8, 40)
+    email: z.string().trim().email("Ingresá un email válido.").max(160),
+    phone: phoneSchema
   }),
   shippingMethod: z.enum(["PICKUP", "DELIVERY"]),
   address: checkoutAddressSchema,
-  notes: safeString("Notas", 0, 500).optional(),
+  notes: optionalSafeNote("Notas", 500),
   paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
   paymentMethod: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
   paymentFlow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
@@ -93,11 +109,11 @@ export const checkoutSchema = checkoutBaseSchema.superRefine((value, context) =>
 
 const checkoutCreateFieldsSchema = z.object({
   customer_name: safeString("Nombre", 2, 120),
-  customer_email: z.string().trim().email("Ingresa un email valido.").max(160),
-  customer_phone: safeString("Telefono", 8, 40),
+  customer_email: z.string().trim().email("Ingresá un email válido.").max(160),
+  customer_phone: phoneSchema,
   shipping_method: z.enum(["PICKUP", "DELIVERY"]),
   address_snapshot: checkoutAddressSchema,
-  notes: safeString("Notas", 0, 500).optional(),
+  notes: optionalSafeNote("Notas", 500),
   payment_method: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
   payment_flow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
   idempotency_key: safeString("Intento de compra", 8, 120).optional(),
@@ -154,7 +170,7 @@ export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
       installments: z.coerce.number().int().min(1).max(24),
       identification_type: safeString("Tipo de documento", 2, 20),
       identification_number: safeString("Documento", 5, 20),
-      cardholder_email: z.string().trim().email("Ingresa un email valido.").max(160)
+      cardholder_email: z.string().trim().email("Ingresá un email válido.").max(160)
     })
   })
   .superRefine(validateCreateAddress)

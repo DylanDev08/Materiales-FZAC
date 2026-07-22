@@ -323,7 +323,41 @@
 }
 
 @media (max-width: 520px) {
+  .product-detail {
+    gap: 18px;
+  }
+
+  .product-gallery__main {
+    aspect-ratio: 1 / 1;
+  }
+
+  .product-buybox {
+    padding: 16px;
+  }
+
+  .product-price strong {
+    font-size: 1.85rem;
+  }
+
   .product-actions {
     grid-template-columns: 1fr;
+  }
+
+  .quantity-stepper,
+  .quantity-stepper input,
+  .product-actions input {
+    min-height: 48px;
+  }
+
+  .quantity-stepper {
+    grid-template-columns: 48px 1fr 48px;
+  }
+
+  .product-buybox > .btn {
+    min-height: 48px;
+  }
+
+  .product-information summary {
+    min-height: 54px;
   }
 }

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { hasSqlMeta } from "@/lib/validations/security";
+import { hasSqlMeta, isValidArgentinePhone } from "@/lib/validations/security";
 
 const profileSchema = z.object({
   full_name: z
@@ -15,9 +15,10 @@ const profileSchema = z.object({
   phone: z
     .string()
     .trim()
-    .min(6, "Ingresa un telefono valido.")
-    .max(40, "El telefono es demasiado largo.")
-    .refine((value) => !hasSqlMeta(value), "El telefono contiene caracteres no permitidos."),
+    .min(1, "Ingresá un teléfono válido.")
+    .max(18, "El teléfono es demasiado largo.")
+    .refine((value) => !hasSqlMeta(value), "El teléfono contiene caracteres no permitidos.")
+    .refine(isValidArgentinePhone, "Ingresá un teléfono argentino válido: 10 dígitos, 54 + 10 dígitos o 549 + 10 dígitos."),
   avatar_url: z
     .string()
     .trim()

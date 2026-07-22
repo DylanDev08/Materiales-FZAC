@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "security:check": "node scripts/security-check.mjs",
     "test:load": "node scripts/load-smoke.mjs",
+    "test:e2e": "playwright test",
     "db:types": "supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
     "db:push": "supabase db push",
     "db:seed": "supabase db reset --linked"
@@ -31,6 +32,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

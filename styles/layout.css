@@ -568,6 +568,7 @@
 
 .site-main {
   flex: 1;
+  min-width: 0;
 }
 
 .site-footer {
@@ -592,6 +593,9 @@
 .site-footer a {
   color: var(--color-muted);
   line-height: 1.6;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .site-footer nav {
@@ -607,6 +611,11 @@
 }
 
 @media (max-width: 860px) {
+  .site-header {
+    position: relative;
+    z-index: 90;
+  }
+
   .topbar__inner,
   .section-head {
     align-items: start;
@@ -637,7 +646,7 @@
 
   .mobile-menu-trigger {
     width: calc(100% - 32px);
-    min-height: 42px;
+    min-height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -650,8 +659,16 @@
     font-weight: 850;
   }
 
+  .mobile-menu-trigger:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+
   .mobile-nav-panel {
+    position: relative;
+    z-index: 80;
     width: min(100% - 32px, var(--container));
+    max-height: min(72dvh, 620px);
     display: grid;
     gap: 6px;
     margin: 0 auto 12px;
@@ -660,11 +677,13 @@
     background: #101010;
     padding: 10px;
     box-shadow: var(--shadow-soft);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .mobile-nav-panel a,
   .mobile-nav-panel button {
-    min-height: 38px;
+    min-height: 46px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -695,8 +714,10 @@
   }
 
   .site-header__main {
+    min-height: auto;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
+    padding-block: 10px;
   }
 
   .brand {
@@ -736,9 +757,9 @@
 
   .icon-link,
   .account-menu__trigger {
-    width: 40px;
-    min-width: 40px;
-    height: 40px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
   }
 
   .account-menu__trigger {
@@ -756,5 +777,16 @@
 
   .site-footer__grid {
     grid-template-columns: 1fr;
+  }
+
+  .search-suggest__panel {
+    max-height: min(58dvh, 420px);
+  }
+
+  .account-menu__panel {
+    right: -48px;
+    width: min(360px, calc(100vw - 22px));
+    max-height: min(76dvh, 620px);
+    overflow-y: auto;
   }
 }
