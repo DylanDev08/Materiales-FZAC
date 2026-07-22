@@ -43,5 +43,9 @@
   "overrides": {
     "postcss": "^8.5.16",
     "sharp": "^0.35.3"
+  },
+  "optionalDependencies": {
+    "@emnapi/core": "1.11.2",
+    "@emnapi/runtime": "1.11.2"
   }
 }
