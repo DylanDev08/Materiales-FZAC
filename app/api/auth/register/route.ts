@@ -8,6 +8,16 @@ import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 
+function authErrorMessage(message: string) {
+  if (/password|character of each|uppercase|lowercase|0123456789|symbol/i.test(message)) {
+    return "La contraseña debe tener mayúscula, minúscula, número y símbolo.";
+  }
+  if (/already|registered|exists/i.test(message)) {
+    return "Ya existe una cuenta con este email. Probá iniciar sesión.";
+  }
+  return "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.";
+}
+
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-register"), 5, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
@@ -48,9 +58,10 @@ export async function POST(request: Request) {
 
       if (error) {
         const duplicate = /already|registered|exists/i.test(error.message);
+        const passwordPolicy = /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message);
         return jsonError(
-          duplicate ? "Ya existe una cuenta con este email. Probá iniciar sesión." : "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.",
-          duplicate ? 409 : 400
+          authErrorMessage(error.message),
+          duplicate ? 409 : passwordPolicy ? 422 : 400
         );
       }
       user = data.user;
@@ -76,6 +87,9 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
     if (error instanceof Error && /already|registered|exists/i.test(error.message)) {
       return jsonError("Ya existe una cuenta con este email. Probá iniciar sesión.", 409);
+    }
+    if (error instanceof Error && /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message)) {
+      return jsonError("La contraseña debe tener mayúscula, minúscula, número y símbolo.", 422);
     }
     return jsonError("No pudimos crear la cuenta.", 500);
   }

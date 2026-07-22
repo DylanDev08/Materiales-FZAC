@@ -50,8 +50,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       errors.email = "Ingresá un email válido.";
     }
-    if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || password !== password.trim()) {
-      errors.password = "La contraseña debe tener al menos 8 caracteres, una letra y un número.";
+    if (mode === "login") {
+      if (!password) errors.password = "Ingresá tu contraseña.";
+    } else if (
+      !password ||
+      password.length < 8 ||
+      !/[a-z]/.test(password) ||
+      !/[A-Z]/.test(password) ||
+      !/\d/.test(password) ||
+      !/[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~.]/.test(password) ||
+      password !== password.trim()
+    ) {
+      errors.password = "La contraseña debe tener mayúscula, minúscula, número y símbolo.";
     }
 
     if (mode === "register") {

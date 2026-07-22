@@ -14,8 +14,10 @@ export function passwordChecks(password: string, email = "", name = "") {
 
   return [
     { id: "length", label: "8 caracteres minimo", ok: password.length >= 8 },
-    { id: "letter", label: "Una letra", ok: /[A-Za-z]/.test(password) },
-    { id: "number", label: "Un numero", ok: /\d/.test(password) },
+    { id: "lowercase", label: "Una minúscula", ok: /[a-z]/.test(password) },
+    { id: "uppercase", label: "Una mayúscula", ok: /[A-Z]/.test(password) },
+    { id: "number", label: "Un número", ok: /\d/.test(password) },
+    { id: "symbol", label: "Un símbolo", ok: /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~.]/.test(password) },
     { id: "trim", label: "Sin espacios al inicio o final", ok: password === password.trim() },
     { id: "common", label: "No comun ni obvia", ok: !COMMON_PASSWORDS.some((item) => normalizedPassword.includes(item)) },
     {
@@ -53,15 +55,22 @@ const phoneSchema = safeText("Teléfono", 1, 18).refine(
 
 const passwordSchema = z
   .string()
-  .min(8, "La contrasena debe tener al menos 8 caracteres, una letra y un numero.")
+  .min(8, "La contraseña debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo.")
   .max(128, "La contrasena es demasiado larga.")
   .refine((value) => value === value.trim(), "La contrasena no puede empezar o terminar con espacios.")
-  .refine((value) => /[A-Za-z]/.test(value), "La contrasena debe tener al menos una letra.")
-  .refine((value) => /\d/.test(value), "La contrasena debe tener al menos un numero.");
+  .refine((value) => /[a-z]/.test(value), "La contraseña debe tener al menos una minúscula.")
+  .refine((value) => /[A-Z]/.test(value), "La contraseña debe tener al menos una mayúscula.")
+  .refine((value) => /\d/.test(value), "La contraseña debe tener al menos un número.")
+  .refine((value) => /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~.]/.test(value), "La contraseña debe tener al menos un símbolo.");
+
+const loginPasswordSchema = z
+  .string()
+  .min(1, "Ingresá tu contraseña.")
+  .max(128, "La contraseña es demasiado larga.");
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
-  password: passwordSchema,
+  password: loginPasswordSchema,
   hp: z.string().max(0).optional()
 });
 
