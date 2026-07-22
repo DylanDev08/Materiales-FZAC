@@ -63,7 +63,7 @@ La app separa responsabilidades entre cliente y servidor. El frontend solo captu
 
 No se documentan claves, tokens ni credenciales privadas dentro del repositorio. La configuracion sensible debe gestionarse desde el entorno seguro del deploy o del equipo responsable.
 
-La configuracion y las pruebas de Mercado Pago, webhooks, reembolsos, Sender, administradores y chatbot estan detalladas en [Operacion segura](docs/OPERACION_SEGURA.md).
+La configuracion y las pruebas de Mercado Pago, webhooks, reembolsos, Resend, administradores y chatbot estan detalladas en [Operacion segura](docs/OPERACION_SEGURA.md).
 
 ## Integracion Mercado Pago - Modo Prueba
 

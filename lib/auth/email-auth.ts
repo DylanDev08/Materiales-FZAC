@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
-import { isSenderConfigured, sendTransactionalEmail } from "@/lib/email/sender";
+import { isResendConfigured, sendTransactionalEmail } from "@/lib/email/resend";
 import { recoveryEmailTemplate, verificationEmailTemplate } from "@/lib/email/templates";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -33,7 +33,7 @@ export async function requestPasswordRecoveryEmail(input: { email: string; name?
   const admin = getSupabaseAdminClient();
   if (!admin) return { delivered: false, channel: "unavailable" as const };
 
-  if (isSenderConfigured()) {
+  if (isResendConfigured()) {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: input.email,
@@ -44,9 +44,9 @@ export async function requestPasswordRecoveryEmail(input: { email: string; name?
       try {
         const template = recoveryEmailTemplate({ name: input.name, actionUrl: data.properties.action_link });
         await sendTransactionalEmail({ to: { email: input.email, name: input.name }, ...template });
-        return { delivered: true, channel: "sender" as const };
+        return { delivered: true, channel: "resend" as const };
       } catch {
-        // Supabase native email is the safe fallback if Sender is temporarily unavailable.
+        // Supabase native email is the safe fallback if Resend is temporarily unavailable.
       }
     }
   }
@@ -54,14 +54,14 @@ export async function requestPasswordRecoveryEmail(input: { email: string; name?
   return { delivered: await nativeRecoveryEmail(input.email), channel: "supabase" as const };
 }
 
-export async function createSignupWithSender(input: {
+export async function createSignupWithResend(input: {
   email: string;
   password: string;
   name: string;
   phone?: string | null;
   siteUrl?: string;
-}): Promise<{ user: User; channel: "sender" | "supabase" } | null> {
-  if (!isSenderConfigured()) return null;
+}): Promise<{ user: User; channel: "resend" | "supabase" } | null> {
+  if (!isResendConfigured()) return null;
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
@@ -82,7 +82,7 @@ export async function createSignupWithSender(input: {
   try {
     const template = verificationEmailTemplate({ name: input.name, actionUrl: data.properties.action_link });
     await sendTransactionalEmail({ to: { email: input.email, name: input.name }, ...template });
-    return { user: data.user, channel: "sender" };
+    return { user: data.user, channel: "resend" };
   } catch {
     const supabase = await getSupabaseServerClient();
     const { error: resendError } = supabase

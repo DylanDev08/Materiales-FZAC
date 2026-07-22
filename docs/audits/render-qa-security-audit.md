@@ -30,7 +30,7 @@ Sin valores sensibles:
 - `MERCADOPAGO_WEBHOOK_SECRET`
 - `PURCHASE_AUTO_APPROVAL_LIMIT`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
-- Variables de email/Sender cuando se active constancia automatica
+- Variables de email/Resend cuando se active constancia automatica
 
 ## Baseline local
 

@@ -5,7 +5,7 @@ const root = process.cwd();
 const sourceRoots = ["app", "components", "lib"];
 const publicFiles = ["README.md", ".env.example", "docs", "scripts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
-const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|SENDER_API_KEY/;
+const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|RESEND_API_KEY/;
 const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}/;
 const failures = [];
 

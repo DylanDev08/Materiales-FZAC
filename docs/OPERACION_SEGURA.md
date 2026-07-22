@@ -55,23 +55,23 @@ Solo se ejecutan reembolsos totales. Mercado Pago exige saldo disponible y aplic
 4. Verificar que Google OAuth siga disponible como alternativa.
 5. Un email solo obtiene rol admin cuando figura en `ADMIN_EMAILS`; el rol guardado no reemplaza esa lista en la aplicacion.
 
-## Sender y recuperacion
+## Resend y recuperacion
 
 Variables server-side:
 
 ```env
-SENDER_API_KEY=
-SENDER_FROM_EMAIL=
-SENDER_FROM_NAME=Materiales FZAC
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+RESEND_FROM_NAME=Materiales FZAC
 ```
 
-`SENDER_FROM_EMAIL` debe pertenecer a un dominio verificado en Sender con SPF, DKIM y DMARC. La API Key nunca lleva prefijo `NEXT_PUBLIC_`.
+`RESEND_FROM_EMAIL` debe pertenecer a un dominio verificado en Resend con SPF, DKIM y DMARC. La API Key nunca lleva prefijo `NEXT_PUBLIC_`.
 
 1. Abrir `/recuperar` y solicitar el enlace.
 2. La respuesta siempre es generica para evitar enumerar cuentas.
-3. Supabase genera el token temporal; Sender solo transporta el email.
+3. Supabase genera el token temporal; Resend solo transporta el email.
 4. Abrir el enlace, definir la nueva contrasena en `/restablecer` y volver a iniciar sesion.
-5. Si Sender no esta configurado o falla, el backend usa el email nativo de Supabase.
+5. Si Resend no esta configurado o falla, el backend usa el email nativo de Supabase.
 
 ## Administradores
 

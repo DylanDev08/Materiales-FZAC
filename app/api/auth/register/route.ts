@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
-import { createSignupWithSender } from "@/lib/auth/email-auth";
+import { createSignupWithResend } from "@/lib/auth/email-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     let user = null;
-    const senderSignup = await createSignupWithSender({
+    const resendSignup = await createSignupWithResend({
       email: payload.email,
       password: payload.password,
       name: payload.name,
@@ -44,8 +44,8 @@ export async function POST(request: Request) {
       siteUrl
     });
 
-    if (senderSignup) {
-      user = senderSignup.user;
+    if (resendSignup) {
+      user = resendSignup.user;
     } else {
       const supabase = await getSupabaseServerClient();
       if (!supabase) return jsonError("El registro no esta disponible en este momento.", 503);

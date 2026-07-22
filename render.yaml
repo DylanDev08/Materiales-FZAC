@@ -43,7 +43,11 @@ services:
         sync: false
       - key: ADMIN_CONSOLE_PATH
         value: /fzac-admin-crs-2026
-      - key: SENDER_FROM_NAME
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: RESEND_FROM_NAME
         value: Materiales FZAC
       - key: ASSISTANT_PERSISTENCE_ENABLED
         value: "true"
