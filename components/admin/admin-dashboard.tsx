@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { CreditCard, PackageCheck, ShoppingBag, TrendingUp } from "lucide-react";
+import { CreditCard, MessageCircle, PackageCheck, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
 import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
 import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
+import { getAdminConsolePath } from "@/lib/utils/env";
 
 type DashboardMetric = {
   label: string;
@@ -174,6 +175,86 @@ function AdminModelLineChart({ labels, title, series }: { labels: string[]; titl
   );
 }
 
+function AdminTaskCenter({
+  metrics,
+  paymentsReady
+}: {
+  metrics: DashboardMetric[];
+  paymentsReady: boolean;
+}) {
+  const adminPath = getAdminConsolePath();
+  const tasks = [
+    {
+      label: "Pedidos pendientes",
+      value: numericMetric(metrics, "Pedidos pendientes"),
+      href: `${adminPath}/pedidos`,
+      icon: ShoppingBag,
+      helper: "Revisar compras nuevas y coordinar entrega o retiro."
+    },
+    {
+      label: "Pagos pendientes",
+      value: numericMetric(metrics, "Pagos pendientes"),
+      href: `${adminPath}/pagos`,
+      icon: CreditCard,
+      helper: "Controlar cobros en espera, transferencias y rechazos."
+    },
+    {
+      label: "Bajo stock",
+      value: numericMetric(metrics, "Productos sin stock"),
+      href: `${adminPath}/productos?view=inventario`,
+      icon: PackageCheck,
+      helper: "Reponer productos sin disponibilidad antes de vender."
+    },
+    {
+      label: "Chats pendientes",
+      value: numericMetric(metrics, "Chats pendientes"),
+      href: `${adminPath}/chats`,
+      icon: MessageCircle,
+      helper: "Responder consultas que el asistente no resolvió."
+    },
+    {
+      label: "Sistema",
+      value: paymentsReady ? 0 : 1,
+      href: `${adminPath}/sistema`,
+      icon: Settings,
+      helper: "Verificar Mercado Pago, Resend, Supabase y webhook."
+    }
+  ];
+  const activeTasks = tasks.filter((task) => task.value > 0);
+
+  return (
+    <section className="admin-task-center" aria-label="Tareas pendientes del administrador">
+      <header>
+        <div>
+          <span className="kicker">Operación diaria</span>
+          <h2>Qué resolver hoy</h2>
+        </div>
+        <strong>{activeTasks.length} alertas</strong>
+      </header>
+      <div className="admin-task-center__grid">
+        {(activeTasks.length ? activeTasks : tasks.slice(0, 3)).map(({ href, icon: Icon, label, value, helper }) => (
+          <Link className={value > 0 ? "admin-task-card is-active" : "admin-task-card"} href={href} key={label}>
+            <span>
+              <Icon size={19} />
+            </span>
+            <div>
+              <strong>{label}</strong>
+              <p>{value > 0 ? helper : "Sin urgencias en este momento."}</p>
+            </div>
+            <em>{value}</em>
+          </Link>
+        ))}
+      </div>
+      {!paymentsReady ? (
+        <p className="admin-task-center__warning">
+          <TriangleAlert size={16} />
+          Mercado Pago o su webhook todavía requieren revisión antes de producción real.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export async function AdminDashboard({ period }: { period?: string }) {
   const selectedPeriod = normalizePeriod(period);
   const data = await getAdminDashboardData(selectedPeriod);
@@ -237,6 +318,8 @@ export async function AdminDashboard({ period }: { period?: string }) {
             ))}
           </nav>
         </div>
+
+        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
 
         <div className="admin-model-cards">
           <DashboardCycleCard
