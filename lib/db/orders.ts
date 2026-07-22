@@ -47,6 +47,16 @@ export class ShippingQuoteError extends Error {
   }
 }
 
+export class CheckoutAuthRequiredError extends Error {
+  status: 401 | 403;
+
+  constructor(message = "Necesitás iniciar sesión para comprar.", status: 401 | 403 = 401) {
+    super(message);
+    this.name = "CheckoutAuthRequiredError";
+    this.status = status;
+  }
+}
+
 function isUuid(value: string | undefined | null) {
   return UUID_PATTERN.test(String(value ?? ""));
 }
@@ -370,6 +380,12 @@ export async function createCheckout(input: unknown) {
   const idempotencyKey = payload.idempotencyKey?.trim();
 
   const currentUser = await getCurrentUser();
+  if (!currentUser?.email) {
+    throw new CheckoutAuthRequiredError();
+  }
+  if (currentUser.email.trim().toLowerCase() !== payload.customer.email.trim().toLowerCase()) {
+    throw new CheckoutAuthRequiredError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
+  }
   const userId =
     currentUser?.email?.trim().toLowerCase() === payload.customer.email.trim().toLowerCase() ? currentUser.id : null;
   const { admin, products, items } = await getProductsForItems(payload.items);

@@ -27,6 +27,7 @@ import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/c
 import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+import { isSafeUserNote, isValidArgentinePhone, limitPhoneInput, normalizePhoneDigits, normalizeUserNote } from "@/lib/validations/security";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
@@ -54,12 +55,41 @@ type ShippingQuoteState =
   | { status: "ok"; amount: number; distanceKm: number; durationText?: string }
   | { status: "error"; message: string; distanceKm?: number };
 
+type FieldState = { status: "idle" | "valid" | "invalid"; message: string };
+
 const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
   { id: "customer", label: "1. Comprador" },
   { id: "delivery", label: "2. Entrega" },
   { id: "review", label: "3. Revisión" },
   { id: "payment", label: "4. Pago" }
 ];
+
+const paymentModeContent: Record<PaymentMode, { title: string; eyebrow: string; description: string; reassurance: string }> = {
+  CARD_BRICK: {
+    title: "Tarjeta online segura",
+    eyebrow: "Dentro de FZAC",
+    description: "Completá los datos en el formulario oficial de Mercado Pago sin que FZAC vea ni guarde tu tarjeta.",
+    reassurance: "No almacenamos número, vencimiento ni CVV."
+  },
+  MERCADOPAGO: {
+    title: "Mercado Pago",
+    eyebrow: "Redirección segura",
+    description: "Se genera una preferencia y vas a Mercado Pago para elegir los medios disponibles.",
+    reassurance: "Solo esta opción abre Mercado Pago."
+  },
+  BANK_TRANSFER: {
+    title: "Transferencia FZAC",
+    eyebrow: "Revisión manual",
+    description: "Generás el pedido y FZAC revisa stock y total antes de enviarte los datos bancarios.",
+    reassurance: "No abre Mercado Pago ni solicita tarjeta."
+  },
+  WHATSAPP: {
+    title: "WhatsApp",
+    eyebrow: "Coordinación",
+    description: "Generás el pedido y coordinás pago, entrega o retiro con el equipo de FZAC.",
+    reassurance: "No abre Mercado Pago; queda como pedido pendiente."
+  }
+};
 
 function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
   return items.map((item) => ({
@@ -90,6 +120,26 @@ function checkoutCartFingerprint(items: CartItems) {
     .map((item) => `${item.productId}:${item.quantity}`)
     .sort()
     .join("|");
+}
+
+function emailIsValid(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function nameIsValid(value: string) {
+  return /^[\p{L}\p{M}\s.'-]{2,120}$/u.test(value.trim());
+}
+
+function fieldState(value: string, isValid: (value: string) => boolean, messages: { valid: string; invalid: string }): FieldState {
+  if (!value.trim()) return { status: "idle", message: "" };
+  return isValid(value) ? { status: "valid", message: messages.valid } : { status: "invalid", message: messages.invalid };
+}
+
+function noteFieldState(value: string, maxLength: number): FieldState {
+  if (!value.trim()) return { status: "idle", message: "" };
+  if (value.length > maxLength) return { status: "invalid", message: `Máximo ${maxLength} caracteres.` };
+  if (!isSafeUserNote(value)) return { status: "invalid", message: "No uses código, HTML ni caracteres de consulta en este campo." };
+  return { status: "valid", message: "Notas válidas. Se guardarán como texto seguro." };
 }
 
 function readCheckoutIntentSnapshot(): CheckoutIntentSnapshot | null {
@@ -160,11 +210,72 @@ export function CheckoutForm({
   const total = subtotal + shippingCost;
   const stepIndex = checkoutSteps.findIndex((item) => item.id === step);
   const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
-  const basicCustomerComplete = Boolean(customer.name.trim() && customer.email.trim() && customer.phone.trim());
-  const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || addressComplete);
+  const customerFieldStates = useMemo(
+    () => ({
+      name: fieldState(customer.name, nameIsValid, {
+        valid: "Nombre válido.",
+        invalid: "Usá nombre y apellido, sin números ni código."
+      }),
+      email: fieldState(customer.email, emailIsValid, {
+        valid: "Email válido.",
+        invalid: "Ingresá un email válido con @ y dominio."
+      }),
+      phone: fieldState(customer.phone, isValidArgentinePhone, {
+        valid: "Teléfono válido.",
+        invalid: "Usá 10 dígitos o prefijo 54/549 con número argentino."
+      })
+    }),
+    [customer.email, customer.name, customer.phone]
+  );
+  const addressFieldStates = useMemo(
+    () => ({
+      street: fieldState(address.street, (value) => value.trim().length >= 2 && isSafeUserNote(value), {
+        valid: "Calle válida.",
+        invalid: "Ingresá la calle sin código ni caracteres peligrosos."
+      }),
+      number: fieldState(address.number, (value) => /^[0-9A-Za-z\s/-]{1,30}$/.test(value.trim()), {
+        valid: "Altura válida.",
+        invalid: "Ingresá una altura válida."
+      }),
+      city: fieldState(address.city, (value) => value.trim().length >= 2 && isSafeUserNote(value), {
+        valid: "Ciudad válida.",
+        invalid: "Ingresá la ciudad sin código."
+      }),
+      province: fieldState(address.province, (value) => value.trim().length >= 2 && isSafeUserNote(value), {
+        valid: "Provincia válida.",
+        invalid: "Ingresá la provincia sin código."
+      }),
+      notes: noteFieldState(address.notes, 240)
+    }),
+    [address.city, address.notes, address.number, address.province, address.street]
+  );
+  const notesState = useMemo(() => noteFieldState(notes, 500), [notes]);
+  const selectedPaymentContent = paymentModeContent[paymentMode];
+  const basicCustomerComplete =
+    customerFieldStates.name.status === "valid" &&
+    customerFieldStates.email.status === "valid" &&
+    customerFieldStates.phone.status === "valid";
+  const addressValidated =
+    addressFieldStates.street.status === "valid" &&
+    addressFieldStates.number.status === "valid" &&
+    addressFieldStates.city.status === "valid" &&
+    addressFieldStates.province.status === "valid";
+  const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || (addressComplete && addressValidated));
   const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
   const showLoadingScreen = loading && processPhase !== "idle";
   const activeLoadingPhase: CheckoutLoadingPhase = processPhase === "idle" ? "validating" : processPhase;
+
+  function checkoutAddressSnapshot() {
+    return {
+      ...address,
+      notes: normalizeUserNote(address.notes, 240)
+    };
+  }
+
+  function validationMessage(state: FieldState) {
+    if (state.status === "idle") return null;
+    return <span className={`checkout-field-message checkout-field-message--${state.status}`}>{state.message}</span>;
+  }
 
   function checkoutIntentKey() {
     if (!checkoutIntentRef.current) {
@@ -215,8 +326,8 @@ export function CheckoutForm({
       return true;
     }
 
-    if (!addressComplete) {
-      setShippingQuote({ status: "error", message: "Completá dirección, número, ciudad y provincia para cotizar el envío." });
+    if (!addressComplete || !addressValidated) {
+      setShippingQuote({ status: "error", message: "Completá dirección, número, ciudad y provincia con datos válidos para cotizar el envío." });
       return false;
     }
 
@@ -330,8 +441,19 @@ export function CheckoutForm({
     if (!items.length || !accepted || !customerComplete) return false;
     if (stockState.status !== "ok") return false;
     if (shippingMethod === "DELIVERY" && shippingQuote.status !== "ok") return false;
+    if (notesState.status === "invalid" || addressFieldStates.notes.status === "invalid") return false;
     return true;
-  }, [step, items.length, accepted, customerComplete, stockState.status, shippingMethod, shippingQuote.status]);
+  }, [
+    step,
+    items.length,
+    accepted,
+    customerComplete,
+    stockState.status,
+    shippingMethod,
+    shippingQuote.status,
+    notesState.status,
+    addressFieldStates.notes.status
+  ]);
 
   function progressClass(target: CheckoutStep) {
     const targetIndex = checkoutSteps.findIndex((item) => item.id === target);
@@ -342,7 +464,7 @@ export function CheckoutForm({
 
   function goToDelivery() {
     if (!basicCustomerComplete) {
-      setError("Completá nombre, email y teléfono para continuar.");
+      setError("Completá nombre, email y teléfono con formato válido para continuar.");
       return;
     }
     setError("");
@@ -350,6 +472,14 @@ export function CheckoutForm({
   }
 
   function goToReview() {
+    if (shippingMethod === "DELIVERY" && !addressValidated) {
+      setError("Completá dirección, número, ciudad y provincia con datos válidos.");
+      return;
+    }
+    if (addressFieldStates.notes.status === "invalid") {
+      setError(addressFieldStates.notes.message);
+      return;
+    }
     setError("");
     void (async () => {
       setLoading(true);
@@ -380,6 +510,10 @@ export function CheckoutForm({
   }
 
   async function goToPayment() {
+    if (notesState.status === "invalid") {
+      setError(notesState.message);
+      return;
+    }
     setError("");
     setLoading(true);
     setProcessPhase(shippingMethod === "DELIVERY" ? "shipping" : "validating");
@@ -423,8 +557,8 @@ export function CheckoutForm({
           customer_email: customer.email,
           customer_phone: customer.phone,
           shipping_method: shippingMethod,
-          address_snapshot: address,
-          notes,
+          address_snapshot: checkoutAddressSnapshot(),
+          notes: normalizeUserNote(notes, 500),
           payment_method: "MERCADOPAGO",
           idempotency_key: checkoutIntentKey()
         })
@@ -549,8 +683,8 @@ export function CheckoutForm({
           customer_email: customer.email,
           customer_phone: customer.phone,
           shipping_method: shippingMethod,
-          address_snapshot: address,
-          notes,
+          address_snapshot: checkoutAddressSnapshot(),
+          notes: normalizeUserNote(notes, 500),
           payment_method: "MERCADOPAGO",
           payment_flow: "CARD",
           idempotency_key: checkoutIntentKey(),
@@ -643,8 +777,8 @@ export function CheckoutForm({
           customer_email: customer.email,
           customer_phone: customer.phone,
           shipping_method: shippingMethod,
-          address_snapshot: address,
-          notes,
+          address_snapshot: checkoutAddressSnapshot(),
+          notes: normalizeUserNote(notes, 500),
           payment_method: method,
           idempotency_key: checkoutIntentKey()
         })
@@ -772,7 +906,9 @@ export function CheckoutForm({
                         onChange={(event) => setCustomer({ ...customer, name: event.target.value })}
                         autoComplete="name"
                         required
+                        aria-invalid={customerFieldStates.name.status === "invalid"}
                       />
+                      {validationMessage(customerFieldStates.name)}
                     </label>
                     <label>
                       Email
@@ -782,17 +918,25 @@ export function CheckoutForm({
                         onChange={(event) => setCustomer({ ...customer, email: event.target.value })}
                         autoComplete="email"
                         required
+                        aria-invalid={customerFieldStates.email.status === "invalid"}
                       />
+                      {validationMessage(customerFieldStates.email)}
                     </label>
                     <label>
                       Teléfono
                       <input
                         value={customer.phone}
-                        onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
+                        onChange={(event) => setCustomer({ ...customer, phone: limitPhoneInput(event.target.value) })}
                         autoComplete="tel"
                         inputMode="tel"
+                        maxLength={18}
                         required
+                        aria-invalid={customerFieldStates.phone.status === "invalid"}
                       />
+                      {validationMessage(customerFieldStates.phone)}
+                      <small className="checkout-field-help">
+                        {normalizePhoneDigits(customer.phone).length}/13 dígitos. Usá 10 dígitos o 54/549 + número.
+                      </small>
                     </label>
                   </div>
                   {error ? <p className="notice notice--danger">{error}</p> : null}
@@ -858,7 +1002,9 @@ export function CheckoutForm({
                             value={address.street}
                             onChange={(event) => setAddress({ ...address, street: event.target.value })}
                             autoComplete="address-line1"
+                            aria-invalid={addressFieldStates.street.status === "invalid"}
                           />
+                          {validationMessage(addressFieldStates.street)}
                         </label>
                         <label>
                           Número
@@ -866,7 +1012,10 @@ export function CheckoutForm({
                             value={address.number}
                             onChange={(event) => setAddress({ ...address, number: event.target.value })}
                             inputMode="numeric"
+                            maxLength={30}
+                            aria-invalid={addressFieldStates.number.status === "invalid"}
                           />
+                          {validationMessage(addressFieldStates.number)}
                         </label>
                         <label>
                           Departamento (opcional)
@@ -882,7 +1031,9 @@ export function CheckoutForm({
                             value={address.city}
                             onChange={(event) => setAddress({ ...address, city: event.target.value })}
                             autoComplete="address-level2"
+                            aria-invalid={addressFieldStates.city.status === "invalid"}
                           />
+                          {validationMessage(addressFieldStates.city)}
                         </label>
                         <label>
                           Provincia
@@ -890,7 +1041,9 @@ export function CheckoutForm({
                             value={address.province}
                             onChange={(event) => setAddress({ ...address, province: event.target.value })}
                             autoComplete="address-level1"
+                            aria-invalid={addressFieldStates.province.status === "invalid"}
                           />
+                          {validationMessage(addressFieldStates.province)}
                         </label>
                         <label>
                           Código postal (opcional)
@@ -945,7 +1098,14 @@ export function CheckoutForm({
                   </div>
                   <label className="field" style={{ marginTop: 14 }}>
                     Notas del pedido
-                    <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={500} />
+                    <textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value.slice(0, 500))}
+                      maxLength={500}
+                      aria-invalid={notesState.status === "invalid"}
+                      placeholder="Ej.: horario de retiro, aclaración de obra o referencia del pedido."
+                    />
+                    {validationMessage(notesState)}
                   </label>
                   {stockState.status === "loading" ? <p className="notice">Validando productos y stock disponible...</p> : null}
                   {stockState.status === "ok" ? <p className="notice notice--success">Productos disponibles. Podés continuar al pago.</p> : null}
@@ -1049,6 +1209,13 @@ export function CheckoutForm({
                     <span>Usá un comprador TESTUSER de Mercado Pago. No se cobrará dinero real.</span>
                   </div>
                 ) : null}
+                <div className="payment-choice-head">
+                  <div>
+                    <span className="kicker">Método de pago</span>
+                    <h3>Elegí cómo querés cerrar el pedido</h3>
+                  </div>
+                  <small>La opción seleccionada define el botón final.</small>
+                </div>
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
                   <button
                     type="button"
@@ -1058,8 +1225,8 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("CARD_BRICK")}
                   >
                     <CreditCard size={18} />
-                    <strong>Tarjeta online segura</strong>
-                    <span>Completá el Card Payment Brick oficial sin salir de FZAC.</span>
+                    <span>{paymentModeContent.CARD_BRICK.eyebrow}</span>
+                    <strong>{paymentModeContent.CARD_BRICK.title}</strong>
                   </button>
                   <button
                     type="button"
@@ -1069,8 +1236,8 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("MERCADOPAGO")}
                   >
                     <Landmark size={18} />
-                    <strong>Pagar con Mercado Pago</strong>
-                    <span>Pagá online con los medios disponibles dentro de Mercado Pago.</span>
+                    <span>{paymentModeContent.MERCADOPAGO.eyebrow}</span>
+                    <strong>{paymentModeContent.MERCADOPAGO.title}</strong>
                   </button>
                   <button
                     type="button"
@@ -1080,8 +1247,8 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("BANK_TRANSFER")}
                   >
                     <Landmark size={18} />
-                    <strong>Solicitar pago por transferencia</strong>
-                    <span>Generá el pedido y FZAC te enviará los datos para transferir.</span>
+                    <span>{paymentModeContent.BANK_TRANSFER.eyebrow}</span>
+                    <strong>{paymentModeContent.BANK_TRANSFER.title}</strong>
                   </button>
                   <button
                     type="button"
@@ -1091,19 +1258,18 @@ export function CheckoutForm({
                     onClick={() => selectPaymentMode("WHATSAPP")}
                   >
                     <MessageCircle size={18} />
-                    <strong>Coordinar por WhatsApp</strong>
-                    <span>Generá el pedido y coordiná el pago o la entrega con FZAC.</span>
+                    <span>{paymentModeContent.WHATSAPP.eyebrow}</span>
+                    <strong>{paymentModeContent.WHATSAPP.title}</strong>
                   </button>
                 </div>
-                <p className="payment-method-hint">
-                  {paymentMode === "CARD_BRICK"
-                    ? "El formulario es de Mercado Pago y tokeniza la tarjeta. FZAC no accede al número, CVV ni vencimiento."
-                    : paymentMode === "MERCADOPAGO"
-                    ? "Solo esta opción crea una preferencia y abre Mercado Pago."
-                    : paymentMode === "BANK_TRANSFER"
-                      ? "Transferencia no abre Mercado Pago: el pedido queda pendiente para que FZAC revise stock, total y te envíe los datos bancarios."
-                      : "WhatsApp no abre Mercado Pago: FZAC recibirá el pedido y podrás coordinar pago, retiro o entrega."}
-                </p>
+                <div className="payment-method-hint">
+                  <ShieldCheck size={18} />
+                  <div>
+                    <strong>{selectedPaymentContent.title}</strong>
+                    <p>{selectedPaymentContent.description}</p>
+                    <span>{selectedPaymentContent.reassurance}</span>
+                  </div>
+                </div>
                 <div className="terms-checkbox">
                   <input
                     type="checkbox"

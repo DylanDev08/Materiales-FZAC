@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
+import { isValidArgentinePhone, limitPhoneInput, normalizePhoneDigits } from "@/lib/validations/security";
 
 type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | "confirmPassword" | "acceptedTerms", string>>;
 
@@ -56,7 +57,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (mode === "register") {
       if (name.trim().length < 2) errors.name = "Completa tu nombre.";
       if (name.trim() && !/^[\p{L}\p{M}\s.'-]+$/u.test(name.trim())) errors.name = "Completa tu nombre con caracteres validos.";
-      if (phone.trim() && !/^\+?[0-9\s().-]{6,40}$/.test(phone.trim())) errors.phone = "Ingresá un teléfono válido.";
+      if (phone.trim() && !isValidArgentinePhone(phone.trim())) errors.phone = "Ingresá un teléfono argentino válido.";
       if (!passwordOk) errors.password = "La contraseña debe cumplir todas las reglas.";
       if (password !== confirmPassword) errors.confirmPassword = "Las contraseñas no coinciden.";
       if (!acceptedTerms) errors.acceptedTerms = "Aceptá términos y privacidad para crear la cuenta.";
@@ -188,14 +189,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 <input
                   value={phone}
                   onChange={(event) => {
-                    setPhone(event.target.value);
+                    setPhone(limitPhoneInput(event.target.value));
                     clearFieldError("phone");
                   }}
-                  minLength={6}
+                  minLength={10}
+                  maxLength={18}
                   autoComplete="tel"
+                  inputMode="tel"
                   aria-invalid={Boolean(fieldErrors.phone)}
                 />
                 {fieldErrors.phone ? <span className="auth-field-error">{fieldErrors.phone}</span> : null}
+                {phone.trim() ? <small>{normalizePhoneDigits(phone).length}/13 dígitos</small> : null}
               </label>
             </>
           ) : null}

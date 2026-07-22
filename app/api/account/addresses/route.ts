@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
 
 const addressFields = {
   label: z.string().trim().min(2, "Ingresá un nombre para la dirección.").max(50),
@@ -12,7 +13,13 @@ const addressFields = {
   city: z.string().trim().min(2, "Ingresá la ciudad.").max(80),
   province: z.string().trim().min(2, "Ingresá la provincia.").max(80),
   postalCode: z.string().trim().max(30).optional().or(z.literal("")),
-  notes: z.string().trim().max(240).optional().or(z.literal(""))
+  notes: z
+    .string()
+    .transform((value) => normalizeUserNote(value, 240))
+    .refine((value) => value.length <= 240, "Las indicaciones son demasiado largas.")
+    .refine((value) => isSafeUserNote(value), "Las indicaciones contienen caracteres no permitidos.")
+    .optional()
+    .or(z.literal(""))
 };
 
 const addressSchema = z.object(addressFields);

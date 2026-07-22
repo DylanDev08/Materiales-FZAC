@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
+import { CheckoutAuthRequiredError, createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoCardPayment, MercadoPagoCardPaymentError } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
@@ -115,6 +115,9 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       const issue = error.issues[0]?.message;
       return jsonError(issue && issue !== "Required" ? issue : "Completa los datos requeridos para pagar con tarjeta.", 422);
+    }
+    if (error instanceof CheckoutAuthRequiredError) {
+      return jsonError(error.message, error.status);
     }
     if (error instanceof InsufficientStockError) {
       return Response.json(

@@ -31,6 +31,21 @@ export function normalizePhoneDigits(value: string | undefined | null) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
+export function limitPhoneInput(value: string) {
+  let digitCount = 0;
+  return value
+    .replace(/[^\d+().\s-]/g, "")
+    .split("")
+    .filter((character, index) => {
+      if (character === "+") return index === 0;
+      if (!/\d/.test(character)) return true;
+      digitCount += 1;
+      return digitCount <= 13;
+    })
+    .join("")
+    .slice(0, 18);
+}
+
 export function isValidArgentinePhone(value: string | undefined | null) {
   const raw = String(value ?? "").trim();
   const digits = normalizePhoneDigits(raw);
