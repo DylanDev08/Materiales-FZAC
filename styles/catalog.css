@@ -596,6 +596,18 @@
   backdrop-filter: blur(12px);
 }
 
+.catalog-admin-entry {
+  border-bottom: 1px solid rgba(244, 196, 0, 0.16);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(244, 196, 0, 0.09), transparent 26%),
+    #0b0b0b;
+  padding: 22px 0;
+}
+
+.catalog-admin-entry .admin-panel {
+  margin: 0;
+}
+
 .catalog-category-rail {
   display: flex;
   gap: 4px;

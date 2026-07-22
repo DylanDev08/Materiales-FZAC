@@ -50,7 +50,15 @@ const emptyProduct: ProductForm = {
   active: true
 };
 
-export function AdminProductsManager({ products, categories }: { products: Product[]; categories: Category[] }) {
+export function AdminProductsManager({
+  products,
+  categories,
+  mode = "full"
+}: {
+  products: Product[];
+  categories: Category[];
+  mode?: "full" | "create-only";
+}) {
   const [rows, setRows] = useState(products);
   const [form, setForm] = useState({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
   const [message, setMessage] = useState("");
@@ -144,8 +152,17 @@ export function AdminProductsManager({ products, categories }: { products: Produ
 
   return (
     <>
-      <section className="admin-panel">
-        <h2>{form.id ? "Editar producto" : "Crear producto"}</h2>
+      <section className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
+        <div className="admin-product-editor__head">
+          <div>
+            <span className="kicker">Gestión exclusiva</span>
+            <h2>{form.id ? "Editar producto" : "Cargar producto"}</h2>
+            <p>
+              Completá precio, foto, stock, descripción y estado comercial. Esta sección solo aparece para administradores.
+            </p>
+          </div>
+          {mode === "create-only" ? <span className="status-pill status-pill--warning">Solo admin</span> : null}
+        </div>
         {!hasCategories ? (
           <p className="notice notice--danger">No hay categorias registradas. Crea una categoria antes de cargar productos.</p>
         ) : null}
@@ -252,7 +269,8 @@ export function AdminProductsManager({ products, categories }: { products: Produ
         {message ? <p className="notice">{message}</p> : null}
       </section>
 
-      <section className="admin-panel">
+      {mode === "full" ? (
+      <section className="admin-panel admin-panel--table">
         <h2>Productos</h2>
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -290,6 +308,7 @@ export function AdminProductsManager({ products, categories }: { products: Produ
           </table>
         </div>
       </section>
+      ) : null}
     </>
   );
 }

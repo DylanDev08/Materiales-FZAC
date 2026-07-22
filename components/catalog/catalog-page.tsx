@@ -5,6 +5,9 @@ import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
 import { CatalogViewToggle } from "@/components/catalog/catalog-view-toggle";
+import { AdminProductsManager } from "@/components/admin/admin-products-manager";
+import { getUserProfile } from "@/lib/auth/get-user";
+import { getAdminCategories, getAdminProducts } from "@/lib/db/admin";
 import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
 
@@ -19,12 +22,14 @@ export async function CatalogPage({
   searchParams,
   title = "Catálogo FZAC",
   description,
-  forcedFilters = {}
+  forcedFilters = {},
+  showAdminProductLoader = false
 }: {
   searchParams: SearchParams;
   title?: string;
   description?: string;
   forcedFilters?: ProductFilters;
+  showAdminProductLoader?: boolean;
 }) {
   const filters: ProductFilters = {
     search: value(searchParams, "search"),
@@ -39,7 +44,14 @@ export async function CatalogPage({
     ...forcedFilters
   };
 
-  const [categories, products, facets] = await Promise.all([getCategories(), getProducts(filters), getCatalogFacets()]);
+  const [categories, products, facets, profile] = await Promise.all([
+    getCategories(),
+    getProducts(filters),
+    getCatalogFacets(),
+    getUserProfile()
+  ]);
+  const isAdmin = profile?.role === "ADMIN";
+  const adminProductData = isAdmin && showAdminProductLoader ? await Promise.all([getAdminProducts(), getAdminCategories()]) : null;
   const filterValues = {
     search: value(searchParams, "search"),
     category: forcedFilters.category ?? value(searchParams, "category"),
@@ -78,6 +90,14 @@ export async function CatalogPage({
           </Link>
         </div>
       </section>
+
+      {adminProductData ? (
+        <section className="catalog-admin-entry">
+          <div className="container">
+            <AdminProductsManager products={adminProductData[0]} categories={adminProductData[1]} mode="create-only" />
+          </div>
+        </section>
+      ) : null}
 
       <section className="catalog-controls-shell">
         <div className="container">
