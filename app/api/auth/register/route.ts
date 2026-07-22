@@ -9,6 +9,9 @@ import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-li
 import { registerSchema } from "@/lib/validations/auth";
 
 function authErrorMessage(message: string) {
+  if (/rate limit|too many|over_email_send_rate_limit/i.test(message)) {
+    return "No pudimos enviar el email de confirmación por límite temporal. Esperá unos minutos y volvé a probar.";
+  }
   if (/password|character of each|uppercase|lowercase|0123456789|symbol/i.test(message)) {
     return "La contraseña debe tener mayúscula, minúscula, número y símbolo.";
   }
@@ -59,9 +62,10 @@ export async function POST(request: Request) {
       if (error) {
         const duplicate = /already|registered|exists/i.test(error.message);
         const passwordPolicy = /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message);
+        const emailRateLimit = /rate limit|too many|over_email_send_rate_limit/i.test(error.message);
         return jsonError(
           authErrorMessage(error.message),
-          duplicate ? 409 : passwordPolicy ? 422 : 400
+          duplicate ? 409 : passwordPolicy ? 422 : emailRateLimit ? 429 : 400
         );
       }
       user = data.user;
@@ -90,6 +94,9 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message)) {
       return jsonError("La contraseña debe tener mayúscula, minúscula, número y símbolo.", 422);
+    }
+    if (error instanceof Error && /rate limit|too many|over_email_send_rate_limit/i.test(error.message)) {
+      return jsonError("No pudimos enviar el email de confirmación por límite temporal. Esperá unos minutos y volvé a probar.", 429);
     }
     return jsonError("No pudimos crear la cuenta.", 500);
   }
