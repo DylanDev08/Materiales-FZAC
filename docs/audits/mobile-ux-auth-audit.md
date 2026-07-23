@@ -242,15 +242,15 @@ Suite mobile especifica:
 - Suite mobile previa completa: 72/72 OK.
 - Verificacion puntual Pixel menu tras ultimo build: OK.
 
+### Revalidacion 2026-07-22
+
+- Suite mobile sobre el build de produccion local: `68 passed`, `22 skipped` intencionales, `0 failed`.
+- Viewports: iPhone 13, Pixel 7, Galaxy S20 y 360x740.
+- El usuario anonimo es redirigido a `/login?next=/checkout`; el recorrido de formulario requiere una sesion QA autenticada.
+
 ## Resultado npm audit
 
-`npm audit --omit=dev`: falla por vulnerabilidad heredada de `sharp <0.35.0` via `next@16.2.10`.
-
-No se ejecuto `npm audit fix --force` porque propone instalar `next@14.2.35`, lo que seria un downgrade mayor y puede romper el proyecto.
-
-Pendiente:
-
-- Actualizar a una version compatible de Next/sharp cuando exista parche seguro para la linea actual, o evaluar override controlado sin downgrade.
+Se actualizo Next y `eslint-config-next` a `16.2.11`, la version de seguridad de la misma linea. `npm audit --omit=dev`: OK, 0 vulnerabilidades.
 
 ## Pendientes para produccion
 
@@ -259,5 +259,4 @@ Pendiente:
 3. Ejecutar auditoria read-only de RLS con acceso al panel/SQL.
 4. Repetir Google OAuth real desde celular fisico o emulador con Render.
 5. Repetir Mercado Pago test con comprador TESTUSER distinto del vendedor.
-6. Resolver vulnerabilidad heredada `sharp/next` cuando haya upgrade seguro.
-7. Ejecutar Lighthouse mobile sobre dominio final.
+6. Ejecutar Lighthouse mobile sobre dominio final.

@@ -1,6 +1,18 @@
 import { expect, test, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 
-const PRODUCT_ID = "9b57922e-c76d-4261-ad8e-ca93b0ff3670";
+const baseUrl = process.env.BASE_URL || "https://materiales-fzac-8xmp.onrender.com";
+const qaProductId = process.env.QA_CHECKOUT_PRODUCT_ID || "";
+const qaCustomerEmail = process.env.QA_CHECKOUT_EMAIL || "";
+const mutatingCheckoutEnabled = process.env.RUN_MUTATING_CHECKOUT_TESTS === "true";
+const hasAuthenticatedState = Boolean(process.env.PLAYWRIGHT_AUTH_STATE);
+const isLocalTarget = ["localhost", "127.0.0.1"].includes(new URL(baseUrl).hostname);
+const remoteWritesAllowed = process.env.QA_ALLOW_REMOTE_WRITES === "true";
+const canRunMutatingCheckout =
+  mutatingCheckoutEnabled &&
+  hasAuthenticatedState &&
+  Boolean(qaProductId) &&
+  Boolean(qaCustomerEmail) &&
+  (isLocalTarget || remoteWritesAllowed);
 
 const publicRoutes = [
   "/",
@@ -25,10 +37,10 @@ async function expectNoCriticalConsole(page: Page) {
   return critical;
 }
 
-async function checkoutPayload(method: "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP", idempotencyKey: string) {
+function checkoutPayload(method: "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP", idempotencyKey: string) {
   return {
     customer_name: `QA ${method}`,
-    customer_email: `qa.${method.toLowerCase()}.${Date.now()}@example.com`,
+    customer_email: qaCustomerEmail,
     customer_phone: "+5493410000000",
     shipping_method: "PICKUP",
     address_snapshot: {},
@@ -36,13 +48,13 @@ async function checkoutPayload(method: "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSA
     payment_method: method,
     payment_flow: method === "MERCADOPAGO" ? "CHECKOUT_PRO" : method === "BANK_TRANSFER" ? "TRANSFER" : "WHATSAPP",
     idempotency_key: idempotencyKey,
-    items: [{ product_id: PRODUCT_ID, quantity: 1 }]
+    items: [{ product_id: qaProductId, quantity: 1 }]
   };
 }
 
 async function createCheckout(request: APIRequestContext, method: "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP", key: string) {
   return request.post("/api/checkout/create", {
-    data: await checkoutPayload(method, key)
+    data: checkoutPayload(method, key)
   });
 }
 
@@ -91,11 +103,33 @@ test.describe("Render public smoke", () => {
     expect(response?.status()).toBeLessThan(400);
     await expect(page).not.toHaveURL(/\/admin(\/|$)/);
   });
+
+  test("checkout API rechaza creacion anonima sin escribir datos", async ({ request }) => {
+    const response = await request.post("/api/checkout/create", {
+      data: {
+        customer_name: "QA anonimo",
+        customer_email: "qa-anonimo@example.com",
+        customer_phone: "+5493410000000",
+        shipping_method: "PICKUP",
+        address_snapshot: {},
+        payment_method: "BANK_TRANSFER",
+        payment_flow: "TRANSFER",
+        idempotency_key: `qa-unauthorized-${Date.now()}`,
+        items: [{ product_id: "00000000-0000-4000-8000-000000000000", quantity: 1 }]
+      }
+    });
+
+    expect(response.status()).toBe(401);
+  });
 });
 
-test.describe("Checkout API controlado", () => {
+test.describe("Checkout API autenticado y con escritura explicita", () => {
   test.beforeEach(async ({}, testInfo: TestInfo) => {
     test.skip(testInfo.project.name !== "desktop-chromium", "Las pruebas API corren una sola vez para no disparar rate limits.");
+    test.skip(
+      !canRunMutatingCheckout,
+      "Requiere RUN_MUTATING_CHECKOUT_TESTS=true, PLAYWRIGHT_AUTH_STATE, QA_CHECKOUT_EMAIL y QA_CHECKOUT_PRODUCT_ID. Los destinos remotos tambien requieren QA_ALLOW_REMOTE_WRITES=true."
+    );
   });
 
   test("idempotencia devuelve la misma orden para la misma key", async ({ request }) => {

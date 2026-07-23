@@ -14,6 +14,7 @@ type CartContextValue = {
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
+  refreshProducts: (products: Product[]) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -27,7 +28,10 @@ function sanitize(items: CartLine[]) {
       return {
         ...item,
         product: { ...item.product, image_url: resolveProductImageUrl(item.product) },
-        quantity: Math.min(available, Math.max(1, Number(item.quantity)))
+        quantity:
+          available > 0
+            ? Math.min(available, Math.max(1, Number(item.quantity)))
+            : Math.min(999, Math.max(1, Number(item.quantity)))
       };
     })
     .filter((item) => item.quantity > 0);
@@ -112,6 +116,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       clearCart() {
         setItems([]);
+      },
+      refreshProducts(products) {
+        const byId = new Map(products.map((product) => [product.id, product]));
+        setItems((current) =>
+          sanitize(
+            current.map((item) => {
+              const product = byId.get(item.productId);
+              return product ? { ...item, product } : item;
+            })
+          )
+        );
       }
     };
   }, [hydrated, items]);

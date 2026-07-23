@@ -11,7 +11,7 @@ function StatusIcon({ tone }: { tone: SystemStatusItem["tone"] }) {
 
 export default async function Page() {
   await requireAdmin();
-  const status = getSystemStatus();
+  const status = await getSystemStatus();
 
   return (
     <AdminShell title="Estado del sistema" description="Control de producción para pagos, emails, Supabase y seguridad.">

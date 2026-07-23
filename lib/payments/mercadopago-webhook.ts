@@ -75,7 +75,7 @@ function isValidWebhookSignature(request: Request, dataId: string) {
 function paymentStatusFromMercadoPago(status: string) {
   if (status === "approved") return "PAID";
   if (status === "rejected" || status === "cancelled") return "FAILED";
-  if (status === "refunded") return "REFUNDED";
+  if (status === "refunded" || status === "charged_back") return "REFUNDED";
   if (status === "expired") return "EXPIRED";
   return "PENDING";
 }
@@ -100,6 +100,23 @@ function extractEventType(url: URL, body: Record<string, unknown>) {
 function extractEventId(body: Record<string, unknown>, paymentId: string) {
   const data = body.data as Record<string, unknown> | undefined;
   return String(body.id || data?.id || paymentId || "");
+}
+
+function paymentAmountMatchesLocal(
+  payment: Record<string, unknown>,
+  localPayment: { amount?: string | number | null; currency?: string | null }
+) {
+  const remoteAmount = Number(payment.transaction_amount);
+  const localAmount = Number(localPayment.amount);
+  const remoteCurrency = String(payment.currency_id ?? "").trim().toUpperCase();
+  const localCurrency = String(localPayment.currency ?? "ARS").trim().toUpperCase();
+
+  return (
+    Number.isFinite(remoteAmount) &&
+    Number.isFinite(localAmount) &&
+    Math.abs(remoteAmount - localAmount) <= 0.01 &&
+    remoteCurrency === localCurrency
+  );
 }
 
 function safeWebhookEvent(body: Record<string, unknown>) {
@@ -232,7 +249,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
 
     const { data: localPayment } = await admin
       .from("payments")
-      .select("id,provider,status,provider_payment_id")
+      .select("id,provider,status,amount,currency,provider_payment_id")
       .eq("order_id", orderId)
       .maybeSingle();
 
@@ -251,6 +268,26 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 409, body: { ok: false, received: true, message: "Pago no asociado a la orden." } };
     }
 
+    if (!paymentAmountMatchesLocal(payment, localPayment)) {
+      await updatePaymentEvent(eventId, {
+        status: "FAILED",
+        orderId,
+        errorMessage: "El monto o la moneda no coincide con la orden local."
+      }).catch(() => undefined);
+      await notifyWebhookFailure(orderId).catch(() => undefined);
+      return { status: 409, body: { ok: false, received: true, message: "Monto de pago incompatible." } };
+    }
+
+    if (status === "partially_refunded") {
+      await updatePaymentEvent(eventId, {
+        status: "FAILED",
+        orderId,
+        errorMessage: "Reembolso parcial pendiente de conciliacion manual."
+      }).catch(() => undefined);
+      await notifyWebhookFailure(orderId).catch(() => undefined);
+      return { status: 200, body: { ok: true, received: true, manual_review: true } };
+    }
+
     if (status === "approved") {
       await confirmApprovedPayment({
         orderId,
@@ -263,12 +300,12 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 200, body: { ok: true, received: true, status: "PAID", orderId } };
     }
 
-    if (status === "refunded") {
+    if (status === "refunded" || status === "charged_back") {
       await finalizeRefundedPayment({
         paymentId: String(localPayment.id),
         providerRefundId: providerRefundId(payment),
         raw: safePayment,
-        reason: "Reembolso confirmado por Mercado Pago",
+        reason: status === "charged_back" ? "Contracargo confirmado por Mercado Pago" : "Reembolso confirmado por Mercado Pago",
         actorId: null,
         actorEmail: "Mercado Pago webhook"
       });

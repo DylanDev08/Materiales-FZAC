@@ -262,6 +262,18 @@ export function CheckoutForm({
     addressFieldStates.province.status === "valid";
   const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || (addressComplete && addressValidated));
   const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
+  const checkoutFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        cart: cartFingerprint,
+        paymentMode,
+        shippingMethod,
+        customer: [customer.name.trim(), customer.email.trim().toLowerCase(), customer.phone.trim()],
+        address: shippingMethod === "DELIVERY" ? address : null,
+        notes: normalizeUserNote(notes, 500)
+      }),
+    [address, cartFingerprint, customer.email, customer.name, customer.phone, notes, paymentMode, shippingMethod]
+  );
   const showLoadingScreen = loading && processPhase !== "idle";
   const activeLoadingPhase: CheckoutLoadingPhase = processPhase === "idle" ? "validating" : processPhase;
 
@@ -281,13 +293,18 @@ export function CheckoutForm({
     if (!checkoutIntentRef.current) {
       checkoutIntentRef.current = createCheckoutIntentId();
       writeCheckoutIntentSnapshot({
-        fingerprint: cartFingerprint,
+        fingerprint: checkoutFingerprint,
         paymentMode,
         key: checkoutIntentRef.current,
         createdAt: Date.now()
       });
     }
     return checkoutIntentRef.current;
+  }
+
+  function resetCheckoutIntent() {
+    checkoutIntentRef.current = "";
+    clearCheckoutIntentSnapshot();
   }
 
   async function validateStock(signal?: AbortSignal) {
@@ -372,19 +389,19 @@ export function CheckoutForm({
     }
 
     const existing = readCheckoutIntentSnapshot();
-    if (existing?.fingerprint === cartFingerprint && existing.paymentMode === paymentMode) {
+    if (existing?.fingerprint === checkoutFingerprint && existing.paymentMode === paymentMode) {
       checkoutIntentRef.current = existing.key;
       return;
     }
 
     checkoutIntentRef.current = createCheckoutIntentId();
     writeCheckoutIntentSnapshot({
-      fingerprint: cartFingerprint,
+      fingerprint: checkoutFingerprint,
       paymentMode,
       key: checkoutIntentRef.current,
       createdAt: Date.now()
     });
-  }, [hydrated, items.length, cartFingerprint, paymentMode]);
+  }, [checkoutFingerprint, hydrated, items.length, paymentMode]);
 
   useEffect(() => {
     if (!items.length) return;
@@ -495,9 +512,18 @@ export function CheckoutForm({
   }
 
   function selectPaymentMode(mode: PaymentMode) {
+    if (mode !== paymentMode) resetCheckoutIntent();
     setPaymentMode(mode);
     setError("");
     setInfo("");
+  }
+
+  function handleCheckoutIntegrityError(data: { error?: string; message?: string }) {
+    if (data.error !== "IDEMPOTENCY_CONFLICT" && data.error !== "PRICE_CHANGED") return false;
+    resetCheckoutIntent();
+    setError(data.message || "El pedido cambió mientras lo procesábamos. Revisá los datos y volvé a intentarlo.");
+    setStep("review");
+    return true;
   }
 
   function requestTermsAcceptance() {
@@ -581,6 +607,7 @@ export function CheckoutForm({
       };
 
       if (!response.ok) {
+        if (handleCheckoutIntegrityError(data)) return;
         if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
           setStockState({
             status: "error",
@@ -703,6 +730,7 @@ export function CheckoutForm({
       };
 
       if (!response.ok) {
+        if (handleCheckoutIntegrityError(data)) return;
         if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
           setStockState({
             status: "error",
@@ -795,6 +823,7 @@ export function CheckoutForm({
       };
 
       if (!response.ok) {
+        if (handleCheckoutIntegrityError(data)) return;
         if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
           setStockState({
             status: "error",

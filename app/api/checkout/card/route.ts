@@ -1,7 +1,18 @@
 import { ZodError } from "zod";
-import { CheckoutAuthRequiredError, createCheckout, InsufficientStockError, ShippingQuoteError } from "@/lib/db/orders";
+import {
+  CheckoutAuthRequiredError,
+  CheckoutIdempotencyError,
+  CheckoutIntegrityError,
+  createCheckout,
+  InsufficientStockError,
+  ShippingQuoteError
+} from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
-import { createMercadoPagoCardPayment, MercadoPagoCardPaymentError } from "@/lib/payments/mercadopago";
+import {
+  createMercadoPagoCardPayment,
+  MercadoPagoCardPaymentError,
+  sanitizeMercadoPagoPayment
+} from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
@@ -29,12 +40,13 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
 
   const status = String(payment.status ?? "");
   const mapped = paymentStatus(status);
+  const safePayment = sanitizeMercadoPagoPayment(payment);
   await admin
     .from("payments")
     .update({
       status: mapped,
       provider_payment_id: payment.id ? String(payment.id) : null,
-      raw: payment,
+      raw: safePayment,
       updated_at: new Date().toISOString()
     })
     .eq("order_id", orderId);
@@ -86,12 +98,13 @@ export async function POST(request: Request) {
     });
 
     const status = String(payment.status ?? "pending");
+    const safePayment = sanitizeMercadoPagoPayment(payment);
     if (status === "approved") {
       await confirmApprovedPayment({
         orderId,
         provider: "MERCADOPAGO",
         providerPaymentId: payment.id ? String(payment.id) : null,
-        raw: payment,
+        raw: safePayment,
         status: "PAID"
       });
     } else {
@@ -118,6 +131,12 @@ export async function POST(request: Request) {
     }
     if (error instanceof CheckoutAuthRequiredError) {
       return jsonError(error.message, error.status);
+    }
+    if (error instanceof CheckoutIdempotencyError || error instanceof CheckoutIntegrityError) {
+      return Response.json(
+        { ok: false, error: error.code, code: error.code, message: error.message },
+        { status: error.status }
+      );
     }
     if (error instanceof InsufficientStockError) {
       return Response.json(

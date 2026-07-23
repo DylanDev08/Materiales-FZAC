@@ -1,5 +1,7 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
+const hasAuthenticatedState = Boolean(process.env.PLAYWRIGHT_AUTH_STATE);
+
 const publicMobileRoutes = [
   "/",
   "/productos",
@@ -67,6 +69,9 @@ test.describe("Mobile UI audit", () => {
       skipDesktop(testInfo);
       const response = await page.goto(route, { waitUntil: "domcontentloaded" });
       expect(response?.status(), `${route} debe cargar en mobile`).toBeLessThan(400);
+      if (route === "/checkout" && !hasAuthenticatedState) {
+        await expect(page).toHaveURL(/\/login\?next=(%2F|\/)checkout/);
+      }
       await expect(page.locator("body")).not.toBeEmpty();
       await expectNoHorizontalOverflow(page);
     });
@@ -118,11 +123,12 @@ test.describe("Mobile UI audit", () => {
     await expectNoHorizontalOverflow(page);
     await expectTouchTargets(page, ".quantity-control button, .cart-remove, .cart-summary-actions a, .cart-summary-actions button");
     await page.getByRole("link", { name: /continuar al checkout/i }).click();
-    await expect(page).toHaveURL(/\/checkout/);
+    await expect(page).toHaveURL(hasAuthenticatedState ? /\/checkout/ : /\/login\?next=(%2F|\/)checkout/);
   });
 
   test("checkout mobile muestra pasos, metodos y no exige direccion en retiro", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
+    test.skip(!hasAuthenticatedState, "El formulario de checkout requiere PLAYWRIGHT_AUTH_STATE porque comprar exige una cuenta registrada.");
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
     await addFirstAvailableProduct(page);
     await page.goto("/checkout", { waitUntil: "domcontentloaded" });

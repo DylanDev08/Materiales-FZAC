@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight, CreditCard, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import { ProductBuyBox } from "@/components/product/product-buybox";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductGrid } from "@/components/catalog/product-grid";
@@ -10,17 +12,48 @@ export function ProductDetail({ product, related }: { product: Product; related:
   return (
     <main className="page-section">
       <div className="container">
+        <nav className="product-breadcrumb" aria-label="Navegación del producto">
+          <Link href="/productos">Productos</Link>
+          <ChevronRight size={14} />
+          {product.category?.slug ? (
+            <Link href={`/categoria/${product.category.slug}`}>{product.category.name}</Link>
+          ) : (
+            <span>{product.subcategory}</span>
+          )}
+          <ChevronRight size={14} />
+          <span aria-current="page">{product.name}</span>
+        </nav>
+
         <div className="product-detail">
           <ProductGallery name={product.name} images={gallery} />
 
           <ProductBuyBox product={product} />
         </div>
 
+        <section className="product-assurance-strip" aria-label="Condiciones de compra">
+          <div>
+            <PackageCheck size={19} />
+            <span><strong>Stock validado</strong> antes de cobrar</span>
+          </div>
+          <div>
+            <Truck size={19} />
+            <span><strong>Retiro o envío</strong> según tu dirección</span>
+          </div>
+          <div>
+            <CreditCard size={19} />
+            <span><strong>Pago seguro</strong> con Mercado Pago</span>
+          </div>
+          <div>
+            <ShieldCheck size={19} />
+            <span><strong>Datos protegidos</strong> por FZAC</span>
+          </div>
+        </section>
+
         <section className="product-information" aria-label="Información del producto">
           <details open>
             <summary>Descripción</summary>
             <div>
-              <p>{product.description}</p>
+              <p>{product.description || "Consultá con FZAC para confirmar presentación, rendimiento y compatibilidad con tu obra."}</p>
             </div>
           </details>
           <details>
@@ -49,10 +82,12 @@ export function ProductDetail({ product, related }: { product: Product; related:
           </details>
         </section>
 
-        <section className="page-section">
-          <SectionHeader eyebrow="Complementarios" title="Productos relacionados" />
-          <ProductGrid products={related} variant="rail" />
-        </section>
+        {related.length ? (
+          <section className="page-section product-related">
+            <SectionHeader eyebrow="Complementarios" title="Completá el pedido" />
+            <ProductGrid products={related} variant="rail" />
+          </section>
+        ) : null}
       </div>
     </main>
   );

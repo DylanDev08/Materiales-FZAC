@@ -51,6 +51,8 @@ Usar este checklist antes de cada deploy importante.
 
 ## Checkout
 
+- [ ] La consola Admin > Sistema informa `Checkout transaccional: Atomico`.
+- [ ] La consola Admin > Sistema informa `Idempotencia en base: Protegida`.
 - [ ] Retiro no exige direccion completa.
 - [ ] Envio exige direccion.
 - [ ] Errores aparecen debajo del campo.
@@ -59,6 +61,8 @@ Usar este checklist antes de cada deploy importante.
 - [ ] Doble click no crea doble pedido.
 - [ ] Misma `idempotency_key` devuelve misma orden/pago.
 - [ ] Stock/precio se validan en backend.
+- [ ] Cambiar productos, metodo, entrega o datos del comprador invalida la clave del intento anterior.
+- [ ] Reutilizar una clave con otro contenido devuelve `IDEMPOTENCY_CONFLICT` y no crea registros.
 
 ## Pagos
 
@@ -133,4 +137,6 @@ Usar este checklist antes de cada deploy importante.
 - [ ] `npm run build`
 - [ ] `npm audit --omit=dev`
 - [ ] `npm run test:e2e`
+
+Las pruebas E2E normales son de solo lectura o usan estado local del navegador. Para habilitar pruebas que crean pedidos se requieren explicitamente `RUN_MUTATING_CHECKOUT_TESTS=true`, `PLAYWRIGHT_AUTH_STATE`, `QA_CHECKOUT_EMAIL` y `QA_CHECKOUT_PRODUCT_ID`. En un host remoto tambien se requiere `QA_ALLOW_REMOTE_WRITES=true`; usar un proyecto/cuenta QA y limpiar los datos generados.
 

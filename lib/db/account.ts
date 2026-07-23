@@ -22,7 +22,8 @@ type OrderItemRow = {
   product_id: string | null;
   sku: string | null;
   name: string | null;
-  price: number | string | null;
+  unit_price: number | string | null;
+  subtotal: number | string | null;
   quantity: number | string | null;
   image_url: string | null;
 };
@@ -147,7 +148,7 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
   const { data: items } = orderIds.length
     ? await admin
         .from("order_items")
-        .select("order_id,product_id,sku,name,price,quantity,image_url")
+        .select("order_id,product_id,sku,name,unit_price,subtotal,quantity,image_url")
         .in("order_id", orderIds)
         .limit(400)
     : { data: [] as OrderItemRow[] };
@@ -208,7 +209,7 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
         sku: String(item.sku ?? "-"),
         name: String(item.name ?? "Producto"),
         quantity,
-        total: currency(numberValue(item.price) * quantity),
+        total: currency(numberValue(item.subtotal) || numberValue(item.unit_price) * quantity),
         imageUrl: String(item.image_url || "/logoFZAC.jpg"),
         stock: stock ? `${stock.stock ?? 0} ${stock.unit ?? "un."}` : order?.status ?? "-"
       };

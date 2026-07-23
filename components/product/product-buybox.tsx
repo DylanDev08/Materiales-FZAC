@@ -18,7 +18,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const discount = percentOff(product.price, product.compare_price);
   const maxQuantity = product.stock;
   const subtotal = product.price * quantity;
-  const lowStockThreshold = 5;
+  const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero consultar por ${product.name} (${product.sku}).`);
 
   function setSafeQuantity(next: number) {
@@ -99,7 +99,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
       {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estas seleccionando el maximo disponible.</p> : null}
 
       {added ? (
-        <div className="product-added-toast">
+        <div className="product-added-toast" role="status" aria-live="polite">
           <strong>
             <CheckCircle size={18} /> Producto agregado al carrito
           </strong>
@@ -130,7 +130,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
       <div className="product-buybox__trust">
         <span>Retiro coordinado</span>
         <span>Envío a cotizar</span>
-        <span>Pago seguro</span>
+        <span>Pago y stock verificados</span>
       </div>
     </aside>
   );

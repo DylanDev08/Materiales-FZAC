@@ -57,7 +57,11 @@ export async function getOrderReceipt(orderId?: string) {
 
   const [{ data: ticket }, { data: orderItems }, { data: payment }] = await Promise.all([
     admin.from("purchase_tickets").select("*").eq("order_id", order.id).maybeSingle(),
-    admin.from("order_items").select("sku,name,price,quantity").eq("order_id", order.id).order("created_at", { ascending: true }),
+    admin
+      .from("order_items")
+      .select("sku,name,unit_price,subtotal,quantity")
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: true }),
     admin.from("payments").select("provider,status,amount,currency,updated_at").eq("order_id", order.id).maybeSingle()
   ]);
 
@@ -74,14 +78,14 @@ export async function getOrderReceipt(orderId?: string) {
     : { data: [] };
 
   const items = (ticketItems?.length ? ticketItems : orderItems ?? []).map((item) => {
-    const unitPrice = Number("unit_price" in item ? item.unit_price : item.price);
+    const unitPrice = Number(item.unit_price ?? 0);
     const quantity = Number(item.quantity ?? 0);
     return {
       sku: String(item.sku ?? "-"),
       name: String(item.name ?? "Producto"),
       quantity,
       unitPrice,
-      subtotal: Number("subtotal" in item ? item.subtotal : unitPrice * quantity)
+      subtotal: Number(item.subtotal ?? unitPrice * quantity)
     };
   });
 

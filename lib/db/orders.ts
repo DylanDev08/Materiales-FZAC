@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { checkoutSchema, checkoutStockSchema, type CheckoutInput } from "@/lib/validations/checkout";
 import { fallbackProducts } from "@/lib/db/fallback-data";
@@ -53,6 +54,38 @@ export class CheckoutAuthRequiredError extends Error {
   constructor(message = "Necesitás iniciar sesión para comprar.", status: 401 | 403 = 401) {
     super(message);
     this.name = "CheckoutAuthRequiredError";
+    this.status = status;
+  }
+}
+
+export class CheckoutIdempotencyError extends Error {
+  code: "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_CONFLICT";
+  status: 409 | 422;
+
+  constructor(
+    code: "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_CONFLICT",
+    message: string,
+    status: 409 | 422 = code === "IDEMPOTENCY_CONFLICT" ? 409 : 422
+  ) {
+    super(message);
+    this.name = "CheckoutIdempotencyError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+export class CheckoutIntegrityError extends Error {
+  code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED";
+  status: 409 | 500 | 503;
+
+  constructor(
+    code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED",
+    message: string,
+    status: 409 | 500 | 503
+  ) {
+    super(message);
+    this.name = "CheckoutIntegrityError";
+    this.code = code;
     this.status = status;
   }
 }
@@ -125,15 +158,25 @@ function purchaseAutoApprovalLimit() {
   return Number.isFinite(configured) && configured > 0 ? configured : 250000;
 }
 
-function compatibleOrderStatus(status: string) {
-  if (status === "PENDING_TRANSFER" || status === "PENDING_ADMIN_APPROVAL" || status === "COORDINATE") {
-    return "PENDING_PAYMENT";
-  }
-  return status;
-}
+function checkoutFingerprint(payload: CheckoutInput, userId: string, paymentMethod: string) {
+  const snapshot = {
+    userId,
+    email: payload.customer.email.trim().toLowerCase(),
+    paymentMethod,
+    paymentFlow: payload.paymentFlow ?? null,
+    shippingMethod: payload.shippingMethod,
+    address: payload.shippingMethod === "DELIVERY" ? payload.address : null,
+    items: payload.items
+      .map((item) => ({
+        productId: item.productId,
+        sku: item.sku ?? null,
+        slug: item.slug ?? null,
+        quantity: item.quantity
+      }))
+      .sort((left, right) => left.productId.localeCompare(right.productId))
+  };
 
-function compatiblePaymentProvider(provider: PaymentProvider) {
-  return provider === "BANK_TRANSFER" || provider === "WHATSAPP" ? "MOCK" : provider;
+  return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 }
 
 function checkoutSuccessResponse(input: {
@@ -228,13 +271,15 @@ async function resumeCheckoutByIdempotencyKey(
   admin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
   idempotencyKey: string,
   provider: PaymentProvider,
+  userId: string,
+  customerEmail: string,
+  fingerprint: string,
   paymentMethod?: CheckoutInput["paymentMethod"],
   paymentFlow?: CheckoutInput["paymentFlow"]
 ) {
-  // The DB migration payments_idempotency_guard adds the cross-container guard.
   const { data: payment } = await admin
     .from("payments")
-    .select("id,order_id,provider,status,amount,provider_preference_id")
+    .select("id,order_id,provider,status,amount,provider_preference_id,raw")
     .eq("provider_session_id", idempotencyKey)
     .maybeSingle();
 
@@ -243,12 +288,34 @@ async function resumeCheckoutByIdempotencyKey(
   const { data: order } = await admin
     .from("orders")
     .select(
-      "id,status,customer_name,customer_email,customer_phone,shipping_cost,total"
+      "id,user_id,status,customer_name,customer_email,customer_phone,shipping_cost,total"
     )
     .eq("id", payment.order_id)
     .maybeSingle();
 
-  if (!order || String(order.status) === "CANCELLED") return null;
+  if (!order) return null;
+
+  const normalizedEmail = customerEmail.trim().toLowerCase();
+  const storedRaw = (payment.raw ?? {}) as Record<string, unknown>;
+  const storedMethod = String(storedRaw.method ?? storedRaw.provider ?? payment.provider ?? "").toUpperCase();
+  const storedFingerprint = String(storedRaw.checkout_fingerprint ?? "");
+  const ownsAttempt = String(order.user_id ?? "") === userId && String(order.customer_email ?? "").trim().toLowerCase() === normalizedEmail;
+  const sameMethod = !storedMethod || storedMethod === String(paymentMethod ?? provider).toUpperCase();
+  const sameCheckout = !storedFingerprint || storedFingerprint === fingerprint;
+
+  if (!ownsAttempt || !sameMethod || !sameCheckout) {
+    throw new CheckoutIdempotencyError(
+      "IDEMPOTENCY_CONFLICT",
+      "Este intento de compra ya pertenece a otro pedido. Actualizá el checkout y volvé a intentarlo."
+    );
+  }
+
+  if (String(order.status) === "CANCELLED") {
+    throw new CheckoutIdempotencyError(
+      "IDEMPOTENCY_CONFLICT",
+      "El intento anterior fue cancelado. Volvé a seleccionar el medio de pago para generar uno nuevo."
+    );
+  }
 
   if (String(order.status) === "PENDING_ADMIN_APPROVAL") {
     const coordinationFlow = paymentMethod === "BANK_TRANSFER" || paymentMethod === "WHATSAPP";
@@ -308,7 +375,7 @@ async function resumeCheckoutByIdempotencyKey(
   if (!preference && provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
     const { data: orderItems } = await admin
       .from("order_items")
-      .select("product_id,sku,name,price,quantity,image_url")
+      .select("product_id,sku,name,unit_price,quantity,image_url")
       .eq("order_id", order.id)
       .order("created_at", { ascending: true });
 
@@ -316,7 +383,7 @@ async function resumeCheckoutByIdempotencyKey(
       product: {
         id: String(item.product_id ?? item.sku ?? item.name),
         name: String(item.name),
-        price: Number(item.price ?? 0),
+        price: Number(item.unit_price ?? 0),
         image_url: String(item.image_url ?? "")
       },
       quantity: Number(item.quantity ?? 1)
@@ -354,22 +421,42 @@ async function resumeCheckoutByIdempotencyKey(
   });
 }
 
-export async function validateCheckoutStock(input: unknown) {
+export async function inspectCheckoutStock(input: unknown) {
   const payload = checkoutStockSchema.parse(input);
   const { products, items } = await getProductsForItems(payload.items);
+  const requestedByProduct = new Map<string, { product?: Product; quantity: number; fallbackName: string }>();
 
-  const issues = items.flatMap((item) => {
+  for (const item of items) {
     const product = products.find((candidate) => matchesItem(candidate, item));
-    const available = product?.stock ?? 0;
-    if (!product || item.quantity > available) {
-      return [{ productId: item.productId, requested: item.quantity, available, name: itemDisplayName(item, product) }];
-    }
-    return [];
+    const key = product?.id ?? item.productId;
+    const current = requestedByProduct.get(key);
+    requestedByProduct.set(key, {
+      product,
+      quantity: (current?.quantity ?? 0) + item.quantity,
+      fallbackName: itemDisplayName(item, product)
+    });
+  }
+
+  const issues = Array.from(requestedByProduct.entries()).flatMap(([productId, requested]) => {
+    const available = requested.product?.stock ?? 0;
+    return !requested.product || requested.quantity > available
+      ? [{ productId, requested: requested.quantity, available, name: requested.fallbackName }]
+      : [];
   });
 
-  if (issues.length) throw new InsufficientStockError(issues);
+  const requestedItems = Array.from(requestedByProduct.values()).flatMap((requested) =>
+    requested.product
+      ? [{ product: requested.product, quantity: requested.quantity }]
+      : []
+  );
 
-  return { ok: true };
+  return { ok: issues.length === 0, issues, items: requestedItems };
+}
+
+export async function validateCheckoutStock(input: unknown) {
+  const result = await inspectCheckoutStock(input);
+  if (result.issues.length) throw new InsufficientStockError(result.issues);
+  return result;
 }
 
 export async function createCheckout(input: unknown) {
@@ -379,6 +466,14 @@ export async function createCheckout(input: unknown) {
     paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : paymentMethod === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
   const idempotencyKey = payload.idempotencyKey?.trim();
 
+  if (!idempotencyKey) {
+    throw new CheckoutIdempotencyError(
+      "IDEMPOTENCY_KEY_REQUIRED",
+      "No pudimos identificar este intento de compra. Actualizá el checkout y volvé a intentarlo.",
+      422
+    );
+  }
+
   const currentUser = await getCurrentUser();
   if (!currentUser?.email) {
     throw new CheckoutAuthRequiredError();
@@ -386,30 +481,40 @@ export async function createCheckout(input: unknown) {
   if (currentUser.email.trim().toLowerCase() !== payload.customer.email.trim().toLowerCase()) {
     throw new CheckoutAuthRequiredError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
   }
-  const userId =
-    currentUser?.email?.trim().toLowerCase() === payload.customer.email.trim().toLowerCase() ? currentUser.id : null;
+  const userId = currentUser.id;
+  const fingerprint = checkoutFingerprint(payload, userId, paymentMethod);
   const { admin, products, items } = await getProductsForItems(payload.items);
-  if (admin && idempotencyKey) {
-    const resumed = await resumeCheckoutByIdempotencyKey(admin, idempotencyKey, provider, paymentMethod, payload.paymentFlow);
+  if (admin) {
+    const resumed = await resumeCheckoutByIdempotencyKey(
+      admin,
+      idempotencyKey,
+      provider,
+      userId,
+      payload.customer.email,
+      fingerprint,
+      paymentMethod,
+      payload.paymentFlow
+    );
     if (resumed) return resumed;
   }
 
-  const stockIssues = items.flatMap((item) => {
-    const product = products.find((candidate) => matchesItem(candidate, item));
-    const available = product?.stock ?? 0;
-    if (!product || item.quantity > available) {
-      return [{ productId: item.productId, requested: item.quantity, available, name: itemDisplayName(item, product) }];
-    }
-    return [];
-  });
-
-  if (stockIssues.length) throw new InsufficientStockError(stockIssues);
-
-  const lines = items.map((item) => {
+  const linesByProduct = new Map<string, { product: Product; quantity: number; subtotal: number }>();
+  for (const item of items) {
     const product = products.find((candidate) => matchesItem(candidate, item));
     if (!product) throw new Error("Un producto del carrito ya no esta disponible.");
-    return { product, quantity: item.quantity, subtotal: product.price * item.quantity };
-  });
+    const current = linesByProduct.get(product.id);
+    const quantity = (current?.quantity ?? 0) + item.quantity;
+    linesByProduct.set(product.id, { product, quantity, subtotal: product.price * quantity });
+  }
+
+  const lines = Array.from(linesByProduct.values());
+  const stockIssues = lines.flatMap(({ product, quantity }) =>
+    quantity > product.stock
+      ? [{ productId: product.id, requested: quantity, available: product.stock, name: product.name }]
+      : []
+  );
+
+  if (stockIssues.length) throw new InsufficientStockError(stockIssues);
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
   const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
@@ -434,8 +539,6 @@ export async function createCheckout(input: unknown) {
       : isWhatsApp
         ? "COORDINATE"
         : "PENDING_PAYMENT";
-  const dbOrderStatus = compatibleOrderStatus(orderStatus);
-  const dbProvider = compatiblePaymentProvider(provider);
   if (paymentMethod === "MERCADOPAGO" && !isLargePurchase && !isMercadoPagoEnabled()) {
     throw new MercadoPagoNotConfiguredError();
   }
@@ -444,58 +547,106 @@ export async function createCheckout(input: unknown) {
     throw new Error("Supabase admin no esta configurado para crear ordenes reales.");
   }
 
-  const { data: order, error: orderError } = await admin
-    .from("orders")
-    .insert({
-      user_id: userId,
-      status: dbOrderStatus,
-      customer_name: payload.customer.name,
-      customer_email: payload.customer.email,
-      customer_phone: payload.customer.phone,
-      shipping_method: payload.shippingMethod,
-      shipping_cost: delivery,
-      subtotal,
-      total,
-      address_snapshot: shippingQuote?.available ? { ...payload.address, shippingQuote } : payload.address,
-      notes: payload.notes ?? null
-    })
-    .select("id")
-    .single();
-
-  if (orderError || !order) throw new Error("No pudimos crear la orden.");
-
-  const orderItems = lines.map(({ product, quantity }) => ({
-    order_id: order.id,
+  const paymentRaw = {
+    method: paymentMethod,
+    provider,
+    flow: payload.paymentFlow ?? null,
+    requested_order_status: orderStatus,
+    checkout_fingerprint: fingerprint
+  };
+  const atomicItems = lines.map(({ product, quantity }) => ({
     product_id: product.id,
     sku: product.sku,
     name: product.name,
-    price: product.price,
+    unit_price: product.price,
     quantity,
     image_url: product.image_url
   }));
+  const { data: atomicData, error: atomicError } = await admin.rpc("create_checkout_order", {
+    p_user_id: userId,
+    p_customer_name: payload.customer.name,
+    p_customer_email: payload.customer.email,
+    p_customer_phone: payload.customer.phone,
+    p_shipping_method: payload.shippingMethod,
+    p_shipping_cost: delivery,
+    p_subtotal: subtotal,
+    p_total: total,
+    p_address_snapshot: shippingQuote?.available ? { ...payload.address, shippingQuote } : payload.address,
+    p_notes: payload.notes ?? null,
+    p_order_status: orderStatus,
+    p_payment_provider: provider,
+    p_idempotency_key: idempotencyKey,
+    p_payment_raw: paymentRaw,
+    p_items: atomicItems
+  });
 
-  await admin.from("order_items").insert(orderItems);
+  if (atomicError) {
+    const detail = `${atomicError.message ?? ""} ${atomicError.details ?? ""}`;
+    if (detail.includes("INSUFFICIENT_STOCK")) {
+      throw new InsufficientStockError(
+        lines.map(({ product, quantity }) => ({
+          productId: product.id,
+          requested: quantity,
+          available: product.stock,
+          name: product.name
+        }))
+      );
+    }
+    if (detail.includes("PRICE_CHANGED") || detail.includes("INVALID_ITEMS_SUBTOTAL")) {
+      throw new CheckoutIntegrityError(
+        "PRICE_CHANGED",
+        "El precio de un producto cambió mientras revisábamos el pedido. Actualizá el carrito para continuar.",
+        409
+      );
+    }
+    if (detail.includes("create_checkout_order") || atomicError.code === "PGRST202") {
+      throw new CheckoutIntegrityError(
+        "CHECKOUT_PERSISTENCE_UNAVAILABLE",
+        "El sistema de pedidos está actualizándose. Probá nuevamente en unos minutos.",
+        503
+      );
+    }
+    throw new CheckoutIntegrityError(
+      "CHECKOUT_CREATE_FAILED",
+      "No pudimos guardar el pedido completo. No se generó ningún cobro.",
+      500
+    );
+  }
 
-  const { data: payment, error: paymentError } = await admin
-    .from("payments")
-    .insert({
-      order_id: order.id,
-      provider: dbProvider,
-      status: "PENDING",
-      amount: total,
-      currency: "ars",
-      provider_session_id: idempotencyKey || null,
-      raw: {
-        method: paymentMethod,
-        provider,
-        flow: payload.paymentFlow ?? null,
-        requested_order_status: orderStatus
-      }
-    })
-    .select("id")
-    .single();
+  const atomic = (atomicData ?? {}) as {
+    created?: boolean;
+    order_id?: string;
+    payment_id?: string;
+  };
+  if (!atomic.order_id || !atomic.payment_id) {
+    throw new CheckoutIntegrityError(
+      "CHECKOUT_CREATE_FAILED",
+      "No pudimos confirmar la creación completa del pedido. No se generó ningún cobro.",
+      500
+    );
+  }
 
-  if (paymentError || !payment) throw new Error("No pudimos registrar el pago pendiente.");
+  if (!atomic.created) {
+    const resumed = await resumeCheckoutByIdempotencyKey(
+      admin,
+      idempotencyKey,
+      provider,
+      userId,
+      payload.customer.email,
+      fingerprint,
+      paymentMethod,
+      payload.paymentFlow
+    );
+    if (resumed) return resumed;
+    throw new CheckoutIntegrityError(
+      "CHECKOUT_CREATE_FAILED",
+      "No pudimos recuperar el pedido ya iniciado. Actualizá el checkout para continuar.",
+      500
+    );
+  }
+
+  const order = { id: atomic.order_id };
+  const payment = { id: atomic.payment_id };
 
   await notifyAdminNewOrder({ id: order.id, customerName: payload.customer.name, total });
 
