@@ -10,6 +10,16 @@ import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payment
 import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
+import {
+  buildMercadoPagoProviderEventId,
+  isMercadoPagoPaymentId,
+  mercadoPagoWebhookAction,
+  orderStatusFromMercadoPago,
+  paymentAmountMatchesLocal,
+  paymentStatusFromMercadoPago,
+  providerRefundId,
+  safeWebhookEvent
+} from "@/lib/payments/mercadopago-webhook-policy";
 
 type WebhookResult = {
   status: number;
@@ -57,78 +67,44 @@ function isValidWebhookSignature(request: Request, dataId: string) {
   });
 }
 
-function paymentStatusFromMercadoPago(status: string) {
-  if (status === "approved") return "PAID";
-  if (status === "rejected" || status === "cancelled") return "FAILED";
-  if (status === "refunded" || status === "charged_back") return "REFUNDED";
-  if (status === "expired") return "EXPIRED";
-  return "PENDING";
-}
-
-function providerRefundId(payment: Record<string, unknown>) {
-  const refunds = Array.isArray(payment.refunds) ? payment.refunds : [];
-  const latest = refunds.at(-1);
-  if (!latest || typeof latest !== "object") return null;
-  const id = (latest as Record<string, unknown>).id;
-  return id ? String(id) : null;
-}
-
-function orderStatusFromMercadoPago(status: string) {
-  if (["cancelled", "expired", "refunded", "charged_back"].includes(status)) return "CANCELLED";
-  return "PENDING_PAYMENT";
-}
-
 function extractEventType(url: URL, body: Record<string, unknown>) {
   return String(body.type || body.topic || body.action || url.searchParams.get("topic") || "payment");
 }
 
-function extractEventId(body: Record<string, unknown>, paymentId: string) {
-  const data = body.data as Record<string, unknown> | undefined;
-  return String(body.id || data?.id || paymentId || "");
-}
-
-function paymentAmountMatchesLocal(
-  payment: Record<string, unknown>,
-  localPayment: { amount?: string | number | null; currency?: string | null }
-) {
-  const remoteAmount = Number(payment.transaction_amount);
-  const localAmount = Number(localPayment.amount);
-  const remoteCurrency = String(payment.currency_id ?? "").trim().toUpperCase();
-  const localCurrency = String(localPayment.currency ?? "ARS").trim().toUpperCase();
-
-  return (
-    Number.isFinite(remoteAmount) &&
-    Number.isFinite(localAmount) &&
-    Math.abs(remoteAmount - localAmount) <= 0.01 &&
-    remoteCurrency === localCurrency
-  );
-}
-
-function safeWebhookEvent(body: Record<string, unknown>) {
-  const data = body.data && typeof body.data === "object" ? (body.data as Record<string, unknown>) : {};
-  return {
-    id: typeof body.id === "string" || typeof body.id === "number" ? String(body.id) : undefined,
-    type: typeof body.type === "string" ? body.type : undefined,
-    action: typeof body.action === "string" ? body.action : undefined,
-    api_version: typeof body.api_version === "string" ? body.api_version : undefined,
-    date_created: typeof body.date_created === "string" ? body.date_created : undefined,
-    live_mode: typeof body.live_mode === "boolean" ? body.live_mode : undefined,
-    data: {
-      id: typeof data.id === "string" || typeof data.id === "number" ? String(data.id) : undefined
-    }
-  } satisfies Record<string, unknown>;
-}
-
 async function createPaymentEvent(input: {
   eventType: string;
-  providerEventId: string;
+  providerEventId: string | null;
   providerPaymentId: string;
   raw: Record<string, unknown>;
 }) {
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
-  const { data } = await admin
+  if (input.providerEventId) {
+    const { data: existing, error: existingError } = await admin
+      .from("payment_events")
+      .select("id,status")
+      .eq("provider", "MERCADOPAGO")
+      .eq("provider_event_id", input.providerEventId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (existing?.id) {
+      const status = String(existing.status);
+      if (status === "FAILED") {
+        await admin
+          .from("payment_events")
+          .update({ status: "RECEIVED", raw: input.raw, error_message: null, processed_at: null })
+          .eq("id", existing.id);
+      }
+      return {
+        id: String(existing.id),
+        duplicate: status === "PROCESSED" || status === "IGNORED"
+      };
+    }
+  }
+
+  const { data, error } = await admin
     .from("payment_events")
     .insert({
       provider: "MERCADOPAGO",
@@ -141,7 +117,21 @@ async function createPaymentEvent(input: {
     .select("id")
     .maybeSingle();
 
-  return data?.id ? String(data.id) : null;
+  if (error?.code === "23505" && input.providerEventId) {
+    const { data: existing } = await admin
+      .from("payment_events")
+      .select("id,status")
+      .eq("provider", "MERCADOPAGO")
+      .eq("provider_event_id", input.providerEventId)
+      .maybeSingle();
+    if (existing?.id) {
+      const status = String(existing.status);
+      return { id: String(existing.id), duplicate: status === "PROCESSED" || status === "IGNORED" };
+    }
+  }
+  if (error) throw error;
+
+  return { id: data?.id ? String(data.id) : null, duplicate: false };
 }
 
 async function updatePaymentEvent(
@@ -189,22 +179,32 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     return { status: 200, body: { ok: true, received: true, ignored: true } };
   }
 
+  if (!isMercadoPagoPaymentId(paymentId)) {
+    return { status: 400, body: { ok: false, received: false, message: "Notificacion de pago invalida." } };
+  }
+
   if (!isValidWebhookSignature(request, paymentId)) {
     return { status: 401, body: { ok: false, message: "Firma invalida." } };
   }
 
-  const eventId = await createPaymentEvent({
+  const eventReceipt = await createPaymentEvent({
     eventType,
-    providerEventId: extractEventId(body, paymentId),
+    providerEventId: buildMercadoPagoProviderEventId(body, request.headers.get("x-request-id")),
     providerPaymentId: paymentId,
     raw: safeWebhookEvent(body)
   }).catch(() => null);
+  const eventId = eventReceipt?.id ?? null;
+
+  if (eventReceipt?.duplicate) {
+    return { status: 200, body: { ok: true, received: true, duplicate: true } };
+  }
 
   try {
     const payment = await getMercadoPagoPayment(paymentId);
     const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
     const orderId = String(payment.external_reference || metadata.order_id || "");
     const status = String(payment.status ?? "");
+    const action = mercadoPagoWebhookAction(status);
     const safePayment = sanitizeMercadoPagoPayment(payment);
 
     if (!orderId) {
@@ -263,7 +263,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 409, body: { ok: false, received: true, message: "Monto de pago incompatible." } };
     }
 
-    if (status === "partially_refunded") {
+    if (action === "MANUAL_REVIEW") {
       await updatePaymentEvent(eventId, {
         status: "FAILED",
         orderId,
@@ -273,7 +273,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 200, body: { ok: true, received: true, manual_review: true } };
     }
 
-    if (status === "approved") {
+    if (action === "CONFIRM") {
       await confirmApprovedPayment({
         orderId,
         provider: "MERCADOPAGO",
@@ -285,7 +285,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 200, body: { ok: true, received: true, status: "PAID", orderId } };
     }
 
-    if (status === "refunded" || status === "charged_back") {
+    if (action === "REFUND") {
       await finalizeRefundedPayment({
         paymentId: String(localPayment.id),
         providerRefundId: providerRefundId(payment),

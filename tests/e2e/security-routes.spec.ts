@@ -3,6 +3,16 @@ import { expect, test } from "@playwright/test";
 import { validateMercadoPagoSignature } from "../../lib/payments/mercadopago-signature";
 import { getRequestSiteUrl } from "../../lib/utils/env";
 import { safeInternalPath } from "../../lib/utils/navigation";
+import {
+  buildMercadoPagoProviderEventId,
+  isMercadoPagoPaymentId,
+  mercadoPagoWebhookAction,
+  orderStatusFromMercadoPago,
+  paymentAmountMatchesLocal,
+  paymentStatusFromMercadoPago,
+  providerRefundId,
+  safeWebhookEvent
+} from "../../lib/payments/mercadopago-webhook-policy";
 
 test.describe("Controles de seguridad no destructivos", () => {
   test.beforeEach(async ({}, testInfo) => {
@@ -41,6 +51,10 @@ test.describe("Controles de seguridad no destructivos", () => {
     const response = await request.post("/api/webhooks/mercadopago", { data: {} });
     expect(response.status()).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ ok: true, ignored: true });
+
+    const invalid = await request.post("/api/webhooks/mercadopago", { data: { data: { id: "no-es-un-pago" } } });
+    expect(invalid.status()).toBe(400);
+    await expect(invalid.json()).resolves.toMatchObject({ ok: false, received: false });
   });
 
   test("el colector CSP acepta reportes acotados y rechaza JSON inválido", async ({ request }) => {
@@ -146,6 +160,67 @@ test.describe("Firma Mercado Pago aislada", () => {
       xSignature: `ts=${ts},v1=${digest}`,
       xRequestId: requestId
     })).toBe(true);
+  });
+});
+
+test.describe("Politica del webhook Mercado Pago", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium", "Las fixtures puras se prueban una sola vez.");
+  });
+
+  test("clasifica pagos aprobados, rechazados y reembolsados", () => {
+    expect(mercadoPagoWebhookAction("approved")).toBe("CONFIRM");
+    expect(paymentStatusFromMercadoPago("approved")).toBe("PAID");
+    expect(mercadoPagoWebhookAction("rejected")).toBe("UPDATE");
+    expect(paymentStatusFromMercadoPago("rejected")).toBe("FAILED");
+    expect(orderStatusFromMercadoPago("rejected")).toBe("PENDING_PAYMENT");
+    expect(mercadoPagoWebhookAction("refunded")).toBe("REFUND");
+    expect(paymentStatusFromMercadoPago("refunded")).toBe("REFUNDED");
+    expect(orderStatusFromMercadoPago("refunded")).toBe("CANCELLED");
+  });
+
+  test("valida monto, moneda y ultimo identificador de reembolso", () => {
+    expect(paymentAmountMatchesLocal(
+      { transaction_amount: 12500, currency_id: "ARS" },
+      { amount: "12500.00", currency: "ars" }
+    )).toBe(true);
+    expect(paymentAmountMatchesLocal(
+      { transaction_amount: 12501, currency_id: "ARS" },
+      { amount: "12500.00", currency: "ARS" }
+    )).toBe(false);
+    expect(providerRefundId({ refunds: [{ id: 10 }, { id: "refund-final" }] })).toBe("refund-final");
+  });
+
+  test("deduplica notificaciones estables sin bloquear IPN legacy", () => {
+    const notification = { id: 9988, type: "payment", data: { id: "1234" } };
+    expect(buildMercadoPagoProviderEventId(notification, "request-1")).toBe("notification:9988");
+    expect(buildMercadoPagoProviderEventId({ id: "1234" }, null)).toBeNull();
+    expect(buildMercadoPagoProviderEventId({}, "request-2")).toBe("request:request-2");
+    expect(isMercadoPagoPaymentId("1234567890")).toBe(true);
+    expect(isMercadoPagoPaymentId("1234<script>")).toBe(false);
+    expect(isMercadoPagoPaymentId("1".repeat(33))).toBe(false);
+  });
+
+  test("persiste solo el sobre seguro del webhook", () => {
+    const safe = safeWebhookEvent({
+      id: 99,
+      type: "payment",
+      action: "payment.updated",
+      live_mode: false,
+      data: { id: "1234", card: "no-persistir" },
+      payer: { email: "no-persistir@example.com" },
+      token: "no-persistir"
+    });
+    expect(safe).toEqual({
+      id: "99",
+      type: "payment",
+      action: "payment.updated",
+      api_version: undefined,
+      date_created: undefined,
+      live_mode: false,
+      data: { id: "1234" }
+    });
+    expect(JSON.stringify(safe)).not.toContain("no-persistir");
   });
 });
 

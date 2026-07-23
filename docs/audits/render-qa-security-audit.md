@@ -52,6 +52,7 @@ Se contrasto el codigo con el esquema real de Supabase mediante consultas de sol
 | Precio y stock | Protegidos | La RPC bloquea los productos, relee precio/stock y valida subtotal antes de persistir. Lineas duplicadas del carrito se agregan por producto. |
 | Finalizacion de pago | Protegida | Prueba con rollback confirmo un solo descuento de stock, ticket y movimiento ante eventos repetidos. |
 | Webhook | Reforzado | Valida monto, moneda, entorno y asociacion local. Contracargos se tratan como reembolso y reembolsos parciales pasan a revision manual. |
+| Idempotencia de webhook | Protegida | La migracion `20260723000000` crea un indice unico parcial para notificaciones estables; IPN legacy permanece reintentable y los eventos fallidos pueden reprocesarse. |
 | Privilegios de perfil | Protegidos | Trigger de base impide que un usuario cambie `role`, `email` o `id`; se verifico tambien el contexto real de `service_role` de PostgREST. |
 | Observabilidad | Activa | La consola de sistema consulta integridad de checkout, indice de idempotencia, privilegios, stock negativo y pedidos incompletos. |
 | Solicitudes del consumidor | Protegidas | Alta server-side con idempotencia, RLS de lectura propia, gestión admin, auditoría, notificaciones y constancias Resend sin reembolso automático. |
@@ -76,7 +77,7 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 | Checkout | OK con observaciones | Medio | API recalcula productos/stock en backend y diferencia `MERCADOPAGO`, `BANK_TRANSFER`, `WHATSAPP`. | Test E2E/API cubre transferencia, WhatsApp y Mercado Pago test. | No hacer compras reales; verificar cada deploy con comprador TESTUSER. |
 | Idempotencia | Protegida | Bajo | La base real tiene indice unico parcial y RPC atomica; no hay claves duplicadas. | Se probo retry y concurrencia desde dos conexiones: una sola orden, item y pago. | Mantener monitoreo en Admin > Sistema. |
 | Mercado Pago | OK con control de entorno | Medio | `PAYMENTS_ENV=test` usa `sandbox_init_point || init_point`; webhook valida `live_mode`. | Test API espera `sandbox_init_point` en modo test. | No mezclar vendedor real/comprador real con credenciales de prueba; usar comprador TESTUSER. |
-| Webhook | Reforzado | Bajo | Valida firma con comparación temporal segura, `live_mode`, asociación, monto y moneda; no confía en el payload para confirmar. | Se aisló la validación HMAC y se cubrieron ausencia de secret, firma inválida y firma válida. | Mantener pruebas con eventos sandbox antes de pasar a producción. |
+| Webhook | Reforzado | Bajo | Valida firma con comparación temporal segura, `live_mode`, asociación, monto y moneda; no confía en el payload para confirmar. | Se aisló la política de estados, se sanitiza el evento y un índice único parcial deduplica notificaciones estables sin bloquear IPN legacy. | Mantener una prueba final con eventos sandbox antes de pasar a producción. |
 | Transferencia | OK | Bajo | `BANK_TRANSFER` crea pedido pendiente y no devuelve `redirect_url`. | Test API agregado. | Flujo administrativo de envio de datos bancarios depende de operacion FZAC/email. |
 | WhatsApp | OK | Bajo | `WHATSAPP` crea pedido pendiente, no devuelve MP y genera `whatsapp_url`. | Test API agregado. | Validar numero final en Render. |
 | Base de datos | Auditada | Bajo/Medio | Se consultó el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722000000` a `20260722050000` quedaron registradas remotamente. | Se corrigió checkout atómico y se completó el flujo privado de solicitudes del consumidor. | Conciliar las 63 órdenes históricas incompletas con decisión administrativa. |
@@ -174,7 +175,7 @@ Control local del lote actual:
 | Build con Node `22.22.0` | OK, 59 rutas |
 | `npm audit --omit=dev` | OK, 0 vulnerabilidades |
 | Smoke Playwright desktop | OK, 15 passed / 4 skipped |
-| Playwright seguridad | OK, 12 passed local y 12 passed en Render |
+| Playwright seguridad | OK, 16 passed local; la verificacion de Render se ejecuta despues de cada deploy |
 | Matriz Playwright local | OK, 155 passed / 90 skipped intencionales |
 | Playwright mobile compacto en Render | OK, 17 passed / 1 skipped por sesion QA ausente |
 | Smoke de concurrencia | OK, 180 requests / 0 respuestas 500 |
@@ -216,6 +217,6 @@ Verificacion posterior al deploy `88aa06789d22ffc65a33bfd1242cba10bbe1ceec`:
 1. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.
 2. Revisar legalmente términos, privacidad, devoluciones y SLA del Botón de arrepentimiento antes del lanzamiento definitivo.
 3. Analizar reportes CSP de Render y recién después evaluar pasar de Report-Only a enforcement.
-4. Agregar casos integrados del webhook approved/rejected/refunded con fixtures del proveedor, sin usar cobros reales.
+4. Ejecutar una prueba final de webhook con eventos sandbox reales del proveedor; las fixtures aisladas `approved`, `rejected` y `refunded` ya están cubiertas.
 5. Probar usuario normal autenticado bloqueado en admin y admin autorizado con cuentas QA separadas.
 6. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.
