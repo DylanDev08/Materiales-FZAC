@@ -31,12 +31,16 @@ services:
         value: test
       - key: PAYMENTS_PROVIDER
         value: mercadopago
+      - key: PAYMENTS_PRODUCTION_CONFIRMED
+        value: "false"
       - key: MERCADOPAGO_ACCESS_TOKEN
         sync: false
       - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
         sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
         sync: false
+      - key: MERCADOPAGO_CARD_ENABLED
+        value: "false"
       - key: PURCHASE_AUTO_APPROVAL_LIMIT
         value: "250000"
       - key: ADMIN_EMAILS
@@ -49,6 +53,8 @@ services:
         sync: false
       - key: RESEND_FROM_NAME
         value: Materiales FZAC
+      - key: FISCAL_INVOICING_ENABLED
+        value: "false"
       - key: ASSISTANT_PERSISTENCE_ENABLED
         value: "true"
       - key: NEXT_PUBLIC_FZAC_WHATSAPP
