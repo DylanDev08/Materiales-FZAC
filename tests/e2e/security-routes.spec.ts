@@ -70,6 +70,31 @@ test.describe("Controles de seguridad no destructivos", () => {
     expect(response.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
     expect(response.headers()["content-security-policy-report-only"]).toContain("report-uri /api/security/csp-report");
   });
+
+  test("la tienda recupera un asset estático interrumpido sin entrar en bucle", async ({ context, page }) => {
+    await context.addInitScript(() => {
+      const key = "fzac-qa-document-count";
+      window.localStorage.setItem(key, String(Number(window.localStorage.getItem(key) || "0") + 1));
+    });
+
+    await page.goto("/productos", { waitUntil: "networkidle" });
+    const baseline = await page.evaluate(() => Number(window.localStorage.getItem("fzac-qa-document-count") || "0"));
+
+    const recoveredLoad = page.waitForEvent("load");
+    await page.evaluate(() => {
+      const script = document.createElement("script");
+      script.src = `/_next/static/chunks/qa-missing-${Date.now()}.js`;
+      document.body.appendChild(script);
+    });
+
+    await recoveredLoad;
+    await page.waitForLoadState("networkidle");
+
+    const recoveredDocuments = await page.evaluate(() => Number(window.localStorage.getItem("fzac-qa-document-count") || "0"));
+    expect(recoveredDocuments).toBeGreaterThan(baseline);
+    await expect(page.getByRole("button", { name: /Agregar/i }).first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("fzac-static-asset-retry"))).toBeNull();
+  });
 });
 
 test.describe("Firma Mercado Pago aislada", () => {

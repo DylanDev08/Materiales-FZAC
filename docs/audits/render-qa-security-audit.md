@@ -180,7 +180,7 @@ Control local del lote actual:
 
 ## Estabilizacion de carga en Render
 
-Durante la verificacion del lote se detecto un fallo intermitente de hidratacion exclusivo del transporte de Render:
+Durante la verificacion del lote se detecto un fallo intermitente de hidratacion al cargar Render desde el host de auditoria:
 
 - El HTML principal respondia `200`, pero Chromium recibia `ERR_HTTP2_SERVER_REFUSED_STREAM` o `ERR_QUIC_PROTOCOL_ERROR` al solicitar algunos chunks propios de `/_next/static`.
 - `/productos` iniciaba 51 prefetches RSC especulativos antes de cualquier interaccion, ademas de los recursos necesarios para hidratar la pagina.
@@ -188,15 +188,17 @@ Durante la verificacion del lote se detecto un fallo intermitente de hidratacion
 - El build de produccion se fijo en Webpack para usar el empaquetado mas estable en el runtime de Render.
 - El primer deploy sin prefetch confirmo que el edge todavia rechazaba entre 2 y 10 de 16 scripts esenciales. La misma pagina forzada a HTTP/1.1 cargo 3/3 productos y 0 fallos, aislando el problema en el transporte HTTP/2 de Render.
 - El bundle cliente final desactiva la fragmentacion de rutas en produccion: `/productos` necesita 4 scripts iniciales en lugar de 16.
+- Se agrego recuperacion acotada ante un JS/CSS estatico interrumpido: conserva lo ya cacheado y recarga como maximo dos veces por pestana, sin bucles.
 
 Medicion local sobre el artefacto final:
 
 - Antes: 51 solicitudes RSC especulativas y 47 solicitudes abortadas en la muestra.
 - Despues: 0 solicitudes RSC especulativas, 0 solicitudes fallidas y 3/3 productos hidratados con su accion Agregar.
 - Bundle final: 4 scripts, aproximadamente 286 KB transferidos en local y tres cargas consecutivas sin errores.
+- Recuperacion inducida: una carga sana no se recarga; al forzar un asset 404, la pagina recarga una vez, hidrata 3/3 productos y limpia el contador.
 - Instalacion limpia equivalente a Render: `npm ci --include=dev` OK.
 - Build Node `22.22.0` + Webpack: OK, 59 rutas.
-- Seguridad: 11 passed.
+- Seguridad: 12 passed.
 - Smoke desktop: 15 passed / 4 skipped por escritura QA deshabilitada.
 - Mobile completo: 68 passed / 22 skipped por proyecto desktop o sesion QA ausente.
 
