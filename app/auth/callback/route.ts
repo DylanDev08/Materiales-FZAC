@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getAdminConsolePath, getRequestSiteUrl } from "@/lib/utils/env";
+import { safeInternalPath } from "@/lib/utils/navigation";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const requestedNext = requestUrl.searchParams.get("next");
-  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/cuenta";
+  const next = safeInternalPath(requestedNext);
   const siteUrl = getRequestSiteUrl(request);
   const supabase = await getSupabaseServerClient();
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Info, Search, X } from "lucide-react";
 import { AdminRefundAction } from "@/components/admin/admin-refund-action";
+import { AdminConsumerRequestAction } from "@/components/admin/admin-consumer-request-action";
 
 type AdminTableRow = Record<string, string | number | null | undefined>;
 type AdminTab = { label: string; match: (row: AdminTableRow) => boolean };
@@ -61,6 +62,17 @@ function tabOptionsFor(title: string): AdminTab[] {
       label,
       match: label === "Todos" ? () => true : includes(label)
     }));
+  }
+
+  if (normalized.includes("arrepentimiento")) {
+    return [
+      { label: "Todos", match: () => true },
+      { label: "Recibidas", match: statusIncludes("recibid") },
+      { label: "En revisión", match: statusIncludes("revisi") },
+      { label: "Aprobadas", match: statusIncludes("aprob") },
+      { label: "Rechazadas", match: statusIncludes("rechaz") },
+      { label: "Cerradas", match: statusIncludes("cerrad") }
+    ];
   }
 
   return [];
@@ -368,6 +380,16 @@ export function AdminInteractiveTable({
               provider={selectedRow.__provider ? String(selectedRow.__provider) : undefined}
               status={selectedRow.__status ? String(selectedRow.__status) : undefined}
               reference={selectedRow.Referencia ? String(selectedRow.Referencia) : undefined}
+            />
+          ) : null}
+          {title.toLowerCase().includes("arrepentimiento") ? (
+            <AdminConsumerRequestAction
+              requestId={selectedRow.__requestId ? String(selectedRow.__requestId) : undefined}
+              requestNumber={selectedRow.__requestNumber ? String(selectedRow.__requestNumber) : undefined}
+              status={selectedRow.__status ? String(selectedRow.__status) : undefined}
+              details={selectedRow.__details ? String(selectedRow.__details) : undefined}
+              resolutionNote={selectedRow.__resolutionNote ? String(selectedRow.__resolutionNote) : undefined}
+              orderId={selectedRow.__orderId ? String(selectedRow.__orderId) : undefined}
             />
           ) : null}
           <dl>

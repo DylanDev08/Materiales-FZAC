@@ -34,6 +34,16 @@ type ProductStockRow = {
   unit: string | null;
 };
 
+type ConsumerRequestRow = {
+  id: string;
+  request_number: string;
+  order_number: string | null;
+  reason: string | null;
+  status: string | null;
+  resolution_note: string | null;
+  created_at: string | null;
+};
+
 const paidStatuses = new Set(["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"]);
 const pendingStatuses = new Set(["PENDING_PAYMENT", "PENDING_ADMIN_APPROVAL", "PENDING_TRANSFER", "COORDINATE"]);
 
@@ -94,6 +104,15 @@ export type AccountOverview = {
     subject: string;
     lastMessageAt: string;
   }>;
+  consumerRequests: Array<{
+    id: string;
+    requestNumber: string;
+    orderNumber: string;
+    reason: string;
+    status: string;
+    resolutionNote: string;
+    createdAt: string;
+  }>;
 };
 
 export async function getAccountOverview(profile: SessionProfile): Promise<AccountOverview> {
@@ -111,11 +130,19 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       addresses: [],
       orders: [],
       products: [],
-      conversations: []
+      conversations: [],
+      consumerRequests: []
     };
   }
 
-  const [{ data: ordersByUser }, { data: ordersByEmail }, { data: addresses }, { data: conversations }] = await Promise.all([
+  const [
+    { data: ordersByUser },
+    { data: ordersByEmail },
+    { data: addresses },
+    { data: conversations },
+    { data: consumerRequestsByUser },
+    { data: consumerRequestsByEmail }
+  ] = await Promise.all([
     admin
       .from("orders")
       .select("id,status,total,subtotal,shipping_cost,shipping_method,customer_email,customer_name,customer_phone,created_at")
@@ -139,7 +166,19 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       .select("id,status,subject,last_message_at")
       .eq("user_id", profile.id)
       .order("last_message_at", { ascending: false })
-      .limit(6)
+      .limit(6),
+    admin
+      .from("consumer_refund_requests")
+      .select("id,request_number,order_number,reason,status,resolution_note,created_at")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    admin
+      .from("consumer_refund_requests")
+      .select("id,request_number,order_number,reason,status,resolution_note,created_at")
+      .eq("email", profile.email)
+      .order("created_at", { ascending: false })
+      .limit(20)
   ]);
 
   const orders = mergeOrders(ordersByUser as OrderRow[] | null, ordersByEmail as OrderRow[] | null);
@@ -166,6 +205,11 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
   const pendingOrderIds = new Set(orders.filter((order) => pendingStatuses.has(String(order.status))).map((order) => order.id));
   const paidItems = itemRows.filter((item) => paidOrderIds.has(item.order_id));
   const pendingItems = itemRows.filter((item) => pendingOrderIds.has(item.order_id));
+  const consumerRequestMap = new Map<string, ConsumerRequestRow>();
+  [...((consumerRequestsByUser ?? []) as ConsumerRequestRow[]), ...((consumerRequestsByEmail ?? []) as ConsumerRequestRow[])]
+    .forEach((consumerRequest) => consumerRequestMap.set(consumerRequest.id, consumerRequest));
+  const consumerRequests = Array.from(consumerRequestMap.values())
+    .sort((a, b) => Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? ""));
 
   const totalSpent = orders
     .filter((order) => paidStatuses.has(String(order.status)))
@@ -219,6 +263,15 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       status: String(conversation.status ?? "OPEN"),
       subject: String(conversation.subject ?? "Consulta FZAC"),
       lastMessageAt: shortDate(conversation.last_message_at)
+    })),
+    consumerRequests: consumerRequests.map((consumerRequest) => ({
+      id: consumerRequest.id,
+      requestNumber: consumerRequest.request_number,
+      orderNumber: String(consumerRequest.order_number ?? ""),
+      reason: String(consumerRequest.reason ?? "OTHER"),
+      status: String(consumerRequest.status ?? "RECEIVED"),
+      resolutionNote: String(consumerRequest.resolution_note ?? ""),
+      createdAt: shortDate(consumerRequest.created_at)
     }))
   };
 }

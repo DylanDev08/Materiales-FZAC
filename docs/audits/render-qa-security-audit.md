@@ -37,7 +37,7 @@ Sin valores sensibles:
 | Comando | Estado | Evidencia |
 | --- | --- | --- |
 | `npm run typecheck` | OK | TypeScript completo sin errores antes de cambios. |
-| `npm run build` | OK | Build Next.js completo con 56 rutas. |
+| `npm run build` | OK | Build Next.js 16.2.11 completo con Node 22.22.0 y 59 rutas. |
 | `npm audit` | OK | Next y `eslint-config-next` se actualizaron a `16.2.11`; quedan 0 vulnerabilidades reportadas. |
 
 ## Actualizacion de integridad transaccional - 2026-07-22
@@ -54,6 +54,7 @@ Se contrasto el codigo con el esquema real de Supabase mediante consultas de sol
 | Webhook | Reforzado | Valida monto, moneda, entorno y asociacion local. Contracargos se tratan como reembolso y reembolsos parciales pasan a revision manual. |
 | Privilegios de perfil | Protegidos | Trigger de base impide que un usuario cambie `role`, `email` o `id`; se verifico tambien el contexto real de `service_role` de PostgREST. |
 | Observabilidad | Activa | La consola de sistema consulta integridad de checkout, indice de idempotencia, privilegios, stock negativo y pedidos incompletos. |
+| Solicitudes del consumidor | Protegidas | Alta server-side con idempotencia, RLS de lectura propia, gestión admin, auditoría, notificaciones y constancias Resend sin reembolso automático. |
 
 ### Hallazgo historico preservado
 
@@ -67,7 +68,7 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 
 | Area | Estado | Riesgo | Evidencia | Accion tomada | Pendiente |
 | --- | --- | --- | --- | --- | --- |
-| Deploy Render | OK | Bajo | `/api/health` publica el commit `6262244`; las rutas publicas y la proteccion admin pasan el smoke remoto. | Deploy automatico completado y verificado por SHA. | Mantener monitoreo de cold starts del plan free. |
+| Deploy Render | Pendiente de este lote | Bajo | La versión previa estable publicaba `a566651`; el deploy final debe coincidir con `main` en `/api/health`. | Build y suites locales completos antes del push. | Verificar SHA y smoke remoto al terminar el deploy. |
 | Home | OK | Bajo | Carga sin 404/500 en Render. | Se agrego acceso visible al Boton de arrepentimiento en el bloque legal del home. | Revisar copy legal con profesional. |
 | Productos | OK | Bajo | `/productos` responde 200 y permite agregar producto al carrito en smoke local/Render. | Suite E2E cubre agregado y paso a checkout. | Mantener monitoreo de imagenes externas. |
 | Detalle producto | OK | Bajo | Las rutas `/producto/[slug]` compilan y Render muestra actividad de rutas. | Sin cambios. | Agregar test especifico por slug en una siguiente iteracion. |
@@ -75,20 +76,21 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 | Checkout | OK con observaciones | Medio | API recalcula productos/stock en backend y diferencia `MERCADOPAGO`, `BANK_TRANSFER`, `WHATSAPP`. | Test E2E/API cubre transferencia, WhatsApp y Mercado Pago test. | No hacer compras reales; verificar cada deploy con comprador TESTUSER. |
 | Idempotencia | Protegida | Bajo | La base real tiene indice unico parcial y RPC atomica; no hay claves duplicadas. | Se probo retry y concurrencia desde dos conexiones: una sola orden, item y pago. | Mantener monitoreo en Admin > Sistema. |
 | Mercado Pago | OK con control de entorno | Medio | `PAYMENTS_ENV=test` usa `sandbox_init_point || init_point`; webhook valida `live_mode`. | Test API espera `sandbox_init_point` en modo test. | No mezclar vendedor real/comprador real con credenciales de prueba; usar comprador TESTUSER. |
-| Webhook | Reforzado | Bajo/Medio | Valida firma, `live_mode`, asociacion, monto y moneda; no confia en el payload para confirmar. | Se agrego manejo de contracargos y revision manual de reembolso parcial. | Agregar tests unitarios aislados de firma cuando se incorpore un runner unitario. |
+| Webhook | Reforzado | Bajo | Valida firma con comparación temporal segura, `live_mode`, asociación, monto y moneda; no confía en el payload para confirmar. | Se aisló la validación HMAC y se cubrieron ausencia de secret, firma inválida y firma válida. | Mantener pruebas con eventos sandbox antes de pasar a producción. |
 | Transferencia | OK | Bajo | `BANK_TRANSFER` crea pedido pendiente y no devuelve `redirect_url`. | Test API agregado. | Flujo administrativo de envio de datos bancarios depende de operacion FZAC/email. |
 | WhatsApp | OK | Bajo | `WHATSAPP` crea pedido pendiente, no devuelve MP y genera `whatsapp_url`. | Test API agregado. | Validar numero final en Render. |
-| Base de datos | Auditada | Bajo/Medio | Se consulto el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722010000` a `20260722040000` figuran aplicadas remotamente. | Se corrigio el contrato `order_items`, la creacion atomica y la observabilidad. | Conciliar las 63 ordenes historicas incompletas con decision administrativa. |
+| Base de datos | Auditada | Bajo/Medio | Se consultó el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722000000` a `20260722050000` quedaron registradas remotamente. | Se corrigió checkout atómico y se completó el flujo privado de solicitudes del consumidor. | Conciliar las 63 órdenes históricas incompletas con decisión administrativa. |
 | RLS | Activa y reforzada | Bajo/Medio | RLS esta habilitada en las tablas publicas revisadas. El trigger real preserva `id`, `email` y `role` ante escrituras de clientes. | Se probo con rollback que un usuario no puede elevarse a ADMIN. | La auditoria de policies debe repetirse ante cada cambio de esquema. |
 | Admin | OK | Bajo | APIs admin anonimas devuelven 401; `/admin` redirige a consola oculta. | Se verificaron `/api/admin/*` anonimos. | Probar usuario comun autenticado vs admin real en navegador. |
 | Rutas protegidas | OK | Bajo | `/api/admin/metrics`, orders, payments, products devuelven 401 anonimo; `/api/orders/:id` devuelve 401 anonimo. | Reportado. | Test automatizado autenticado requiere credenciales de QA separadas. |
 | Botones | OK | Bajo | Playwright recorrio los links internos principales en Render sin 404. | `/register` redirige a `/registro` y `/arrepentimiento` esta publicado. | Repetir el smoke ante cambios de navegacion. |
-| Legal consumidor | Mejorado | Medio | Render no tenia `/arrepentimiento` directo. | Se agrego pagina y links visibles en home/footer. | Falta formulario persistente con numero de tramite y constancia email. |
-| Boton arrepentimiento | Mejorado | Medio | Antes 404 en Render. | Nueva ruta `/arrepentimiento`, CTA legal en home y footer. | Backend de tramite pendiente si se requiere cumplimiento formal completo. |
+| Legal consumidor | Completo técnicamente | Bajo/Medio | `/arrepentimiento` registra un trámite idempotente, genera número, avisa al admin y envía constancia cuando Resend está disponible. | Se agregó gestión de estados, nota de resolución y seguimiento autenticado en Mi cuenta. | Revisión jurídica final por profesional antes de producción. |
+| Botón arrepentimiento | Operativo | Bajo/Medio | Formulario mobile con validación, honeypot, rate limit, idempotencia y contenido seguro. | El cliente conserva número y puede consultar estado; el admin gestiona desde una sección dedicada. | Definir SLA interno de respuesta y responsables. |
 | Reembolsos | OK con migracion | Medio | Endpoint admin exige admin, motivo, pago PAID, MP, live_mode compatible y RPC de integridad. | Auditado. | Confirmar migracion `finalize_refunded_order` aplicada en Supabase. |
-| Seguridad headers | Mejorado | Bajo/Medio | Render ya tenia `DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`; faltaba HSTS. | Se agrego `Strict-Transport-Security` en produccion. | CSP queda pendiente para no romper Supabase/Mercado Pago sin validacion completa. |
+| Seguridad headers | Reforzada | Bajo | Incluye `DENY`, `nosniff`, HSTS, referrer/permissions policy, COOP/CORP y cache privada en rutas sensibles. | Se agregó CSP Report-Only compatible con Supabase, Google y Mercado Pago, más colector acotado y rate-limited. | Revisar reportes reales antes de convertir CSP a modo obligatorio. |
 | Performance | Basico OK | Bajo | Build optimizado compila; no se ejecuto Lighthouse completo. | Documentado. | Medir Lighthouse tras deploy final. |
-| Mobile | OK local | Bajo | iPhone 13, Pixel 7, Galaxy S20 y 360x740 pasan rutas, overflow, menu, catalogo, producto, carrito y auth. | 68 pruebas pasaron; el formulario autenticado queda reservado a una sesion QA. | Repetir smoke contra Render despues del deploy. |
+| Mobile | OK local | Bajo | iPhone 13, Pixel 7, Galaxy S20 y 360x740 pasan rutas, overflow, menú, catálogo, producto, carrito, legal y auth. | 68 pruebas pasaron; 4 casos autenticados quedaron omitidos deliberadamente. | Repetir smoke contra Render después del deploy. |
+| Auth y enumeración | Reforzada | Bajo | Login conserva respuesta genérica; recuperación y comprobación pública no revelan si existe una cuenta. | Registro duplicado devuelve respuesta neutral, el dominio configurado prevalece sobre Host y `next` solo acepta rutas internas seguras. | Probar entrega real de email al rotar dominio/Resend. |
 | Accesibilidad | Parcial | Medio | Smoke valida rutas y botones principales, no axe completo. | Documentado. | Agregar auditoria axe si se permite instalar dependencia adicional. |
 
 ## Bugs corregidos en esta rama
@@ -103,6 +105,11 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 8. El perfil permitia intentar modificar el rol desde el cliente. Se agrego un guard de base probado contra PostgREST.
 9. El webhook no conciliaba monto/moneda ni contracargos. Ahora rechaza inconsistencias y deriva reembolsos parciales a revision.
 10. `next@16.2.10` quedo afectado por avisos de seguridad. Se actualizo junto con el lockfile a `16.2.11`.
+11. El Botón de arrepentimiento no persistía solicitudes. Ahora registra un único trámite por intento, entrega constancia y permite gestión administrativa.
+12. El cliente no tenía seguimiento de solicitudes. Se agregó `/cuenta/solicitudes`, limitado a su identidad y email.
+13. El registro revelaba cuentas existentes. Ahora usa una respuesta indistinguible y el endpoint público de comprobación no devuelve existencia.
+14. Faltaba CSP progresiva y bloqueo transversal de mutaciones cross-site. Se incorporaron sin imponer una política que pudiera romper OAuth o pagos.
+15. Los enlaces de auth podían tomar un Host reenviado no confiable y `next=/\\dominio` podía escapar del sitio. Se fijó origen canónico y normalización compartida de rutas internas.
 
 ## Hallazgos de seguridad
 
@@ -112,6 +119,9 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 - El webhook de Mercado Pago no queda fail-open en produccion sin secret.
 - Los logs de Mercado Pago estan condicionados a no-production y sanitizan contexto.
 - Las migraciones nuevas de checkout atomico, idempotencia, observabilidad y profile guard figuran en el historial remoto de Supabase.
+- Las solicitudes del consumidor se escriben únicamente desde backend, tienen idempotencia en base y RLS de lectura propia/administración.
+- Las mutaciones API de navegador rechazan origen cruzado, salvo los aliases explícitos del webhook externo de Mercado Pago.
+- La comprobación pública y el alta duplicada no permiten enumerar cuentas.
 - Existen 63 ordenes historicas sin items. No se eliminaron ni editaron automaticamente para preservar trazabilidad.
 
 ## Playwright
@@ -140,12 +150,20 @@ Corrida final contra build local en `http://localhost:3100`:
 - Suite mobile: 68 OK, 22 salteadas por ser desktop o requerir sesion QA, 0 fallas.
 - Los tests con escritura requieren habilitacion explicita y nunca corren por defecto contra Render.
 
-Control post-deploy contra `https://materiales-fzac-8xmp.onrender.com/`:
+Control previo estable contra `https://materiales-fzac-8xmp.onrender.com/`:
 
 - Render sirve el SHA completo `626224438f3115afe770eb5c0416e3643773c665`.
 - Smoke desktop: 15 OK, 4 salteadas por requerir escritura QA, 0 fallas.
 - Mobile 360x740: 17 OK, 1 salteada por requerir sesion QA, 0 fallas.
 - No se realizaron pagos, pedidos ni escrituras productivas durante este control.
+
+Control local del lote actual:
+
+- Seguridad: 11 OK, 0 fallas.
+- Smoke desktop: 15 OK, 4 salteadas por requerir escritura QA.
+- Mobile: 68 OK, 4 salteadas por requerir sesión QA.
+- Concurrencia de solo lectura: 100 búsquedas y 80 validaciones de carrito, sin 500; los límites devolvieron 429 con `Retry-After`.
+- Flujo legal controlado: creación 201, replay idempotente 200, contenido hostil 422 y limpieza posterior de los datos QA.
 
 ## Validacion final local
 
@@ -153,16 +171,18 @@ Control post-deploy contra `https://materiales-fzac-8xmp.onrender.com/`:
 | --- | --- |
 | `npm run typecheck` | OK |
 | `npm run lint` | OK |
-| `npm run build` | OK |
+| Build con Node `22.22.0` | OK, 59 rutas |
 | `npm audit --omit=dev` | OK, 0 vulnerabilidades |
 | Smoke Playwright desktop | OK, 15 passed / 4 skipped |
-| Playwright mobile | OK, 68 passed / 22 skipped |
+| Playwright seguridad | OK, 11 passed |
+| Playwright mobile | OK, 68 passed / 4 skipped |
+| Smoke de concurrencia | OK, 180 requests / 0 respuestas 500 |
 
 ## TODOs pendientes antes de produccion
 
 1. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.
-2. Implementar tramite persistente del Boton de arrepentimiento si se exige constancia automatica: tabla/request, notificacion admin y email.
-3. Agregar CSP progresiva validada con Mercado Pago, Supabase, Google OAuth y assets.
-4. Agregar tests unitarios del webhook: firma invalida, sin secret en production, live_mode incompatible, approved/rejected/refunded.
+2. Revisar legalmente términos, privacidad, devoluciones y SLA del Botón de arrepentimiento antes del lanzamiento definitivo.
+3. Analizar reportes CSP de Render y recién después evaluar pasar de Report-Only a enforcement.
+4. Agregar casos integrados del webhook approved/rejected/refunded con fixtures del proveedor, sin usar cobros reales.
 5. Probar usuario normal autenticado bloqueado en admin y admin autorizado con cuentas QA separadas.
 6. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.

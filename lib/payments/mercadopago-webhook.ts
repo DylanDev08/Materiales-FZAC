@@ -1,6 +1,5 @@
 import "server-only";
 
-import crypto from "node:crypto";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   MercadoPagoNotConfiguredError,
@@ -10,6 +9,7 @@ import {
 import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
+import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
 
 type WebhookResult = {
   status: number;
@@ -30,15 +30,6 @@ function extractPaymentId(url: URL, body: Record<string, unknown>) {
   ).trim();
 }
 
-function parseSignature(value: string | null) {
-  return Object.fromEntries(
-    String(value ?? "")
-      .split(",")
-      .map((part) => part.split("=").map((item) => item.trim()))
-      .filter((part) => part.length === 2)
-  );
-}
-
 function isValidWebhookSignature(request: Request, dataId: string) {
   const { webhookSecret, paymentsEnv } = getMercadoPagoConfig();
   if (!webhookSecret) {
@@ -57,19 +48,13 @@ function isValidWebhookSignature(request: Request, dataId: string) {
     return true;
   }
 
-  const xSignature = request.headers.get("x-signature");
-  const xRequestId = request.headers.get("x-request-id");
-  if (!xSignature || !xRequestId || !dataId) return false;
-
-  const signature = parseSignature(xSignature);
-  const ts = signature.ts;
-  const v1 = signature.v1;
-  if (!ts || !v1) return false;
-
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const expected = crypto.createHmac("sha256", webhookSecret).update(manifest).digest("hex");
-  if (expected.length !== v1.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+  return validateMercadoPagoSignature({
+    webhookSecret,
+    paymentsEnv,
+    dataId,
+    xSignature: request.headers.get("x-signature"),
+    xRequestId: request.headers.get("x-request-id")
+  });
 }
 
 function paymentStatusFromMercadoPago(status: string) {

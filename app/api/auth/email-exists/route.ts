@@ -14,5 +14,8 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return jsonError("Email invalido.", 422);
 
-  return Response.json({ exists: false, checked: false });
+  return Response.json(
+    { checked: false },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

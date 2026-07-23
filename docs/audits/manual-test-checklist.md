@@ -103,6 +103,11 @@ Usar este checklist antes de cada deploy importante.
 ## Legal y confianza
 
 - [ ] Boton de arrepentimiento visible desde home/footer.
+- [ ] El formulario devuelve HTTP 201 y un número de trámite nuevo.
+- [ ] Repetir el mismo intento devuelve el mismo trámite y no duplica registros.
+- [ ] El cliente autenticado ve el estado en `/cuenta/solicitudes`.
+- [ ] Admin > Arrepentimientos permite revisar y responder sin reembolsar automáticamente.
+- [ ] La constancia llega por Resend cuando el canal está configurado.
 - [ ] Terminos tienen logo FZAC.
 - [ ] Privacidad visible.
 - [ ] Cambios/devoluciones visibles.
@@ -118,7 +123,9 @@ Usar este checklist antes de cada deploy importante.
 - [ ] No hay stack traces al usuario.
 - [ ] Admin tiene `X-Robots-Tag: noindex`.
 - [ ] Headers `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS en produccion.
-- [ ] CSP revisada o pendiente documentada.
+- [ ] CSP Report-Only aparece y `/api/security/csp-report` limita tamaño/frecuencia.
+- [ ] Mutaciones con `Origin` externo devuelven 403.
+- [ ] Registro, recuperación y comprobación de email no permiten enumerar cuentas.
 
 ## Mobile y accesibilidad
 

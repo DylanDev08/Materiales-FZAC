@@ -31,7 +31,11 @@ export function getRequestSiteUrl(request: Request) {
   const requestOrigin = forwardedOrigin || requestUrl.origin;
   const configured = getSiteUrl();
 
-  return !isLocalUrl(requestOrigin) || isLocalUrl(configured) ? requestOrigin : configured;
+  if (hasRealValue(configured) && !isLocalUrl(configured)) {
+    return new URL(configured).origin;
+  }
+
+  return new URL(requestOrigin).origin;
 }
 
 export function getAdminEmails() {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { safeInternalPath } from "@/lib/utils/navigation";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
 import { isValidArgentinePhone, limitPhoneInput, normalizePhoneDigits } from "@/lib/validations/security";
 
@@ -34,7 +35,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const checks = useMemo(() => passwordChecks(password, normalizedEmail, name), [password, normalizedEmail, name]);
   const passwordOk = checks.every((check) => check.ok);
   const requestedNext = searchParams.get("next");
-  const safeNext = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/cuenta";
+  const safeNext = safeInternalPath(requestedNext);
 
   function clearFieldError(field: keyof AuthFieldErrors) {
     setFieldErrors((current) => {

@@ -47,6 +47,24 @@ La migracion es aditiva. Protege `profiles.role` y agrega las RPC atomicas que c
 
 Solo se ejecutan reembolsos totales. Mercado Pago exige saldo disponible y aplica sus plazos operativos.
 
+## Botón de arrepentimiento
+
+1. El cliente abre `/arrepentimiento`, completa los datos y recibe un número `FZAC-...`.
+2. Cada intento usa una clave idempotente: una repetición de red conserva el mismo trámite.
+3. Si el email pertenece a una cuenta autenticada, el seguimiento aparece en `/cuenta/solicitudes`.
+4. El administrador revisa el caso desde Admin > Arrepentimientos y deja una nota de resolución.
+5. Aprobar la solicitud no mueve dinero. Cuando corresponda, el reembolso se ejecuta desde Admin > Pagos después de validar el cobro.
+6. Resend envía constancias de recepción y cambio de estado cuando está configurado; el número visible sigue siendo la constancia primaria si el correo falla.
+
+Migraciones aditivas requeridas:
+
+```text
+supabase/migrations/20260722000000_consumer_refund_requests.sql
+supabase/migrations/20260722050000_consumer_refund_workflow_hardening.sql
+```
+
+No abrir inserción pública en la tabla. El alta se realiza desde la API server-side y la lectura del cliente permanece limitada por RLS.
+
 ## Login y registro manual
 
 1. Abrir `/registro` y crear una cuenta con nombre, email, telefono y contrasena.
@@ -54,6 +72,18 @@ Solo se ejecutan reembolsos totales. Mercado Pago exige saldo disponible y aplic
 3. Ingresar en `/login` con email y contrasena.
 4. Verificar que Google OAuth siga disponible como alternativa.
 5. Un email solo obtiene rol admin cuando figura en `ADMIN_EMAILS`; el rol guardado no reemplaza esa lista en la aplicacion.
+6. Registro, recuperación y comprobación de email usan respuestas neutras para no revelar cuentas existentes.
+
+## Headers y CSP
+
+La aplicación publica CSP en modo `Report-Only` para observar dependencias reales de Supabase, Google OAuth y Mercado Pago sin interrumpir compras. Los reportes llegan a `/api/security/csp-report`, que limita tamaño y frecuencia y no persiste datos del cliente.
+
+Antes de pasar CSP a modo obligatorio:
+
+1. Revisar los reportes de Render durante varios flujos reales de prueba.
+2. Confirmar login Google, imágenes, Checkout Pro y Brick.
+3. Reducir dominios permitidos si no se usan.
+4. Aplicar enforcement en un deploy controlado y repetir Playwright.
 
 ## Resend y recuperacion
 

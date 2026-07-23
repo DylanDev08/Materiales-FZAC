@@ -48,6 +48,11 @@ const sections = [
     use: "Muestra eventos de Mercado Pago y otros medios. Se usa cuando un cobro necesita verificacion."
   },
   {
+    title: "Arrepentimientos",
+    target: "Solicitudes de devolución o revisión del consumidor.",
+    use: "Permite recibir, revisar y responder cada trámite con número de seguimiento. Aprobar una solicitud no devuelve dinero: si corresponde, el reembolso se procesa después desde Pagos."
+  },
+  {
     title: "Ajustes",
     target: "Configuracion del panel.",
     use: "Reservado para opciones administrativas. No cambiar ajustes sensibles sin revisar variables de entorno y seguridad."
@@ -58,6 +63,7 @@ const routines = [
   "Abrir Dashboard y revisar ingresos, pendientes y alertas.",
   "Entrar en Pedidos para preparar, aprobar o coordinar compras.",
   "Revisar Pagos si hay cobros pendientes o rechazados.",
+  "Revisar Arrepentimientos y responder primero los trámites nuevos.",
   "Ver Inventario antes de confirmar productos con bajo stock.",
   "Usar Clientes para contactar compradores y resolver dudas.",
   "Consultar Actividad si algo no coincide."

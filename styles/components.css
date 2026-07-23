@@ -301,6 +301,30 @@
   align-items: start;
 }
 
+.consumer-refund-form__honeypot {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+.consumer-field-feedback {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.consumer-field-feedback.is-valid {
+  color: #68d39a;
+}
+
+.consumer-field-feedback.is-invalid {
+  color: #ff8b8b;
+}
+
 .consumer-refund-form label:has(textarea),
 .consumer-refund-form__check,
 .consumer-refund-form .notice,
@@ -2233,6 +2257,7 @@
 .account-order-list,
 .account-purchase-list,
 .account-conversation-list,
+.account-consumer-request-list,
 .account-address-list {
   display: grid;
 }
@@ -2240,6 +2265,7 @@
 .account-order-list article,
 .account-purchase-list article,
 .account-conversation-list article,
+.account-consumer-request-list article,
 .account-address-list article {
   min-height: 70px;
   display: grid;
@@ -2253,12 +2279,14 @@
 .account-order-list article:last-child,
 .account-purchase-list article:last-child,
 .account-conversation-list article:last-child,
+.account-consumer-request-list article:last-child,
 .account-address-list article:last-child {
   border-bottom: 0;
 }
 
 .account-order-list > article > svg,
 .account-conversation-list > article > svg,
+.account-consumer-request-list > article > svg,
 .account-address-list > article > svg {
   color: var(--color-yellow);
 }
@@ -2266,6 +2294,7 @@
 .account-order-list article div,
 .account-purchase-list article div,
 .account-conversation-list article div,
+.account-consumer-request-list article div,
 .account-address-list article div {
   min-width: 0;
   display: grid;
@@ -2276,6 +2305,8 @@
 .account-purchase-list article span,
 .account-purchase-list article small,
 .account-conversation-list article div span,
+.account-consumer-request-list article div span,
+.account-consumer-request-list article div small,
 .account-address-list article span,
 .account-address-list article small {
   display: inline-flex;
@@ -2283,6 +2314,18 @@
   gap: 4px;
   color: var(--color-muted);
   font-size: 0.75rem;
+}
+
+.account-consumer-request-list article {
+  align-items: start;
+  padding-block: 14px;
+}
+
+.account-consumer-request-list article div p {
+  margin: 3px 0 0;
+  color: #d0d0d0;
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .account-purchase-list img {

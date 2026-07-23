@@ -8,6 +8,7 @@ function adminTableDescription(title: string) {
   if (normalized.includes("chat")) return "Conversaciones y solicitudes que requieren seguimiento de FZAC.";
   if (normalized.includes("categoria")) return "Organizacion del catalogo para que el cliente encuentre materiales rapido.";
   if (normalized.includes("ajuste")) return "Configuracion operativa del e-commerce.";
+  if (normalized.includes("arrepentimiento")) return "Solicitudes de consumidores, seguimiento y resolución sin ejecutar reembolsos automáticos.";
   return "Listado administrativo con filtros, busqueda, exportacion y detalle seguro.";
 }
 

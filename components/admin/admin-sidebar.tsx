@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Package,
   Palette,
+  RotateCcw,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -37,6 +38,7 @@ const linkGroups = [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
       { path: "/tickets", label: "Tickets", icon: FileText },
+      { path: "/arrepentimientos", label: "Arrepentimientos", icon: RotateCcw },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/chats", label: "Chats", icon: MessageCircle }
     ]

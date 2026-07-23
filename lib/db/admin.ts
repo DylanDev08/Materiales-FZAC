@@ -70,6 +70,7 @@ function friendlyStatus(value: string | null | undefined) {
     EXPIRED: "Vencido",
     PROCESSED: "Procesado",
     RECEIVED: "Recibido",
+    IN_REVIEW: "En revisión",
     OPEN: "Abierto",
     WAITING_ADMIN: "Revisar",
     CLOSED: "Cerrado"
@@ -133,6 +134,53 @@ export async function getAdminRows(table: string, limit = 200) {
 
   const { data } = await admin.from(table).select("*").order("created_at", { ascending: false }).limit(limit);
   return (data ?? []) as Array<Record<string, string | number | null | undefined>>;
+}
+
+export async function getAdminConsumerRefundRows(limit = 300) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+
+  const { data } = await admin
+    .from("consumer_refund_requests")
+    .select(
+      "id,request_number,order_id,order_number,full_name,email,phone,reason,details,preferred_contact,status,resolution_note,created_at,updated_at"
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const reasonLabels: Record<string, string> = {
+    PURCHASE_REGRET: "Arrepentimiento de compra",
+    WRONG_PRODUCT: "Producto equivocado",
+    DAMAGED_PRODUCT: "Producto dañado",
+    NOT_DELIVERED: "Pedido no entregado",
+    OTHER: "Otro motivo"
+  };
+  const contactLabels: Record<string, string> = {
+    WHATSAPP: "WhatsApp",
+    EMAIL: "Email",
+    PHONE: "Teléfono"
+  };
+
+  return (data ?? []).map((request) => ({
+    "Trámite": request.request_number,
+    Cliente: request.full_name,
+    Email: request.email,
+    Pedido: request.order_number || shortReference(request.order_id),
+    Motivo: reasonLabels[String(request.reason)] ?? "Otro motivo",
+    Estado: friendlyStatus(request.status),
+    Contacto: contactLabels[String(request.preferred_contact)] ?? "A coordinar",
+    Recibido: adminDate(request.created_at),
+    __requestId: String(request.id),
+    __requestNumber: String(request.request_number),
+    __status: String(request.status),
+    __email: String(request.email),
+    __name: String(request.full_name),
+    __phone: String(request.phone),
+    __details: String(request.details),
+    __resolutionNote: String(request.resolution_note ?? ""),
+    __orderNumber: String(request.order_number ?? ""),
+    __orderId: String(request.order_id ?? "")
+  }));
 }
 
 export async function getAdminOrderTableRows(limit = 200) {

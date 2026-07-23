@@ -1,8 +1,13 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
-import { limitPhoneInput } from "@/lib/validations/security";
+import { useMemo, useRef, useState } from "react";
+import {
+  isSafeUserNote,
+  isValidArgentinePhone,
+  limitPhoneInput,
+  normalizeUserNote
+} from "@/lib/validations/security";
 
 type FormState = {
   fullName: string;
@@ -13,6 +18,7 @@ type FormState = {
   preferredContact: "WHATSAPP" | "EMAIL" | "PHONE";
   details: string;
   accepted: boolean;
+  company: string;
 };
 
 const initialState: FormState = {
@@ -23,7 +29,8 @@ const initialState: FormState = {
   reason: "PURCHASE_REGRET",
   preferredContact: "WHATSAPP",
   details: "",
-  accepted: false
+  accepted: false,
+  company: ""
 };
 
 const reasonOptions = [
@@ -40,29 +47,60 @@ export function ConsumerRefundForm() {
   const [message, setMessage] = useState("");
   const [requestNumber, setRequestNumber] = useState("");
   const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const requestInFlight = useRef(false);
+  const idempotencyKey = useRef("");
+
+  const validation = useMemo(() => ({
+    fullName: /^[\p{L}\p{M}\s'.-]{2,90}$/u.test(form.fullName.trim()),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(form.email.trim()),
+    phone: isValidArgentinePhone(form.phone),
+    orderNumber: !form.orderNumber.trim() || /^[a-zA-Z0-9-]{1,60}$/.test(form.orderNumber.trim()),
+    details: normalizeUserNote(form.details, 900).length >= 10 && isSafeUserNote(form.details)
+  }), [form]);
 
   const canSubmit = useMemo(() => {
-    return Boolean(form.fullName.trim() && form.email.trim() && form.phone.trim() && form.details.trim() && form.accepted && !loading);
-  }, [form, loading]);
+    return Object.values(validation).every(Boolean) && form.accepted && !loading;
+  }, [form.accepted, loading, validation]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setError("");
   }
 
+  function markTouched(field: string) {
+    setTouched((current) => ({ ...current, [field]: true }));
+  }
+
+  function feedback(field: keyof typeof validation, validMessage: string, invalidMessage: string) {
+    if (!touched[field]) return null;
+    return (
+      <small className={`consumer-field-feedback ${validation[field] ? "is-valid" : "is-invalid"}`} role="status">
+        {validation[field] ? validMessage : invalidMessage}
+      </small>
+    );
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (loading) return;
+    if (loading || requestInFlight.current) return;
+    setTouched({ fullName: true, email: true, phone: true, orderNumber: true, details: true });
+    if (!canSubmit) {
+      setError("Revisá los campos marcados antes de registrar la solicitud.");
+      return;
+    }
+    requestInFlight.current = true;
     setLoading(true);
     setError("");
     setMessage("");
     setRequestNumber("");
 
     try {
+      if (!idempotencyKey.current) idempotencyKey.current = window.crypto.randomUUID();
       const response = await fetch("/api/consumer/refund-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({ ...form, idempotencyKey: idempotencyKey.current })
       });
       const data = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -75,9 +113,12 @@ export function ConsumerRefundForm() {
       setRequestNumber(data.request_number || "");
       setMessage(data.message || "Solicitud registrada correctamente.");
       setForm(initialState);
+      setTouched({});
+      idempotencyKey.current = "";
     } catch (err) {
       setError(err instanceof Error ? err.message : "No pudimos registrar la solicitud.");
     } finally {
+      requestInFlight.current = false;
       setLoading(false);
     }
   }
@@ -94,47 +135,64 @@ export function ConsumerRefundForm() {
       </header>
 
       <form className="consumer-refund-form form-grid" onSubmit={submit}>
+        <label className="consumer-refund-form__honeypot" aria-hidden="true">
+          Empresa
+          <input
+            value={form.company}
+            onChange={(event) => update("company", event.target.value)}
+            autoComplete="off"
+            tabIndex={-1}
+          />
+        </label>
         <label>
           Nombre y apellido
           <input
             value={form.fullName}
             onChange={(event) => update("fullName", event.target.value)}
+            onBlur={() => markTouched("fullName")}
             autoComplete="name"
             maxLength={90}
             required
           />
+          {feedback("fullName", "Nombre válido.", "Ingresá nombre y apellido usando solo letras.")}
         </label>
         <label>
           Email
           <input
             value={form.email}
             onChange={(event) => update("email", event.target.value)}
+            onBlur={() => markTouched("email")}
             type="email"
             autoComplete="email"
             maxLength={120}
             required
           />
+          {feedback("email", "Email válido.", "Ingresá un email con @ y dominio válido.")}
         </label>
         <label>
           Teléfono
           <input
             value={form.phone}
             onChange={(event) => update("phone", limitPhoneInput(event.target.value))}
+            onBlur={() => markTouched("phone")}
             inputMode="tel"
             autoComplete="tel"
             maxLength={18}
             placeholder="+54 9 341..."
             required
           />
+          {feedback("phone", "Teléfono válido.", "Ingresá entre 10 y 13 dígitos, con código de área.")}
         </label>
         <label>
           Número de pedido
           <input
             value={form.orderNumber}
             onChange={(event) => update("orderNumber", event.target.value)}
+            onBlur={() => markTouched("orderNumber")}
             maxLength={60}
             placeholder="Opcional"
           />
+          {feedback("orderNumber", "Referencia válida.", "Usá solo letras, números y guiones.")}
         </label>
         <label>
           Motivo
@@ -162,10 +220,12 @@ export function ConsumerRefundForm() {
           <textarea
             value={form.details}
             onChange={(event) => update("details", event.target.value)}
+            onBlur={() => markTouched("details")}
             maxLength={900}
             placeholder="Contanos qué compra querés revisar, estado del producto y cualquier dato útil."
             required
           />
+          {feedback("details", "Comentario válido.", "Escribí al menos 10 caracteres sin código ni enlaces sospechosos.")}
         </label>
         <label className="consumer-refund-form__check">
           <input

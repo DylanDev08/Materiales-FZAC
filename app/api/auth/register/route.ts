@@ -15,10 +15,14 @@ function authErrorMessage(message: string) {
   if (/password|character of each|uppercase|lowercase|0123456789|symbol/i.test(message)) {
     return "La contraseña debe tener mayúscula, minúscula, número y símbolo.";
   }
-  if (/already|registered|exists/i.test(message)) {
-    return "Ya existe una cuenta con este email. Probá iniciar sesión.";
-  }
   return "No pudimos crear la cuenta. Revisá los datos e intentá nuevamente.";
+}
+
+const genericRegistrationMessage =
+  "Si el email puede registrarse, vas a recibir un enlace de Fortaleza Construcciones para confirmar el acceso.";
+
+function genericRegistrationResponse() {
+  return Response.json({ target: "/login?registered=true", message: genericRegistrationMessage });
 }
 
 export async function POST(request: Request) {
@@ -29,11 +33,6 @@ export async function POST(request: Request) {
     const payload = registerSchema.parse(await request.json());
     const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
-
-    if (admin) {
-      const { data: existingProfile } = await admin.from("profiles").select("id").eq("email", payload.email).maybeSingle();
-      if (existingProfile) return jsonError("Ya existe una cuenta con este email. Probá iniciar sesión.", 409);
-    }
 
     let user = null;
     const resendSignup = await createSignupWithResend({
@@ -63,9 +62,10 @@ export async function POST(request: Request) {
         const duplicate = /already|registered|exists/i.test(error.message);
         const passwordPolicy = /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message);
         const emailRateLimit = /rate limit|too many|over_email_send_rate_limit/i.test(error.message);
+        if (duplicate) return genericRegistrationResponse();
         return jsonError(
           authErrorMessage(error.message),
-          duplicate ? 409 : passwordPolicy ? 422 : emailRateLimit ? 429 : 400
+          passwordPolicy ? 422 : emailRateLimit ? 429 : 400
         );
       }
       user = data.user;
@@ -86,11 +86,11 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({ target: "/login?registered=true", message: "Cuenta creada correctamente. Revisá tu email para confirmar el acceso." });
+    return genericRegistrationResponse();
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
     if (error instanceof Error && /already|registered|exists/i.test(error.message)) {
-      return jsonError("Ya existe una cuenta con este email. Probá iniciar sesión.", 409);
+      return genericRegistrationResponse();
     }
     if (error instanceof Error && /password|character of each|uppercase|lowercase|0123456789|symbol/i.test(error.message)) {
       return jsonError("La contraseña debe tener mayúscula, minúscula, número y símbolo.", 422);

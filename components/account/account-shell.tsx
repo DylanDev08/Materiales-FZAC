@@ -7,12 +7,13 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  RotateCcw,
   Settings,
   ShoppingBag,
   UserRound
 } from "lucide-react";
 import { AccountAddressManager } from "@/components/account/account-address-manager";
-import { AccountOrders, AccountProducts, AccountSummary } from "@/components/account/account-sections";
+import { AccountConsumerRequests, AccountOrders, AccountProducts, AccountSummary } from "@/components/account/account-sections";
 import { AccountSettingsForm } from "@/components/account/account-settings-form";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import { getAdminConsolePath } from "@/lib/utils/env";
@@ -23,6 +24,7 @@ const nav = [
   { href: "/cuenta/pedidos", label: "Compras", icon: Package, view: "pedidos" },
   { href: "/cuenta/direcciones", label: "Direcciones", icon: MapPin, view: "direcciones" },
   { href: "/cuenta/conversaciones", label: "Conversaciones", icon: MessageCircle, view: "conversaciones" },
+  { href: "/cuenta/solicitudes", label: "Solicitudes", icon: RotateCcw, view: "solicitudes" },
   { href: "/cuenta/ajustes", label: "Ajustes", icon: Settings, view: "ajustes" }
 ] as const;
 
@@ -100,6 +102,19 @@ export function AccountShell({
           {view === "conversaciones" ? (
             <section className="account-section"><header className="account-section__head"><div><h2>Conversaciones</h2><p>Historial del asistente y consultas asociadas a tu cuenta.</p></div></header>
               <div className="account-conversation-list">{overview.conversations.length ? overview.conversations.map((conversation) => <article key={conversation.id}><MessageCircle size={19} /><div><strong>{conversation.subject}</strong><span>{conversation.lastMessageAt}</span></div><span className="status-pill">{conversation.status === "OPEN" ? "Abierta" : conversation.status === "RESOLVED" ? "Resuelta" : "En seguimiento"}</span></article>) : <p className="account-empty">Todavía no hay conversaciones guardadas.</p>}</div>
+            </section>
+          ) : null}
+
+          {view === "solicitudes" ? (
+            <section className="account-section">
+              <header className="account-section__head">
+                <div>
+                  <h2>Arrepentimientos y devoluciones</h2>
+                  <p>Seguimiento de solicitudes registradas con tu cuenta o email.</p>
+                </div>
+                <Link href="/arrepentimiento">Nueva solicitud <ArrowRight size={15} /></Link>
+              </header>
+              <AccountConsumerRequests rows={overview.consumerRequests} />
             </section>
           ) : null}
 

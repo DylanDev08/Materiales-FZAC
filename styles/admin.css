@@ -2569,6 +2569,103 @@
   color: var(--color-yellow);
 }
 
+.admin-consumer-action {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius);
+  background: rgba(244, 196, 0, 0.045);
+  padding: 16px;
+}
+
+.admin-consumer-action > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-consumer-action > header svg {
+  color: var(--color-yellow);
+}
+
+.admin-consumer-action h3,
+.admin-consumer-action p {
+  margin: 0;
+}
+
+.admin-consumer-action label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-consumer-action select,
+.admin-consumer-action textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #101010;
+  color: var(--color-white);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.admin-consumer-action textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.admin-consumer-action select:focus-visible,
+.admin-consumer-action textarea:focus-visible {
+  border-color: var(--color-yellow);
+  outline: 2px solid rgba(244, 196, 0, 0.24);
+  outline-offset: 2px;
+}
+
+.admin-consumer-action__claim {
+  display: grid;
+  gap: 6px;
+  border-left: 3px solid var(--color-yellow);
+  background: #101010;
+  padding: 12px;
+}
+
+.admin-consumer-action__claim span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-consumer-action__claim p {
+  color: var(--color-white);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-consumer-action__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-consumer-action__warning {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .admin-consumer-action__buttons .btn {
+    width: 100%;
+  }
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
