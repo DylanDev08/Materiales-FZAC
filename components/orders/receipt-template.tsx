@@ -93,7 +93,7 @@ export function ReceiptTemplate({ receipt }: { receipt: NonNullable<OrderReceipt
       <footer className="receipt-template__foot">
         <div>
           <BadgeCheck size={18} />
-          <span>Comprobante emitido por sistema FZAC. Stock descontado solo con pago aprobado.</span>
+          <span>Comprobante de compra FZAC. No reemplaza una factura fiscal. Stock descontado solo con pago aprobado.</span>
         </div>
         <div className="receipt-template__signature">
           <ShieldCheck size={18} />

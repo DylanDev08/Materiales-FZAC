@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
   CreditCard,
   ExternalLink,
   Landmark,
@@ -58,10 +59,10 @@ type ShippingQuoteState =
 type FieldState = { status: "idle" | "valid" | "invalid"; message: string };
 
 const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
-  { id: "customer", label: "1. Comprador" },
-  { id: "delivery", label: "2. Entrega" },
-  { id: "review", label: "3. Revisión" },
-  { id: "payment", label: "4. Pago" }
+  { id: "customer", label: "Comprador" },
+  { id: "delivery", label: "Entrega" },
+  { id: "review", label: "Revisión" },
+  { id: "payment", label: "Pago" }
 ];
 
 const paymentModeContent: Record<PaymentMode, { title: string; eyebrow: string; description: string; reassurance: string }> = {
@@ -167,10 +168,12 @@ function clearCheckoutIntentSnapshot() {
 
 export function CheckoutForm({
   cardPaymentsEnabled = false,
+  cardPublicKey = "",
   paymentsTestMode = false,
   profile
 }: {
   cardPaymentsEnabled?: boolean;
+  cardPublicKey?: string;
   paymentsTestMode?: boolean;
   profile: SessionProfile | null;
 }) {
@@ -196,6 +199,7 @@ export function CheckoutForm({
   const [notes, setNotes] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
@@ -907,9 +911,10 @@ export function CheckoutForm({
         </div>
 
         <div className="checkout-progress">
-          {checkoutSteps.map((item) => (
+          {checkoutSteps.map((item, index) => (
             <span className={progressClass(item.id)} key={item.id}>
-              {item.label}
+              <b>{index + 1}</b>
+              <small>{item.label}</small>
             </span>
           ))}
         </div>
@@ -1174,59 +1179,89 @@ export function CheckoutForm({
 
           <aside className={`checkout-summary ${step === "payment" ? "checkout-summary--final" : ""}`}>
             <h2>{step === "payment" ? "Pago" : "Resumen"}</h2>
-            <div className="checkout-floating-products">
-              {items.map((item) => (
-                <article className="checkout-floating-product" key={item.productId}>
-                  <Image src={item.product.image_url} alt={item.product.name} width={58} height={58} />
-                  <div>
-                    <strong>{item.product.name}</strong>
-                    <span>
-                      {item.quantity} x {currency(item.product.price)}
-                    </span>
-                    <small className={item.product.stock > 0 ? "status-pill status-pill--success" : "status-pill status-pill--danger"}>
-                      Stock {item.product.stock}
-                    </small>
-                  </div>
-                  <div className="checkout-floating-product__actions">
-                    <strong>{currency(item.product.price * item.quantity)}</strong>
-                    <span>
-                      <button type="button" disabled={item.quantity <= 1} onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
-                        <Minus size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={item.quantity >= item.product.stock}
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                      >
-                        <Plus size={13} />
-                      </button>
-                      <button type="button" onClick={() => removeItem(item.productId)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <div className="summary-line">
-              <span>Subtotal</span>
-              <strong>{currency(subtotal)}</strong>
-            </div>
-            <div className="summary-line">
-              <span>{shippingMethod === "DELIVERY" ? "Envío" : "Retiro"}</span>
-              <strong>
+            <button
+              className="checkout-summary-toggle"
+              type="button"
+              aria-controls="checkout-order-summary"
+              aria-expanded={mobileSummaryOpen}
+              onClick={() => setMobileSummaryOpen((current) => !current)}
+            >
+              <span>
+                <small>Tu pedido</small>
+                <strong>
+                  {items.length} {items.length === 1 ? "producto" : "productos"} · {currency(total)}
+                </strong>
+              </span>
+              <ChevronDown size={20} />
+            </button>
+            <div
+              className={`checkout-summary-details ${mobileSummaryOpen ? "is-open" : ""}`}
+              id="checkout-order-summary"
+            >
+              <div className="checkout-floating-products">
+                {items.map((item) => (
+                  <article className="checkout-floating-product" key={item.productId}>
+                    <Image src={item.product.image_url} alt={item.product.name} width={58} height={58} />
+                    <div>
+                      <strong>{item.product.name}</strong>
+                      <span>
+                        {item.quantity} x {currency(item.product.price)}
+                      </span>
+                      <small className={item.product.stock > 0 ? "status-pill status-pill--success" : "status-pill status-pill--danger"}>
+                        Stock {item.product.stock}
+                      </small>
+                    </div>
+                    <div className="checkout-floating-product__actions">
+                      <strong>{currency(item.product.price * item.quantity)}</strong>
+                      <span>
+                        <button
+                          type="button"
+                          aria-label={`Quitar una unidad de ${item.product.name}`}
+                          disabled={item.quantity <= 1}
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Agregar una unidad de ${item.product.name}`}
+                          disabled={item.quantity >= item.product.stock}
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        >
+                          <Plus size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Eliminar ${item.product.name} del pedido`}
+                          onClick={() => removeItem(item.productId)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="summary-line">
+                <span>Subtotal</span>
+                <strong>{currency(subtotal)}</strong>
+              </div>
+              <div className="summary-line">
+                <span>{shippingMethod === "DELIVERY" ? "Envío" : "Retiro"}</span>
+                <strong>
+                  {shippingMethod === "DELIVERY"
+                    ? shippingQuote.status === "ok"
+                      ? currency(shippingQuote.amount)
+                      : "Pendiente de cotización"
+                    : "Sin costo"}
+                </strong>
+              </div>
+              <p className="checkout-summary__payment">
                 {shippingMethod === "DELIVERY"
-                  ? shippingQuote.status === "ok"
-                    ? currency(shippingQuote.amount)
-                    : "Pendiente de cotización"
-                  : "Sin costo"}
-              </strong>
+                  ? "El envío se suma solo cuando existe una cotización real para la dirección ingresada."
+                  : "El retiro coordinado no suma costo de envío."}
+              </p>
             </div>
-            <p className="checkout-summary__payment">
-              {shippingMethod === "DELIVERY"
-                ? "El envío se suma solo cuando existe una cotización real para la dirección ingresada."
-                : "El retiro coordinado no suma costo de envío."}
-            </p>
             <div className="summary-total">
               <span>Total</span>
               <strong>{currency(total)}</strong>
@@ -1332,7 +1367,9 @@ export function CheckoutForm({
                 {info ? <p className="notice notice--success">{info}</p> : null}
                 {cardPaymentsEnabled && paymentMode === "CARD_BRICK" ? (
                   <MercadoPagoCardForm
+                    key={cardPublicKey || "mercadopago-card"}
                     amount={total}
+                    publicKey={cardPublicKey}
                     customerEmail={customer.email}
                     disabled={!canSubmit}
                     onSubmit={startCardPayment}

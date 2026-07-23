@@ -106,7 +106,7 @@ function documentCopy(kind: ReturnType<typeof documentKindFor>) {
   if (kind === "receipt") {
     return {
       kicker: "Comprobantes de pago",
-      title: "Facturas y comprobantes listos para revisar",
+      title: "Comprobantes de compra listos para revisar",
       text: "Cada movimiento se puede abrir como documento FZAC para controlar proveedor, estado, pedido y fecha."
     };
   }
@@ -370,7 +370,7 @@ export function AdminInteractiveTable({
                 </p>
               </div>
               <footer>
-                Documento visual para control interno. La factura legal se emite con el comprobante aprobado.
+                Documento visual para control interno. No reemplaza una factura fiscal.
               </footer>
             </section>
           ) : null}

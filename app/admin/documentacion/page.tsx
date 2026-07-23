@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "Tickets",
-    target: "Comprobantes y facturas internas.",
+    target: "Comprobantes internos de compra.",
     use: "Cada compra confirmada puede generar un comprobante FZAC. Esta seccion ayuda a ubicar tickets emitidos y revisar su estado."
   },
   {

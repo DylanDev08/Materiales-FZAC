@@ -1,6 +1,10 @@
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { getApiAdmin } from "@/lib/auth/api-guards";
-import { getMercadoPagoEnvironmentState, isPaymentsEnabled } from "@/lib/payments/config";
+import {
+  getMercadoPagoEnvironmentState,
+  getPaymentProductionReadiness,
+  isPaymentsEnabled
+} from "@/lib/payments/config";
 import { canQuoteShipping } from "@/lib/shipping/quote";
 import { jsonError } from "@/lib/utils/api";
 import { hasRealValue } from "@/lib/utils/env";
@@ -13,6 +17,7 @@ export async function GET() {
 
   const supabase = getSupabaseConfig();
   const mercadoPago = getMercadoPagoEnvironmentState();
+  const paymentProductionReadiness = getPaymentProductionReadiness();
 
   return Response.json(
     {
@@ -24,10 +29,14 @@ export async function GET() {
       mercadoPagoPublic: hasRealValue(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY),
       mercadoPagoServer: hasRealValue(process.env.MERCADOPAGO_ACCESS_TOKEN),
       mercadoPago,
+      paymentProductionReadiness,
       resendConfigured: hasRealValue(process.env.RESEND_API_KEY) && hasRealValue(process.env.RESEND_FROM_EMAIL),
       resendFromEmail: hasRealValue(process.env.RESEND_FROM_EMAIL),
       shippingQuoteReady: canQuoteShipping(),
-      adminEmails: hasRealValue(process.env.ADMIN_EMAILS)
+      adminEmails: hasRealValue(process.env.ADMIN_EMAILS),
+      fiscalInvoicingConfigured:
+        process.env.FISCAL_INVOICING_ENABLED?.toLowerCase() === "true" &&
+        hasRealValue(process.env.FISCAL_INVOICING_PROVIDER)
     },
     { headers: { "Cache-Control": "no-store" } }
   );

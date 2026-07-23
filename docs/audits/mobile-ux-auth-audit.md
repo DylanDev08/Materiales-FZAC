@@ -260,3 +260,53 @@ Se actualizo Next y `eslint-config-next` a `16.2.11`, la version de seguridad de
 4. Repetir Google OAuth real desde celular fisico o emulador con Render.
 5. Repetir Mercado Pago test con comprador TESTUSER distinto del vendedor.
 6. Ejecutar Lighthouse mobile sobre dominio final.
+
+## Revalidacion mobile integral - 2026-07-23
+
+Se realizo una segunda pasada sobre el build de produccion local, enfocada en alineacion, densidad del header,
+checkout autenticado y operacion administrativa desde telefono.
+
+### Cambios aplicados
+
+- Header publico reducido de tres filas a dos: marca/cuenta/carrito/menu y buscador.
+- Menu principal convertido en control compacto de 42 px con panel mobile desplazable.
+- WhatsApp y asistente reorganizados en una columna angosta para reducir contenido tapado.
+- Panel admin convertido en drawer lateral con backdrop, cierre por Escape, bloqueo de scroll y targets tactiles.
+- Topbar, filtros, tablas, graficos y drawers del admin adaptados a 360-390 px.
+- Checkout con stepper compacto, resumen colapsable, productos respirados y metodos de pago en una sola columna.
+- Botones de cantidad/eliminar recibieron nombres accesibles.
+- Pantallas Auth, checkout y admin no muestran controles flotantes que puedan cubrir formularios o acciones.
+
+### Evidencia automatizada
+
+- Suite publica mobile: `72 passed`, `4 skipped` por requerir autenticacion, `0 failed`.
+- Viewports: iPhone 13, Pixel 7, Galaxy S20 aproximado y `360x740`.
+- Checkout mobile autenticado: OK con usuario QA temporal y limpieza completa.
+- Admin mobile autenticado: OK con email QA autorizado solo en un proceso local aislado y limpieza completa.
+- Google OAuth: el request mobile usa redirect, vuelve al origen actual, apunta a `/auth/callback` y conserva
+  `next=/checkout`; no utiliza popup.
+- Concurrencia local de solo lectura/validacion: 100 busquedas y 80 validaciones, sin respuestas 500.
+- TypeScript, lint, build, security check y `npm audit --omit=dev`: OK.
+
+Capturas de QA locales no versionadas:
+
+- `test-results/mobile-checkout-authenticated.png`
+- `test-results/mobile-admin-dashboard.png`
+- `test-results/mobile-admin-navigation.png`
+
+### Seguridad para cobros reales
+
+Se agrego una barrera explicita para impedir que las credenciales de prueba habiliten produccion:
+
+- En `PAYMENTS_ENV=production` se exige `MERCADOPAGO_PRODUCTION_ACCESS_TOKEN`.
+- Se exige `PAYMENTS_PRODUCTION_CONFIRMED=true`.
+- Se exige webhook firmado y `NEXT_PUBLIC_SITE_URL` HTTPS publico.
+- Las credenciales base/test no se reutilizan como fallback productivo.
+- Card Brick mantiene credenciales productivas separadas y sigue deshabilitado hasta su validacion.
+
+La generacion actual es un comprobante interno FZAC. No debe presentarse como factura fiscal argentina hasta
+integrar y validar un proveedor de facturacion/ARCA.
+
+Estado local de preparacion al 2026-07-23: `5/10` controles. Faltan dominio HTTPS localmente, credenciales
+productivas dedicadas, confirmacion productiva, remitente Resend y proveedor fiscal. Esto es un bloqueo
+intencional, no un error del checkout test.

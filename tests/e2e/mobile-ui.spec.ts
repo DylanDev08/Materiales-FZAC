@@ -92,6 +92,21 @@ test.describe("Mobile UI audit", () => {
     await expect(panel).toBeHidden();
   });
 
+  test("header y accesos flotantes no dominan la pantalla", async ({ page }, testInfo) => {
+    skipDesktop(testInfo);
+    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+
+    const header = await page.locator(".site-header").boundingBox();
+    const assistant = await page.locator(".floating-chat-button").boundingBox();
+    const whatsapp = await page.locator(".floating-whatsapp").boundingBox();
+
+    expect(header?.height ?? 999, "El header mobile debe conservar espacio para comprar").toBeLessThanOrEqual(170);
+    expect(assistant?.width ?? 999, "El asistente cerrado debe ser compacto").toBeLessThanOrEqual(56);
+    expect(assistant?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(whatsapp?.width ?? 999).toBeLessThanOrEqual(56);
+    expect(whatsapp?.height ?? 0).toBeGreaterThanOrEqual(44);
+  });
+
   test("catalogo mobile permite escanear y agregar producto", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
@@ -149,12 +164,39 @@ test.describe("Mobile UI audit", () => {
     await expectNoHorizontalOverflow(page);
     await expectTouchTargets(page, ".auth-panel input, .auth-panel button, .auth-panel a");
     await expect(page.getByRole("button", { name: /google/i })).toBeVisible();
+    await expect(page.locator(".floating-assist")).toBeHidden();
 
     await page.goto("/registro", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
     await expect(page.getByLabel(/nombre/i)).toBeVisible();
     await expect(page.getByLabel(/confirmar/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /google/i })).toBeVisible();
+  });
+
+  test("Google OAuth mobile vuelve al origen actual y no usa popup", async ({ page }, testInfo) => {
+    skipDesktop(testInfo);
+    test.skip(
+      testInfo.project.name !== "mobile-pixel-7",
+      "La redireccion OAuth se valida una sola vez para no duplicar requests al proveedor."
+    );
+    await page.goto("/login?next=/checkout", { waitUntil: "domcontentloaded" });
+    const expectedOrigin = new URL(page.url()).origin;
+    let oauthRequestUrl = "";
+
+    await page.route(/\/auth\/v1\/authorize/, async (route) => {
+      oauthRequestUrl = route.request().url();
+      await route.fulfill({ status: 204, body: "" });
+    });
+    await page.getByRole("button", { name: /google/i }).click();
+    await expect.poll(() => oauthRequestUrl).not.toBe("");
+
+    const authorizeUrl = new URL(oauthRequestUrl);
+    const redirectTo = authorizeUrl.searchParams.get("redirect_to");
+    expect(redirectTo).toBeTruthy();
+    const callbackUrl = new URL(redirectTo!);
+    expect(callbackUrl.origin).toBe(expectedOrigin);
+    expect(callbackUrl.pathname).toBe("/auth/callback");
+    expect(callbackUrl.searchParams.get("next")).toBe("/checkout");
   });
 
   test("admin anonimo queda bloqueado en mobile", async ({ page }, testInfo) => {

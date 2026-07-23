@@ -94,8 +94,13 @@ test.describe("Render public smoke", () => {
     await page.goto("/carrito", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("link", { name: /continuar al checkout/i })).toBeVisible();
     await page.getByRole("link", { name: /continuar al checkout/i }).click();
-    await expect(page).toHaveURL(/\/checkout/);
-    await expect(page.locator("body")).toContainText(/comprador|checkout|pago|pedido|total/i);
+    if (hasAuthenticatedState) {
+      await expect(page).toHaveURL(/\/checkout/);
+      await expect(page.locator("body")).toContainText(/comprador|checkout|pago|pedido|total/i);
+    } else {
+      await expect(page).toHaveURL(/\/login\?next=(%2F|\/)checkout/);
+      await expect(page.locator("body")).toContainText(/ingresar|cuenta|google/i);
+    }
   });
 
   test("admin anonimo no expone datos", async ({ page }) => {

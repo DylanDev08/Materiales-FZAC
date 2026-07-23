@@ -246,3 +246,27 @@ Verificacion posterior al deploy `88aa06789d22ffc65a33bfd1242cba10bbe1ceec`:
 5. Verificar el acceso de un administrador real; el usuario normal autenticado y la escalada por perfil ya quedaron cubiertos.
 6. Probar Checkout Pro solo con comprador TESTUSER y credenciales del mismo entorno.
 7. Obtener y validar credenciales dedicadas de Card Brick antes de activar `MERCADOPAGO_CARD_ENABLED`; no reutilizar el par actual que Mercado Pago rechaza para tarjeta directa.
+
+## Hardening mobile y activacion productiva - 2026-07-23
+
+| Control | Resultado |
+| --- | --- |
+| Mobile publico | 72 pruebas OK en cuatro viewports; 4 casos autenticados omitidos y cubiertos por scripts aislados. |
+| Checkout autenticado | Tres metodos apilados, resumen colapsable, sin overflow ni zoom iOS; usuario QA eliminado. |
+| Admin autenticado | Dashboard responsive y sidebar drawer con targets tactiles; usuario/notificacion QA eliminados. |
+| Google OAuth | Redirect al origen actual y callback interno validado sin popup. |
+| Flujo de pagos test | Transferencia, WhatsApp, sandbox MP e idempotencia OK; limpieza completa. |
+| Produccion accidental | Bloqueada sin token productivo dedicado, webhook, HTTPS y confirmacion explicita. |
+| Card Brick | Continua oculto/cerrado hasta disponer de credenciales dedicadas validadas. |
+| Facturacion | Comprobante interno etiquetado correctamente; factura fiscal pendiente de proveedor/ARCA. |
+| Concurrencia | 180 requests controlados, 0 respuestas 500; 429 con `Retry-After`. |
+| Dependencias | `npm audit --omit=dev`: 0 vulnerabilidades. |
+
+Scripts repetibles incorporados:
+
+- `npm run test:mobile-checkout`
+- `npm run test:mobile-admin`
+- `npm run readiness:production`
+
+La activacion productiva queda intencionalmente separada del entorno test. El deploy puede publicarse y seguir
+probando compras sandbox sin riesgo de empezar a cobrar por un cambio aislado de `PAYMENTS_ENV`.

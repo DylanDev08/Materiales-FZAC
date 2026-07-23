@@ -14,8 +14,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "security:check": "node scripts/security-check.mjs",
+    "readiness:production": "node --env-file-if-exists=.env scripts/production-readiness.mjs",
     "test:auth-roles": "node --env-file-if-exists=.env scripts/auth-role-smoke.mjs",
     "test:checkout-flow": "node --env-file-if-exists=.env scripts/checkout-flow-smoke.mjs",
+    "test:mobile-admin": "node --env-file-if-exists=.env scripts/mobile-admin-smoke.mjs",
+    "test:mobile-checkout": "node --env-file-if-exists=.env scripts/mobile-checkout-smoke.mjs",
     "test:load": "node scripts/load-smoke.mjs",
     "test:e2e": "playwright test",
     "db:types": "supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
@@ -33,6 +36,7 @@
     "next": "16.2.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "server-only": "0.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

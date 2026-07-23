@@ -19,15 +19,6 @@ type CardPaymentSubmit = NonNullable<ComponentProps<typeof CardPayment>["onSubmi
 type CardPaymentFormData = Parameters<CardPaymentSubmit>[0];
 type CardPaymentCustomization = NonNullable<ComponentProps<typeof CardPayment>["customization"]>;
 
-const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY?.trim() ?? "";
-
-if (publicKey) {
-  initMercadoPago(publicKey, {
-    locale: "es-AR",
-    advancedFraudPrevention: true
-  });
-}
-
 const cardBrickCustomization: CardPaymentCustomization = {
   paymentMethods: {
     minInstallments: 1,
@@ -74,16 +65,19 @@ function cardPayload(data: CardPaymentFormData): MercadoPagoCardPayload {
 
 export function MercadoPagoCardForm({
   amount,
+  publicKey,
   customerEmail,
   disabled,
   onSubmit
 }: {
   amount: number;
+  publicKey: string;
   customerEmail: string;
   disabled: boolean;
   onSubmit: (payload: MercadoPagoCardPayload) => Promise<void> | void;
 }) {
   const submitRef = useRef(onSubmit);
+  const [sdkReady, setSdkReady] = useState(false);
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -91,6 +85,31 @@ export function MercadoPagoCardForm({
   useEffect(() => {
     submitRef.current = onSubmit;
   }, [onSubmit]);
+
+  useEffect(() => {
+    const normalizedPublicKey = publicKey.trim();
+    if (!normalizedPublicKey) return;
+    let active = true;
+
+    try {
+      initMercadoPago(normalizedPublicKey, {
+        locale: "es-AR",
+        advancedFraudPrevention: true
+      });
+      window.queueMicrotask(() => {
+        if (!active) return;
+        setSdkReady(true);
+        setError("");
+      });
+    } catch {
+      window.queueMicrotask(() => {
+        if (active) setError("No pudimos iniciar el formulario seguro de Mercado Pago.");
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [publicKey]);
 
   const initialization = useMemo(
     () => ({
@@ -122,7 +141,7 @@ export function MercadoPagoCardForm({
     }
   }, [submitting]);
 
-  const publicKeyError = publicKey ? "" : "Falta configurar la Public Key de Mercado Pago para habilitar tarjetas.";
+  const publicKeyError = publicKey.trim() ? "" : "Falta configurar la Public Key de Mercado Pago para habilitar tarjetas.";
   const visibleError = publicKeyError || error;
 
   return (
@@ -155,7 +174,7 @@ export function MercadoPagoCardForm({
         </div>
       ) : null}
 
-      {!visibleError && !disabled ? (
+      {!visibleError && !disabled && sdkReady ? (
         <div className={`mp-card-brick ${ready ? "is-ready" : ""}`} aria-busy={!ready || submitting}>
           {!ready ? <div className="mp-card-brick__skeleton" aria-hidden="true"><span /><span /><span /><span /></div> : null}
           <CardPayment

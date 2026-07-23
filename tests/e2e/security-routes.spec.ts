@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { validateMercadoPagoSignature } from "../../lib/payments/mercadopago-signature";
+import { evaluatePaymentProductionReadiness } from "../../lib/payments/production-readiness";
 import { getRequestSiteUrl } from "../../lib/utils/env";
 import { safeInternalPath } from "../../lib/utils/navigation";
 import { sanitizeCspReport } from "../../lib/security/csp-report";
@@ -161,6 +162,41 @@ test.describe("Firma Mercado Pago aislada", () => {
       xSignature: `ts=${ts},v1=${digest}`,
       xRequestId: requestId
     })).toBe(true);
+  });
+});
+
+test.describe("Barrera de activacion productiva", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium", "La configuracion server-side se prueba una sola vez.");
+  });
+
+  test("un token de test nunca habilita produccion por accidente", () => {
+    const base = {
+      paymentsEnabled: true,
+      provider: "mercadopago",
+      productionConfirmed: false,
+      productionAccessToken: "",
+      webhookSecret: "webhook-placeholder",
+      siteUrl: "https://tienda.fzac.example",
+      paymentsEnv: "production" as const
+    };
+
+    expect(evaluatePaymentProductionReadiness(base)).toMatchObject({
+      ready: false,
+      active: false,
+      blockers: expect.arrayContaining([
+        "PAYMENTS_PRODUCTION_CONFIRMED",
+        "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN"
+      ])
+    });
+
+    expect(
+      evaluatePaymentProductionReadiness({
+        ...base,
+        productionConfirmed: true,
+        productionAccessToken: "production-token-placeholder"
+      })
+    ).toEqual({ ready: true, active: true, blockers: [] });
   });
 });
 

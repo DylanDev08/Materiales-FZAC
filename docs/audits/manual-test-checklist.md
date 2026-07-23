@@ -8,8 +8,11 @@ Usar este checklist antes de cada deploy importante.
 - [ ] Confirmar `NEXT_PUBLIC_SITE_URL` con URL real de Render/dominio.
 - [ ] Confirmar `PAYMENTS_ENABLED=true`.
 - [ ] Confirmar `PAYMENTS_ENV=test` o `production` segun corresponda.
+- [ ] Mantener `PAYMENTS_PRODUCTION_CONFIRMED=false` durante todas las pruebas sandbox.
 - [ ] Confirmar que no se subio `.env`.
 - [ ] Confirmar que las credenciales de Mercado Pago pertenecen al mismo entorno.
+- [ ] En produccion usar `MERCADOPAGO_PRODUCTION_ACCESS_TOKEN`; no reutilizar el token base/test.
+- [ ] Activar `PAYMENTS_PRODUCTION_CONFIRMED=true` solo despues de aprobar webhook, devolucion y conciliacion.
 - [ ] Mantener `MERCADOPAGO_CARD_ENABLED=false` hasta validar el par dedicado `MERCADOPAGO_CARD_*` con tarjeta sandbox.
 - [ ] Reiniciar servicio Render despues de cambiar variables.
 
@@ -135,6 +138,10 @@ Usar este checklist antes de cada deploy importante.
 - [ ] Home usable en 390px.
 - [ ] Productos no desbordan.
 - [ ] Checkout mobile no tiene botones pegados.
+- [ ] Header mobile ocupa dos filas y el menu no desplaza una tercera fila cerrada.
+- [ ] Metodos de pago mobile aparecen en una columna, sin superposicion.
+- [ ] Resumen de checkout se abre/cierra y mantiene el total visible.
+- [ ] Sidebar admin abre como drawer, se puede scrollear y cerrar.
 - [ ] Inputs tienen label.
 - [ ] Focus visible por teclado.
 - [ ] Imagenes principales tienen `alt`.
@@ -147,7 +154,17 @@ Usar este checklist antes de cada deploy importante.
 - [ ] `npm run build`
 - [ ] `npm audit --omit=dev`
 - [ ] `npm run test:e2e`
+- [ ] `npm run test:mobile-checkout` contra build local.
+- [ ] `npm run test:mobile-admin` contra build local.
+- [ ] `npm run readiness:production` sin imprimir valores sensibles.
 - [ ] `npm run test:auth-roles` en local; para Render habilitar explicitamente `BASE_URL` y `ALLOW_REMOTE_AUTH_QA=true`.
 
 Las pruebas E2E normales son de solo lectura o usan estado local del navegador. Para habilitar pruebas que crean pedidos se requieren explicitamente `RUN_MUTATING_CHECKOUT_TESTS=true`, `PLAYWRIGHT_AUTH_STATE`, `QA_CHECKOUT_EMAIL` y `QA_CHECKOUT_PRODUCT_ID`. En un host remoto tambien se requiere `QA_ALLOW_REMOTE_WRITES=true`; usar un proyecto/cuenta QA y limpiar los datos generados.
+
+## Facturacion fiscal
+
+- [ ] No llamar factura fiscal al comprobante interno FZAC.
+- [ ] Definir proveedor homologado o integracion ARCA antes de emitir comprobantes fiscales.
+- [ ] Configurar `FISCAL_INVOICING_ENABLED=true` solo despues de validar numeracion, CAE, IVA y contingencias.
+- [ ] Realizar revision contable/legal antes del primer cobro productivo.
 

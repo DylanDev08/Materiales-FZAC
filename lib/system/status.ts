@@ -1,6 +1,11 @@
 import "server-only";
 
-import { getMercadoPagoEnvironmentState, getPaymentConfig, isMercadoPagoConfigured } from "@/lib/payments/config";
+import {
+  getMercadoPagoEnvironmentState,
+  getPaymentConfig,
+  getPaymentProductionReadiness,
+  isMercadoPagoConfigured
+} from "@/lib/payments/config";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
@@ -55,8 +60,12 @@ export async function getSystemStatus() {
   const supabase = getSupabaseConfig();
   const payment = getPaymentConfig();
   const mercadoPago = getMercadoPagoEnvironmentState();
+  const productionReadiness = getPaymentProductionReadiness();
   const resendConfigured = hasRealValue(getEnv("RESEND_API_KEY")) && hasRealValue(getEnv("RESEND_FROM_EMAIL"));
   const resendFrom = getEnv("RESEND_FROM_EMAIL");
+  const fiscalInvoicingEnabled =
+    getEnv("FISCAL_INVOICING_ENABLED").toLowerCase() === "true" &&
+    hasRealValue(getEnv("FISCAL_INVOICING_PROVIDER"));
   const siteState = siteUrlState(payment.siteUrl);
   const productionMode = payment.paymentsEnv === "production";
   const integrity = await getDatabaseIntegrityStatus();
@@ -84,10 +93,23 @@ export async function getSystemStatus() {
     },
     {
       label: "Ambiente de pagos",
-      ...(productionMode ? status("success", "Producción") : status("warning", "Prueba")),
+      ...(productionMode
+        ? productionReadiness.active
+          ? status("success", "Producción")
+          : status("danger", "Producción bloqueada")
+        : status("warning", "Prueba")),
       detail: productionMode
-        ? "Usa credenciales productivas y exige webhook firmado."
+        ? productionReadiness.active
+          ? "Usa credenciales productivas separadas y exige webhook firmado."
+          : "Falta completar la confirmación o las credenciales exclusivas de producción."
         : "Usa sandbox. El comprador debe ser TESTUSER y no la cuenta vendedora."
+    },
+    {
+      label: "Preparación de cobro real",
+      ...(productionReadiness.ready ? status("success", "Lista para activar") : status("warning", "Bloqueada")),
+      detail: productionReadiness.ready
+        ? "La barrera productiva tiene URL HTTPS, webhook y token exclusivo."
+        : `${productionReadiness.blockers.length} controles pendientes. No se habilitan cobros reales por accidente.`
     },
     {
       label: "Mercado Pago checkout",
@@ -118,6 +140,13 @@ export async function getSystemStatus() {
       detail: resendConfigured
         ? `Remitente configurado: ${resendFrom}. Verificar dominio y DNS en Resend.`
         : "Faltan RESEND_API_KEY o RESEND_FROM_EMAIL."
+    },
+    {
+      label: "Facturación fiscal",
+      ...(fiscalInvoicingEnabled ? status("success", "Proveedor configurado") : status("warning", "No integrada")),
+      detail: fiscalInvoicingEnabled
+        ? "Proveedor fiscal habilitado. Validar certificado, punto de venta y numeración antes de emitir."
+        : "El comprobante FZAC es operativo y no reemplaza una factura fiscal de ARCA."
     },
     {
       label: "Administradores",
