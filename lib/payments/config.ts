@@ -31,13 +31,15 @@ function getPaymentsEnvironment(): PaymentsEnvironment {
 export function getPaymentConfig() {
   const accessToken = getEnv("MERCADOPAGO_ACCESS_TOKEN");
   const publicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY") || getEnv("MERCADOPAGO_PUBLIC_KEY");
+  const cardPaymentsEnabled = getEnv("MERCADOPAGO_CARD_ENABLED").toLowerCase() === "true";
   return {
     accessToken,
     publicKey,
     checkoutProAccessToken: getEnv("MERCADOPAGO_CHECKOUT_PRO_ACCESS_TOKEN") || accessToken,
     checkoutProPublicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY") || publicKey,
-    cardAccessToken: getEnv("MERCADOPAGO_CARD_ACCESS_TOKEN") || accessToken,
-    cardPublicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY") || publicKey,
+    cardPaymentsEnabled,
+    cardAccessToken: getEnv("MERCADOPAGO_CARD_ACCESS_TOKEN"),
+    cardPublicKey: getEnv("NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY"),
     webhookSecret: getEnv("MERCADOPAGO_WEBHOOK_SECRET"),
     siteUrl: readSiteUrl(),
     paymentsEnabled: isPaymentsEnabled(),
@@ -56,11 +58,13 @@ function accessTokenForUse(use: MercadoPagoCredentialUse) {
 
 export function isMercadoPagoConfigured(use: MercadoPagoCredentialUse = "checkout") {
   const config = getPaymentConfig();
+  if (use === "card" && !config.cardPaymentsEnabled) return false;
   const baseConfigured =
     config.paymentsEnabled &&
     config.provider.toLowerCase() === "mercadopago" &&
     hasRealValue(accessTokenForUse(use)) &&
     hasRealValue(config.siteUrl);
+  if (use === "card" && !hasRealValue(config.cardPublicKey)) return false;
   if (!baseConfigured) return false;
   if (config.paymentsEnv === "test") return true;
 
@@ -92,6 +96,7 @@ export function getMercadoPagoEnvironmentState() {
     isMercadoPagoConfigured: isMercadoPagoConfigured(),
     hasAccessToken: hasRealValue(config.checkoutProAccessToken),
     hasCheckoutProAccessToken: hasRealValue(config.checkoutProAccessToken),
+    cardPaymentsEnabled: config.cardPaymentsEnabled,
     hasCardAccessToken: hasRealValue(config.cardAccessToken),
     hasPublicKey: hasRealValue(config.publicKey),
     hasCheckoutProPublicKey: hasRealValue(config.checkoutProPublicKey),

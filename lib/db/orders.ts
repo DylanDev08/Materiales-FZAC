@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { checkoutSchema, checkoutStockSchema, type CheckoutInput } from "@/lib/validations/checkout";
 import { fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
+import { isMercadoPagoConfigured, MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
@@ -481,6 +481,9 @@ export async function createCheckout(input: unknown) {
   if (currentUser.email.trim().toLowerCase() !== payload.customer.email.trim().toLowerCase()) {
     throw new CheckoutAuthRequiredError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
   }
+  if (payload.paymentFlow === "CARD" && !isMercadoPagoConfigured("card")) {
+    throw new MercadoPagoNotConfiguredError();
+  }
   const userId = currentUser.id;
   const fingerprint = checkoutFingerprint(payload, userId, paymentMethod);
   const { admin, products, items } = await getProductsForItems(payload.items);
@@ -696,7 +699,7 @@ export async function createCheckout(input: unknown) {
   await notifyAdminPaymentPending({ id: order.id, customerName: payload.customer.name });
 
   if (provider === "MERCADOPAGO" && payload.paymentFlow === "CARD") {
-    if (!isMercadoPagoEnabled()) throw new MercadoPagoNotConfiguredError(order.id);
+    if (!isMercadoPagoConfigured("card")) throw new MercadoPagoNotConfiguredError(order.id);
     return checkoutSuccessResponse({
       orderId: order.id,
       paymentId: payment.id,

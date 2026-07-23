@@ -166,9 +166,11 @@ function clearCheckoutIntentSnapshot() {
 }
 
 export function CheckoutForm({
+  cardPaymentsEnabled = false,
   paymentsTestMode = false,
   profile
 }: {
+  cardPaymentsEnabled?: boolean;
   paymentsTestMode?: boolean;
   profile: SessionProfile | null;
 }) {
@@ -196,7 +198,7 @@ export function CheckoutForm({
   const [termsOpen, setTermsOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>("CARD_BRICK");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
   const [error, setError] = useState("");
@@ -1246,17 +1248,19 @@ export function CheckoutForm({
                   <small>La opción seleccionada define el botón final.</small>
                 </div>
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
-                  <button
-                    type="button"
-                    className="payment-mode-button payment-mode-button--card"
-                    aria-pressed={paymentMode === "CARD_BRICK"}
-                    disabled={loading}
-                    onClick={() => selectPaymentMode("CARD_BRICK")}
-                  >
-                    <CreditCard size={18} />
-                    <span>{paymentModeContent.CARD_BRICK.eyebrow}</span>
-                    <strong>{paymentModeContent.CARD_BRICK.title}</strong>
-                  </button>
+                  {cardPaymentsEnabled ? (
+                    <button
+                      type="button"
+                      className="payment-mode-button payment-mode-button--card"
+                      aria-pressed={paymentMode === "CARD_BRICK"}
+                      disabled={loading}
+                      onClick={() => selectPaymentMode("CARD_BRICK")}
+                    >
+                      <CreditCard size={18} />
+                      <span>{paymentModeContent.CARD_BRICK.eyebrow}</span>
+                      <strong>{paymentModeContent.CARD_BRICK.title}</strong>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="payment-mode-button payment-mode-button--redirect"
@@ -1326,7 +1330,7 @@ export function CheckoutForm({
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {info ? <p className="notice notice--success">{info}</p> : null}
-                {paymentMode === "CARD_BRICK" ? (
+                {cardPaymentsEnabled && paymentMode === "CARD_BRICK" ? (
                   <MercadoPagoCardForm
                     amount={total}
                     customerEmail={customer.email}

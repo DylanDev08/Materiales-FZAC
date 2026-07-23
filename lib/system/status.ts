@@ -99,7 +99,9 @@ export async function getSystemStatus() {
     {
       label: "Mercado Pago tarjeta",
       ...configured(isMercadoPagoConfigured("card")),
-      detail: mercadoPago.hasCardAccessToken && mercadoPago.hasCardPublicKey
+      detail: !mercadoPago.cardPaymentsEnabled
+        ? "Desactivado hasta validar credenciales exclusivas para Card Brick."
+        : mercadoPago.hasCardAccessToken && mercadoPago.hasCardPublicKey
         ? "Credenciales disponibles para Brick/tarjeta segura."
         : "Falta token o public key para tarjeta."
     },

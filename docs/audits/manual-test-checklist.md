@@ -10,6 +10,7 @@ Usar este checklist antes de cada deploy importante.
 - [ ] Confirmar `PAYMENTS_ENV=test` o `production` segun corresponda.
 - [ ] Confirmar que no se subio `.env`.
 - [ ] Confirmar que las credenciales de Mercado Pago pertenecen al mismo entorno.
+- [ ] Mantener `MERCADOPAGO_CARD_ENABLED=false` hasta validar el par dedicado `MERCADOPAGO_CARD_*` con tarjeta sandbox.
 - [ ] Reiniciar servicio Render despues de cambiar variables.
 
 ## Rutas publicas
@@ -69,6 +70,7 @@ Usar este checklist antes de cada deploy importante.
 - [ ] Mercado Pago solo aparece/redirige cuando `payment_method=MERCADOPAGO`.
 - [ ] En `PAYMENTS_ENV=test`, el checkout muestra aviso de entorno de prueba.
 - [ ] Mercado Pago usa comprador TESTUSER, no cuenta real ni vendedor.
+- [ ] Card Brick solo aparece si `MERCADOPAGO_CARD_ENABLED=true` y sus credenciales dedicadas pasaron una prueba sandbox.
 - [ ] Transferencia no abre Mercado Pago.
 - [ ] Transferencia crea pedido pendiente.
 - [ ] WhatsApp no abre Mercado Pago.

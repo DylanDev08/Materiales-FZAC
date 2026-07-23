@@ -27,6 +27,7 @@ Sin valores sensibles:
 - `NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY` opcional
 - `MERCADOPAGO_CARD_ACCESS_TOKEN` opcional, solo servidor
 - `NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY` opcional
+- `MERCADOPAGO_CARD_ENABLED` activa Card Brick solo con credenciales dedicadas ya verificadas
 - `MERCADOPAGO_WEBHOOK_SECRET`
 - `PURCHASE_AUTO_APPROVAL_LIMIT`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
@@ -69,25 +70,25 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 
 | Area | Estado | Riesgo | Evidencia | Accion tomada | Pendiente |
 | --- | --- | --- | --- | --- | --- |
-| Deploy Render | Pendiente de este lote | Bajo | La versión previa estable publicaba `a566651`; el deploy final debe coincidir con `main` en `/api/health`. | Build y suites locales completos antes del push. | Verificar SHA y smoke remoto al terminar el deploy. |
+| Deploy Render | OK | Bajo | `/api/health` coincide con `main` y las URL públicas apuntan al servicio activo `materiales-fzac-8xmp.onrender.com`. | Se corrigieron `NEXT_PUBLIC_SITE_URL` y `NEXT_PUBLIC_API_URL` antiguas y se reconstruyó el servicio. | Verificar nuevamente el SHA después de cada push. |
 | Home | OK | Bajo | Carga sin 404/500 en Render. | Se agrego acceso visible al Boton de arrepentimiento en el bloque legal del home. | Revisar copy legal con profesional. |
 | Productos | OK | Bajo | `/productos` responde 200 y permite agregar producto al carrito en smoke local/Render. | Suite E2E cubre agregado y paso a checkout. | Mantener monitoreo de imagenes externas. |
 | Detalle producto | OK | Bajo | Las rutas `/producto/[slug]` compilan y Render muestra actividad de rutas. | Sin cambios. | Agregar test especifico por slug en una siguiente iteracion. |
 | Carrito | OK | Bajo | `/carrito` carga y muestra accion a checkout luego de agregar producto. | Test E2E agregado. | Validar mas casos de cantidad en mobile. |
-| Checkout | OK con observaciones | Medio | API recalcula productos/stock en backend y diferencia `MERCADOPAGO`, `BANK_TRANSFER`, `WHATSAPP`. | Test E2E/API cubre transferencia, WhatsApp y Mercado Pago test. | No hacer compras reales; verificar cada deploy con comprador TESTUSER. |
+| Checkout | OK con observaciones | Medio | API recalcula productos/stock en backend y diferencia `MERCADOPAGO`, `BANK_TRANSFER`, `WHATSAPP`. | Smoke remoto autenticado creó y limpió tres órdenes QA: transferencia, WhatsApp y Mercado Pago sandbox; el replay devolvió la misma orden/pago. | No hacer compras reales; verificar Checkout Pro con comprador TESTUSER. |
 | Idempotencia | Protegida | Bajo | La base real tiene indice unico parcial y RPC atomica; no hay claves duplicadas. | Se probo retry y concurrencia desde dos conexiones: una sola orden, item y pago. | Mantener monitoreo en Admin > Sistema. |
-| Mercado Pago | OK con control de entorno | Medio | `PAYMENTS_ENV=test` usa `sandbox_init_point || init_point`; webhook valida `live_mode`. | Test API espera `sandbox_init_point` en modo test. | No mezclar vendedor real/comprador real con credenciales de prueba; usar comprador TESTUSER. |
+| Mercado Pago | Checkout Pro OK; tarjeta bloqueada | Medio | `PAYMENTS_ENV=test` generó preferencia HTTP 201 con `sandbox_init_point`; el proveedor identifica el Access Token como usuario test. El pago directo con tarjeta devolvió `Unauthorized use of live credentials`. | Checkout Pro queda activo. Card Brick se oculta y el backend devuelve 503 antes de escribir hasta configurar `MERCADOPAGO_CARD_*` dedicadas y habilitar `MERCADOPAGO_CARD_ENABLED=true`. | Obtener credenciales de prueba de tarjeta de la cuenta vendedora real y repetir escenario sandbox rechazado antes de habilitar. |
 | Webhook | Reforzado | Bajo | Valida firma con comparación temporal segura, `live_mode`, asociación, monto y moneda; no confía en el payload para confirmar. | Se aisló la política de estados, se sanitiza el evento y un índice único parcial deduplica notificaciones estables sin bloquear IPN legacy. | Mantener una prueba final con eventos sandbox antes de pasar a producción. |
 | Transferencia | OK | Bajo | `BANK_TRANSFER` crea pedido pendiente y no devuelve `redirect_url`. | Test API agregado. | Flujo administrativo de envio de datos bancarios depende de operacion FZAC/email. |
 | WhatsApp | OK | Bajo | `WHATSAPP` crea pedido pendiente, no devuelve MP y genera `whatsapp_url`. | Test API agregado. | Validar numero final en Render. |
-| Base de datos | Auditada | Bajo/Medio | Se consultó el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722000000` a `20260722050000` quedaron registradas remotamente. | Se corrigió checkout atómico y se completó el flujo privado de solicitudes del consumidor. | Conciliar las 63 órdenes históricas incompletas con decisión administrativa. |
+| Base de datos | Auditada | Bajo/Medio | Se consultó el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722000000` a `20260723000000` quedaron registradas remotamente. | Se corrigió checkout atómico, reembolsos, privilegios, observabilidad e idempotencia de webhook. | Conciliar las 63 órdenes históricas incompletas con decisión administrativa. |
 | RLS | Activa y reforzada | Bajo/Medio | RLS esta habilitada en las tablas publicas revisadas. El trigger real preserva `id`, `email` y `role` ante escrituras de clientes. | Se probo con rollback que un usuario no puede elevarse a ADMIN. | La auditoria de policies debe repetirse ante cada cambio de esquema. |
 | Admin | OK | Bajo | APIs admin anonimas devuelven 401; `/admin` redirige a consola oculta y un perfil no autorizado no puede escalar por `role`. | Usuario QA aislado obtuvo cuenta 200 y admin 401 aun tras inyectar `role=ADMIN`; luego fue eliminado. | Verificar una sesion del admin real antes del lanzamiento. |
 | Rutas protegidas | OK | Bajo | `/api/admin/metrics`, orders, payments, products devuelven 401 anonimo; `/api/orders/:id` devuelve 401 anonimo. | `test:auth-roles` crea y limpia un usuario temporal, valida cuenta propia y bloqueo administrativo. | Mantener el smoke remoto bajo habilitacion explicita. |
 | Botones | OK | Bajo | Playwright recorrio los links internos principales en Render sin 404. | `/register` redirige a `/registro` y `/arrepentimiento` esta publicado. | Repetir el smoke ante cambios de navegacion. |
 | Legal consumidor | Completo técnicamente | Bajo/Medio | `/arrepentimiento` registra un trámite idempotente, genera número, avisa al admin y envía constancia cuando Resend está disponible. | Se agregó gestión de estados, nota de resolución y seguimiento autenticado en Mi cuenta. | Revisión jurídica final por profesional antes de producción. |
 | Botón arrepentimiento | Operativo | Bajo/Medio | Formulario mobile con validación, honeypot, rate limit, idempotencia y contenido seguro. | El cliente conserva número y puede consultar estado; el admin gestiona desde una sección dedicada. | Definir SLA interno de respuesta y responsables. |
-| Reembolsos | OK con migracion | Medio | Endpoint admin exige admin, motivo, pago PAID, MP, live_mode compatible y RPC de integridad. | Auditado. | Confirmar migracion `finalize_refunded_order` aplicada en Supabase. |
+| Reembolsos | OK con migración | Bajo/Medio | Endpoint admin exige admin, motivo, pago PAID, MP, `live_mode` compatible y RPC de integridad. | La migración `20260722040000` figura aplicada en Supabase. | Ejecutar el primer reembolso productivo con doble control administrativo. |
 | Seguridad headers | Reforzada | Bajo | Incluye `DENY`, `nosniff`, HSTS, referrer/permissions policy, COOP/CORP y cache privada en rutas sensibles. | Se agregó CSP Report-Only compatible con Supabase, Google y Mercado Pago, más colector acotado y rate-limited. | Revisar reportes reales antes de convertir CSP a modo obligatorio. |
 | Performance | Basico OK | Bajo | Build optimizado compila; no se ejecuto Lighthouse completo. | Documentado. | Medir Lighthouse tras deploy final. |
 | Mobile | OK local | Bajo | iPhone 13, Pixel 7, Galaxy S20 y 360x740 pasan rutas, overflow, menú, catálogo, producto, carrito, legal y auth. | 68 pruebas pasaron; 4 casos autenticados quedaron omitidos deliberadamente. | Repetir smoke contra Render después del deploy. |
@@ -166,6 +167,20 @@ Control local del lote actual:
 - Concurrencia de solo lectura: 100 búsquedas y 80 validaciones de carrito, sin 500; los límites devolvieron 429 con `Retry-After`.
 - Flujo legal controlado: creación 201, replay idempotente 200, contenido hostil 422 y limpieza posterior de los datos QA.
 
+### Verificación autenticada de pagos - 2026-07-22
+
+- Se corrigieron en Render `NEXT_PUBLIC_SITE_URL` y `NEXT_PUBLIC_API_URL`, que todavía apuntaban al hostname anterior.
+- La credencial de Checkout Pro respondió correctamente en `/users/me` como usuario test y creó una preferencia HTTP 201 con `sandbox_init_point`, retornos y webhook sobre el hostname activo.
+- `test:checkout-flow` creó un usuario temporal confirmado, inició sesión por la API real y usó un producto activo con stock.
+- Transferencia: HTTP 201, `PENDING_TRANSFER`, sin redirect de Mercado Pago.
+- WhatsApp: HTTP 201, `COORDINATE`, sin redirect de Mercado Pago y con URL `wa.me`.
+- Mercado Pago: HTTP 201, `PENDING_PAYMENT` y redirect sandbox.
+- Repetir la transferencia con la misma idempotency key devolvió el mismo pedido y pago.
+- La limpieza eliminó las tres órdenes, pagos en cascada, notificaciones, perfil, usuario Auth y desactivó la preferencia. Una consulta independiente confirmó cero residuos QA.
+- El par actual de tarjeta tokeniza la tarjeta sandbox, pero Mercado Pago rechaza el pago directo con HTTP 401 `Unauthorized use of live credentials`. Card Brick quedó desactivado por configuración, oculto en checkout y protegido con 503 antes de escribir una orden.
+- Matriz local final: 160 pruebas pasaron y 110 se omitieron deliberadamente por requerir sesión o escritura explícita.
+- Carga local: 100 búsquedas y 80 validaciones concurrentes, sin respuestas 500; los 429 incluyeron `Retry-After`.
+
 ## Validacion final local
 
 | Comando | Estado |
@@ -175,8 +190,8 @@ Control local del lote actual:
 | Build con Node `22.22.0` | OK, 59 rutas |
 | `npm audit --omit=dev` | OK, 0 vulnerabilidades |
 | Smoke Playwright desktop | OK, 15 passed / 4 skipped |
-| Playwright seguridad | OK, 16 passed local; la verificacion de Render se ejecuta despues de cada deploy |
-| Matriz Playwright local | OK, 155 passed / 90 skipped intencionales |
+| Playwright seguridad | OK, 17 passed local; la verificación de Render se ejecuta después de cada deploy |
+| Matriz Playwright local | OK, 160 passed / 110 skipped intencionales |
 | Playwright mobile compacto en Render | OK, 17 passed / 1 skipped por sesion QA ausente |
 | Smoke de concurrencia | OK, 180 requests / 0 respuestas 500 |
 
@@ -219,4 +234,5 @@ Verificacion posterior al deploy `88aa06789d22ffc65a33bfd1242cba10bbe1ceec`:
 3. Mantener CSP en Report-Only hasta observar Google OAuth y Mercado Pago reales; las ultimas 24 horas solo contenian reportes sinteticos y la telemetria ya elimina queries sensibles.
 4. Ejecutar una prueba final de webhook con eventos sandbox reales del proveedor; las fixtures aisladas `approved`, `rejected` y `refunded` ya están cubiertas.
 5. Verificar el acceso de un administrador real; el usuario normal autenticado y la escalada por perfil ya quedaron cubiertos.
-6. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.
+6. Probar Checkout Pro solo con comprador TESTUSER y credenciales del mismo entorno.
+7. Obtener y validar credenciales dedicadas de Card Brick antes de activar `MERCADOPAGO_CARD_ENABLED`; no reutilizar el par actual que Mercado Pago rechaza para tarjeta directa.
