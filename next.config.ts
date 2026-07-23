@@ -5,6 +5,13 @@ const normalizedAdminPath = rawAdminPath.replace(/^\/+|\/+$/g, "");
 const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fzac-admin-crs-2026";
 
 const nextConfig: NextConfig = {
+  webpack(config, { dev, isServer }) {
+    if (!dev && !isServer) {
+      // Render's edge can refuse bursts of HTTP/2 streams; route bundles favor reliability over speculative chunking.
+      config.optimization.splitChunks = false;
+    }
+    return config;
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

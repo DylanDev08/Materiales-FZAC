@@ -186,11 +186,14 @@ Durante la verificacion del lote se detecto un fallo intermitente de hidratacion
 - `/productos` iniciaba 51 prefetches RSC especulativos antes de cualquier interaccion, ademas de los recursos necesarios para hidratar la pagina.
 - Se desactivo `prefetch` en enlaces repetidos de catalogo, productos, navegacion y footer. La navegacion cliente sigue funcionando al hacer click.
 - El build de produccion se fijo en Webpack para usar el empaquetado mas estable en el runtime de Render.
+- El primer deploy sin prefetch confirmo que el edge todavia rechazaba entre 2 y 10 de 16 scripts esenciales. La misma pagina forzada a HTTP/1.1 cargo 3/3 productos y 0 fallos, aislando el problema en el transporte HTTP/2 de Render.
+- El bundle cliente final desactiva la fragmentacion de rutas en produccion: `/productos` necesita 4 scripts iniciales en lugar de 16.
 
 Medicion local sobre el artefacto final:
 
 - Antes: 51 solicitudes RSC especulativas y 47 solicitudes abortadas en la muestra.
 - Despues: 0 solicitudes RSC especulativas, 0 solicitudes fallidas y 3/3 productos hidratados con su accion Agregar.
+- Bundle final: 4 scripts, aproximadamente 286 KB transferidos en local y tres cargas consecutivas sin errores.
 - Instalacion limpia equivalente a Render: `npm ci --include=dev` OK.
 - Build Node `22.22.0` + Webpack: OK, 59 rutas.
 - Seguridad: 11 passed.
