@@ -181,6 +181,16 @@ Control local del lote actual:
 - Matriz local final: 160 pruebas pasaron y 110 se omitieron deliberadamente por requerir sesión o escritura explícita.
 - Carga local: 100 búsquedas y 80 validaciones concurrentes, sin respuestas 500; los 429 incluyeron `Retry-After`.
 
+Verificación posterior al deploy `dea675913a2d1578cf467c13884b640029430b52`:
+
+- `/api/health` informó exactamente el SHA desplegado.
+- Checkout autenticado remoto: transferencia, WhatsApp, Checkout Pro sandbox, replay idempotente y guard de tarjeta pasaron; limpieza completa confirmada.
+- Seguridad + smoke desktop: 32 pruebas pasaron y 4 mutaciones opt-in se omitieron.
+- Mobile compacto 360x740: 17 pruebas pasaron y 1 caso autenticado se omitió.
+- Control de rol autenticado: cuenta propia HTTP 200 y API admin HTTP 401 aun después de inyectar `role=ADMIN` en un email no autorizado.
+- Consulta posterior en Supabase: cero usuarios, perfiles, pedidos y notificaciones QA residuales.
+- Logs Render posteriores al deploy: 154 entradas, sin excepciones operativas; los únicos dos matches fueron la ruta CSP y el reporte sintético de la suite.
+
 ## Validacion final local
 
 | Comando | Estado |
