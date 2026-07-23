@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { validateMercadoPagoSignature } from "../../lib/payments/mercadopago-signature";
 import { getRequestSiteUrl } from "../../lib/utils/env";
 import { safeInternalPath } from "../../lib/utils/navigation";
+import { sanitizeCspReport } from "../../lib/security/csp-report";
 import {
   buildMercadoPagoProviderEventId,
   isMercadoPagoPaymentId,
@@ -221,6 +222,34 @@ test.describe("Politica del webhook Mercado Pago", () => {
       data: { id: "1234" }
     });
     expect(JSON.stringify(safe)).not.toContain("no-persistir");
+  });
+});
+
+test.describe("Telemetria CSP segura", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium", "La sanitizacion pura se prueba una sola vez.");
+  });
+
+  test("elimina query, fragmentos y saltos de linea de las URLs reportadas", () => {
+    const report = sanitizeCspReport({
+      "csp-report": {
+        "effective-directive": "script-src\ninyectado",
+        "violated-directive": "script-src-elem",
+        "blocked-uri": "https://cdn.example.com/script.js?token=secreto#fragmento",
+        "document-uri": "https://materiales.example/checkout?orderId=privado#pago"
+      }
+    });
+
+    expect(report).toEqual({
+      effective_directive: "script-src inyectado",
+      violated_directive: "script-src-elem",
+      disposition: undefined,
+      blocked_url: "https://cdn.example.com/script.js",
+      document_url: "https://materiales.example/checkout"
+    });
+    expect(JSON.stringify(report)).not.toContain("secreto");
+    expect(JSON.stringify(report)).not.toContain("privado");
+    expect(sanitizeCspReport({ "blocked-uri": "data:text/html,contenido-sensible" })?.blocked_url).toBe("data:");
   });
 });
 

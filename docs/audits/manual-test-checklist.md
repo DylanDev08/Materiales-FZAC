@@ -92,6 +92,7 @@ Usar este checklist antes de cada deploy importante.
 
 - [ ] Anonimo no entra a admin.
 - [ ] Usuario comun no entra a admin.
+- [ ] Un `role=ADMIN` inyectado en un perfil cuyo email no esta autorizado sigue bloqueado.
 - [ ] Admin autorizado entra al panel.
 - [ ] APIs admin anonimas devuelven 401/403.
 - [ ] Dashboard no muestra UUIDs largos como dato principal.
@@ -144,6 +145,7 @@ Usar este checklist antes de cada deploy importante.
 - [ ] `npm run build`
 - [ ] `npm audit --omit=dev`
 - [ ] `npm run test:e2e`
+- [ ] `npm run test:auth-roles` en local; para Render habilitar explicitamente `BASE_URL` y `ALLOW_REMOTE_AUTH_QA=true`.
 
 Las pruebas E2E normales son de solo lectura o usan estado local del navegador. Para habilitar pruebas que crean pedidos se requieren explicitamente `RUN_MUTATING_CHECKOUT_TESTS=true`, `PLAYWRIGHT_AUTH_STATE`, `QA_CHECKOUT_EMAIL` y `QA_CHECKOUT_PRODUCT_ID`. En un host remoto tambien se requiere `QA_ALLOW_REMOTE_WRITES=true`; usar un proyecto/cuenta QA y limpiar los datos generados.
 

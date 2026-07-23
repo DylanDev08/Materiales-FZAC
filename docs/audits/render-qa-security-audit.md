@@ -82,8 +82,8 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 | WhatsApp | OK | Bajo | `WHATSAPP` crea pedido pendiente, no devuelve MP y genera `whatsapp_url`. | Test API agregado. | Validar numero final en Render. |
 | Base de datos | Auditada | Bajo/Medio | Se consultó el esquema real, constraints, RLS e integridad sin borrar datos. Las migraciones `20260722000000` a `20260722050000` quedaron registradas remotamente. | Se corrigió checkout atómico y se completó el flujo privado de solicitudes del consumidor. | Conciliar las 63 órdenes históricas incompletas con decisión administrativa. |
 | RLS | Activa y reforzada | Bajo/Medio | RLS esta habilitada en las tablas publicas revisadas. El trigger real preserva `id`, `email` y `role` ante escrituras de clientes. | Se probo con rollback que un usuario no puede elevarse a ADMIN. | La auditoria de policies debe repetirse ante cada cambio de esquema. |
-| Admin | OK | Bajo | APIs admin anonimas devuelven 401; `/admin` redirige a consola oculta. | Se verificaron `/api/admin/*` anonimos. | Probar usuario comun autenticado vs admin real en navegador. |
-| Rutas protegidas | OK | Bajo | `/api/admin/metrics`, orders, payments, products devuelven 401 anonimo; `/api/orders/:id` devuelve 401 anonimo. | Reportado. | Test automatizado autenticado requiere credenciales de QA separadas. |
+| Admin | OK | Bajo | APIs admin anonimas devuelven 401; `/admin` redirige a consola oculta y un perfil no autorizado no puede escalar por `role`. | Usuario QA aislado obtuvo cuenta 200 y admin 401 aun tras inyectar `role=ADMIN`; luego fue eliminado. | Verificar una sesion del admin real antes del lanzamiento. |
+| Rutas protegidas | OK | Bajo | `/api/admin/metrics`, orders, payments, products devuelven 401 anonimo; `/api/orders/:id` devuelve 401 anonimo. | `test:auth-roles` crea y limpia un usuario temporal, valida cuenta propia y bloqueo administrativo. | Mantener el smoke remoto bajo habilitacion explicita. |
 | Botones | OK | Bajo | Playwright recorrio los links internos principales en Render sin 404. | `/register` redirige a `/registro` y `/arrepentimiento` esta publicado. | Repetir el smoke ante cambios de navegacion. |
 | Legal consumidor | Completo técnicamente | Bajo/Medio | `/arrepentimiento` registra un trámite idempotente, genera número, avisa al admin y envía constancia cuando Resend está disponible. | Se agregó gestión de estados, nota de resolución y seguimiento autenticado en Mi cuenta. | Revisión jurídica final por profesional antes de producción. |
 | Botón arrepentimiento | Operativo | Bajo/Medio | Formulario mobile con validación, honeypot, rate limit, idempotencia y contenido seguro. | El cliente conserva número y puede consultar estado; el admin gestiona desde una sección dedicada. | Definir SLA interno de respuesta y responsables. |
@@ -216,7 +216,7 @@ Verificacion posterior al deploy `88aa06789d22ffc65a33bfd1242cba10bbe1ceec`:
 
 1. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.
 2. Revisar legalmente términos, privacidad, devoluciones y SLA del Botón de arrepentimiento antes del lanzamiento definitivo.
-3. Analizar reportes CSP de Render y recién después evaluar pasar de Report-Only a enforcement.
+3. Mantener CSP en Report-Only hasta observar Google OAuth y Mercado Pago reales; las ultimas 24 horas solo contenian reportes sinteticos y la telemetria ya elimina queries sensibles.
 4. Ejecutar una prueba final de webhook con eventos sandbox reales del proveedor; las fixtures aisladas `approved`, `rejected` y `refunded` ya están cubiertas.
-5. Probar usuario normal autenticado bloqueado en admin y admin autorizado con cuentas QA separadas.
+5. Verificar el acceso de un administrador real; el usuario normal autenticado y la escalada por perfil ya quedaron cubiertos.
 6. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.
