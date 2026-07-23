@@ -11,7 +11,7 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="container site-footer__grid">
         <div>
-          <Link className="brand" href="/">
+          <Link className="brand" href="/" prefetch={false}>
             <span className="brand__mark brand__mark--logo">
               <Image src="/logoFZAC.jpg" alt="FZAC" width={42} height={42} unoptimized />
             </span>
@@ -29,32 +29,32 @@ export function SiteFooter() {
         <div>
           <h3>Tienda</h3>
           <nav>
-            <Link href="/productos">Productos</Link>
-            <Link href="/categorias">Categorías</Link>
-            <Link href="/ofertas">Ofertas</Link>
-            <Link href="/carrito">Carrito</Link>
+            <Link href="/productos" prefetch={false}>Productos</Link>
+            <Link href="/categorias" prefetch={false}>Categorías</Link>
+            <Link href="/ofertas" prefetch={false}>Ofertas</Link>
+            <Link href="/carrito" prefetch={false}>Carrito</Link>
           </nav>
         </div>
 
         <div>
           <h3>Cuenta</h3>
           <nav>
-            <Link href="/login">Ingresar</Link>
-            <Link href="/registro">Registrarme</Link>
-            <Link href="/cuenta/pedidos">Mis pedidos</Link>
-            <Link href="/cuenta/conversaciones">Conversaciones</Link>
+            <Link href="/login" prefetch={false}>Ingresar</Link>
+            <Link href="/registro" prefetch={false}>Registrarme</Link>
+            <Link href="/cuenta/pedidos" prefetch={false}>Mis pedidos</Link>
+            <Link href="/cuenta/conversaciones" prefetch={false}>Conversaciones</Link>
           </nav>
         </div>
 
         <div>
           <h3>Legal y contacto</h3>
           <nav>
-            <Link href="/terminos">Términos</Link>
-            <Link href="/privacidad">Privacidad</Link>
-            <Link href="/arrepentimiento">Botón de arrepentimiento</Link>
-            <Link href="/cambios-y-devoluciones">Cambios y devoluciones</Link>
-            <Link href="/envios-y-retiros">Envíos y retiros</Link>
-            <Link href="/medios-de-pago">Medios de pago</Link>
+            <Link href="/terminos" prefetch={false}>Términos</Link>
+            <Link href="/privacidad" prefetch={false}>Privacidad</Link>
+            <Link href="/arrepentimiento" prefetch={false}>Botón de arrepentimiento</Link>
+            <Link href="/cambios-y-devoluciones" prefetch={false}>Cambios y devoluciones</Link>
+            <Link href="/envios-y-retiros" prefetch={false}>Envíos y retiros</Link>
+            <Link href="/medios-de-pago" prefetch={false}>Medios de pago</Link>
             <a href={`mailto:${email}`}>{email}</a>
             <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}>WhatsApp {whatsapp}</a>
             <span>{instagram}</span>

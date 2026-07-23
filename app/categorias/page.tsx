@@ -28,7 +28,7 @@ export default async function Page() {
             <h1>Entrá por el trabajo que tenés que resolver</h1>
             <p>Elegí un rubro y encontrá materiales, herramientas y complementos sin recorrer una lista interminable.</p>
           </div>
-          <Link className="btn" href="/productos">
+          <Link className="btn" href="/productos" prefetch={false}>
             Ver todos los productos <ArrowRight size={17} />
           </Link>
         </div>
@@ -45,7 +45,7 @@ export default async function Page() {
               {categories.map((category, index) => {
               const Icon = categoryIcons[index % categoryIcons.length] ?? Grid3X3;
               return (
-                <Link className="category-directory__row" href={`/categoria/${category.slug}`} key={category.id}>
+                <Link className="category-directory__row" href={`/categoria/${category.slug}`} key={category.id} prefetch={false}>
                   <span className="category-directory__index">{String(index + 1).padStart(2, "0")}</span>
                   <span className="category-directory__visual">
                     {category.image_url ? (
@@ -72,7 +72,7 @@ export default async function Page() {
                 <h2>Los rubros todavía no están publicados</h2>
                 <p>Podés explorar todos los productos disponibles o pedir ayuda para encontrar un material.</p>
               </div>
-              <Link className="btn btn--ghost" href="/contacto?tema=productos">
+              <Link className="btn btn--ghost" href="/contacto?tema=productos" prefetch={false}>
                 Buscar con ayuda <ArrowRight size={17} />
               </Link>
             </div>

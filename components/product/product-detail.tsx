@@ -13,10 +13,10 @@ export function ProductDetail({ product, related }: { product: Product; related:
     <main className="page-section">
       <div className="container">
         <nav className="product-breadcrumb" aria-label="Navegación del producto">
-          <Link href="/productos">Productos</Link>
+          <Link href="/productos" prefetch={false}>Productos</Link>
           <ChevronRight size={14} />
           {product.category?.slug ? (
-            <Link href={`/categoria/${product.category.slug}`}>{product.category.name}</Link>
+            <Link href={`/categoria/${product.category.slug}`} prefetch={false}>{product.category.name}</Link>
           ) : (
             <span>{product.subcategory}</span>
           )}

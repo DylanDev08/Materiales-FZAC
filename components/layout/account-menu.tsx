@@ -100,7 +100,7 @@ export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
 
   if (!profile) {
     return (
-      <Link className="icon-link" href="/login" aria-label="Ingresar a cuenta">
+      <Link className="icon-link" href="/login" aria-label="Ingresar a cuenta" prefetch={false}>
         <UserRound size={20} />
       </Link>
     );
@@ -138,17 +138,17 @@ export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
 
           <nav>
             {profile.role === "ADMIN" ? (
-              <Link href={adminPath} onClick={() => setOpen(false)}>
+              <Link href={adminPath} onClick={() => setOpen(false)} prefetch={false}>
                 <LayoutDashboard size={17} /> Panel admin
               </Link>
             ) : null}
-            <Link href="/cuenta" onClick={() => setOpen(false)}>
+            <Link href="/cuenta" onClick={() => setOpen(false)} prefetch={false}>
               <UserRound size={17} /> Mi cuenta
             </Link>
-            <Link href="/cuenta/pedidos" onClick={() => setOpen(false)}>
+            <Link href="/cuenta/pedidos" onClick={() => setOpen(false)} prefetch={false}>
               <Package size={17} /> Productos comprados
             </Link>
-            <Link href="/cuenta/ajustes" onClick={() => setOpen(false)}>
+            <Link href="/cuenta/ajustes" onClick={() => setOpen(false)} prefetch={false}>
               <Settings size={17} /> Ajustes
             </Link>
             <button type="button" onClick={logout}>

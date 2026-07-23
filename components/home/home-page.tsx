@@ -77,10 +77,10 @@ export async function HomePage() {
               </button>
             </form>
             <div className="hero-actions">
-              <Link className="btn" href="/productos">
+              <Link className="btn" href="/productos" prefetch={false}>
                 Comprar materiales <ArrowRight size={18} />
               </Link>
-              <Link className="btn btn--ghost" href="/ofertas">
+              <Link className="btn btn--ghost" href="/ofertas" prefetch={false}>
                 Ver ofertas
               </Link>
               <a className="btn btn--ghost" href={materialHelpHref} target="_blank" rel="noreferrer">
@@ -116,7 +116,7 @@ export async function HomePage() {
             title="Comprar por necesidad"
             text="Entrá directo al material que necesitás sin recorrer secciones de más."
             action={
-              <Link className="btn btn--ghost" href="/categorias">
+              <Link className="btn btn--ghost" href="/categorias" prefetch={false}>
                 Ver rubros
               </Link>
             }
@@ -125,7 +125,7 @@ export async function HomePage() {
             {buyingNeeds.map((need) => {
               const Icon = need.icon;
               return (
-                <Link className="home-need-link" href={need.href} key={need.label}>
+                <Link className="home-need-link" href={need.href} key={need.label} prefetch={false}>
                   <span>
                     <Icon size={18} />
                   </span>
@@ -194,7 +194,7 @@ export async function HomePage() {
             title="Productos para empezar el pedido"
             text="Selección corta, rápida de escanear y lista para sumar al carrito."
             action={
-              <Link className="btn btn--ghost" href="/productos">
+              <Link className="btn btn--ghost" href="/productos" prefetch={false}>
                 Catálogo completo
               </Link>
             }
@@ -210,10 +210,10 @@ export async function HomePage() {
             <strong>Compra clara, cambios y devoluciones disponibles.</strong>
             <p>Consulta condiciones legales, plazos y requisitos antes de confirmar tu pedido.</p>
           </div>
-          <Link className="btn btn--ghost" href="/arrepentimiento">
+          <Link className="btn btn--ghost" href="/arrepentimiento" prefetch={false}>
             Botón de arrepentimiento
           </Link>
-          <Link className="btn btn--ghost" href="/cambios-y-devoluciones">
+          <Link className="btn btn--ghost" href="/cambios-y-devoluciones" prefetch={false}>
             Ver política
           </Link>
         </div>

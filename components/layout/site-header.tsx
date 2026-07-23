@@ -24,7 +24,7 @@ export async function SiteHeader() {
 
       <header className="site-header">
         <div className="container site-header__main">
-          <Link className="brand" href="/" aria-label="Ir al inicio">
+          <Link className="brand" href="/" aria-label="Ir al inicio" prefetch={false}>
             <span className="brand__mark brand__mark--logo">
               <Image src="/logoFZAC.jpg" alt="FZAC" width={42} height={42} priority unoptimized />
             </span>
@@ -38,7 +38,7 @@ export async function SiteHeader() {
 
           <div className="header-actions">
             {profile?.role === "ADMIN" ? (
-              <Link className="icon-link" href={adminPath} aria-label="Panel admin">
+              <Link className="icon-link" href={adminPath} aria-label="Panel admin" prefetch={false}>
                 <ShieldCheck size={20} />
               </Link>
             ) : null}

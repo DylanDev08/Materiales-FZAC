@@ -119,7 +119,7 @@ export async function CatalogPage({
             <h1>{title}</h1>
             <p>{lead}</p>
           </div>
-          <Link className="catalog-masthead__categories" href="/categorias">
+          <Link className="catalog-masthead__categories" href="/categorias" prefetch={false}>
             <Boxes size={22} />
             <span>
               <small>Explorar por proyecto</small>
@@ -145,14 +145,14 @@ export async function CatalogPage({
               <span className="kicker">Compra guiada</span>
               <h2>Elegí por lo que vas a hacer</h2>
             </div>
-            <Link className="catalog-projects__help" href="/contacto?tema=productos">
+            <Link className="catalog-projects__help" href="/contacto?tema=productos" prefetch={false}>
               <Wrench size={16} />
               Asesoramiento
             </Link>
           </div>
           <div className="catalog-projects__rail" aria-label="Comprar por proyecto">
             {projectShortcuts.map(({ href, icon: Icon, label, helper }) => (
-              <Link href={href} key={label}>
+              <Link href={href} key={label} prefetch={false}>
                 <span><Icon size={18} /></span>
                 <strong>{label}</strong>
                 <small>{helper}</small>
@@ -165,7 +165,7 @@ export async function CatalogPage({
       <section className="catalog-controls-shell">
         <div className="container">
           <nav className="catalog-category-rail" aria-label="Rubros de productos">
-            <Link href="/productos" className={!lockedCategory ? "is-active" : ""}>
+            <Link href="/productos" className={!lockedCategory ? "is-active" : ""} prefetch={false}>
               Todos
             </Link>
             {categories.map((category) => (
@@ -173,6 +173,7 @@ export async function CatalogPage({
                 href={`/categoria/${category.slug}`}
                 className={lockedCategory === category.slug ? "is-active" : ""}
                 key={category.id}
+                prefetch={false}
               >
                 {category.name}
               </Link>
@@ -202,7 +203,7 @@ export async function CatalogPage({
               <h2>¿No encontrás la medida o el material?</h2>
               <p>Usá el centro de ayuda para buscar equivalencias, calcular cantidades o revisar disponibilidad.</p>
             </div>
-            <Link className="btn btn--ghost" href="/contacto?tema=productos">
+            <Link className="btn btn--ghost" href="/contacto?tema=productos" prefetch={false}>
               Centro de ayuda <ArrowRight size={17} />
             </Link>
           </div>

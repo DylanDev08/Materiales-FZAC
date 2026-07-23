@@ -107,10 +107,10 @@ export function ProductBuyBox({ product }: { product: Product }) {
             {product.name} · Cantidad: {quantity}
           </span>
           <div>
-            <Link className="btn" href="/carrito">
+            <Link className="btn" href="/carrito" prefetch={false}>
               Ver carrito
             </Link>
-            <Link className="btn btn--ghost" href="/productos">
+            <Link className="btn btn--ghost" href="/productos" prefetch={false}>
               Seguir comprando
             </Link>
           </div>

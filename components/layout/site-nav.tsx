@@ -63,7 +63,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
     <div className="site-nav-wrap" ref={navRef}>
       <nav className="category-nav" aria-label="Navegacion principal">
         <div className="container category-nav__inner">
-          <Link href="/" onClick={closeAll}>
+          <Link href="/" onClick={closeAll} prefetch={false}>
             Inicio
           </Link>
           <div className="nav-dropdown-wrap">
@@ -78,7 +78,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             {openDropdown === "products" ? (
               <div className="nav-dropdown">
                 {productLinks.map((item) => (
-                  <Link href={item.href} key={item.href} onClick={closeAll}>
+                  <Link href={item.href} key={item.href} onClick={closeAll} prefetch={false}>
                     {item.label}
                   </Link>
                 ))}
@@ -97,20 +97,20 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             {openDropdown === "categories" ? (
               <div className="nav-dropdown">
                 {categoryLinks.map((item) => (
-                  <Link href={item.href} key={item.href} onClick={closeAll}>
+                  <Link href={item.href} key={item.href} onClick={closeAll} prefetch={false}>
                     {item.label}
                   </Link>
                 ))}
               </div>
             ) : null}
           </div>
-          <Link href="/ofertas" onClick={closeAll}>
+          <Link href="/ofertas" onClick={closeAll} prefetch={false}>
             Ofertas
           </Link>
-          <Link href="/como-comprar" onClick={closeAll}>
+          <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
             Como comprar
           </Link>
-          <Link href="/contacto" onClick={closeAll}>
+          <Link href="/contacto" onClick={closeAll} prefetch={false}>
             Contacto
           </Link>
         </div>
@@ -122,10 +122,10 @@ export function SiteNav({ categories }: { categories: Category[] }) {
       </button>
       {mobileOpen ? (
         <div className="mobile-nav-panel">
-          <Link href="/" onClick={closeAll}>
+          <Link href="/" onClick={closeAll} prefetch={false}>
             Inicio
           </Link>
-          <Link href="/productos" onClick={closeAll}>
+          <Link href="/productos" onClick={closeAll} prefetch={false}>
             Productos
           </Link>
           <button type="button" onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}>
@@ -134,19 +134,19 @@ export function SiteNav({ categories }: { categories: Category[] }) {
           {mobileCategoriesOpen ? (
             <div className="mobile-nav-panel__group">
               {categoryLinks.map((item) => (
-                <Link href={item.href} key={item.href} onClick={closeAll}>
+                <Link href={item.href} key={item.href} onClick={closeAll} prefetch={false}>
                   {item.label}
                 </Link>
               ))}
             </div>
           ) : null}
-          <Link href="/ofertas" onClick={closeAll}>
+          <Link href="/ofertas" onClick={closeAll} prefetch={false}>
             Ofertas
           </Link>
-          <Link href="/como-comprar" onClick={closeAll}>
+          <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
             Como comprar
           </Link>
-          <Link href="/contacto" onClick={closeAll}>
+          <Link href="/contacto" onClick={closeAll} prefetch={false}>
             Contacto
           </Link>
         </div>

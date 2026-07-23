@@ -133,6 +133,7 @@ export function SearchSuggest() {
                   className="search-suggest__item search-suggest__item--compact"
                   href={`/productos?search=${encodeURIComponent(term)}`}
                   key={term}
+                  prefetch={false}
                   onClick={() => {
                     remember(term);
                     setOpen(false);
@@ -160,6 +161,7 @@ export function SearchSuggest() {
               className="search-suggest__item"
               href={suggestionHref(suggestion)}
               key={`${suggestion.type}-${suggestion.id}`}
+              prefetch={false}
               onClick={() => {
                 remember(suggestion.name);
                 setOpen(false);

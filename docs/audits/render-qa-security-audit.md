@@ -178,6 +178,25 @@ Control local del lote actual:
 | Playwright mobile | OK, 68 passed / 4 skipped |
 | Smoke de concurrencia | OK, 180 requests / 0 respuestas 500 |
 
+## Estabilizacion de carga en Render
+
+Durante la verificacion del lote se detecto un fallo intermitente de hidratacion exclusivo del transporte de Render:
+
+- El HTML principal respondia `200`, pero Chromium recibia `ERR_HTTP2_SERVER_REFUSED_STREAM` o `ERR_QUIC_PROTOCOL_ERROR` al solicitar algunos chunks propios de `/_next/static`.
+- `/productos` iniciaba 51 prefetches RSC especulativos antes de cualquier interaccion, ademas de los recursos necesarios para hidratar la pagina.
+- Se desactivo `prefetch` en enlaces repetidos de catalogo, productos, navegacion y footer. La navegacion cliente sigue funcionando al hacer click.
+- El build de produccion se fijo en Webpack para usar el empaquetado mas estable en el runtime de Render.
+
+Medicion local sobre el artefacto final:
+
+- Antes: 51 solicitudes RSC especulativas y 47 solicitudes abortadas en la muestra.
+- Despues: 0 solicitudes RSC especulativas, 0 solicitudes fallidas y 3/3 productos hidratados con su accion Agregar.
+- Instalacion limpia equivalente a Render: `npm ci --include=dev` OK.
+- Build Node `22.22.0` + Webpack: OK, 59 rutas.
+- Seguridad: 11 passed.
+- Smoke desktop: 15 passed / 4 skipped por escritura QA deshabilitada.
+- Mobile completo: 68 passed / 22 skipped por proyecto desktop o sesion QA ausente.
+
 ## TODOs pendientes antes de produccion
 
 1. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.

@@ -30,7 +30,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="product-card">
-      <Link className="product-card__media" href={`/producto/${product.slug}`}>
+      <Link className="product-card__media" href={`/producto/${product.slug}`} prefetch={false}>
         <Image
           src={product.image_url}
           alt={product.name}
@@ -57,7 +57,7 @@ export function ProductCard({ product }: { product: Product }) {
           <span>{product.category?.name ?? product.subcategory}</span>
           <span>{product.brand}</span>
         </div>
-        <Link href={`/producto/${product.slug}`}>
+        <Link href={`/producto/${product.slug}`} prefetch={false}>
           <h3>{product.name}</h3>
         </Link>
         <div className="product-card__price">
@@ -73,7 +73,12 @@ export function ProductCard({ product }: { product: Product }) {
             <ShoppingCart size={18} />
             {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar"}
           </button>
-          <Link className="btn btn--ghost product-card__detail" href={`/producto/${product.slug}`} aria-label={`Ver detalle de ${product.name}`}>
+          <Link
+            className="btn btn--ghost product-card__detail"
+            href={`/producto/${product.slug}`}
+            aria-label={`Ver detalle de ${product.name}`}
+            prefetch={false}
+          >
             Detalle <ArrowRight size={16} />
           </Link>
         </div>
@@ -86,8 +91,8 @@ export function ProductCard({ product }: { product: Product }) {
               {product.name} · Cantidad 1
             </small>
             <span>
-              <Link href="/carrito">Ver carrito</Link>
-              <Link href="/productos">Seguir comprando</Link>
+              <Link href="/carrito" prefetch={false}>Ver carrito</Link>
+              <Link href="/productos" prefetch={false}>Seguir comprando</Link>
             </span>
           </div>
         ) : null}
