@@ -67,7 +67,7 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 
 | Area | Estado | Riesgo | Evidencia | Accion tomada | Pendiente |
 | --- | --- | --- | --- | --- | --- |
-| Deploy Render | Parcial | Medio | Render responde 200 en `/` y `/productos`; `/admin` redirige 307 a ruta oculta. | Se audito URL actual. | Desplegar esta rama para que Render tome `/arrepentimiento` y `/register`. |
+| Deploy Render | OK | Bajo | `/api/health` publica el commit `6262244`; las rutas publicas y la proteccion admin pasan el smoke remoto. | Deploy automatico completado y verificado por SHA. | Mantener monitoreo de cold starts del plan free. |
 | Home | OK | Bajo | Carga sin 404/500 en Render. | Se agrego acceso visible al Boton de arrepentimiento en el bloque legal del home. | Revisar copy legal con profesional. |
 | Productos | OK | Bajo | `/productos` responde 200 y permite agregar producto al carrito en smoke local/Render. | Suite E2E cubre agregado y paso a checkout. | Mantener monitoreo de imagenes externas. |
 | Detalle producto | OK | Bajo | Las rutas `/producto/[slug]` compilan y Render muestra actividad de rutas. | Sin cambios. | Agregar test especifico por slug en una siguiente iteracion. |
@@ -82,7 +82,7 @@ Las pruebas normales de Playwright ya no crean pedidos. Los casos que escriben e
 | RLS | Activa y reforzada | Bajo/Medio | RLS esta habilitada en las tablas publicas revisadas. El trigger real preserva `id`, `email` y `role` ante escrituras de clientes. | Se probo con rollback que un usuario no puede elevarse a ADMIN. | La auditoria de policies debe repetirse ante cada cambio de esquema. |
 | Admin | OK | Bajo | APIs admin anonimas devuelven 401; `/admin` redirige a consola oculta. | Se verificaron `/api/admin/*` anonimos. | Probar usuario comun autenticado vs admin real en navegador. |
 | Rutas protegidas | OK | Bajo | `/api/admin/metrics`, orders, payments, products devuelven 401 anonimo; `/api/orders/:id` devuelve 401 anonimo. | Reportado. | Test automatizado autenticado requiere credenciales de QA separadas. |
-| Botones | Parcial | Medio | Playwright recorrio hasta 25 links internos principales; detecto 404 en `/register` y `/arrepentimiento` desplegados. | Se agrego redirect `/register -> /registro` y ruta `/arrepentimiento`. | Repetir tras deploy para confirmar cero 404. |
+| Botones | OK | Bajo | Playwright recorrio los links internos principales en Render sin 404. | `/register` redirige a `/registro` y `/arrepentimiento` esta publicado. | Repetir el smoke ante cambios de navegacion. |
 | Legal consumidor | Mejorado | Medio | Render no tenia `/arrepentimiento` directo. | Se agrego pagina y links visibles en home/footer. | Falta formulario persistente con numero de tramite y constancia email. |
 | Boton arrepentimiento | Mejorado | Medio | Antes 404 en Render. | Nueva ruta `/arrepentimiento`, CTA legal en home y footer. | Backend de tramite pendiente si se requiere cumplimiento formal completo. |
 | Reembolsos | OK con migracion | Medio | Endpoint admin exige admin, motivo, pago PAID, MP, live_mode compatible y RPC de integridad. | Auditado. | Confirmar migracion `finalize_refunded_order` aplicada en Supabase. |
@@ -140,6 +140,13 @@ Corrida final contra build local en `http://localhost:3100`:
 - Suite mobile: 68 OK, 22 salteadas por ser desktop o requerir sesion QA, 0 fallas.
 - Los tests con escritura requieren habilitacion explicita y nunca corren por defecto contra Render.
 
+Control post-deploy contra `https://materiales-fzac-8xmp.onrender.com/`:
+
+- Render sirve el SHA completo `626224438f3115afe770eb5c0416e3643773c665`.
+- Smoke desktop: 15 OK, 4 salteadas por requerir escritura QA, 0 fallas.
+- Mobile 360x740: 17 OK, 1 salteada por requerir sesion QA, 0 fallas.
+- No se realizaron pagos, pedidos ni escrituras productivas durante este control.
+
 ## Validacion final local
 
 | Comando | Estado |
@@ -153,10 +160,9 @@ Corrida final contra build local en `http://localhost:3100`:
 
 ## TODOs pendientes antes de produccion
 
-1. Desplegar el commit y repetir el smoke de solo lectura contra Render actualizado.
-2. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.
-3. Implementar tramite persistente del Boton de arrepentimiento si se exige constancia automatica: tabla/request, notificacion admin y email.
-4. Agregar CSP progresiva validada con Mercado Pago, Supabase, Google OAuth y assets.
-5. Agregar tests unitarios del webhook: firma invalida, sin secret en production, live_mode incompatible, approved/rejected/refunded.
-6. Probar usuario normal autenticado bloqueado en admin y admin autorizado con cuentas QA separadas.
-7. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.
+1. Conciliar administrativamente las 63 ordenes historicas sin items; no reconstruirlas sin evidencia.
+2. Implementar tramite persistente del Boton de arrepentimiento si se exige constancia automatica: tabla/request, notificacion admin y email.
+3. Agregar CSP progresiva validada con Mercado Pago, Supabase, Google OAuth y assets.
+4. Agregar tests unitarios del webhook: firma invalida, sin secret en production, live_mode incompatible, approved/rejected/refunded.
+5. Probar usuario normal autenticado bloqueado en admin y admin autorizado con cuentas QA separadas.
+6. Probar Mercado Pago solo con comprador TESTUSER y credenciales del mismo entorno.
