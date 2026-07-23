@@ -174,8 +174,9 @@ Control local del lote actual:
 | Build con Node `22.22.0` | OK, 59 rutas |
 | `npm audit --omit=dev` | OK, 0 vulnerabilidades |
 | Smoke Playwright desktop | OK, 15 passed / 4 skipped |
-| Playwright seguridad | OK, 11 passed |
-| Playwright mobile | OK, 68 passed / 4 skipped |
+| Playwright seguridad | OK, 12 passed local y 12 passed en Render |
+| Matriz Playwright local | OK, 155 passed / 90 skipped intencionales |
+| Playwright mobile compacto en Render | OK, 17 passed / 1 skipped por sesion QA ausente |
 | Smoke de concurrencia | OK, 180 requests / 0 respuestas 500 |
 
 ## Estabilizacion de carga en Render
@@ -201,6 +202,14 @@ Medicion local sobre el artefacto final:
 - Seguridad: 12 passed.
 - Smoke desktop: 15 passed / 4 skipped por escritura QA deshabilitada.
 - Mobile completo: 68 passed / 22 skipped por proyecto desktop o sesion QA ausente.
+
+Verificacion posterior al deploy `88aa06789d22ffc65a33bfd1242cba10bbe1ceec`:
+
+- `/api/health` informo exactamente el SHA desplegado.
+- Seguridad remota: 12 passed, incluida la recuperacion inducida de un asset interrumpido.
+- Smoke remoto desktop: 15 passed / 4 skipped por escritura QA deshabilitada.
+- Mobile remoto 360x740: 17 passed / 1 skipped por sesion QA ausente.
+- Cinco cargas consecutivas de `/productos`: 5/5 con HTTP 200, 0 assets estaticos fallidos, 3/3 acciones Agregar hidratadas y 0 recargas innecesarias.
 
 ## TODOs pendientes antes de produccion
 
