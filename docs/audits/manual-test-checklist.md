@@ -154,10 +154,12 @@ Usar este checklist antes de cada deploy importante.
 - [ ] `npm run build`
 - [ ] `npm audit --omit=dev`
 - [ ] `npm run test:e2e`
+- [ ] `npm run test:account-flow` contra build local.
 - [ ] `npm run test:mobile-checkout` contra build local.
 - [ ] `npm run test:mobile-admin` contra build local.
 - [ ] `npm run readiness:production` sin imprimir valores sensibles.
 - [ ] `npm run test:auth-roles` en local; para Render habilitar explicitamente `BASE_URL` y `ALLOW_REMOTE_AUTH_QA=true`.
+- [ ] `npm run qa:cleanup` informa cero residuos QA antes del corte productivo.
 
 Las pruebas E2E normales son de solo lectura o usan estado local del navegador. Para habilitar pruebas que crean pedidos se requieren explicitamente `RUN_MUTATING_CHECKOUT_TESTS=true`, `PLAYWRIGHT_AUTH_STATE`, `QA_CHECKOUT_EMAIL` y `QA_CHECKOUT_PRODUCT_ID`. En un host remoto tambien se requiere `QA_ALLOW_REMOTE_WRITES=true`; usar un proyecto/cuenta QA y limpiar los datos generados.
 

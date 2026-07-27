@@ -3,16 +3,30 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
+import { isSafePlainText, isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
+
+const safeAddressText = (label: string, min: number, max: number) =>
+  z
+    .string()
+    .trim()
+    .min(min, `Ingresá ${label}.`)
+    .max(max, `${label} es demasiado largo.`)
+    .refine((value) => isSafePlainText(value), `${label} contiene caracteres no permitidos.`);
 
 const addressFields = {
-  label: z.string().trim().min(2, "Ingresá un nombre para la dirección.").max(50),
-  street: z.string().trim().min(2, "Ingresá la calle.").max(120),
-  number: z.string().trim().min(1, "Ingresá la altura.").max(30),
-  apartment: z.string().trim().max(60).optional().or(z.literal("")),
-  city: z.string().trim().min(2, "Ingresá la ciudad.").max(80),
-  province: z.string().trim().min(2, "Ingresá la provincia.").max(80),
-  postalCode: z.string().trim().max(30).optional().or(z.literal("")),
+  label: safeAddressText("un nombre para la dirección", 2, 50),
+  street: safeAddressText("la calle", 2, 120),
+  number: safeAddressText("la altura", 1, 30).refine(
+    (value) => /^[0-9A-Za-z\s/-]+$/.test(value),
+    "La altura contiene caracteres no permitidos."
+  ),
+  apartment: safeAddressText("el departamento", 1, 60).optional().or(z.literal("")),
+  city: safeAddressText("la ciudad", 2, 80),
+  province: safeAddressText("la provincia", 2, 80),
+  postalCode: safeAddressText("el código postal", 1, 30)
+    .refine((value) => /^[0-9A-Za-z\s-]+$/.test(value), "El código postal contiene caracteres no permitidos.")
+    .optional()
+    .or(z.literal("")),
   notes: z
     .string()
     .transform((value) => normalizeUserNote(value, 240))

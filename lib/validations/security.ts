@@ -21,6 +21,11 @@ export function hasUnsafeUserContent(value: string | undefined | null) {
   return SQL_META.test(text) || HTML_OR_SCRIPT_META.test(text) || CONTROL_CHARS.test(text);
 }
 
+export function isSafePlainText(value: string | undefined | null) {
+  const text = String(value ?? "");
+  return !HTML_OR_SCRIPT_META.test(text) && !CONTROL_CHARS.test(text);
+}
+
 export function assertSafeText(value: string | undefined | null, label = "campo") {
   if (hasUnsafeUserContent(value)) {
     throw new Error(`El ${label} contiene caracteres no permitidos.`);

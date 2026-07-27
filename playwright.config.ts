@@ -18,14 +18,17 @@ export default defineConfig({
     },
     {
       name: "mobile-iphone-13",
+      testMatch: /mobile-ui\.spec\.ts/,
       use: { ...devices["iPhone 13"], browserName: "chromium" }
     },
     {
       name: "mobile-pixel-7",
+      testMatch: /mobile-ui\.spec\.ts/,
       use: { ...devices["Pixel 7"] }
     },
     {
       name: "mobile-galaxy-s20",
+      testMatch: /mobile-ui\.spec\.ts/,
       use: {
         browserName: "chromium",
         viewport: { width: 360, height: 800 },
@@ -36,6 +39,7 @@ export default defineConfig({
     },
     {
       name: "mobile-compact-360",
+      testMatch: /mobile-ui\.spec\.ts/,
       use: {
         browserName: "chromium",
         viewport: { width: 360, height: 740 },
