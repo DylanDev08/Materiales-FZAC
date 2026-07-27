@@ -4,7 +4,7 @@ import { resolveProductImageUrl } from "@/lib/products/images";
 export const fallbackCategories: Category[] = [
   {
     id: "cat-construccion-seca",
-    name: "Construccion en seco",
+    name: "Construcción en seco",
     slug: "construccion-en-seco",
     description: "Placas, perfiles, masillas, fijaciones y accesorios para sistemas livianos.",
     image_url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80",
@@ -31,7 +31,7 @@ export const fallbackCategories: Category[] = [
   },
   {
     id: "cat-plomeria",
-    name: "Plomeria",
+    name: "Plomería",
     slug: "plomeria",
     description: "Canos, conexiones, selladores y accesorios sanitarios.",
     image_url: "https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?auto=format&fit=crop&w=1200&q=80",

@@ -47,7 +47,7 @@ const linkGroups = [
     ]
   },
   {
-    title: "Catalogo",
+    title: "Catálogo",
     links: [
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorias", icon: Grid3X3 },

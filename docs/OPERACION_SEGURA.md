@@ -2,6 +2,19 @@
 
 Esta guia describe la configuracion operativa sin incluir credenciales reales. Los secretos deben cargarse en `.env` local o en el administrador de variables del deploy y nunca versionarse.
 
+## Indexación y dominio
+
+La aplicación mantiene la indexación desactivada mientras `SEO_INDEXING_ENABLED=false`. En ese estado, `robots.txt` bloquea el rastreo y `sitemap.xml` no publica URLs. Esto evita que buscadores consoliden la URL temporal de Render.
+
+Antes de habilitarla:
+
+1. Configurar `NEXT_PUBLIC_SITE_URL` con el dominio HTTPS definitivo.
+2. Actualizar los redirects de Google OAuth, Mercado Pago y Supabase Auth.
+3. Comprobar canonical, Open Graph y datos estructurados en home, categorías y productos.
+4. Verificar que las páginas privadas sigan marcadas como `noindex`.
+5. Cambiar `SEO_INDEXING_ENABLED=true`, reconstruir y desplegar.
+6. Registrar el dominio en Search Console y enviar `/sitemap.xml`.
+
 ## Mercado Pago en prueba
 
 Variables requeridas:

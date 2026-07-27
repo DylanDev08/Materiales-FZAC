@@ -34,7 +34,7 @@ const sections = [
   },
   {
     title: "Productos",
-    target: "Catalogo comercial.",
+    target: "Catálogo comercial.",
     use: "Desde aca se cargan productos, precios, fotos, stock, ofertas y destacados. Es clave mantenerlo actualizado."
   },
   {
@@ -44,7 +44,7 @@ const sections = [
   },
   {
     title: "Comprobantes de pago",
-    target: "Revision del proveedor de pagos.",
+    target: "Revisión del proveedor de pagos.",
     use: "Muestra eventos de Mercado Pago y otros medios. Se usa cuando un cobro necesita verificacion."
   },
   {

@@ -57,8 +57,8 @@ const addressSchema = z
     apartment: safeString("Departamento", 0, 60).optional(),
     city: safeString("Ciudad", 0, 80).optional(),
     province: safeString("Provincia", 0, 80).optional(),
-    postalCode: safeString("Codigo postal", 0, 30).optional(),
-    postal_code: safeString("Codigo postal", 0, 30).optional(),
+    postalCode: safeString("Código postal", 0, 30).optional(),
+    postal_code: safeString("Código postal", 0, 30).optional(),
     notes: optionalSafeNote("Notas de dirección", 240)
   })
   .transform((value) => ({

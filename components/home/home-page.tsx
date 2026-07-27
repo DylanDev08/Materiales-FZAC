@@ -87,7 +87,7 @@ export async function HomePage() {
                 <MessageCircle size={18} /> ¿No encontrás un material?
               </a>
             </div>
-            <div className="home-trust-row" aria-label="Garantias de compra FZAC">
+            <div className="home-trust-row" aria-label="Garantías de compra FZAC">
               <span>
                 <Truck size={18} />
                 Entrega o retiro coordinado

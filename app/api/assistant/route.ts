@@ -216,7 +216,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Assistan
     return {
       message:
         "Para armar una recomendacion necesito superficie aproximada, uso interior o exterior, tipo de material y terminacion. Con esos datos puedo sugerir una lista inicial y margen de compra.",
-      options: fourOptions(["Pintura", "Placas", "Cemento y arena", "Plomeria"])
+      options: fourOptions(["Pintura", "Placas", "Cemento y arena", "Plomería"])
     };
   }
 

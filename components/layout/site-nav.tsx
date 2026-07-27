@@ -15,11 +15,11 @@ const productLinks = [
 
 const fallbackCategories = [
   { href: "/categoria/materiales", label: "Materiales de obra" },
-  { href: "/categoria/construccion-en-seco", label: "Construccion en seco" },
+  { href: "/categoria/construccion-en-seco", label: "Construcción en seco" },
   { href: "/categoria/ferreteria", label: "Ferreteria" },
   { href: "/categoria/herramientas", label: "Herramientas" },
   { href: "/categoria/electricidad", label: "Electricidad" },
-  { href: "/categoria/plomeria", label: "Plomeria" },
+  { href: "/categoria/plomeria", label: "Plomería" },
   { href: "/categoria/pintura", label: "Pintura e impermeabilizacion" },
   { href: "/categoria/revestimientos", label: "Revestimientos" },
   { href: "/ofertas", label: "Ofertas" }

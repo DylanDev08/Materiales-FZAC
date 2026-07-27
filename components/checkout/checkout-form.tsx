@@ -1478,7 +1478,7 @@ export function CheckoutForm({
                 </p>
               </section>
               <section>
-                <h3>Garantias</h3>
+                <h3>Garantías</h3>
                 <p>
                   Herramientas y maquinas cuentan con garantia legal contra defectos de fabricacion. Las garantias de
                   marca deben gestionarse con factura o comprobante en centros autorizados cuando corresponda.

@@ -77,7 +77,7 @@ export function AdminRefundAction({
   return (
     <section className="admin-refund-action">
       <div>
-        <span className="kicker">Politica del consumidor</span>
+        <span className="kicker">Política del consumidor</span>
         <h3>Gestionar reembolso</h3>
         <p>Disponible solo para pagos aprobados de Mercado Pago. Se realiza una devolucion total.</p>
       </div>

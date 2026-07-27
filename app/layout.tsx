@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/layout/providers";
+import {
+  getPublicSiteUrl,
+  isSeoIndexingEnabled,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  toAbsoluteUrl
+} from "@/lib/seo/site";
 import "./globals.css";
 
 const staticAssetRecoveryScript = `
@@ -42,13 +49,70 @@ const staticAssetRecoveryScript = `
 })();
 `;
 
+const indexingEnabled = isSeoIndexingEnabled();
+
 export const metadata: Metadata = {
+  applicationName: SITE_NAME,
   title: {
-    default: "Materiales FZAC",
-    template: "%s | Materiales FZAC"
+    default: `${SITE_NAME} | Materiales para construcción en Rosario`,
+    template: `%s | ${SITE_NAME}`
   },
-  description: "E-commerce profesional de materiales para Fortaleza Construcciones Rosario.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000")
+  description: SITE_DESCRIPTION,
+  metadataBase: new URL(getPublicSiteUrl()),
+  alternates: {
+    canonical: "/"
+  },
+  keywords: [
+    "materiales de construcción",
+    "corralón Rosario",
+    "ferretería Rosario",
+    "construcción en seco",
+    "materiales para obra",
+    "Fortaleza Construcciones"
+  ],
+  authors: [{ name: "Fortaleza Construcciones" }],
+  creator: "Fortaleza Construcciones",
+  publisher: SITE_NAME,
+  category: "E-commerce de materiales para construcción",
+  icons: {
+    icon: [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/logoFZAC.jpg", type: "image/jpeg" }]
+  },
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    url: "/",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} | Materiales para construcción en Rosario`,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: toAbsoluteUrl("/logoFZAC.jpg"),
+        width: 1080,
+        height: 1080,
+        alt: "Logo de Materiales FZAC"
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} | Materiales para construcción`,
+    description: SITE_DESCRIPTION,
+    images: [toAbsoluteUrl("/logoFZAC.jpg")]
+  },
+  robots: {
+    index: indexingEnabled,
+    follow: indexingEnabled,
+    nocache: !indexingEnabled,
+    googleBot: {
+      index: indexingEnabled,
+      follow: indexingEnabled,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1
+    }
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

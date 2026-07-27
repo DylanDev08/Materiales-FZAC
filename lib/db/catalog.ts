@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
@@ -114,7 +115,7 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
   return result.slice(0, filters.limit ?? 48);
 }
 
-export async function getCategories() {
+export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return fallbackCategories;
 
@@ -126,7 +127,7 @@ export async function getCategories() {
 
   if (error) return [];
   return (data ?? []).map(normalizeCategory);
-}
+});
 
 export async function getCatalogFacets(): Promise<CatalogFacets> {
   const supabase = await getSupabaseServerClient();
@@ -190,7 +191,7 @@ export async function getProducts(filters: ProductFilters = {}) {
   return (data ?? []).map(normalizeProduct);
 }
 
-export async function getProductBySlug(slug: string) {
+export const getProductBySlug = cache(async function getProductBySlug(slug: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return fallbackProducts.find((product) => product.slug === slug) ?? null;
 
@@ -203,7 +204,7 @@ export async function getProductBySlug(slug: string) {
 
   if (error || !data) return null;
   return normalizeProduct(data);
-}
+});
 
 export async function getRelatedProducts(product: Product) {
   const related = await getProducts({ category: product.category?.slug ?? product.category_id, limit: 8 });

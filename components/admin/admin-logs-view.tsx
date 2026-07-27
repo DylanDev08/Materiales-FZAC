@@ -41,7 +41,7 @@ export function AdminLogsView({ rows }: { rows: AdminLogRow[] }) {
     <div className="admin-logs-view">
       <section className="admin-panel admin-logs-priority">
         <div>
-          <span className="kicker">Revision rapida</span>
+          <span className="kicker">Revisión rápida</span>
           <h2>Actividad destacada</h2>
           <p className="admin-help">Eventos de pagos, stock o situaciones que conviene revisar antes que el historial completo.</p>
         </div>

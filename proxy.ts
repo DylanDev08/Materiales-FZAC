@@ -54,8 +54,19 @@ export async function proxy(request: NextRequest) {
   const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fzac-admin-crs-2026";
   const isLegacyAdminPath = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
   const isConsolePath = request.nextUrl.pathname === adminConsolePath || request.nextUrl.pathname.startsWith(`${adminConsolePath}/`);
+  const isPrivatePagePath = [
+    "/cuenta",
+    "/checkout",
+    "/carrito",
+    "/pago",
+    "/login",
+    "/registro",
+    "/recuperar",
+    "/restablecer"
+  ].some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
   const isSensitivePath =
     isConsolePath ||
+    isPrivatePagePath ||
     ["/api/admin", "/api/account", "/api/orders", "/api/checkout", "/api/auth"].some(
       (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
     );
@@ -80,7 +91,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!supabaseUrl || !supabaseAnonKey || /^<.*>$/.test(supabaseAnonKey)) {
-    return applySecurityHeaders(response, isConsolePath, isSensitivePath);
+    return applySecurityHeaders(response, isConsolePath || isPrivatePagePath, isSensitivePath);
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -102,7 +113,7 @@ export async function proxy(request: NextRequest) {
   });
 
   await supabase.auth.getUser();
-  return applySecurityHeaders(response, isConsolePath, isSensitivePath);
+  return applySecurityHeaders(response, isConsolePath || isPrivatePagePath, isSensitivePath);
 }
 
 export const config = {

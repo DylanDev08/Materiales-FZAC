@@ -25,6 +25,13 @@ const checks = [
     ok: publicHttps("NEXT_PUBLIC_SITE_URL")
   },
   {
+    area: "SEO",
+    requirement: "Indexacion habilitada solo con URL publica final",
+    ok:
+      value("SEO_INDEXING_ENABLED").toLowerCase() === "true" &&
+      publicHttps("NEXT_PUBLIC_SITE_URL")
+  },
+  {
     area: "Supabase",
     requirement: "Configuracion publica disponible",
     ok: configured("NEXT_PUBLIC_SUPABASE_URL") && configured("NEXT_PUBLIC_SUPABASE_ANON_KEY")

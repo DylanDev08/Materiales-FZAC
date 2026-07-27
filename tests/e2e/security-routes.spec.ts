@@ -87,6 +87,29 @@ test.describe("Controles de seguridad no destructivos", () => {
     expect(response.headers()["content-security-policy-report-only"]).toContain("report-uri /api/security/csp-report");
   });
 
+  test("las superficies privadas no se cachean ni se indexan", async ({ request }) => {
+    const [cart, checkout] = await Promise.all([
+      request.get("/carrito"),
+      request.get("/checkout")
+    ]);
+
+    for (const response of [cart, checkout]) {
+      expect(response.headers()["cache-control"]).toContain("no-store");
+      expect(response.headers()["x-robots-tag"]).toContain("noindex");
+    }
+  });
+
+  test("el entorno previo al dominio mantiene cerrada la indexación", async ({ request }) => {
+    const robots = await request.get("/robots.txt");
+    const content = await robots.text();
+    expect(robots.status()).toBe(200);
+
+    if (/Disallow:\s*\/\s*$/m.test(content)) {
+      const sitemap = await request.get("/sitemap.xml");
+      expect(await sitemap.text()).not.toContain("<url>");
+    }
+  });
+
   test("la tienda recupera un asset estático interrumpido sin entrar en bucle", async ({ context, page }) => {
     await context.addInitScript(() => {
       const key = "fzac-qa-document-count";

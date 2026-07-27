@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,6 +14,14 @@ import {
   PanelsTopLeft
 } from "lucide-react";
 import { getCategories } from "@/lib/db/catalog";
+
+export const metadata: Metadata = {
+  title: "Categorías de materiales",
+  description: "Encontrá materiales por rubro: obra, construcción en seco, ferretería, pintura, electricidad y plomería.",
+  alternates: {
+    canonical: "/categorias"
+  }
+};
 
 const categoryIcons = [Construction, PanelsTopLeft, Hammer, PackageSearch, Cable, Droplets, Brush, Layers3];
 

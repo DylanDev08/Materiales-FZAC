@@ -6,8 +6,20 @@ Esta checklist se usa antes de cambiar Materiales FZAC de pruebas a operacion re
 
 - Verificar dominio final del e-commerce.
 - Configurar `NEXT_PUBLIC_SITE_URL` con HTTPS publico.
+- Mantener `SEO_INDEXING_ENABLED=false` durante Render temporal y pruebas.
+- Cambiar `SEO_INDEXING_ENABLED=true` solo después de revisar dominio, canonicals, `robots.txt` y `sitemap.xml`.
 - Confirmar que Google OAuth tenga redirect URL del dominio final.
 - Confirmar que Mercado Pago use el mismo dominio en `back_urls` y webhook.
+
+### SEO y buscadores
+
+- Verificar que el dominio final responda una sola versión HTTPS.
+- Confirmar que `/robots.txt` permita rutas públicas y bloquee cuenta, checkout, carrito, APIs y panel admin.
+- Confirmar que `/sitemap.xml` incluya productos y categorías activas.
+- Registrar el dominio en Google Search Console y enviar el sitemap.
+- Revisar títulos, descripciones, canonical y Open Graph de home, catálogo, categorías y productos.
+- Validar los datos estructurados de tienda, buscador, producto y breadcrumbs.
+- Mantener imágenes reales, nítidas y representativas para cada producto antes de solicitar indexación.
 
 ## 2. Emails transaccionales
 
@@ -53,6 +65,8 @@ https://DOMINIO/api/webhooks/mercadopago
 - Confirmar que admin ve datos operativos.
 - Confirmar que `profiles.role` no puede modificarse desde cliente.
 - Confirmar indice unico parcial de idempotencia para `payments.provider_session_id`.
+- Ejecutar `supabase migration list --linked` y `supabase db lint --linked` con una sesión CLI autorizada.
+- Comparar las migraciones remotas con `supabase/migrations` antes de habilitar pagos reales.
 
 ## 5. Seguridad web
 
