@@ -8,9 +8,9 @@ Commit base auditado: `86d3843`
 
 Materiales FZAC ya cuenta con una arquitectura coherente para operar como un e-commerce real: Next.js concentra frontend y backend, Supabase aporta identidad y persistencia, Mercado Pago queda aislado detrás de adaptadores server-side y Render ejecuta un único servicio desplegable. Los invariantes críticos están implementados: el servidor recalcula precios y stock, la idempotencia evita compras duplicadas, el frontend no confirma pagos, el stock se modifica únicamente mediante confirmación server-side y las credenciales privadas no forman parte del bundle cliente.
 
-Este lote completó la base SEO sin publicar todavía la URL temporal de Render. Se agregaron metadata, canonical, Open Graph, manifest, robots, sitemap y datos estructurados para tienda, buscador, productos y breadcrumbs. `SEO_INDEXING_ENABLED=false` mantiene a los buscadores fuera hasta disponer del dominio definitivo.
+Este lote completó la base SEO sin publicar todavía la URL temporal de Render. Se agregaron metadata, canonical, Open Graph, manifest, robots, sitemap y datos estructurados para tienda, buscador, productos y breadcrumbs. `SEO_INDEXING_ENABLED=false` mantiene a los buscadores fuera hasta disponer del dominio definitivo. La auditoría remota posterior alineó migraciones, RLS, Auth y Storage y cerró los RPC de pago al rol de servicio.
 
-La salida a producción todavía depende de cinco decisiones externas: dominio final, credenciales productivas exclusivas de Mercado Pago, verificación remota de migraciones/RLS, dominio de email en Resend y definición del proveedor fiscal. Ninguna de estas condiciones fue simulada ni activada.
+La salida a producción todavía depende de cuatro decisiones externas: dominio final, credenciales productivas exclusivas de Mercado Pago, dominio de email en Resend y definición del proveedor fiscal. Ninguna de estas condiciones fue simulada ni activada.
 
 ## 2. Objetivos y límites
 
@@ -52,8 +52,8 @@ flowchart LR
 | Componente | Responsabilidad | Estado seguro |
 | --- | --- | --- |
 | Next.js App Router | UI, Route Handlers, metadata y middleware | Build y rutas validados |
-| Supabase Auth | Sesión, email/password y Google OAuth | Configuración de código segura; redirect final pendiente |
-| PostgreSQL + RLS | Productos, pedidos, pagos, tickets, stock y auditoría | Migraciones locales completas; comparación remota pendiente |
+| Supabase Auth | Sesión, email/password y Google OAuth | Remoto auditado; redirect de dominio final pendiente |
+| PostgreSQL + RLS | Productos, pedidos, pagos, tickets, stock y auditoría | Migraciones remotas alineadas y Security Advisor auditado |
 | Mercado Pago | Checkout Pro, tarjeta segura, consulta de pagos y reembolsos | Test habilitado; producción bloqueada |
 | Webhook | Confirmación server-side y transición de estado | Firma, ambiente e idempotencia probados |
 | Resend | Emails transaccionales | Integración preparada; dominio/remitente pendiente |
@@ -113,7 +113,9 @@ Invariantes:
 
 ### Riesgos pendientes
 
-- La comparación remota de RLS y migraciones no pudo ejecutarse porque la CLI no tenía sesión de gestión disponible y no había navegador conectado.
+- La protección de contraseñas filtradas de Supabase requiere un plan Pro.
+- CAPTCHA permanece pendiente hasta disponer de Turnstile/hCaptcha y un secret dedicado.
+- Las tablas Prisma heredadas quedaron aisladas, pero su eliminación requiere definir retención.
 - CSP todavía es Report-Only; debe observarse con Google OAuth y Mercado Pago antes de bloquear.
 - Las claves compartidas durante desarrollo deben rotarse antes de producción.
 - La revisión legal final debe ser realizada por un profesional.
@@ -150,7 +152,7 @@ Condición de lanzamiento:
 | Playwright público | 15/15; 4 mutaciones omitidas |
 | SEO técnico | Implementado y bloqueado hasta dominio |
 | RLS local | Cubierto por migraciones |
-| RLS remoto | Pendiente de sesión CLI |
+| RLS remoto | Auditado y migraciones alineadas |
 | Mercado Pago test | Conservado |
 | Mercado Pago producción | Bloqueado |
 | Email transaccional | Pendiente de dominio verificado |
@@ -168,13 +170,12 @@ Condición de lanzamiento:
 La decisión recomendada es continuar sobre la arquitectura actual. No hace falta recrear ni separar frontend y backend. El siguiente orden reduce riesgo:
 
 1. Completar catálogo real, fotos, textos comerciales y datos legales.
-2. Conectar una sesión CLI de Supabase y comparar migraciones/RLS remotos.
-3. Elegir dominio, configurar DNS, Supabase Auth y Google OAuth.
-4. Verificar dominio de email y probar registro, recuperación y arrepentimiento.
-5. Configurar credenciales productivas exclusivas de Mercado Pago.
-6. Ejecutar una compra real de bajo monto y un reembolso controlado.
-7. Configurar facturación fiscal o definir explícitamente el alcance del comprobante.
-8. Observar CSP, pasarla a bloqueante y habilitar `SEO_INDEXING_ENABLED=true`.
-9. Registrar Search Console y enviar sitemap.
+2. Elegir dominio, configurar DNS, Supabase Auth y Google OAuth.
+3. Verificar dominio de email y probar registro, recuperación y arrepentimiento.
+4. Configurar credenciales productivas exclusivas de Mercado Pago.
+5. Ejecutar una compra real de bajo monto y un reembolso controlado.
+6. Configurar facturación fiscal o definir explícitamente el alcance del comprobante.
+7. Observar CSP, pasarla a bloqueante y habilitar `SEO_INDEXING_ENABLED=true`.
+8. Registrar Search Console y enviar sitemap.
 
 Producción no debe habilitarse hasta que dominio, RLS remoto, email, pagos y operación fiscal tengan evidencia de aceptación.

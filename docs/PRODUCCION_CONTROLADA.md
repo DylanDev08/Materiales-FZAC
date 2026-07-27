@@ -60,13 +60,19 @@ https://DOMINIO/api/webhooks/mercadopago
 
 ## 4. Supabase y RLS
 
-- Confirmar RLS activo en tablas sensibles.
-- Confirmar que usuario comun solo ve sus pedidos, pagos, tickets y direcciones.
-- Confirmar que admin ve datos operativos.
-- Confirmar que `profiles.role` no puede modificarse desde cliente.
-- Confirmar indice unico parcial de idempotencia para `payments.provider_session_id`.
-- Ejecutar `supabase migration list --linked` y `supabase db lint --linked` con una sesión CLI autorizada.
-- Comparar las migraciones remotas con `supabase/migrations` antes de habilitar pagos reales.
+- [x] RLS activo en todas las tablas publicas auditadas.
+- [x] Usuario comun limitado a sus pedidos, pagos, tickets y direcciones.
+- [x] Administradores autorizados confirmados con rol `ADMIN`.
+- [x] `profiles.role` protegido por trigger contra escalacion desde cliente.
+- [x] Indice unico parcial para `payments.provider_session_id`.
+- [x] Historial remoto alineado con `supabase/migrations`.
+- [x] Security Advisor revisado y RPC de pagos cerrada a `service_role`.
+- [x] Storage limitado a imagenes JPG, PNG o WebP de hasta 5 MB.
+- [ ] Configurar CAPTCHA cuando exista un secret dedicado.
+- [ ] Activar proteccion HIBP al contratar Supabase Pro.
+- [ ] Definir retencion y limpieza de tablas Prisma/ordenes de prueba.
+
+Evidencia: `docs/audits/supabase-remote-security-audit.md`.
 
 ## 5. Seguridad web
 
