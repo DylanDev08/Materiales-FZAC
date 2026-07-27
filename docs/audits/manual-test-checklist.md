@@ -45,6 +45,13 @@ Usar este checklist antes de cada deploy importante.
 
 ## Productos y carrito
 
+- [ ] `npm run audit:catalog` no muestra bloqueantes comerciales.
+- [ ] Todos los productos activos tienen precio mayor a cero.
+- [ ] Todos los productos activos tienen SKU único y slug SEO único.
+- [ ] Todos los productos activos pertenecen a una categoría activa.
+- [ ] Las fotos placeholder o de banco se reemplazaron por fotos reales cuando el producto ya está listo para vender.
+- [ ] Las categorías principales tienen descripción comercial corta.
+- [ ] Las categorías con cero productos activos están ocultas o preparadas con estado vacío claro.
 - [ ] Abrir detalle de un producto.
 - [ ] Agregar producto al carrito.
 - [ ] Cambiar cantidad.

@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "security:check": "node scripts/security-check.mjs",
     "readiness:production": "node --env-file-if-exists=.env scripts/production-readiness.mjs",
+    "audit:catalog": "node --env-file-if-exists=.env scripts/catalog-content-audit.mjs",
     "test:auth-roles": "node --env-file-if-exists=.env scripts/auth-role-smoke.mjs",
     "test:account-flow": "node --env-file-if-exists=.env scripts/account-flow-smoke.mjs",
     "test:checkout-flow": "node --env-file-if-exists=.env scripts/checkout-flow-smoke.mjs",
