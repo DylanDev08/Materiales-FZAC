@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, Loader2, LogIn, MailCheck, ShieldCheck } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeInternalPath } from "@/lib/utils/navigation";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
@@ -28,7 +28,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [successLocked, setSuccessLocked] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => {
+    if (mode === "login" && searchParams.get("registered") === "true") {
+      return "Cuenta creada. Revisá tu email y confirmá el acceso antes de ingresar.";
+    }
+    if (mode === "login" && searchParams.get("auth_error") === "true") {
+      return "No pudimos completar el acceso. Volvé a intentarlo desde esta pantalla.";
+    }
+    return "";
+  });
+  const [messageTone, setMessageTone] = useState<"info" | "success" | "error">(
+    mode === "login" && searchParams.get("auth_error") === "true" ? "error" : "info"
+  );
+  const [needsConfirmation, setNeedsConfirmation] = useState(mode === "login" && searchParams.get("registered") === "true");
+  const [resending, setResending] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
 
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
@@ -77,6 +90,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setMessage("Revisá los campos marcados antes de continuar.");
+      setMessageTone("error");
       return false;
     }
     return true;
@@ -90,10 +104,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     submitInFlightRef.current = true;
     setLoading(true);
     setMessage("");
+    setNeedsConfirmation(false);
 
     if (mode === "register") {
       if (!passwordOk || password !== confirmPassword || !acceptedTerms) {
         setMessage("Revisá contraseña, confirmación y términos antes de registrarte.");
+        setMessageTone("error");
         setLoading(false);
         submitInFlightRef.current = false;
         return;
@@ -110,17 +126,22 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             : { name, phone, email: normalizedEmail, password, confirmPassword, acceptedTerms, hp }
         )
       });
-      const data = (await response.json()) as { target?: string; message?: string };
+      const data = (await response.json()) as { target?: string; message?: string; code?: string };
       if (!response.ok) throw new Error(data.message || "No pudimos completar la operacion.");
       if (mode === "register") {
         setSuccessLocked(true);
+        setMessageTone("success");
         setMessage(data.message || "Cuenta creada correctamente. Revisá tu email para continuar.");
-        window.setTimeout(() => router.push(data.target || "/login?registered=true"), 750);
+        window.setTimeout(() => router.push(data.target || "/login?registered=true"), 1400);
         return;
       }
       router.push(data.target && data.target !== "/cuenta" ? data.target : safeNext);
     } catch (authError) {
       setMessage(authError instanceof Error ? authError.message : "No pudimos conectar con el servidor.");
+      setMessageTone("error");
+      if (authError instanceof Error && /confirmar el email|falta confirmar/i.test(authError.message)) {
+        setNeedsConfirmation(true);
+      }
     } finally {
       setLoading(false);
       submitInFlightRef.current = false;
@@ -132,6 +153,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setMessage("El ingreso con Google no esta disponible en este momento.");
+      setMessageTone("error");
       return;
     }
 
@@ -145,8 +167,31 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
     if (error) {
       setMessage("No pudimos conectar con Google. Intentá nuevamente.");
+      setMessageTone("error");
       googleInFlightRef.current = false;
       setGoogleLoading(false);
+    }
+  }
+
+  async function resendConfirmation() {
+    if (resending || !normalizedEmail) return;
+    setResending(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail })
+      });
+      const data = (await response.json()) as { message?: string };
+      if (!response.ok) throw new Error(data.message || "No pudimos reenviar el enlace.");
+      setMessageTone("success");
+      setMessage(data.message || "Revisá tu email para continuar.");
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error instanceof Error ? error.message : "No pudimos reenviar el enlace.");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -161,8 +206,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <div>
             <span className="kicker">{mode === "login" ? "Ingresar" : "Registro"}</span>
             <h1>{mode === "login" ? "Accedé a tu cuenta FZAC" : "Creá tu cuenta FZAC"}</h1>
-            <p>Ingresá con email o Google. Tus datos se validan de forma segura y los permisos se controlan desde el servidor.</p>
+            <p>{mode === "login" ? "Seguí tus compras, direcciones y solicitudes desde un solo lugar." : "Guardá tus datos para comprar más rápido y seguir cada pedido."}</p>
           </div>
+        </div>
+
+        <div className="auth-trust-line">
+          <span><ShieldCheck size={16} /> Acceso protegido</span>
+          <span><MailCheck size={16} /> Confirmación por email</span>
         </div>
 
         <button className="btn btn--ghost auth-google" type="button" onClick={googleLogin} disabled={loading || googleLoading || successLocked}>
@@ -323,10 +373,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <Link className="auth-link-button" href="/recuperar">Recuperar contraseña</Link>
         ) : null}
 
-        {message ? (
-          <p className={message.includes("enviamos") || message.includes("Cuenta creada") ? "notice notice--success" : "notice notice--danger"}>
-            {message}
-          </p>
+        {message ? <p className={`notice notice--${messageTone === "error" ? "danger" : messageTone}`}>{message}</p> : null}
+
+        {mode === "login" && needsConfirmation ? (
+          <button className="auth-resend-button" type="button" onClick={resendConfirmation} disabled={resending || !normalizedEmail}>
+            {resending ? <Loader2 size={17} className="spin" /> : <MailCheck size={17} />}
+            {resending ? "Enviando enlace" : "Reenviar email de confirmación"}
+          </button>
         ) : null}
 
         <p>

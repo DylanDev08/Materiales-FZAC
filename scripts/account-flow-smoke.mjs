@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { chromium } from "@playwright/test";
 
 const baseUrl = (process.env.BASE_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
 const isLocal = /^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(baseUrl);
@@ -21,6 +24,8 @@ const password = `FzacAccount${crypto.randomBytes(12).toString("hex")}9!`;
 const userIds = [];
 let ownAddressId = null;
 let foreignAddressId = null;
+let browser = null;
+const screenshotDirectory = path.join(process.cwd(), "test-results");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -65,6 +70,7 @@ async function createUser(email, name) {
 
 async function cleanup() {
   const errors = [];
+  if (browser) await browser.close().catch(() => errors.push("Could not close the account QA browser."));
   if (ownAddressId || foreignAddressId) {
     const { error } = await admin
       .from("addresses")
@@ -257,6 +263,44 @@ try {
   assert(profile.role !== "ADMIN", "Profile update escalated the user's role.");
   assert(profile.full_name === "FZAC Account QA Actualizado", "Profile update was not persisted.");
 
+  browser = await chromium.launch({ headless: true });
+  const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await desktopContext.addCookies(
+    cookies.split("; ").map((pair) => {
+      const separator = pair.indexOf("=");
+      return { name: pair.slice(0, separator), value: pair.slice(separator + 1), url: baseUrl };
+    })
+  );
+  const desktopPage = await desktopContext.newPage();
+  await desktopPage.goto(`${baseUrl}/cuenta/ajustes`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".account-settings-form").waitFor({ state: "visible", timeout: 20_000 });
+  await fs.mkdir(screenshotDirectory, { recursive: true });
+  await desktopPage.screenshot({ path: path.join(screenshotDirectory, "desktop-account-settings.png"), fullPage: true });
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true
+  });
+  await mobileContext.addCookies(
+    cookies.split("; ").map((pair) => {
+      const separator = pair.indexOf("=");
+      return { name: pair.slice(0, separator), value: pair.slice(separator + 1), url: baseUrl };
+    })
+  );
+  const mobilePage = await mobileContext.newPage();
+  await mobilePage.goto(`${baseUrl}/cuenta/ajustes`, { waitUntil: "domcontentloaded" });
+  await mobilePage.locator(".account-settings-form").waitFor({ state: "visible", timeout: 20_000 });
+  const accountMobileMetrics = await mobilePage.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(accountMobileMetrics.documentWidth <= accountMobileMetrics.viewport + 2, "Account settings generate horizontal overflow.");
+  await mobilePage.screenshot({ path: path.join(screenshotDirectory, "mobile-account-settings.png"), fullPage: true });
+  await desktopContext.close();
+  await mobileContext.close();
+
   const existingEmailCheck = await api("/api/auth/email-exists", {
     method: "POST",
     body: { email: primaryEmail }
@@ -290,6 +334,7 @@ try {
     addressOwnership: true,
     unsafeAddressRejected: true,
     accountSummary: true,
+    accountSettingsResponsive: true,
     emailEnumerationBlocked: true
   };
 } catch (error) {

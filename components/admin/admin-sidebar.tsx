@@ -13,6 +13,7 @@ import {
   FileText,
   Grid3X3,
   Home,
+  Landmark,
   Menu,
   MessageCircle,
   Package,
@@ -39,6 +40,7 @@ const linkGroups = [
     title: "Operacion comercial",
     links: [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
+      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
       { path: "/tickets", label: "Tickets", icon: FileText },
       { path: "/arrepentimientos", label: "Arrepentimientos", icon: RotateCcw },

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { isSafePlainText, isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
 
 const safeAddressText = (label: string, min: number, max: number) =>
@@ -66,6 +67,8 @@ async function context(request: Request, scope: string) {
 }
 
 export async function POST(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const current = await context(request, "account-address-create");
   if ("response" in current) return current.response;
 
@@ -86,11 +89,14 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, id: data.id }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Dirección inválida.", 422);
+    if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     return jsonError("No pudimos guardar la dirección.", 500);
   }
 }
 
 export async function PATCH(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const current = await context(request, "account-address-update");
   if ("response" in current) return current.response;
 
@@ -105,11 +111,14 @@ export async function PATCH(request: Request) {
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Dirección inválida.", 422);
+    if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     return jsonError("No pudimos actualizar la dirección.", 500);
   }
 }
 
 export async function DELETE(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 2 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const current = await context(request, "account-address-delete");
   if ("response" in current) return current.response;
 
@@ -124,6 +133,7 @@ export async function DELETE(request: Request) {
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Dirección inválida.", 422);
+    if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     return jsonError("No pudimos eliminar la dirección.", 500);
   }
 }

@@ -13,3 +13,20 @@ export function isTrustedMutationRequest(request: Request) {
     return false;
   }
 }
+
+export function validateJsonMutationRequest(request: Request, maxBytes = 16 * 1024) {
+  if (!isTrustedMutationRequest(request)) {
+    return { ok: false as const, status: 403, message: "Origen de solicitud no permitido." };
+  }
+
+  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
+    return { ok: false as const, status: 415, message: "El contenido debe enviarse como JSON." };
+  }
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    return { ok: false as const, status: 413, message: "La solicitud es demasiado grande." };
+  }
+
+  return { ok: true as const };
+}

@@ -41,6 +41,8 @@ export function AccountShell({
 }) {
   const adminPath = getAdminConsolePath();
   const active = nav.find((item) => item.view === view) ?? nav[0];
+  const completionItems = [Boolean(profile.full_name), Boolean(profile.phone), Boolean(overview.addresses.length), Boolean(profile.email)];
+  const profileCompletion = Math.round((completionItems.filter(Boolean).length / completionItems.length) * 100);
 
   return (
     <main className="account-page">
@@ -120,9 +122,13 @@ export function AccountShell({
 
           {view === "ajustes" ? (
             <>
+              <section className="account-settings-progress">
+                <div><span className="kicker">Estado del perfil</span><strong>{profileCompletion}% completo</strong><p>Completá contacto y dirección para acelerar tu próximo checkout.</p></div>
+                <div aria-label={`Perfil ${profileCompletion}% completo`}><span style={{ width: `${profileCompletion}%` }} /></div>
+              </section>
               <section className="account-section"><header className="account-section__head"><div><span className="kicker">Perfil</span><h2>Identidad y contacto</h2><p>Información usada para completar compras y mostrar tu cuenta.</p></div></header><AccountSettingsForm profile={profile} /></section>
               <AccountAddressManager initialAddresses={overview.addresses} />
-              <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Acceso protegido por Fortaleza Construcciones</strong><p>La contraseña y Google OAuth se administran en un flujo seguro. FZAC no puede ver tu contraseña.</p></div><Link href="/login">Gestionar acceso <ArrowRight size={15} /></Link></section>
+              <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Acceso protegido por Fortaleza Construcciones</strong><p>FZAC nunca puede ver tu contraseña. Podés solicitar un enlace seguro si necesitás cambiarla.</p></div><Link href="/recuperar">Cambiar contraseña <ArrowRight size={15} /></Link></section>
             </>
           ) : null}
         </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { CreditCard, MessageCircle, PackageCheck, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
+import { ArrowDownRight, CreditCard, Landmark, MessageCircle, PackageCheck, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
 import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
@@ -85,6 +85,7 @@ function DashboardCycleCard({
   secondaryValue,
   caption,
   footer,
+  rangeLabel,
   tone,
   icon: Icon
 }: {
@@ -96,6 +97,7 @@ function DashboardCycleCard({
   secondaryValue: string;
   caption: string;
   footer: string;
+  rangeLabel: string;
   tone: "yellow" | "green" | "red";
   icon: typeof TrendingUp;
 }) {
@@ -106,7 +108,7 @@ function DashboardCycleCard({
           <i />
           {title}
         </span>
-        <small>24/6 - 24/7</small>
+        <small>{rangeLabel}</small>
       </div>
       <strong className="admin-model-card__amount">{amount}</strong>
       <p>{caption}</p>
@@ -262,18 +264,15 @@ export async function AdminDashboard({ period }: { period?: string }) {
   const paymentsReady = isMercadoPagoConfigured();
   const paymentsTestMode = isMercadoPagoTestMode();
 
-  const salesToday = getMetric(metrics, "Ventas del dia");
   const salesMonth = getMetric(metrics, "Ventas del mes");
   const periodIncome = getMetric(metrics, "Ingresos del periodo");
   const periodExpenses = getMetric(metrics, "Egresos del periodo");
   const periodBalance = getMetric(metrics, "Balance del periodo");
   const pendingTotal = getMetric(metrics, "Total pendiente");
-  const pendingOrders = getMetric(metrics, "Pedidos pendientes");
-  const approvalOrders = getMetric(metrics, "Aprobacion admin");
-  const pendingPayments = getMetric(metrics, "Pagos pendientes");
   const approvedPayments = getMetric(metrics, "Pagos aprobados");
-  const rejectedPayments = getMetric(metrics, "Pagos rechazados");
   const averageTicket = getMetric(metrics, "Ticket promedio");
+  const manualIncome = getMetric(metrics, "Ingresos manuales");
+  const financialMovements = getMetric(metrics, "Movimientos financieros");
 
   const statusSegments: StatusSegment[] = [
     { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
@@ -319,46 +318,58 @@ export async function AdminDashboard({ period }: { period?: string }) {
           </nav>
         </div>
 
-        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
-
         <div className="admin-model-cards">
           <DashboardCycleCard
             amount={plus(periodIncome.value)}
             caption={periodLabel(selectedPeriod)}
             footer={periodIncome.helper}
             icon={TrendingUp}
-            primaryLabel="balance"
-            primaryValue={periodBalance.value}
-            secondaryLabel="egresos"
-            secondaryValue={periodExpenses.value}
+            primaryLabel="ventas del mes"
+            primaryValue={salesMonth.value}
+            secondaryLabel="otros ingresos"
+            secondaryValue={manualIncome.value}
+            rangeLabel={periodLabel(selectedPeriod)}
             title="INGRESOS"
             tone="yellow"
           />
           <DashboardCycleCard
-            amount={plus(pendingTotal.value)}
-            caption="Pendiente de cobrar"
-            footer={`${pendingOrders.value} pendientes / ${approvalOrders.value} en revision`}
-            icon={ShoppingBag}
-            primaryLabel="pendientes"
-            primaryValue={pendingOrders.value}
-            secondaryLabel="revision"
-            secondaryValue={approvalOrders.value}
-            title="PEDIDOS"
-            tone="green"
-          />
-          <DashboardCycleCard
-            amount={plus(salesToday.value)}
-            caption="Cobros y proveedor"
-            footer={`${rejectedPayments.value} rechazados / ${pendingPayments.value} pendientes`}
-            icon={CreditCard}
-            primaryLabel="aprobados"
-            primaryValue={approvedPayments.value}
-            secondaryLabel="creados"
-            secondaryValue={pendingPayments.value}
-            title="PAGOS"
+            amount={periodExpenses.value}
+            caption={periodLabel(selectedPeriod)}
+            footer={periodExpenses.helper}
+            icon={ArrowDownRight}
+            primaryLabel="movimientos"
+            primaryValue={financialMovements.value}
+            secondaryLabel="ticket promedio"
+            secondaryValue={averageTicket.value}
+            rangeLabel={periodLabel(selectedPeriod)}
+            title="EGRESOS"
             tone="red"
           />
+          <DashboardCycleCard
+            amount={periodBalance.value}
+            caption="Resultado del periodo"
+            footer="Ingresos confirmados menos egresos vigentes"
+            icon={Scale}
+            primaryLabel="pendiente de cobrar"
+            primaryValue={pendingTotal.value}
+            secondaryLabel="pagos aprobados"
+            secondaryValue={approvedPayments.value}
+            rangeLabel={periodLabel(selectedPeriod)}
+            title="BALANCE"
+            tone="green"
+          />
         </div>
+
+        {!data.financialModuleReady ? (
+          <section className="admin-model-finance-warning">
+            <TriangleAlert size={19} />
+            <div><strong>Libro de egresos pendiente</strong><p>Aplicá la migración financiera para registrar gastos y obtener un balance completo.</p></div>
+          </section>
+        ) : (
+          <Link className="admin-model-finance-link" href={`${getAdminConsolePath()}/finanzas`}>
+            <Landmark size={18} /><span><strong>Administrar ingresos y egresos</strong><small>Registrar movimientos, revisar historial y corregir mediante anulaciones.</small></span>
+          </Link>
+        )}
 
         <section className="admin-model-status">
           <header>
@@ -404,12 +415,14 @@ export async function AdminDashboard({ period }: { period?: string }) {
             labels={chartData.labels}
             series={[
               { label: "Ingresos", values: chartData.income, color: "#0f9d66" },
-              { label: "Tickets $", values: chartData.ticketTotals, color: "#2f6bff" },
-              { label: "Pendientes", values: chartData.pendingOrders, color: "#c2185b" }
+              { label: "Egresos", values: chartData.expenses, color: "#e5533d" },
+              { label: "Balance", values: chartData.balance, color: "#f4c400" }
             ]}
-            title="Ingresos y comprobantes"
+            title="Evolución financiera"
           />
         </div>
+
+        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
 
         <section className="admin-model-footer">
           <PackageCheck size={19} />

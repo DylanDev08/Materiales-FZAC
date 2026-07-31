@@ -41,3 +41,19 @@ export const adminCategorySchema = z.object({
   active: z.boolean().default(true),
   sort_order: z.coerce.number().int().default(0)
 });
+
+export const financialMovementSchema = z.object({
+  type: z.enum(["INCOME", "EXPENSE"]),
+  category: safeText("Categoría", 2, 80),
+  description: safeText("Descripción", 3, 240),
+  amount: z.coerce
+    .number({ invalid_type_error: "Ingresá un importe válido." })
+    .positive("El importe debe ser mayor a cero.")
+    .max(999_999_999_999, "El importe supera el máximo permitido."),
+  occurred_at: z.string().datetime({ offset: true, message: "Elegí una fecha válida." })
+});
+
+export const voidFinancialMovementSchema = z.object({
+  id: z.string().uuid("Movimiento inválido."),
+  reason: safeText("Motivo", 3, 240)
+});

@@ -2601,6 +2601,38 @@
   margin: 0;
 }
 
+.account-field-error {
+  color: #ffb4b4 !important;
+  font-weight: 850;
+}
+
+.account-settings-form input[aria-invalid="true"] {
+  border-color: rgba(229, 83, 61, 0.72);
+  box-shadow: 0 0 0 3px rgba(229, 83, 61, 0.09);
+}
+
+.account-settings-progress {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 0.55fr);
+  gap: 20px;
+  align-items: center;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 196, 0, 0.055);
+  padding: 16px;
+}
+
+.account-settings-progress strong,
+.account-settings-progress p { margin: 0; }
+.account-settings-progress strong { display: block; margin-top: 5px; color: var(--color-white); font-size: 1.15rem; }
+.account-settings-progress p { margin-top: 4px; color: var(--color-muted); font-size: 0.82rem; }
+.account-settings-progress > div:last-child { height: 9px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+.account-settings-progress > div:last-child span { display: block; height: 100%; border-radius: inherit; background: var(--color-yellow); }
+
+@media (max-width: 640px) {
+  .account-settings-progress { grid-template-columns: 1fr; gap: 12px; }
+}
+
 .account-security-note {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

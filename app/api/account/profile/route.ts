@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { hasSqlMeta, isValidArgentinePhone } from "@/lib/validations/security";
 
 const profileSchema = z.object({
@@ -23,12 +24,22 @@ const profileSchema = z.object({
     .string()
     .trim()
     .max(500, "La URL de foto es demasiado larga.")
-    .url("Ingresa una URL valida.")
+    .url("Ingresá una URL válida.")
+    .refine((value) => {
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" && !url.username && !url.password;
+      } catch {
+        return false;
+      }
+    }, "La foto debe usar una URL HTTPS segura.")
     .optional()
     .or(z.literal(""))
 });
 
 export async function PATCH(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const limit = rateLimit(getRequestKey(request, "account-profile"), 20, 60_000);
   if (!limit.ok) return jsonError("Demasiadas actualizaciones. Proba nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
@@ -56,6 +67,7 @@ export async function PATCH(request: Request) {
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
+    if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     return jsonError("No pudimos actualizar la cuenta.", 500);
   }
 }

@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { registerSchema } from "@/lib/validations/auth";
 
 function authErrorMessage(message: string) {
@@ -26,11 +27,15 @@ function genericRegistrationResponse() {
 }
 
 export async function POST(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const limit = rateLimit(getRequestKey(request, "auth-register"), 5, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
 
   try {
     const payload = registerSchema.parse(await request.json());
+    const emailLimit = rateLimit(`auth-register-email:${payload.email}`, 3, 30 * 60_000);
+    if (!emailLimit.ok) return jsonError("Ya procesamos una solicitud para este email. Revisá tu casilla o esperá antes de reintentar.", 429, retryAfterHeaders(emailLimit));
     const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
 
@@ -89,6 +94,7 @@ export async function POST(request: Request) {
     return genericRegistrationResponse();
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
+    if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     if (error instanceof Error && /already|registered|exists/i.test(error.message)) {
       return genericRegistrationResponse();
     }

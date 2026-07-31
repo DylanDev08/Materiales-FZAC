@@ -48,6 +48,11 @@ const sections = [
     use: "Muestra eventos de Mercado Pago y otros medios. Se usa cuando un cobro necesita verificacion."
   },
   {
+    title: "Ingresos y egresos",
+    target: "Control de caja y gastos operativos.",
+    use: "Registra gastos y otros ingresos que no provienen de ventas online. Las ventas pagadas se incorporan solas; no deben cargarse otra vez."
+  },
+  {
     title: "Arrepentimientos",
     target: "Solicitudes de devolución o revisión del consumidor.",
     use: "Permite recibir, revisar y responder cada trámite con número de seguimiento. Aprobar una solicitud no devuelve dinero: si corresponde, el reembolso se procesa después desde Pagos."

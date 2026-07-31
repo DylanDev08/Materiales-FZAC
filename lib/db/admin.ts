@@ -136,6 +136,47 @@ export async function getAdminRows(table: string, limit = 200) {
   return (data ?? []) as Array<Record<string, string | number | null | undefined>>;
 }
 
+export type AdminFinancialMovement = {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  category: string;
+  description: string;
+  amount: number;
+  occurredAt: string;
+  status: "ACTIVE" | "VOID";
+  voidReason: string;
+  createdAt: string;
+};
+
+export async function getAdminFinancialMovements(limit = 180): Promise<{
+  available: boolean;
+  rows: AdminFinancialMovement[];
+}> {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { available: false, rows: [] };
+
+  const { data, error } = await admin
+    .from("financial_movements")
+    .select("id,type,category,description,amount,occurred_at,status,void_reason,created_at")
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+
+  return {
+    available: !error,
+    rows: (data ?? []).map((movement) => ({
+      id: String(movement.id),
+      type: String(movement.type) === "INCOME" ? "INCOME" : "EXPENSE",
+      category: String(movement.category ?? "General"),
+      description: String(movement.description ?? "Movimiento"),
+      amount: Number(movement.amount ?? 0),
+      occurredAt: String(movement.occurred_at ?? movement.created_at ?? ""),
+      status: String(movement.status) === "VOID" ? "VOID" : "ACTIVE",
+      voidReason: String(movement.void_reason ?? ""),
+      createdAt: String(movement.created_at ?? "")
+    }))
+  };
+}
+
 export async function getAdminConsumerRefundRows(limit = 300) {
   const admin = getSupabaseAdminClient();
   if (!admin) return [];
@@ -440,12 +481,16 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       statusCounts: [],
       recentOrders: [],
       recentTickets: [],
+      recentFinancialMovements: [],
+      financialModuleReady: false,
       charts: {
         labels: buckets.map((bucket) => bucket.label),
         ordersCreated: buckets.map(() => 0),
         ordersPaid: buckets.map(() => 0),
         ticketsIssued: buckets.map(() => 0),
         income: buckets.map(() => 0),
+        expenses: buckets.map(() => 0),
+        balance: buckets.map(() => 0),
         ticketTotals: buckets.map(() => 0),
         pendingOrders: buckets.map(() => 0)
       }
@@ -475,7 +520,8 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     { data: inventoryMovements },
     { data: paymentEvents },
     { data: recentOrders },
-    { data: recentTickets }
+    { data: recentTickets },
+    { data: financialMovements, error: financialMovementsError }
   ] = await Promise.all([
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", today),
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", selectedStart),
@@ -502,12 +548,25 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       .from("purchase_tickets")
       .select("id,number,customer_name,total,status,issued_at")
       .order("issued_at", { ascending: false })
-      .limit(8)
+      .limit(8),
+    admin
+      .from("financial_movements")
+      .select("id,type,category,description,amount,occurred_at,status")
+      .gte("occurred_at", selectedStart)
+      .order("occurred_at", { ascending: false })
+      .limit(600)
   ]);
 
   const salesToday = (paidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
-  const selectedIncome = (selectedPaidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
-  const selectedExpenses = 0;
+  const activeFinancialMovements = (financialMovements ?? []).filter((movement) => movement.status === "ACTIVE");
+  const selectedSalesIncome = (selectedPaidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+  const selectedManualIncome = activeFinancialMovements
+    .filter((movement) => movement.type === "INCOME")
+    .reduce((sum, movement) => sum + Number(movement.amount ?? 0), 0);
+  const selectedIncome = selectedSalesIncome + selectedManualIncome;
+  const selectedExpenses = activeFinancialMovements
+    .filter((movement) => movement.type === "EXPENSE")
+    .reduce((sum, movement) => sum + Number(movement.amount ?? 0), 0);
   const selectedBalance = selectedIncome - selectedExpenses;
   const salesMonth = (monthOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
@@ -527,6 +586,21 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   const pendingSelectedOrderRows = selectedOrderRows.filter((order) =>
     ["PENDING_PAYMENT", "PENDING_TRANSFER", "PENDING_ADMIN_APPROVAL", "COORDINATE"].includes(String(order.status).toUpperCase())
   );
+  const orderIncomeSeries = bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, (order) => Number(order.total ?? 0));
+  const manualIncomeSeries = bucketSeries(
+    activeFinancialMovements.filter((movement) => movement.type === "INCOME"),
+    periodBuckets,
+    (movement) => movement.occurred_at,
+    (movement) => Number(movement.amount ?? 0)
+  );
+  const expenseSeries = bucketSeries(
+    activeFinancialMovements.filter((movement) => movement.type === "EXPENSE"),
+    periodBuckets,
+    (movement) => movement.occurred_at,
+    (movement) => Number(movement.amount ?? 0)
+  );
+  const incomeSeries = orderIncomeSeries.map((value, index) => value + (manualIncomeSeries[index] ?? 0));
+  const balanceSeries = incomeSeries.map((value, index) => value - (expenseSeries[index] ?? 0));
 
   const recentOrderRows = recentOrders ?? [];
   const statusMap = recentOrderRows.reduce<Record<string, number>>((acc, order) => {
@@ -538,9 +612,15 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   return {
     metrics: [
       { label: "Ventas del dia", value: currency(salesToday), helper: "Pagos aprobados hoy" },
-      { label: "Ingresos del periodo", value: currency(selectedIncome), helper: `Ingresos de la ${selectedPeriodName} seleccionada` },
-      { label: "Egresos del periodo", value: currency(selectedExpenses), helper: "Sin modulo de egresos conectado" },
+      { label: "Ingresos del periodo", value: currency(selectedIncome), helper: `Ventas aprobadas y otros ingresos de la ${selectedPeriodName}` },
+      {
+        label: "Egresos del periodo",
+        value: currency(selectedExpenses),
+        helper: financialMovementsError ? "Aplicá la migración del libro financiero" : `Egresos registrados en la ${selectedPeriodName}`
+      },
       { label: "Balance del periodo", value: currency(selectedBalance), helper: "Ingresos menos egresos" },
+      { label: "Ingresos manuales", value: currency(selectedManualIncome), helper: "Movimientos distintos de ventas online" },
+      { label: "Movimientos financieros", value: String(activeFinancialMovements.length), helper: "Registros vigentes del periodo" },
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
       { label: "Usuarios registrados", value: String(allProfiles?.length ?? 0), helper: `${newTodayProfiles?.length ?? 0} nuevos hoy` },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },
@@ -572,6 +652,14 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       Estado: friendlyStatus(ticket.status),
       Fecha: adminDate(ticket.issued_at)
     })),
+    recentFinancialMovements: activeFinancialMovements.slice(0, 8).map((movement) => ({
+      Tipo: movement.type === "INCOME" ? "Ingreso" : "Egreso",
+      Categoria: movement.category ?? "General",
+      Descripcion: movement.description ?? "Movimiento",
+      Importe: currency(Number(movement.amount ?? 0)),
+      Fecha: adminDate(movement.occurred_at)
+    })),
+    financialModuleReady: !financialMovementsError,
     recentInventory: (inventoryMovements ?? []).map((movement) => ({
       Tipo: friendlyStatus(movement.type),
       Cantidad: String(movement.quantity ?? 0),
@@ -589,7 +677,9 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       ordersCreated: bucketSeries(selectedOrderRows, periodBuckets, (order) => order.created_at, () => 1),
       ordersPaid: bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, () => 1),
       ticketsIssued: bucketSeries(selectedTicketRows, periodBuckets, (ticket) => ticket.issued_at, () => 1),
-      income: bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, (order) => Number(order.total ?? 0)),
+      income: incomeSeries,
+      expenses: expenseSeries,
+      balance: balanceSeries,
       ticketTotals: bucketSeries(selectedTicketRows, periodBuckets, (ticket) => ticket.issued_at, (ticket) => Number(ticket.total ?? 0)),
       pendingOrders: bucketSeries(pendingSelectedOrderRows, periodBuckets, (order) => order.created_at, () => 1)
     }

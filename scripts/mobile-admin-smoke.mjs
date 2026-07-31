@@ -28,7 +28,11 @@ const existingAdminEmails = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL
 const screenshotDirectory = path.join(process.cwd(), "test-results");
 const closedScreenshot = path.join(screenshotDirectory, "mobile-admin-dashboard.png");
 const openScreenshot = path.join(screenshotDirectory, "mobile-admin-navigation.png");
+const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.png");
+const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
+const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 let userId = null;
+let financialMovementId = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -57,6 +61,18 @@ async function cleanup() {
   if (server && !server.killed) server.kill();
 
   if (!userId) return;
+  if (financialMovementId) {
+    const { error: auditLogError } = await admin
+      .from("admin_audit_logs")
+      .delete()
+      .eq("entity", "financial_movements")
+      .eq("entity_id", financialMovementId);
+    const { error: financialMovementError } = await admin
+      .from("financial_movements")
+      .delete()
+      .eq("id", financialMovementId);
+    if (auditLogError || financialMovementError) cleanupErrors.push("Could not remove isolated financial QA data.");
+  }
   const { error: notificationError } = await admin
     .from("notifications")
     .delete()
@@ -134,18 +150,86 @@ try {
   await page.getByRole("button", { name: /cerrar navegaci/i }).first().click();
   await page.getByRole("button", { name: /abrir navegaci/i }).waitFor({ state: "visible" });
 
+  await page.goto(`${baseUrl}${adminPath}/finanzas`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-finance-page").last().waitFor({ state: "visible", timeout: 25_000 });
+  const createdMovement = await page.evaluate(async () => {
+    const response = await fetch("/api/admin/financial-movements", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        type: "EXPENSE",
+        category: "QA",
+        description: "Movimiento temporal de control automatizado",
+        amount: 1,
+        occurred_at: new Date().toISOString()
+      })
+    });
+    return { status: response.status, body: await response.json() };
+  });
+  assert(createdMovement.status === 201 && createdMovement.body?.id, "Admin could not create a financial movement.");
+  financialMovementId = createdMovement.body.id;
+
+  const voidedMovement = await page.evaluate(async (id) => {
+    const response = await fetch("/api/admin/financial-movements", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, reason: "Finalizacion de prueba automatizada" })
+    });
+    return { status: response.status, body: await response.json() };
+  }, financialMovementId);
+  assert(voidedMovement.status === 200 && voidedMovement.body?.ok, "Admin could not void a financial movement.");
+
+  const repeatedVoid = await page.evaluate(async (id) => {
+    const response = await fetch("/api/admin/financial-movements", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, reason: "Reintento que debe rechazarse" })
+    });
+    return response.status;
+  }, financialMovementId);
+  assert(repeatedVoid === 409, "A voided financial movement was modified twice.");
+
+  const { data: persistedMovement, error: persistedMovementError } = await admin
+    .from("financial_movements")
+    .select("status,void_reason")
+    .eq("id", financialMovementId)
+    .single();
+  assert(!persistedMovementError && persistedMovement?.status === "VOID", "Financial movement was not persisted as void.");
+  const financeMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(financeMobileMetrics.documentWidth <= financeMobileMetrics.viewport + 2, "Admin finances generate mobile horizontal overflow.");
+  await page.screenshot({ path: financeScreenshot, fullPage: true });
+
+  const storageState = await context.storageState();
+  const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState });
+  const desktopPage = await desktopContext.newPage();
+  await desktopPage.goto(`${baseUrl}${adminPath}`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-dashboard-model").last().waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.screenshot({ path: desktopScreenshot, fullPage: true });
+  await desktopPage.goto(`${baseUrl}${adminPath}/finanzas`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-finance-page").last().waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.screenshot({ path: desktopFinanceScreenshot, fullPage: true });
+  await desktopContext.close();
+
   process.stdout.write(
     `${JSON.stringify({
       ok: true,
       authenticatedAdmin: true,
       routeProtected: true,
+      financialMovementLifecycle: true,
       dashboardResponsive: true,
+      financesResponsive: true,
       sidebarDrawer: true,
       touchTargets: true,
       horizontalOverflow: false,
       screenshots: [
         path.relative(process.cwd(), closedScreenshot),
-        path.relative(process.cwd(), openScreenshot)
+        path.relative(process.cwd(), openScreenshot),
+        path.relative(process.cwd(), financeScreenshot),
+        path.relative(process.cwd(), desktopScreenshot),
+        path.relative(process.cwd(), desktopFinanceScreenshot)
       ]
     })}\n`
   );
