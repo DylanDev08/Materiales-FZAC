@@ -61,6 +61,28 @@
   gap: 16px;
 }
 
+.topbar__message {
+  margin-left: auto;
+}
+
+.topbar__consumer-link {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 1px solid rgba(244, 196, 0, 0.22);
+  color: var(--color-yellow);
+  padding-left: 16px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.topbar__consumer-link:hover {
+  color: var(--color-yellow-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .site-header {
   position: sticky;
   top: 0;
@@ -771,7 +793,7 @@
   }
 
   .brand__text span,
-  .topbar__inner span:last-child {
+  .topbar__message {
     display: none;
   }
 

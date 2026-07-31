@@ -23,18 +23,23 @@ export default function Page() {
           <div>
             <span className="kicker">Derecho del consumidor</span>
             <h1>Botón de arrepentimiento</h1>
-            <p>Canal directo para registrar y seguir una solicitud relacionada con una compra online.</p>
+            <p>Canal directo, gratuito y sin registro previo para revocar una compra online.</p>
           </div>
         </header>
         <section>
           <p>
-            Si realizaste una compra online en Materiales FZAC, podés solicitar la revocación de la compra dentro de los
-            plazos legales aplicables. La solicitud se registra por los canales oficiales y FZAC confirma la recepción
-            del trámite.
+            Si sos consumidor final y realizaste una compra online en Materiales FZAC, podés solicitar la revocación
+            dentro de los diez (10) días computados desde la celebración del contrato o desde la entrega si esta fuera
+            posterior. No necesitás iniciar sesión ni completar otro trámite previo.
           </p>
           <p>
-            Para iniciar el pedido, completá el formulario online. Si corresponde, después podés adjuntar fotos del
-            producto y comprobante por WhatsApp o email indicando el número de trámite.
+            Al enviar el formulario recibís un código de identificación en pantalla y, si el email transaccional está
+            disponible, una constancia por correo. FZAC debe informar ese código dentro de las 24 horas y coordinar los
+            pasos necesarios para hacer efectiva la solicitud cuando corresponda.
+          </p>
+          <p>
+            El formulario no exige número de pedido. Si lo tenés, ingresarlo ayuda a vincular la compra. No incluyas
+            contraseñas, datos completos de tarjeta ni códigos de seguridad en los comentarios.
           </p>
           <ConsumerRefundForm />
           <div className="legal-action-row">
@@ -49,8 +54,8 @@ export default function Page() {
             </Link>
           </div>
           <p className="notice">
-            Revisión legal final recomendada por profesional. Esta pantalla facilita el acceso directo al derecho de
-            arrepentimiento y no reemplaza asesoramiento legal.
+            Referencia vigente: Disposición 954/2025, Ley 24.240 y artículos 1110 a 1116 del Código Civil y Comercial.
+            La procedencia se analiza según la naturaleza y el uso del producto, sin limitar derechos irrenunciables.
           </p>
         </section>
       </div>

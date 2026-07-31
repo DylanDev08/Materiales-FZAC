@@ -209,7 +209,27 @@
 
 @media (max-width: 860px) {
   .topbar {
+    display: block;
+  }
+
+  .topbar__inner {
+    min-height: 38px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .topbar__inner > span {
     display: none;
+  }
+
+  .topbar__consumer-link {
+    min-height: 38px;
+    width: 100%;
+    justify-content: center;
+    border-left: 0;
+    padding: 0;
+    font-size: 0.82rem;
   }
 
   .site-header {

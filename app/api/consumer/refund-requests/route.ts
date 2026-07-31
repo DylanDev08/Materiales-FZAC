@@ -7,12 +7,15 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath, getSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { isTrustedMutationRequest } from "@/lib/utils/request-security";
 import {
   assertSafeText,
   isSafeUserNote,
   isValidArgentinePhone,
   normalizeUserNote
 } from "@/lib/validations/security";
+
+const MAX_REQUEST_BYTES = 16 * 1024;
 
 const requestSchema = z.object({
   idempotencyKey: z.string().uuid("No pudimos validar este intento. Recargá la página e intentá nuevamente."),
@@ -108,6 +111,16 @@ async function existingRequest(
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedMutationRequest(request)) return jsonError("Origen de solicitud no permitido.", 403);
+  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
+    return jsonError("El formato de la solicitud no es válido.", 415);
+  }
+
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
+    return jsonError("La solicitud es demasiado extensa.", 413);
+  }
+
   const limit = rateLimit(getRequestKey(request, "consumer-refund-request"), 3, 15 * 60_000);
   if (!limit.ok) {
     return jsonError("Demasiadas solicitudes. Esperá unos minutos antes de volver a intentar.", 429, retryAfterHeaders(limit));
@@ -117,7 +130,19 @@ export async function POST(request: Request) {
   if (!admin) return jsonError("No pudimos registrar la solicitud en este momento.", 503);
 
   try {
-    const payload = requestSchema.parse(await request.json());
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+      return jsonError("La solicitud es demasiado extensa.", 413);
+    }
+
+    let rawPayload: unknown;
+    try {
+      rawPayload = JSON.parse(rawBody);
+    } catch {
+      return jsonError("El contenido de la solicitud no es válido.", 400);
+    }
+
+    const payload = requestSchema.parse(rawPayload);
     assertSafeText(payload.orderNumber, "número de pedido");
 
     const replay = await existingRequest(admin, payload.idempotencyKey);

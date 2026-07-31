@@ -74,6 +74,19 @@ const checks = [
     ok: configured("RESEND_API_KEY") && configured("RESEND_FROM_EMAIL")
   },
   {
+    area: "Legal",
+    requirement: "Razon social, CUIT y domicilio comercial configurados",
+    ok:
+      configured("FZAC_LEGAL_NAME") &&
+      configured("FZAC_CUIT") &&
+      configured("FZAC_LEGAL_ADDRESS")
+  },
+  {
+    area: "Consumidor",
+    requirement: "Horario de atencion al consumidor publicado",
+    ok: configured("FZAC_CUSTOMER_SERVICE_HOURS")
+  },
+  {
     area: "Fiscal",
     requirement: "Proveedor fiscal configurado",
     ok:

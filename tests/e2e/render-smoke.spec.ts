@@ -103,6 +103,37 @@ test.describe("Render public smoke", () => {
     }
   });
 
+  test("proteccion al consumidor es visible y no exige registro", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("link", { name: /bot[oó]n de arrepentimiento/i }).first()).toBeVisible();
+
+    await page.goto("/arrepentimiento", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: /bot[oó]n de arrepentimiento/i })).toBeVisible();
+    await expect(page.locator("body")).toContainText(/sin registro previo/i);
+    await expect(page.getByLabel(/nombre y apellido/i)).toBeVisible();
+    await expect(page.getByLabel(/n[uú]mero de pedido/i)).not.toHaveAttribute("required", "");
+  });
+
+  test("endpoint de arrepentimiento rechaza formatos y origenes inseguros sin escribir", async ({ request }) => {
+    const wrongType = await request.post("/api/consumer/refund-requests", {
+      headers: { "content-type": "text/plain" },
+      data: "invalid"
+    });
+    expect(wrongType.status()).toBe(415);
+
+    const crossSite = await request.post("/api/consumer/refund-requests", {
+      headers: { origin: "https://example.invalid", "content-type": "application/json" },
+      data: { idempotencyKey: crypto.randomUUID() }
+    });
+    expect(crossSite.status()).toBe(403);
+
+    const oversized = await request.post("/api/consumer/refund-requests", {
+      headers: { "content-type": "application/json" },
+      data: { padding: "x".repeat(17 * 1024) }
+    });
+    expect(oversized.status()).toBe(413);
+  });
+
   test("admin anonimo no expone datos", async ({ page }) => {
     const response = await page.goto("/admin", { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBeLessThan(400);

@@ -23,12 +23,13 @@ export default function Page() {
         <section>
           <h2>Botón de arrepentimiento</h2>
           <p>
-            El cliente puede revocar una compra realizada a distancia dentro de los diez (10) días corridos desde la
-            entrega efectiva del producto o desde la celebración del contrato, conforme al Art. 34 de la Ley 24.240.
+            El consumidor final puede revocar una compra realizada a distancia dentro de los diez (10) días computados
+            desde la celebración del contrato o desde la entrega si esta fuera posterior. El trámite es gratuito y puede
+            iniciarse sin registración previa.
           </p>
           <p>
-            Para iniciar el trámite debe conservar el comprobante y contactar a FZAC indicando orden, producto, cantidad,
-            motivo, teléfono y dirección de retiro si corresponde. El equipo confirma los pasos por los canales oficiales.
+            El número de pedido es opcional al iniciar. FZAC entrega un código de identificación y puede solicitar después
+            datos razonables para verificar la identidad, vincular la operación y coordinar la restitución.
           </p>
           <div className="legal-action-row">
             <Link className="btn legal-action-button" href="/arrepentimiento">
@@ -41,23 +42,31 @@ export default function Page() {
 
           <h2>Condición del producto</h2>
           <p>
-            El producto debe estar intacto, sin uso, sin instalación, en embalaje original cerrado y con accesorios,
-            manuales y comprobante. No se aceptan devoluciones de productos usados, instalados, cortados, mezclados,
-            deteriorados o sin embalaje cuando corresponda.
+            Conservá embalaje, accesorios y comprobantes cuando existan. La apertura o revisión razonable no excluye por
+            sí sola el derecho. El uso efectivo, consumo, instalación, mezcla, corte, deterioro imputable o pérdida de
+            trazabilidad pueden modificar la procedencia según la naturaleza del material y la normativa aplicable.
           </p>
 
-          <h2>Materiales excluidos</h2>
+          <h2>Excepciones legales</h2>
           <p>
-            Por su naturaleza técnica y logística, quedan excluidos materiales a granel o fraccionados, áridos, arena,
-            piedra, cemento, cal, productos despachados por peso/fraccion exacta, pinturas preparadas a pedido, piezas
-            cortadas a medida y materiales deteriorados por humedad, mala estiba o exposición climática.
+            Pueden quedar exceptuados los productos personalizados o preparados a pedido, las piezas cortadas según
+            indicaciones del cliente, los bienes que no puedan devolverse por su naturaleza o se deterioren rápidamente,
+            los productos efectivamente usados o consumidos y las compras destinadas a reventa o integración productiva.
+            No se aplican exclusiones automáticas por el solo hecho de tratarse de un material de obra.
           </p>
 
           <h2>Reclamos por entrega</h2>
           <p>
-            La mercadería debe revisarse antes de firmar remito. La firma implica conformidad sobre estado visible,
-            integridad y cantidades. Para defectos ocultos o errores no visibles, el cliente dispone de cuarenta y ocho
-            (48) horas hábiles desde la recepción para informar con fotos y copia del remito.
+            Revisar la mercadería al recibirla y dejar constancia de daños visibles facilita una solución rápida. La firma
+            del remito no implica renunciar a reclamos por defectos ocultos, garantías ni otros derechos legales. Los
+            bienes muebles no consumibles nuevos cuentan con la garantía legal aplicable.
+          </p>
+
+          <h2>Reembolso y seguimiento</h2>
+          <p>
+            Aprobar una solicitud no devuelve dinero automáticamente. FZAC valida la operación y, si corresponde,
+            procesa el reembolso por el medio original. El sistema registra la decisión, impide duplicar una devolución y
+            conserva el movimiento de stock y la auditoría administrativa.
           </p>
         </section>
       </div>

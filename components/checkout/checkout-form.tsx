@@ -1459,22 +1459,23 @@ export function CheckoutForm({
               <section>
                 <h3>Entrega y retiro</h3>
                 <p>
-                  El cliente debe revisar la mercaderia antes de firmar el remito. Para defectos ocultos o errores no
-                  visibles, debe informar a FZAC dentro de las 48 horas habiles con fotos y comprobante.
+                  Revisar la mercadería al recibirla y dejar constancia de daños visibles facilita la gestión. La firma
+                  del remito no elimina garantías ni reclamos por defectos ocultos.
                 </p>
               </section>
               <section>
                 <h3>Derecho de revocación</h3>
                 <p>
                   Conforme a la Ley 24.240, el cliente puede revocar compras a distancia dentro de los diez (10) días
-                  corridos desde la entrega o celebración del contrato, según corresponda.
+                  desde la contratación o desde la entrega si esta fuera posterior. El trámite online no exige registro.
                 </p>
               </section>
               <section>
-                <h3>Excepciones por materiales de obra</h3>
+                <h3>Excepciones legales</h3>
                 <p>
-                  Pueden quedar excluidos materiales a granel, fraccionados, cortados a medida, preparados a pedido o
-                  deteriorados por humedad, mala estiba, uso, instalacion o exposicion climatica.
+                  Pueden exceptuarse bienes personalizados o cortados a pedido, perecederos, productos efectivamente
+                  usados o consumidos y compras destinadas a reventa o integración productiva. No hay exclusión automática
+                  por tratarse de un material de obra.
                 </p>
               </section>
               <section>

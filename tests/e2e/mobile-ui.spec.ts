@@ -107,6 +107,20 @@ test.describe("Mobile UI audit", () => {
     expect(whatsapp?.height ?? 0).toBeGreaterThanOrEqual(44);
   });
 
+  test("boton de arrepentimiento queda visible desde el primer acceso", async ({ page }, testInfo) => {
+    skipDesktop(testInfo);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const consumerLink = page.getByRole("link", { name: /bot[oó]n de arrepentimiento/i }).first();
+    await expect(consumerLink).toBeVisible();
+    const box = await consumerLink.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(38);
+
+    await consumerLink.click();
+    await expect(page).toHaveURL(/\/arrepentimiento/);
+    await expect(page.locator("body")).toContainText(/sin registro previo/i);
+    await expectNoHorizontalOverflow(page);
+  });
+
   test("catalogo mobile permite escanear y agregar producto", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.goto("/productos", { waitUntil: "domcontentloaded" });

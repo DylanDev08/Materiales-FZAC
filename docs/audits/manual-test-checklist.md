@@ -115,17 +115,24 @@ Usar este checklist antes de cada deploy importante.
 
 ## Legal y confianza
 
-- [ ] Boton de arrepentimiento visible desde home/footer.
+- [ ] Botón de arrepentimiento visible en el primer acceso, tanto en desktop como mobile.
+- [ ] El trámite se puede iniciar sin login ni registro previo.
 - [ ] El formulario devuelve HTTP 201 y un número de trámite nuevo.
 - [ ] Repetir el mismo intento devuelve el mismo trámite y no duplica registros.
+- [ ] Un origen externo, contenido no JSON o cuerpo mayor a 16 KiB es rechazado.
 - [ ] El cliente autenticado ve el estado en `/cuenta/solicitudes`.
 - [ ] Admin > Arrepentimientos permite revisar y responder sin reembolsar automáticamente.
 - [ ] La constancia llega por Resend cuando el canal está configurado.
 - [ ] Terminos tienen logo FZAC.
-- [ ] Privacidad visible.
+- [ ] Privacidad informa responsable, finalidades, proveedores, conservación y derechos ARCO.
 - [ ] Cambios/devoluciones visibles.
 - [ ] Se informa que FZAC no guarda datos de tarjeta.
+- [ ] Razón social, CUIT, domicilio, contacto y horario están configurados con datos reales.
+- [ ] La solicitud informa un código dentro de las 24 horas.
+- [ ] La firma del remito no se presenta como renuncia a garantías o defectos ocultos.
+- [ ] Las excepciones de materiales se revisan caso por caso y no son automáticas.
 - [ ] Datos de contacto visibles.
+- [ ] `consumer_refund_requests` no permite lectura anónima ni escrituras directas de clientes.
 - [ ] Revisar textos legales con profesional antes de produccion final.
 
 ## Seguridad

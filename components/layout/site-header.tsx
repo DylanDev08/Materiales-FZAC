@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ShieldCheck } from "lucide-react";
+import { RotateCcw, ShieldCheck } from "lucide-react";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { CartStatus } from "@/components/layout/cart-status";
 import { SearchSuggest } from "@/components/layout/search-suggest";
@@ -18,7 +18,11 @@ export async function SiteHeader() {
       <div className="topbar">
         <div className="container topbar__inner">
           <span>Fortaleza Construcciones Rosario</span>
-          <span>Envíos coordinados, retiro acordado y pagos online.</span>
+          <span className="topbar__message">Envíos coordinados, retiro acordado y pagos online.</span>
+          <Link className="topbar__consumer-link" href="/arrepentimiento" prefetch={false}>
+            <RotateCcw size={14} aria-hidden="true" />
+            Botón de arrepentimiento
+          </Link>
         </div>
       </div>
 
