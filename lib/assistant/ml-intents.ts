@@ -1,65 +1,32 @@
 import "server-only";
 
-export type AssistantIntent =
-  | "greeting"
-  | "delivery"
-  | "payment"
-  | "stock"
-  | "price"
-  | "estimate"
-  | "order_status"
-  | "returns"
-  | "human"
-  | "product_search"
-  | "fallback";
+import rawModel from "@/lib/assistant/generated/intent-model.json";
+import type { AssistantIntent } from "@/lib/assistant/contracts";
 
-type TrainingSample = {
+export type { AssistantIntent } from "@/lib/assistant/contracts";
+
+export type AssistantClassification = {
   intent: AssistantIntent;
-  text: string;
+  confidence: number;
+  margin: number;
+  source: "rule" | "model" | "context" | "fallback";
+  tokens: string[];
+  alternatives: Array<{ intent: AssistantIntent; confidence: number }>;
+  engine: string;
 };
 
 type IntentModel = {
-  vocabulary: Set<string>;
-  intentDocs: Map<AssistantIntent, number>;
-  tokenCounts: Map<AssistantIntent, Map<string, number>>;
-  totalTokens: Map<AssistantIntent, number>;
-  totalDocs: number;
+  schema_version: number;
+  engine: string;
+  intents: AssistantIntent[];
+  total_documents: number;
+  vocabulary: string[];
+  intent_documents: Record<AssistantIntent, number>;
+  total_tokens: Record<AssistantIntent, number>;
+  token_counts: Record<AssistantIntent, Record<string, number>>;
 };
 
-const trainingData: TrainingSample[] = [
-  { intent: "greeting", text: "hola buenas buen dia buenas tardes buenas noches" },
-  { intent: "greeting", text: "hola necesito ayuda como funciona la tienda" },
-  { intent: "greeting", text: "hey que tal gracias quiero hacer una consulta" },
-  { intent: "delivery", text: "envio entrega domicilio flete zona distancia kilometros km" },
-  { intent: "delivery", text: "estoy dentro de rosario hasta 30 km mas de 50 km retiro cargar direccion" },
-  { intent: "delivery", text: "coordinar envio cotizar flete localidad calle domicilio obra" },
-  { intent: "delivery", text: "cuando llega mi compra recibir materiales descargar camion costo de reparto" },
-  { intent: "payment", text: "pago tarjeta cuotas transferencia comprobante abonar pagar checkout mercado pago" },
-  { intent: "payment", text: "como pago medios de pago pago seguro debito credito dni cuit" },
-  { intent: "payment", text: "pagar online pagar con tarjeta pagar con mercado pago pago pendiente rechazado" },
-  { intent: "payment", text: "generar pedido transferencia coordinar por whatsapp operacion duplicada cobro" },
-  { intent: "stock", text: "stock disponible cantidad faltante reposicion unidades disponibles" },
-  { intent: "stock", text: "no hay stock quiero bajar cantidad equivalente reemplazo" },
-  { intent: "stock", text: "cuantas bolsas placas baldes quedan disponibilidad del producto" },
-  { intent: "price", text: "precio valor costo cuanto sale cuanto cuesta consultar precio producto" },
-  { intent: "price", text: "que precio tiene cemento pintura placa hierro bolsa balde unidad" },
-  { intent: "price", text: "necesito saber el valor actual oferta descuento comparar precios" },
-  { intent: "estimate", text: "calcular presupuesto metros m2 obra construir reparar materiales necesito" },
-  { intent: "estimate", text: "cuanto necesito para pintar levantar pared hacer revoque placas" },
-  { intent: "estimate", text: "cantidad para habitacion superficie rendimiento desperdicio medidas ancho alto" },
-  { intent: "order_status", text: "pedido orden estado comprobante factura seguimiento compra" },
-  { intent: "order_status", text: "donde veo mi pedido ya pague numero de orden" },
-  { intent: "order_status", text: "mi compra esta aprobada pendiente preparada lista para retirar" },
-  { intent: "returns", text: "devolucion cambio garantia devolver producto roto error" },
-  { intent: "returns", text: "material danado mercaderia equivocada cancelar compra derecho arrepentimiento" },
-  { intent: "human", text: "asesor humano persona vendedor llamar whatsapp contacto" },
-  { intent: "human", text: "reclamo legal seguridad cobro duplicado no entregaron necesito responsable" },
-  { intent: "product_search", text: "cemento cal arena ladrillo placa durlock pintura latex membrana canilla cable" },
-  { intent: "product_search", text: "buscar producto comprar material precio catalogo oferta marca sku" },
-  { intent: "product_search", text: "hierro tornillo herramienta ferreteria electricidad plomeria revestimiento" },
-  { intent: "fallback", text: "consulta duda ayuda informacion general no se que elegir" }
-];
-
+const model = rawModel as IntentModel;
 const stopWords = new Set([
   "a",
   "al",
@@ -85,6 +52,15 @@ const stopWords = new Set([
   "y"
 ]);
 
+if (
+  model.schema_version !== 1 ||
+  model.engine !== "FZAC_NAIVE_BAYES_V1" ||
+  !Array.isArray(model.intents) ||
+  model.total_documents < 1
+) {
+  throw new Error("El modelo de intenciones FZAC no es compatible con esta version de la aplicacion.");
+}
+
 function normalize(value: string) {
   return value
     .normalize("NFD")
@@ -92,69 +68,130 @@ function normalize(value: string) {
     .toLowerCase();
 }
 
-function tokenize(value: string) {
+export function tokenizeAssistantText(value: string) {
   return normalize(value)
     .replace(/[^a-z0-9+\s]/g, " ")
     .split(/\s+/)
     .filter((token) => token.length > 1 && !stopWords.has(token));
 }
 
-function trainIntentModel(samples: TrainingSample[]): IntentModel {
-  const vocabulary = new Set<string>();
-  const intentDocs = new Map<AssistantIntent, number>();
-  const tokenCounts = new Map<AssistantIntent, Map<string, number>>();
-  const totalTokens = new Map<AssistantIntent, number>();
-
-  samples.forEach((sample) => {
-    const tokens = tokenize(sample.text);
-    intentDocs.set(sample.intent, (intentDocs.get(sample.intent) ?? 0) + 1);
-    if (!tokenCounts.has(sample.intent)) tokenCounts.set(sample.intent, new Map());
-
-    const counts = tokenCounts.get(sample.intent)!;
-    tokens.forEach((token) => {
-      vocabulary.add(token);
-      counts.set(token, (counts.get(token) ?? 0) + 1);
-      totalTokens.set(sample.intent, (totalTokens.get(sample.intent) ?? 0) + 1);
-    });
-  });
-
-  return { vocabulary, intentDocs, tokenCounts, totalTokens, totalDocs: samples.length };
+function includesAny(message: string, terms: string[]) {
+  return terms.some((term) => message.includes(term));
 }
 
-const model = trainIntentModel(trainingData);
+function ruleIntent(message: string): AssistantIntent | null {
+  const normalized = normalize(message).trim();
+  if (/^(hola|buenas|buen dia|buenas tardes|buenas noches|hey)(\s+fzac)?[!.?]*$/.test(normalized)) return "greeting";
+  if (includesAny(normalized, ["devolucion", "devolver", "reembolso", "garantia", "arrepentimiento", "producto roto", "producto danado"])) {
+    return "returns";
+  }
+  if (includesAny(normalized, ["cobro duplicado", "cobraron dos veces", "datos de tarjeta", "tarjeta", "transferencia", "mercado pago", "mercadopago", "cuotas", "pago rechazado", "pago pendiente"])) {
+    return "payment";
+  }
+  if (includesAny(normalized, ["politica de privacidad", "datos personales", "eliminar mis datos", "terminos y condiciones", "condiciones de compra", "defensa del consumidor", "como comprar", "pasos para comprar"])) {
+    return "store_policy";
+  }
+  if (/\b\d+\s?(km|kilometros?)\b/.test(normalized) || includesAny(normalized, ["envio", "flete", "domicilio", "direccion de entrega", "retiro", "retirar", "rosario", "funes"])) {
+    return "delivery";
+  }
+  if (includesAny(normalized, ["estado del pedido", "estado de la orden", "seguir mi pedido", "seguimiento", "mi pedido", "mi orden", "factura de mi compra"])) {
+    return "order_status";
+  }
+  if (
+    /\b\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\s?(?:x|por)\s?\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\b/.test(normalized) ||
+    /\b\d+(?:[.,]\d+)?\s?(m2|m\u00b2|metros?)\b/.test(normalized) ||
+    includesAny(normalized, ["calcular", "presupuesto", "rendimiento", "cuanto material", "cuantas placas lleva", "margen de desperdicio"])
+  ) {
+    return "estimate";
+  }
+  if (includesAny(normalized, ["sin stock", "hay stock", "disponibilidad", "reposicion", "cuantas unidades", "cuantas bolsas", "cuantas placas"])) {
+    return "stock";
+  }
+  if (includesAny(normalized, ["cuanto cuesta", "cuanto sale", "que precio", "precio actual", "precio por", "valor actual", "descuento", "oferta vigente"])) {
+    return "price";
+  }
+  if (includesAny(normalized, ["hablar con una persona", "atenderme una persona", "necesito un asesor", "reclamo legal", "problema de seguridad", "no me entregaron"])) {
+    return "human";
+  }
+  return null;
+}
+
+function modelScores(message: string) {
+  const tokens = tokenizeAssistantText(message);
+  const vocabularySize = Math.max(model.vocabulary.length, 1);
+  const scores = model.intents.map((intent) => {
+    const prior = (model.intent_documents[intent] ?? 0) / model.total_documents;
+    const counts = model.token_counts[intent] ?? {};
+    const total = model.total_tokens[intent] ?? 0;
+    const score = tokens.reduce((sum, token) => {
+      const likelihood = ((counts[token] ?? 0) + 1) / (total + vocabularySize);
+      return sum + Math.log(likelihood);
+    }, Math.log(prior || 1 / model.total_documents));
+    return { intent, score };
+  });
+
+  scores.sort((left, right) => right.score - left.score);
+  const best = scores[0] ?? { intent: "fallback" as const, score: 0 };
+  const runnerUp = scores[1]?.score ?? best.score - 1;
+  const margin = best.score - runnerUp;
+  const confidence = 1 / (1 + Math.exp(-margin));
+  return { tokens, scores, best, margin, confidence };
+}
+
+function alternatives(scores: Array<{ intent: AssistantIntent; score: number }>) {
+  const maxScore = scores[0]?.score ?? 0;
+  const weights = scores.map((item) => ({ ...item, weight: Math.exp(item.score - maxScore) }));
+  const total = weights.reduce((sum, item) => sum + item.weight, 0) || 1;
+  return weights.slice(0, 3).map((item) => ({ intent: item.intent, confidence: item.weight / total }));
+}
 
 export function classifyAssistantIntent(
   message: string,
   history: Array<{ role: "user" | "assistant"; content: string }> = []
-) {
-  const currentTokens = tokenize(message);
-  const isShortContinuation = currentTokens.length <= 2;
-  const previousUserMessage = history.filter((item) => item.role === "user").at(-1)?.content ?? "";
-  const context = isShortContinuation ? `${previousUserMessage} ${message} ${message}` : `${message} ${message}`;
-  const tokens = tokenize(context);
-  const intents = Array.from(model.intentDocs.keys());
-  const vocabularySize = Math.max(model.vocabulary.size, 1);
+): AssistantClassification {
+  const current = modelScores(message);
+  const explicitIntent = ruleIntent(message);
+  if (explicitIntent) {
+    return {
+      intent: explicitIntent,
+      confidence: 0.99,
+      margin: current.margin,
+      source: "rule",
+      tokens: current.tokens,
+      alternatives: alternatives(current.scores),
+      engine: model.engine
+    };
+  }
 
-  const scores = intents.map((intent) => {
-    const prior = (model.intentDocs.get(intent) ?? 0) / model.totalDocs;
-    const counts = model.tokenCounts.get(intent) ?? new Map<string, number>();
-    const total = model.totalTokens.get(intent) ?? 0;
-    const score = tokens.reduce((sum, token) => {
-      const likelihood = ((counts.get(token) ?? 0) + 1) / (total + vocabularySize);
-      return sum + Math.log(likelihood);
-    }, Math.log(prior || 1 / model.totalDocs));
+  const isBriefContinuation = current.tokens.length <= 2;
+  if (isBriefContinuation && current.confidence < 0.6) {
+    const previousUserMessage = history.filter((item) => item.role === "user").at(-1)?.content ?? "";
+    if (previousUserMessage) {
+      const previous = modelScores(previousUserMessage);
+      const previousRule = ruleIntent(previousUserMessage);
+      const contextualIntent = previousRule ?? (previous.confidence >= 0.55 ? previous.best.intent : null);
+      if (contextualIntent && contextualIntent !== "fallback") {
+        return {
+          intent: contextualIntent,
+          confidence: Math.min(0.78, Math.max(0.56, previous.confidence)),
+          margin: previous.margin,
+          source: "context",
+          tokens: current.tokens,
+          alternatives: alternatives(previous.scores),
+          engine: model.engine
+        };
+      }
+    }
+  }
 
-    return { intent, score };
-  });
-
-  scores.sort((a, b) => b.score - a.score);
-  const best = scores[0] ?? { intent: "fallback" as AssistantIntent, score: 0 };
-  const runnerUp = scores[1]?.score ?? best.score - 1;
-  const confidence = 1 / (1 + Math.exp(-(best.score - runnerUp)));
-
+  const intent = current.confidence >= 0.54 ? current.best.intent : "fallback";
   return {
-    intent: confidence < 0.52 ? "fallback" : best.intent,
-    confidence,
-    tokens
+    intent,
+    confidence: current.confidence,
+    margin: current.margin,
+    source: intent === "fallback" ? "fallback" : "model",
+    tokens: current.tokens,
+    alternatives: alternatives(current.scores),
+    engine: model.engine
   };
 }

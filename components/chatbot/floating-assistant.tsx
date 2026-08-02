@@ -2,27 +2,20 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bot, Send, X } from "lucide-react";
+import { BookOpen, Bot, RotateCcw, Send, ShieldCheck, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { ASSISTANT_OPEN_EVENT, type AssistantOpenDetail } from "@/components/chatbot/assistant-launcher";
-
-type AssistantAction = {
-  label: string;
-  message?: string;
-  href?: string;
-};
+import type { AssistantAction, AssistantResponse, AssistantSource } from "@/lib/assistant/contracts";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
   options?: AssistantAction[];
-};
-
-type AssistantResponse = {
-  message?: string;
+  sources?: AssistantSource[];
+  traceId?: string;
+  knowledgeId?: string;
   conversationId?: string;
-  options?: string[];
-  actions?: AssistantAction[];
+  feedback?: "UP" | "DOWN";
 };
 
 const HISTORY_KEY = "fzac-assistant-history-v1";
@@ -30,6 +23,13 @@ const CONVERSATION_KEY = "fzac-assistant-conversation-id";
 const VISITOR_KEY = "fzac-visitor-id";
 const initialOptions = ["Comprar materiales", "Consultar envio", "Medios de pago", "Estado de pedido"];
 const initialActions = initialOptions.map((label) => ({ label, message: label }));
+const welcomeMessage: Message = {
+  role: "assistant",
+  content:
+    "Hola, soy el asistente de compras FZAC. Puedo ayudarte a encontrar materiales, revisar stock, calcular cantidades y entender pagos o entregas.",
+  createdAt: "welcome",
+  options: initialActions
+};
 
 function normalizeActions(data: AssistantResponse) {
   if (Array.isArray(data.actions) && data.actions.length) return data.actions.slice(0, 4);
@@ -55,37 +55,90 @@ function visitorId() {
   return next;
 }
 
+function safeInternalHref(value: unknown): value is string {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+}
+
+function normalizeSources(data: AssistantResponse) {
+  if (!Array.isArray(data.sources)) return [];
+  return data.sources
+    .filter((source) => source && typeof source.id === "string" && typeof source.label === "string" && safeInternalHref(source.href))
+    .slice(0, 3);
+}
+
+function loadStoredMessages() {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [welcomeMessage];
+    const stored = JSON.parse(raw) as unknown;
+    if (!Array.isArray(stored)) return [welcomeMessage];
+
+    const safeMessages = stored.flatMap((item): Message[] => {
+      if (!item || typeof item !== "object") return [];
+      const candidate = item as Partial<Message>;
+      if (
+        (candidate.role !== "user" && candidate.role !== "assistant") ||
+        typeof candidate.content !== "string" ||
+        candidate.content.length === 0 ||
+        candidate.content.length > 1200 ||
+        typeof candidate.createdAt !== "string"
+      ) return [];
+
+      const options = Array.isArray(candidate.options)
+        ? candidate.options.filter((option) => {
+            if (!option || typeof option.label !== "string" || option.label.length > 80) return false;
+            return typeof option.message === "string" || safeInternalHref(option.href);
+          }).slice(0, 4)
+        : undefined;
+      const sources = Array.isArray(candidate.sources)
+        ? candidate.sources.filter((source) => {
+            return Boolean(
+              source &&
+              typeof source.id === "string" &&
+              typeof source.label === "string" &&
+              source.label.length <= 80 &&
+              safeInternalHref(source.href)
+            );
+          }).slice(0, 3)
+        : undefined;
+      const traceId = typeof candidate.traceId === "string" && /^[0-9a-f-]{36}$/i.test(candidate.traceId)
+        ? candidate.traceId
+        : undefined;
+      const knowledgeId = typeof candidate.knowledgeId === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidate.knowledgeId)
+        ? candidate.knowledgeId
+        : undefined;
+      const storedConversationId = typeof candidate.conversationId === "string" && /^[0-9a-f-]{36}$/i.test(candidate.conversationId)
+        ? candidate.conversationId
+        : undefined;
+      return [{
+        role: candidate.role,
+        content: candidate.content,
+        createdAt: candidate.createdAt,
+        options,
+        sources,
+        traceId,
+        knowledgeId,
+        conversationId: storedConversationId,
+        feedback: candidate.feedback === "UP" || candidate.feedback === "DOWN" ? candidate.feedback : undefined
+      }];
+    });
+    return safeMessages.length ? safeMessages.slice(-30) : [welcomeMessage];
+  } catch {
+    window.localStorage.removeItem(HISTORY_KEY);
+    return [welcomeMessage];
+  }
+}
+
 export function FloatingAssistant() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [quickOptions, setQuickOptions] = useState<AssistantAction[]>(initialActions);
+  const [storageReady, setStorageReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const askRef = useRef<(text: string) => Promise<void>>(async () => undefined);
-  const [conversationId, setConversationId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem(CONVERSATION_KEY);
-  });
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = window.localStorage.getItem(HISTORY_KEY);
-        if (raw) return JSON.parse(raw) as Message[];
-      } catch {
-        window.localStorage.removeItem(HISTORY_KEY);
-      }
-    }
-
-    return [
-      {
-        role: "assistant",
-        content:
-          "Hola, soy AI Chatbot FZAC. Puedo ayudarte con materiales, stock, pagos, retiro y envio paso a paso. Elegi una opcion o escribi tu duda.",
-        createdAt: new Date().toISOString(),
-        options: initialActions
-      }
-    ];
-  });
+  const requestInFlightRef = useRef(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
 
   const whatsapp = useMemo(() => {
     const configured = process.env.NEXT_PUBLIC_FZAC_WHATSAPP || "";
@@ -93,8 +146,17 @@ export function FloatingAssistant() {
   }, []);
 
   useEffect(() => {
+    window.queueMicrotask(() => {
+      setMessages(loadStoredMessages());
+      setConversationId(window.localStorage.getItem(CONVERSATION_KEY));
+      setStorageReady(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
-  }, [messages]);
+  }, [messages, storageReady]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -119,8 +181,9 @@ export function FloatingAssistant() {
 
   async function ask(text: string) {
     const message = text.trim();
-    if (!message || loading) return;
+    if (!message || loading || requestInFlightRef.current) return;
 
+    requestInFlightRef.current = true;
     const nextUserMessage: Message = { role: "user", content: message, createdAt: new Date().toISOString() };
     setMessages((current) => [...current, nextUserMessage]);
     setInput("");
@@ -151,7 +214,7 @@ export function FloatingAssistant() {
       }
 
       const actions = normalizeActions(data);
-      setQuickOptions(actions);
+      const sources = normalizeSources(data);
 
       setMessages((current) => [
         ...current,
@@ -161,7 +224,11 @@ export function FloatingAssistant() {
             data.message ||
             "Puedo seguir ayudandote con compra, stock, pagos o envio. Elegi una opcion y avanzamos paso a paso.",
           createdAt: new Date().toISOString(),
-          options: actions
+          options: actions,
+          sources,
+          traceId: data.trace_id,
+          knowledgeId: data.knowledge_id,
+          conversationId: data.conversationId
         }
       ]);
     } catch (error) {
@@ -177,11 +244,20 @@ export function FloatingAssistant() {
           options: ["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"].map((label) => ({ label, message: label }))
         }
       ]);
-      setQuickOptions(["Reintentar", "Consultar envio", "Medios de pago", "Ver productos"].map((label) => ({ label, message: label })));
     } finally {
       window.clearTimeout(timeout);
+      requestInFlightRef.current = false;
       setLoading(false);
     }
+  }
+
+  function resetConversation() {
+    if (requestInFlightRef.current) return;
+    window.localStorage.removeItem(HISTORY_KEY);
+    window.localStorage.removeItem(CONVERSATION_KEY);
+    setConversationId(null);
+    setMessages([welcomeMessage]);
+    setInput("");
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -189,25 +265,87 @@ export function FloatingAssistant() {
     void ask(input);
   }
 
+  async function submitFeedback(message: Message, rating: "UP" | "DOWN") {
+    if (!message.traceId || !message.knowledgeId || !message.conversationId || message.feedback) return;
+    setMessages((current) => current.map((item) => item.traceId === message.traceId ? { ...item, feedback: rating } : item));
+    try {
+      const response = await fetch("/api/assistant/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          traceId: message.traceId,
+          conversationId: message.conversationId,
+          visitorId: visitorId(),
+          knowledgeId: message.knowledgeId,
+          rating
+        })
+      });
+      if (!response.ok) throw new Error("feedback_failed");
+    } catch {
+      setMessages((current) => current.map((item) => item.traceId === message.traceId ? { ...item, feedback: undefined } : item));
+    }
+  }
+
   return (
     <div className="floating-assist" aria-live="polite">
       {open ? (
         <section className="floating-chat" aria-label="Asistente FZAC">
           <header className="floating-chat__head">
-            <span>
-              <Bot size={18} /> AI CHATBOT FZAC
-            </span>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">
-              <X size={18} />
-            </button>
+            <div className="floating-chat__identity">
+              <span className="floating-chat__avatar"><Bot size={18} /></span>
+              <span>
+                <strong>Asistente FZAC</strong>
+                <small><i aria-hidden="true" /> Disponible para ayudarte</small>
+              </span>
+            </div>
+            <div className="floating-chat__controls">
+              <button type="button" onClick={resetConversation} aria-label="Iniciar nueva conversación" title="Nueva conversación">
+                <RotateCcw size={17} />
+              </button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat" title="Cerrar">
+                <X size={18} />
+              </button>
+            </div>
           </header>
 
-          <div className="floating-chat__messages">
+          <div className="floating-chat__messages" aria-live="polite" aria-busy={loading}>
             {messages.map((message, index) => (
               <div className={`chatbot__turn ${message.role === "user" ? "chatbot__turn--user" : ""}`} key={`${message.createdAt}-${index}`}>
                 <div className={`chatbot__message ${message.role === "user" ? "chatbot__message--user" : ""}`}>
                   {message.content}
                 </div>
+                {message.role === "assistant" && message.sources?.length ? (
+                  <div className="chatbot__sources" aria-label="Fuentes de la respuesta">
+                    <BookOpen size={13} aria-hidden="true" />
+                    <span>Fuente FZAC:</span>
+                    {message.sources.map((source) => (
+                      <Link href={source.href} key={source.id} onClick={() => setOpen(false)}>{source.label}</Link>
+                    ))}
+                  </div>
+                ) : null}
+                {message.role === "assistant" && message.traceId && message.knowledgeId ? (
+                  <div className="chatbot__feedback" aria-label="Valorar respuesta">
+                    <span>{message.feedback ? "Gracias por ayudarnos a mejorar." : "¿Te sirvió?"}</span>
+                    <button
+                      aria-label="La respuesta fue útil"
+                      aria-pressed={message.feedback === "UP"}
+                      disabled={Boolean(message.feedback)}
+                      onClick={() => void submitFeedback(message, "UP")}
+                      type="button"
+                    >
+                      <ThumbsUp size={13} />
+                    </button>
+                    <button
+                      aria-label="La respuesta no fue útil"
+                      aria-pressed={message.feedback === "DOWN"}
+                      disabled={Boolean(message.feedback)}
+                      onClick={() => void submitFeedback(message, "DOWN")}
+                      type="button"
+                    >
+                      <ThumbsDown size={13} />
+                    </button>
+                  </div>
+                ) : null}
                 {message.role === "assistant" && message.options?.length ? (
                   <div className="chatbot__inline-options">
                     {message.options.slice(0, 4).map((option) =>
@@ -225,30 +363,31 @@ export function FloatingAssistant() {
                 ) : null}
               </div>
             ))}
-            {loading ? <div className="chatbot__message">Estoy revisando catálogo, pagos y reglas de entrega...</div> : null}
+            {loading ? (
+              <div className="chatbot__message chatbot__message--loading">
+                <span aria-hidden="true"><i /><i /><i /></span>
+                Revisando información FZAC
+              </div>
+            ) : null}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chatbot__quick">
-            {quickOptions.slice(0, 4).map((option) =>
-              option.href ? (
-                <Link href={option.href} key={`${option.label}-${option.href}`} onClick={() => setOpen(false)}>
-                  {option.label}
-                </Link>
-              ) : (
-                <button disabled={loading} key={`${option.label}-${option.message}`} type="button" onClick={() => ask(option.message || option.label)}>
-                  {option.label}
-                </button>
-              )
-            )}
-          </div>
-
-          <form className="chatbot__form" onSubmit={submit}>
-            <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Escribi tu duda" maxLength={500} />
-            <button className="btn" type="submit" disabled={loading}>
-              <Send size={16} />
-            </button>
-          </form>
+          <footer className="floating-chat__composer">
+            <span className="floating-chat__privacy"><ShieldCheck size={13} /> No compartas datos de tarjeta ni contraseñas.</span>
+            <form className="chatbot__form" onSubmit={submit}>
+              <input
+                aria-label="Consulta para el asistente FZAC"
+                autoComplete="off"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Escribí tu consulta"
+                maxLength={500}
+              />
+              <button className="btn" type="submit" disabled={loading || !input.trim()} aria-label="Enviar consulta">
+                <Send size={16} />
+              </button>
+            </form>
+          </footer>
         </section>
       ) : null}
 

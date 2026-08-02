@@ -39,6 +39,10 @@ services:
         sync: false
       - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
         sync: false
+      - key: MERCADOPAGO_CHECKOUT_PRO_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY
+        sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
         sync: false
       - key: MERCADOPAGO_CARD_ENABLED

@@ -1,5 +1,23 @@
 import { ZodError, z } from "zod";
-import { classifyAssistantIntent, type AssistantIntent } from "@/lib/assistant/ml-intents";
+import {
+  classifyAssistantIntent,
+  type AssistantClassification
+} from "@/lib/assistant/ml-intents";
+import type {
+  AssistantAction,
+  AssistantHistoryItem,
+  AssistantIntent,
+  AssistantSource,
+  AssistantState
+} from "@/lib/assistant/contracts";
+import {
+  deliveryDistance,
+  deriveAssistantState,
+  normalizeAssistantText,
+  parseAssistantState
+} from "@/lib/assistant/conversation-state";
+import { createEstimateGuidance } from "@/lib/assistant/estimators";
+import { retrieveFzacKnowledge } from "@/lib/assistant/knowledge";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { getProducts } from "@/lib/db/catalog";
 import { currency } from "@/lib/formatters/currency";
@@ -8,26 +26,7 @@ import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
-
-type AssistantHistoryItem = {
-  role: "user" | "assistant";
-  content: string;
-  createdAt?: string;
-};
-
-type AssistantState = {
-  topic: AssistantIntent;
-  stage: string;
-  gathered: Record<string, string>;
-  unresolvedAttempts: number;
-  lastReply: string;
-};
-
-type AssistantAction = {
-  label: string;
-  message?: string;
-  href?: string;
-};
+import type { Product } from "@/types/domain";
 
 type ConversationContext = {
   conversationId: string | null;
@@ -75,14 +74,6 @@ function fourOptions(options: string[]) {
     if (!uniqueOptions.includes(fallback)) uniqueOptions.push(fallback);
   }
   return uniqueOptions.slice(0, 4);
-}
-
-function deliveryDistance(message: string) {
-  if (includesAny(message, ["+50", "mas de 50", "50km", "50 km"])) return "50KM";
-  if (/\b(3[0-9]|[1-2]?[0-9])\s?km\b/.test(message) || includesAny(message, ["30km", "30 km", "hasta 30"])) return "30KM";
-  if (includesAny(message, ["dentro de rosario", "rosario", "zona centro", "zona norte", "zona sur", "zona oeste"])) return "ROSARIO";
-  if (includesAny(message, ["retiro", "retirar", "busco", "paso por"])) return "PICKUP";
-  return null;
 }
 
 function userContext(message: string, history: AssistantHistoryItem[] = []) {
@@ -317,19 +308,6 @@ function advisoryReply(message: string, history: Array<{ role: "user" | "assista
   );
 }
 
-function parseAssistantState(value: unknown): AssistantState | null {
-  if (!value || typeof value !== "object") return null;
-  const state = value as Partial<AssistantState>;
-  if (typeof state.topic !== "string" || typeof state.stage !== "string") return null;
-  return {
-    topic: state.topic as AssistantIntent,
-    stage: state.stage,
-    gathered: state.gathered && typeof state.gathered === "object" ? (state.gathered as Record<string, string>) : {},
-    unresolvedAttempts: typeof state.unresolvedAttempts === "number" ? state.unresolvedAttempts : 0,
-    lastReply: typeof state.lastReply === "string" ? state.lastReply : ""
-  };
-}
-
 async function resolveConversationContext(input: {
   conversationId?: string | null;
   visitorId?: string;
@@ -384,34 +362,6 @@ async function resolveConversationContext(input: {
   };
 }
 
-function deriveAssistantState(input: {
-  intent: AssistantIntent;
-  message: string;
-  reply: string;
-  previous: AssistantState | null;
-}) {
-  const topic = input.intent === "fallback" && input.previous?.topic ? input.previous.topic : input.intent;
-  const sameTopic = input.previous?.topic === topic;
-  const gathered = sameTopic ? { ...input.previous?.gathered } : {};
-  const distance = topic === "delivery" ? deliveryDistance(input.message) : null;
-  if (distance) gathered.distance = distance;
-
-  let stage = topic === "fallback" ? "NEEDS_CONTEXT" : "ANSWERED";
-  if (topic === "delivery") stage = distance ? "LOCATION_RECEIVED" : "AWAITING_LOCATION";
-  if (topic === "stock" || topic === "price") stage = "AWAITING_PRODUCT";
-  if (topic === "estimate") stage = includesAny(input.message, ["m2", "metro", "medida", "alto", "ancho"])
-    ? "MEASUREMENTS_RECEIVED"
-    : "AWAITING_MEASUREMENTS";
-
-  return {
-    topic,
-    stage,
-    gathered,
-    unresolvedAttempts: input.intent === "fallback" ? (sameTopic ? (input.previous?.unresolvedAttempts ?? 0) + 1 : 1) : 0,
-    lastReply: input.reply.slice(0, 240)
-  } satisfies AssistantState;
-}
-
 function actionFor(label: string): AssistantAction {
   const normalized = label.toLowerCase();
   if (normalized.includes("mis pedidos") || normalized.includes("estado de pedido")) return { label, href: "/cuenta/pedidos" };
@@ -450,6 +400,17 @@ async function ownOrderStatus(userId: string) {
   return `Tu pedido mas reciente figura ${status}, por ${currency(Number(order.total ?? 0))}. Podes ver el detalle y el historial desde Mi cuenta > Compras.`;
 }
 
+function productTechnicalReply(product: Product) {
+  const description = product.description.trim().replace(/\s+/g, " ").slice(0, 220);
+  const specifications = Object.entries(product.specifications ?? {})
+    .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
+    .slice(0, 4)
+    .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value)}`)
+    .join(", ");
+  const details = [description, specifications ? `Ficha visible: ${specifications}.` : ""].filter(Boolean).join(" ");
+  return `${product.name}: ${details || "No tiene una ficha técnica publicada todavía."} Precio visible ${currency(product.price)} y stock visible ${product.stock} ${product.unit}. Confirmá envase, unidad de venta y uso indicado por el fabricante antes de comprar.`;
+}
+
 async function persistConversation(input: {
   conversationId: string | null;
   visitorId?: string;
@@ -457,8 +418,11 @@ async function persistConversation(input: {
   message: string;
   reply: string;
   intent: AssistantIntent;
+  classification: AssistantClassification;
   state: AssistantState;
   options: string[];
+  sources?: AssistantSource[];
+  traceId?: string;
   waitingAdmin: boolean;
   wasWaitingAdmin: boolean;
   skipPersistence?: boolean;
@@ -483,7 +447,7 @@ async function persistConversation(input: {
           channel: "AI",
           status,
           subject: input.message.slice(0, 80),
-          last_message_at: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .select("id")
         .single();
@@ -492,7 +456,7 @@ async function persistConversation(input: {
     } else {
       await admin
         .from("chat_conversations")
-        .update({ status, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq("id", conversationId);
     }
 
@@ -502,7 +466,12 @@ async function persistConversation(input: {
         sender_id: input.userId ?? null,
         role: "USER",
         content: input.message,
-        metadata: { intent: input.intent }
+        metadata: {
+          intent: input.intent,
+          confidence: input.classification.confidence,
+          classification_source: input.classification.source,
+          engine: input.classification.engine
+        }
       },
       {
         conversation_id: conversationId,
@@ -511,7 +480,11 @@ async function persistConversation(input: {
         metadata: {
           assistant_state: input.state,
           options: input.options.slice(0, 4),
-          engine: "FZAC_LOCAL_HYBRID"
+          knowledge_sources: input.sources?.slice(0, 3) ?? [],
+          trace_id: input.traceId ?? null,
+          engine: input.classification.engine,
+          classification_source: input.classification.source,
+          confidence: input.classification.confidence
         }
       }
     ]);
@@ -560,22 +533,71 @@ export async function POST(request: Request) {
     "comprar", "buscar", "quiero", "necesito", "material", "producto", "precio", "cuanto", "sale", "cuesta",
     "stock", "disponible", "disponibilidad", "unidades", "unidad", "tenes", "tienen", "oferta", "valor",
     "que", "cual", "cuales", "tiene", "hay", "algun", "alguna", "dame", "mostrame", "mostrar",
-    "para", "con", "del", "los", "las", "una", "uno", "por", "favor"
+    "para", "con", "del", "los", "las", "una", "uno", "por", "favor", "ficha", "tecnica", "tecnico",
+    "especificacion", "especificaciones", "rendimiento", "sirve", "usar", "uso", "detalle", "detalles"
   ]);
-  const query = message
+  const normalizedForSearch = normalizeAssistantText(message);
+  const query = normalizedForSearch
     .split(/\s+/)
     .map((word) => word.replace(/[^a-z0-9-]/g, ""))
     .filter((word) => word.length > 2 && !genericTerms.has(word))
     .slice(0, 3)
     .join(" ");
-  const productSearchAllowed = ["product_search", "estimate", "stock", "price"].includes(classification.intent);
+  const productSearchAllowed = ["product_search", "stock", "price"].includes(classification.intent);
+
+  if (classification.intent === "estimate" && !criticalEscalation) {
+    const guidance = createEstimateGuidance(message, conversation.state);
+    const state = deriveAssistantState({
+      intent: classification.intent,
+      message,
+      reply: guidance.message,
+      previous: conversation.state
+    });
+    state.stage = guidance.stage;
+    state.gathered = guidance.gathered;
+    const options = guidance.actions.map((action) => action.label).slice(0, 4);
+    const conversationId = await persistConversation({
+      conversationId: conversation.conversationId,
+      visitorId: payload.visitorId,
+      userId: user?.id ?? null,
+      message: payload.message,
+      reply: guidance.message,
+      intent: classification.intent,
+      classification,
+      state,
+      options,
+      waitingAdmin: false,
+      wasWaitingAdmin: conversation.waitingAdmin,
+      skipPersistence: readOnlyLoadTest
+    });
+    return Response.json({
+      intent: classification.intent,
+      message: guidance.message,
+      conversationId,
+      waitingAdmin: false,
+      options,
+      actions: guidance.actions.slice(0, 4),
+      handoff_required: false,
+      suggested_products: []
+    });
+  }
 
   if (query && !criticalEscalation && productSearchAllowed) {
     const products = await getProducts({ search: query, limit: 3 });
     if (products.length) {
-      const reply = `Encontre estas opciones del catalogo: ${products
-        .map((product) => `${product.name} a ${currency(product.price)}, con ${product.stock} ${product.unit} visibles`)
-        .join("; ")}. Revisa la unidad de venta y suma margen si es para una obra.`;
+      const wantsTechnicalDetails = includesAny(normalizedForSearch, [
+        "ficha", "tecnica", "especificacion", "rendimiento", "medida", "espesor", "contenido", "sirve", "uso"
+      ]);
+      const reply = wantsTechnicalDetails && products.length === 1
+        ? productTechnicalReply(products[0])
+        : `Encontre estas opciones del catalogo: ${products
+            .map((product) => `${product.name} a ${currency(product.price)}, con ${product.stock} ${product.unit} visibles`)
+            .join("; ")}. Revisa la unidad de venta y suma margen si es para una obra.`;
+      const sources: AssistantSource[] = products.slice(0, 3).map((product) => ({
+        id: `product-${product.slug}`,
+        label: product.name,
+        href: `/producto/${product.slug}`
+      }));
       const options = fourOptions([
         ...products.map((product) => `Ver ${product.name}`).slice(0, 3),
         classification.intent === "stock" ? "Consultar otra cantidad" : "Calcular cantidad"
@@ -596,8 +618,10 @@ export async function POST(request: Request) {
         message: payload.message,
         reply,
         intent: classification.intent,
+        classification,
         state,
         options,
+        sources,
         waitingAdmin: false,
         wasWaitingAdmin: conversation.waitingAdmin,
         skipPersistence: readOnlyLoadTest
@@ -608,6 +632,7 @@ export async function POST(request: Request) {
         conversationId,
         options,
         actions,
+        sources,
         handoff_required: false,
         suggested_products: products.map((product) => ({
           name: product.name,
@@ -634,6 +659,7 @@ export async function POST(request: Request) {
       message: payload.message,
       reply,
       intent: classification.intent,
+      classification,
       state,
       options,
       waitingAdmin,
@@ -648,6 +674,61 @@ export async function POST(request: Request) {
       options,
       actions: options.map(actionFor),
       handoff_required: waitingAdmin,
+      suggested_products: []
+    });
+  }
+
+  const knowledgeEligible = ![
+    "greeting",
+    "order_status",
+    "stock",
+    "price",
+    "product_search",
+    "estimate"
+  ].includes(classification.intent);
+  const hasSpecificDeliveryContext = classification.intent === "delivery" && Boolean(deliveryDistance(message));
+  const knowledge = knowledgeEligible && !criticalEscalation && !hasSpecificDeliveryContext
+    ? await retrieveFzacKnowledge(message, classification.intent, conversation.history)
+    : null;
+
+  if (knowledge) {
+    const traceId = crypto.randomUUID();
+    const options = knowledge.actions.map((action) => action.label).slice(0, 4);
+    const state = deriveAssistantState({
+      intent: classification.intent,
+      message,
+      reply: knowledge.answer,
+      previous: conversation.state
+    });
+    state.stage = "KNOWLEDGE_ANSWERED";
+    state.gathered = { ...state.gathered, knowledgeId: knowledge.id };
+    const conversationId = await persistConversation({
+      conversationId: conversation.conversationId,
+      visitorId: payload.visitorId,
+      userId: user?.id ?? null,
+      message: payload.message,
+      reply: knowledge.answer,
+      intent: classification.intent,
+      classification,
+      state,
+      options,
+      sources: knowledge.sources,
+      traceId,
+      waitingAdmin: false,
+      wasWaitingAdmin: conversation.waitingAdmin,
+      skipPersistence: readOnlyLoadTest
+    });
+    return Response.json({
+      intent: classification.intent,
+      message: knowledge.answer,
+      conversationId,
+      waitingAdmin: false,
+      options,
+      actions: knowledge.actions,
+      sources: knowledge.sources,
+      trace_id: traceId,
+      knowledge_id: knowledge.id,
+      handoff_required: false,
       suggested_products: []
     });
   }
@@ -671,6 +752,7 @@ export async function POST(request: Request) {
     message: payload.message,
     reply,
     intent: classification.intent,
+    classification,
     state,
     options,
     waitingAdmin,
