@@ -34,13 +34,34 @@ El asistente ayuda a encontrar productos, entender stock y precios visibles, cal
    - Las fichas de producto se leen del catalogo activo; precio y stock siguen siendo datos server-side y se revalidan en checkout.
    - La metadata conserva el identificador de conocimiento usado para facilitar auditoria y mejora del corpus.
 
-6. Administracion y versionado
+6. Catalogo dinamico
+   - `lib/assistant/catalog-intelligence.ts` construye una vista temporal de productos y categorias activos.
+   - Busca por nombre, SKU, marca, rubro, subcategoria, descripcion y ficha tecnica, con sinonimos comunes de obra.
+   - Una alta o modificacion desde Admin invalida la cache; en otras instancias aparece en un maximo de 20 segundos.
+   - Los productos nuevos no requieren reentrenar el clasificador: el ML detecta la intencion y la recuperacion consulta la informacion vigente.
+   - Las alternativas son sugerencias del mismo rubro/unidad. Nunca se garantiza equivalencia tecnica sin revisar medidas, rendimiento y fabricante.
+
+7. Administracion y versionado
    - `/admin/conocimiento` permite al administrador crear, editar, publicar o pausar respuestas verificadas.
    - El API `/api/admin/assistant-knowledge` exige sesión administrativa, Zod y rate limit; no expone datos técnicos al cliente.
    - El trigger `archive_assistant_knowledge_version` conserva el contenido anterior en `assistant_knowledge_versions` antes de cada actualización.
    - RLS permite a visitantes leer únicamente contenido activo. La administración, versiones y feedback quedan fuera del acceso anónimo.
 
-7. Calidad e interfaz
+8. Capa de lenguaje opcional
+   - `lib/assistant/language-model.ts` puede mejorar la redaccion sobre una respuesta ya fundamentada.
+   - Esta desactivada por defecto y el asistente funciona sin proveedor externo.
+   - El endpoint debe ser HTTPS y estar permitido por host; la clave solo existe en servidor.
+   - Se redactan emails, identificadores y secuencias numericas antes de enviar contexto.
+   - La salida se descarta si agrega numeros o enlaces, excede el limite o demora mas de cuatro segundos.
+
+9. Inteligencia de precios
+   - `/admin/precios-mercado` administra fuentes y observaciones privadas.
+   - Las referencias se normalizan por unidad y cantidad, vencen y se deduplican por huella.
+   - El asistente solo informa un rango con al menos dos observaciones de dos fuentes activas y verificadas.
+   - Los feeds deben ser HTTPS, estar permitidos por host, pasar Zod y respetar limites de tiempo y tamano.
+   - Una referencia nunca modifica el precio FZAC, checkout, stock ni pedidos.
+
+10. Calidad e interfaz
    - Maximo de cuatro acciones por respuesta.
    - Historial local acotado y bloqueo durante cada envio.
    - Los enlaces recuperados se limitan a rutas internas FZAC antes de guardarlos o mostrarlos.

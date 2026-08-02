@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  TrendingUp,
   Users,
   X
 } from "lucide-react";
@@ -55,6 +56,7 @@ const linkGroups = [
     links: [
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorias", icon: Grid3X3 },
+      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
       { path: "/productos?view=inventario", label: "Inventario", icon: Package }
     ]
   },

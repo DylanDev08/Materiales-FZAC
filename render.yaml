@@ -63,6 +63,22 @@ services:
         value: "false"
       - key: ASSISTANT_PERSISTENCE_ENABLED
         value: "true"
+      - key: ASSISTANT_LLM_ENABLED
+        value: "false"
+      - key: ASSISTANT_LLM_ENDPOINT
+        sync: false
+      - key: ASSISTANT_LLM_ALLOWED_HOSTS
+        sync: false
+      - key: ASSISTANT_LLM_API_KEY
+        sync: false
+      - key: ASSISTANT_LLM_MODEL
+        sync: false
+      - key: MARKET_PRICE_ALLOWED_HOSTS
+        sync: false
+      - key: MARKET_PRICE_FEED_TOKENS_JSON
+        sync: false
+      - key: MARKET_PRICE_CRON_SECRET
+        sync: false
       - key: NEXT_PUBLIC_FZAC_WHATSAPP
         value: "+5493415847000"
       - key: FZAC_WHATSAPP

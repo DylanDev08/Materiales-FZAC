@@ -22,12 +22,21 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las APIs administrativas bloquean sesiones anónimas", async ({ request }) => {
-    const [metrics, environment] = await Promise.all([
+    const [metrics, environment, marketPrices, marketSync] = await Promise.all([
       request.get("/api/admin/metrics"),
-      request.get("/api/health/env")
+      request.get("/api/health/env"),
+      request.get("/api/admin/market-prices"),
+      request.post("/api/admin/market-prices/sync", { data: {} })
     ]);
     expect([401, 403]).toContain(metrics.status());
     expect([401, 403]).toContain(environment.status());
+    expect([401, 403]).toContain(marketPrices.status());
+    expect([401, 403]).toContain(marketSync.status());
+  });
+
+  test("la automatizacion de mercado nunca queda publica", async ({ request }) => {
+    const response = await request.post("/api/cron/market-prices", { data: {} });
+    expect([401, 503]).toContain(response.status());
   });
 
   test("la comprobación pública de email no permite enumerar cuentas", async ({ request }) => {
@@ -42,11 +51,18 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las mutaciones administrativas bloquean origen cruzado antes de escribir", async ({ request }) => {
-    const response = await request.patch("/api/admin/consumer-refund-requests/00000000-0000-4000-8000-000000000000", {
-      headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
-      data: { status: "CLOSED", resolutionNote: "Prueba sin escritura" }
-    });
-    expect(response.status()).toBe(403);
+    const [refund, market] = await Promise.all([
+      request.patch("/api/admin/consumer-refund-requests/00000000-0000-4000-8000-000000000000", {
+        headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
+        data: { status: "CLOSED", resolutionNote: "Prueba sin escritura" }
+      }),
+      request.post("/api/admin/market-prices", {
+        headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
+        data: { action: "SOURCE", name: "Fuente insegura" }
+      })
+    ]);
+    expect(refund.status()).toBe(403);
+    expect(market.status()).toBe(403);
   });
 
   test("el webhook vacío responde rápido y no consulta al proveedor", async ({ request }) => {

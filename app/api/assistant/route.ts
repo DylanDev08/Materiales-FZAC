@@ -18,9 +18,11 @@ import {
 } from "@/lib/assistant/conversation-state";
 import { createEstimateGuidance } from "@/lib/assistant/estimators";
 import { retrieveFzacKnowledge } from "@/lib/assistant/knowledge";
+import { searchAssistantCatalog } from "@/lib/assistant/catalog-intelligence";
+import { refineGroundedAssistantAnswer } from "@/lib/assistant/language-model";
 import { getCurrentUser } from "@/lib/auth/get-user";
-import { getProducts } from "@/lib/db/catalog";
 import { currency } from "@/lib/formatters/currency";
+import { getMarketPriceSummary } from "@/lib/market-pricing/service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
@@ -66,6 +68,7 @@ function includesAny(message: string, terms: string[]) {
 const defaultOptions = ["Comprar materiales", "Consultar envio", "Medios de pago", "Estado de pedido"];
 const deliveryTerms = ["envio", "entrega", "zona", "flete", "domicilio", "distancia", "km", "kilometro", "direccion"];
 const paymentTerms = ["pago", "pagar", "tarjeta", "mercado", "mercadopago", "transferencia", "comprobante", "cuotas", "debito", "credito"];
+const marketReferenceTerms = ["precio de mercado", "referencia de mercado", "comparar precio", "comparacion de precio", "valor de mercado"];
 
 function fourOptions(options: string[]) {
   const uniqueOptions = Array.from(new Set(options.map((option) => option.trim()).filter(Boolean)));
@@ -411,6 +414,16 @@ function productTechnicalReply(product: Product) {
   return `${product.name}: ${details || "No tiene una ficha técnica publicada todavía."} Precio visible ${currency(product.price)} y stock visible ${product.stock} ${product.unit}. Confirmá envase, unidad de venta y uso indicado por el fabricante antes de comprar.`;
 }
 
+async function marketReferenceReply(message: string, product: Product) {
+  if (!includesAny(message, marketReferenceTerms)) return "";
+  const summary = await getMarketPriceSummary(product);
+  if (summary.status !== "READY" || summary.median === null || summary.minimum === null || summary.maximum === null) {
+    return " No hay suficientes referencias vigentes y comparables para publicar un valor de mercado confiable. No voy a inventar una comparacion.";
+  }
+  const date = summary.observedAt?.slice(0, 10) ?? "fecha no disponible";
+  return ` Referencia informativa para la misma unidad: mediana ${currency(summary.median)}, rango ${currency(summary.minimum)} a ${currency(summary.maximum)}, basada en ${summary.observations} observaciones de ${summary.sources} fuentes al ${date}. El precio valido para comprar es el publicado por FZAC y se vuelve a validar en checkout.`;
+}
+
 async function persistConversation(input: {
   conversationId: string | null;
   visitorId?: string;
@@ -543,7 +556,10 @@ export async function POST(request: Request) {
     .filter((word) => word.length > 2 && !genericTerms.has(word))
     .slice(0, 3)
     .join(" ");
-  const productSearchAllowed = ["product_search", "stock", "price"].includes(classification.intent);
+  const explicitCatalogRequest = includesAny(normalizedForSearch, [
+    "catalogo", "categoria", "rubro", "producto", "sku", "marca", "equivalente", "alternativa", "reemplazo"
+  ]);
+  const productSearchAllowed = ["product_search", "stock", "price"].includes(classification.intent) || explicitCatalogRequest;
 
   if (classification.intent === "estimate" && !criticalEscalation) {
     const guidance = createEstimateGuidance(message, conversation.state);
@@ -582,17 +598,69 @@ export async function POST(request: Request) {
     });
   }
 
-  if (query && !criticalEscalation && productSearchAllowed) {
-    const products = await getProducts({ search: query, limit: 3 });
-    if (products.length) {
+  if (!criticalEscalation && productSearchAllowed) {
+    const catalog = await searchAssistantCatalog(message, 4);
+    if (catalog.mode === "overview") {
+      const listedCategories = catalog.categories.slice(0, 6);
+      const reply = listedCategories.length
+        ? `El catálogo FZAC está organizado en ${listedCategories.map((category) => `${category.name} (${category.productCount})`).join(", ")}. Los productos, precios y stock se leen de la tienda en el momento de tu consulta.`
+        : "El catálogo activo todavía no tiene rubros con productos publicados.";
+      const actions: AssistantAction[] = listedCategories
+        .slice(0, 3)
+        .map((category) => ({ label: category.name, href: `/categoria/${category.slug}` }));
+      actions.push({ label: "Ver catálogo", href: "/productos" });
+      const sources: AssistantSource[] = listedCategories.slice(0, 3).map((category) => ({
+        id: `category-${category.slug}`,
+        label: category.name,
+        href: `/categoria/${category.slug}`
+      }));
+      const options = actions.map((action) => action.label).slice(0, 4);
+      const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
+      const conversationId = await persistConversation({
+        conversationId: conversation.conversationId,
+        visitorId: payload.visitorId,
+        userId: user?.id ?? null,
+        message: payload.message,
+        reply,
+        intent: classification.intent,
+        classification,
+        state,
+        options,
+        sources,
+        waitingAdmin: false,
+        wasWaitingAdmin: conversation.waitingAdmin,
+        skipPersistence: readOnlyLoadTest
+      });
+      return Response.json({
+        intent: classification.intent,
+        message: reply,
+        conversationId,
+        options,
+        actions: actions.slice(0, 4),
+        sources,
+        handoff_required: false,
+        suggested_products: []
+      });
+    }
+
+    const products = catalog.matches.map((match) => match.product);
+    if (catalog.mode === "products" && products.length) {
       const wantsTechnicalDetails = includesAny(normalizedForSearch, [
         "ficha", "tecnica", "especificacion", "rendimiento", "medida", "espesor", "contenido", "sirve", "uso"
       ]);
-      const reply = wantsTechnicalDetails && products.length === 1
+      const baseReply = wantsTechnicalDetails && products.length === 1
         ? productTechnicalReply(products[0])
-        : `Encontre estas opciones del catalogo: ${products
+        : `${catalog.equivalentRequest ? "Tomando el primer resultado como referencia, estas son alternativas del mismo rubro o unidad de venta: " : "Encontré estas opciones del catálogo: "}${products
             .map((product) => `${product.name} a ${currency(product.price)}, con ${product.stock} ${product.unit} visibles`)
-            .join("; ")}. Revisa la unidad de venta y suma margen si es para una obra.`;
+            .join("; ")}. ${catalog.equivalentRequest ? "Confirmá medidas, rendimiento y ficha técnica antes de reemplazar un material." : "Revisá la unidad de venta y sumá margen si es para una obra."}`;
+      const marketReference = await marketReferenceReply(normalizedForSearch, products[0]);
+      const groundedDraft = `${baseReply}${marketReference}`;
+      const language = await refineGroundedAssistantAnswer({
+        question: payload.message,
+        draft: groundedDraft,
+        facts: products.map((product) => `${product.name}; precio ${currency(product.price)}; stock ${product.stock}; unidad ${product.unit}`)
+      });
+      const reply = language.text;
       const sources: AssistantSource[] = products.slice(0, 3).map((product) => ({
         id: `product-${product.slug}`,
         label: product.name,
@@ -644,7 +712,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const reply = `No encontre "${query}" en el catalogo activo. Proba con marca, tipo o una palabra mas corta. Si vuelve a faltar, puedo dejar el material solicitado en seguimiento para FZAC.`;
+    const reply = `No encontré "${query || payload.message}" en el catálogo activo. Probá con marca, tipo, SKU, medida o una palabra más corta. Si vuelve a faltar, puedo dejar el material solicitado en seguimiento para FZAC.`;
     const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
     state.stage = "PRODUCT_NOT_FOUND";
     state.unresolvedAttempts = conversation.state?.topic === classification.intent

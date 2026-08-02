@@ -2,6 +2,7 @@ import { adminProductSchema } from "@/lib/validations/admin";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
+import { invalidateAssistantCatalogCache } from "@/lib/assistant/catalog-intelligence";
 
 export async function GET() {
   const profile = await getApiAdmin();
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   delete insert.id;
   const { data, error } = await admin.from("products").insert(insert).select("*").single();
   if (error) return jsonError("No pudimos crear el producto. Revisa SKU, slug, categoria y valores cargados.", 400);
+  invalidateAssistantCatalogCache();
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,
@@ -59,6 +61,7 @@ export async function PATCH(request: Request) {
     .single();
 
   if (error) return jsonError("No pudimos actualizar el producto. Revisa SKU, slug, categoria y valores cargados.", 400);
+  invalidateAssistantCatalogCache();
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,
@@ -84,6 +87,7 @@ export async function DELETE(request: Request) {
 
   const { error } = await admin.from("products").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return jsonError("No pudimos desactivar el producto.", 400);
+  invalidateAssistantCatalogCache();
 
   await admin.from("admin_audit_logs").insert({
     actor_id: profile.id,

@@ -59,6 +59,8 @@
     { "intent": "stock", "text": "alcanza la cantidad disponible" },
     { "intent": "stock", "text": "quiero consultar disponibilidad real" },
     { "intent": "stock", "text": "tienen placas en existencia" },
+    { "intent": "stock", "text": "cuando vuelve a entrar el material" },
+    { "intent": "stock", "text": "fecha de reposicion del producto" },
 
     { "intent": "price", "text": "cuanto cuesta el cemento" },
     { "intent": "price", "text": "que precio tiene esta placa" },
@@ -66,6 +68,9 @@
     { "intent": "price", "text": "hay descuento por cantidad" },
     { "intent": "price", "text": "cual es el precio por bolsa" },
     { "intent": "price", "text": "necesito comparar precios" },
+    { "intent": "price", "text": "precio de referencia de mercado para este material" },
+    { "intent": "price", "text": "quiero comparar el precio fzac con el mercado" },
+    { "intent": "price", "text": "cual es el valor de mercado de este producto" },
     { "intent": "price", "text": "esta oferta sigue vigente" },
     { "intent": "price", "text": "valor del producto por unidad" },
 
@@ -134,6 +139,15 @@
     { "intent": "product_search", "text": "necesito hierro arena cal y ladrillos" },
     { "intent": "product_search", "text": "mostrar productos de construccion en seco" },
     { "intent": "product_search", "text": "ver productos del rubro materiales de obra" },
+    { "intent": "product_search", "text": "que categorias y rubros tienen" },
+    { "intent": "product_search", "text": "mostrame todo el catalogo" },
+    { "intent": "product_search", "text": "que productos tienen de esta marca" },
+    { "intent": "product_search", "text": "necesito un equivalente a esta placa" },
+    { "intent": "product_search", "text": "hay una alternativa similar para reemplazar este material" },
+    { "intent": "product_search", "text": "busco un producto equivalente" },
+    { "intent": "product_search", "text": "mostrame productos equivalentes a una placa" },
+    { "intent": "product_search", "text": "alternativa equivalente del catalogo" },
+    { "intent": "product_search", "text": "buscar productos por ficha tecnica y medida" },
 
     { "intent": "fallback", "text": "tengo una duda" },
     { "intent": "fallback", "text": "no se que elegir" },
@@ -159,6 +173,7 @@
     { "intent": "stock", "text": "cuando vuelve a entrar este material" },
     { "intent": "price", "text": "precio actualizado de la pintura" },
     { "intent": "price", "text": "cuanto vale cada placa" },
+    { "intent": "price", "text": "comparar precio con el mercado" },
     { "intent": "estimate", "text": "necesito calcular pintura para 40 m2" },
     { "intent": "estimate", "text": "cuantas bolsas compro para levantar la pared" },
     { "intent": "order_status", "text": "mi orden esta lista" },
@@ -172,6 +187,8 @@
     { "intent": "human", "text": "quiero que me atienda alguien" },
     { "intent": "product_search", "text": "busco latex blanco de veinte litros" },
     { "intent": "product_search", "text": "mostrar productos de construccion en seco" },
+    { "intent": "product_search", "text": "que categorias hay en el catalogo" },
+    { "intent": "product_search", "text": "busco un producto equivalente a esta placa" },
     { "intent": "fallback", "text": "podemos empezar de nuevo" },
     { "intent": "fallback", "text": "no se como explicarlo" }
   ]

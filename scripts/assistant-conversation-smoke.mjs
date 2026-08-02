@@ -62,6 +62,17 @@ assert.equal(buyingProcess.body.intent, "store_policy");
 assert.equal(buyingProcess.body.knowledge_id, "buying-process");
 assert.ok(buyingProcess.body.actions.some((action) => action.href === "/como-comprar"));
 
+const catalogOverview = await ask("Que categorias tienen en el catalogo?");
+assert.equal(catalogOverview.response.status, 200);
+assert.ok(catalogOverview.body.actions.some((action) => action.href === "/productos"));
+assert.match(catalogOverview.body.message, /catalogo|rubros|productos/i);
+
+const marketReference = await ask("Comparar precio de mercado del cemento");
+assert.equal(marketReference.response.status, 200);
+if (marketReference.body.suggested_products?.length) {
+  assert.match(marketReference.body.message, /no hay suficientes referencias|referencia informativa/i);
+}
+
 const withdrawal = await ask("Donde esta el boton de arrepentimiento?");
 assert.equal(withdrawal.body.knowledge_id, "withdrawal-right");
 assert.ok(withdrawal.body.actions.some((action) => action.href === "/arrepentimiento"));
@@ -121,6 +132,10 @@ console.log(
       withdrawal.body.knowledge_id,
       generalDelivery.body.knowledge_id
     ],
+    catalogOverview: catalogOverview.body.actions.length,
+    marketReferenceGrounded: marketReference.body.suggested_products?.length
+      ? /no hay suficientes referencias|referencia informativa/i.test(marketReference.body.message)
+      : true,
     paintEstimate: /litros/i.test(paintEstimate.body.message),
     drywallEstimate: /5 placas/i.test(drywallEstimate.body.message),
     masonryEstimate: /1,1 m3/i.test(masonryEstimate.body.message),

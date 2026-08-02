@@ -764,6 +764,173 @@ export type Database = {
           },
         ]
       }
+      market_price_observations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          equivalent_quantity: number
+          expires_at: string
+          external_key: string
+          external_name: string
+          fingerprint: string
+          id: string
+          metadata: Json
+          normalized_price: number | null
+          observed_at: string
+          observed_price: number
+          product_id: string
+          sale_unit: string
+          source_id: string
+          source_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          equivalent_quantity?: number
+          expires_at?: string
+          external_key: string
+          external_name: string
+          fingerprint: string
+          id?: string
+          metadata?: Json
+          normalized_price?: number | null
+          observed_at?: string
+          observed_price: number
+          product_id: string
+          sale_unit: string
+          source_id: string
+          source_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          equivalent_quantity?: number
+          expires_at?: string
+          external_key?: string
+          external_name?: string
+          fingerprint?: string
+          id?: string
+          metadata?: Json
+          normalized_price?: number | null
+          observed_at?: string
+          observed_price?: number
+          product_id?: string
+          sale_unit?: string
+          source_id?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_price_observations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "market_price_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_price_sources: {
+        Row: {
+          active: boolean
+          base_url: string | null
+          created_at: string
+          created_by: string | null
+          feed_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          slug: string
+          source_type: string
+          trusted: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          feed_url?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          slug: string
+          source_type?: string
+          trusted?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          base_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          feed_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          slug?: string
+          source_type?: string
+          trusted?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      market_price_sync_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          imported_count: number
+          rejected_count: number
+          source_id: string | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          rejected_count?: number
+          source_id?: string | null
+          started_at?: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          imported_count?: number
+          rejected_count?: number
+          source_id?: string | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_price_sync_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "market_price_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Notification: {
         Row: {
           createdAt: string
