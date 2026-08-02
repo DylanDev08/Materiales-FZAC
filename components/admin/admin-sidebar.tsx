@@ -8,6 +8,7 @@ import {
   Activity,
   BarChart3,
   Bell,
+  BrainCircuit,
   BookOpen,
   CreditCard,
   FileText,
@@ -45,7 +46,8 @@ const linkGroups = [
       { path: "/tickets", label: "Tickets", icon: FileText },
       { path: "/arrepentimientos", label: "Arrepentimientos", icon: RotateCcw },
       { path: "/clientes", label: "Clientes", icon: Users },
-      { path: "/chats", label: "Chats", icon: MessageCircle }
+      { path: "/chats", label: "Chats", icon: MessageCircle },
+      { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit }
     ]
   },
   {

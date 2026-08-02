@@ -58,6 +58,11 @@ const sections = [
     use: "Permite recibir, revisar y responder cada trámite con número de seguimiento. Aprobar una solicitud no devuelve dinero: si corresponde, el reembolso se procesa después desde Pagos."
   },
   {
+    title: "Conocimiento IA",
+    target: "Respuestas verificadas del asistente FZAC.",
+    use: "Permite crear, editar, publicar o pausar respuestas comerciales sin tocar código. Cada cambio conserva una versión anterior y los votos de clientes ayudan a detectar qué contenido necesita revisión."
+  },
+  {
     title: "Ajustes",
     target: "Configuracion del panel.",
     use: "Reservado para opciones administrativas. No cambiar ajustes sensibles sin revisar variables de entorno y seguridad."
@@ -71,6 +76,7 @@ const routines = [
   "Revisar Arrepentimientos y responder primero los trámites nuevos.",
   "Ver Inventario antes de confirmar productos con bajo stock.",
   "Usar Clientes para contactar compradores y resolver dudas.",
+  "Revisar Conocimiento IA cuando aumenten las respuestas marcadas para mejorar.",
   "Consultar Actividad si algo no coincide."
 ];
 
