@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { CreditCard, Headphones, RotateCcw, ShieldCheck } from "lucide-react";
 import { getEnv } from "@/lib/utils/env";
 
 export function SiteFooter() {
@@ -9,6 +10,14 @@ export function SiteFooter() {
 
   return (
     <footer className="site-footer">
+      <div className="site-footer__trust">
+        <div className="container site-footer__trust-grid">
+          <div><ShieldCheck size={22} /><span><strong>Compra segura</strong><small>Datos y stock protegidos</small></span></div>
+          <div><CreditCard size={22} /><span><strong>Pagos confiables</strong><small>Procesados por proveedores habilitados</small></span></div>
+          <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Asistencia antes y después de comprar</small></span></div>
+          <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={22} /><span><strong>Arrepentimiento</strong><small>Acceso directo al trámite</small></span></Link>
+        </div>
+      </div>
       <div className="container site-footer__grid">
         <div>
           <Link className="brand" href="/" prefetch={false}>

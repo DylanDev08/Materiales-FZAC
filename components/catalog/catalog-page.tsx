@@ -179,33 +179,35 @@ export async function CatalogPage({
               </Link>
             ))}
           </nav>
-          <Suspense fallback={<CatalogFiltersSkeleton />}>
-            <CatalogFilters categories={categories} brands={facets.brands} lockedCategory={lockedCategory} values={filterValues} />
-          </Suspense>
         </div>
       </section>
 
       <section className="catalog-results page-section">
-        <div className="container">
-          <div className="catalog-toolbar">
-            <div>
-              <strong>{products.length}</strong>
-              <span>{products.length === 1 ? "producto encontrado" : "productos encontrados"}</span>
+        <div className="container catalog-commerce-layout">
+          <Suspense fallback={<CatalogFiltersSkeleton />}>
+            <CatalogFilters categories={categories} brands={facets.brands} lockedCategory={lockedCategory} values={filterValues} />
+          </Suspense>
+          <div className="catalog-product-column">
+            <div className="catalog-toolbar">
+              <div>
+                <strong>{products.length}</strong>
+                <span>{products.length === 1 ? "producto encontrado" : "productos encontrados"}</span>
+              </div>
+              <Suspense fallback={<CatalogViewToggleSkeleton />}>
+                <CatalogViewToggle />
+              </Suspense>
             </div>
-            <Suspense fallback={<CatalogViewToggleSkeleton />}>
-              <CatalogViewToggle />
-            </Suspense>
-          </div>
-          <ProductGrid products={products} variant={view} />
-          <div className="catalog-help-band">
-            <PackageSearch size={24} />
-            <div>
-              <h2>¿No encontrás la medida o el material?</h2>
-              <p>Usá el centro de ayuda para buscar equivalencias, calcular cantidades o revisar disponibilidad.</p>
+            <ProductGrid products={products} variant={view} />
+            <div className="catalog-help-band">
+              <PackageSearch size={24} />
+              <div>
+                <h2>¿No encontrás la medida o el material?</h2>
+                <p>Usá el centro de ayuda para buscar equivalencias, calcular cantidades o revisar disponibilidad.</p>
+              </div>
+              <Link className="btn btn--ghost" href="/contacto?tema=productos" prefetch={false}>
+                Centro de ayuda <ArrowRight size={17} />
+              </Link>
             </div>
-            <Link className="btn btn--ghost" href="/contacto?tema=productos" prefetch={false}>
-              Centro de ayuda <ArrowRight size={17} />
-            </Link>
           </div>
         </div>
       </section>

@@ -74,6 +74,11 @@ export function CatalogFilters({
 
   return (
     <aside className={`catalog-filter ${pending ? "catalog-filter--pending" : ""}`} aria-label="Filtros del catálogo">
+      <div className="catalog-filter__heading">
+        <span><SlidersHorizontal size={18} /></span>
+        <div><strong>Filtrar productos</strong><small>Combiná rubro, precio y disponibilidad.</small></div>
+        {activeFilters.length ? <button type="button" onClick={clearFilters}>Limpiar</button> : null}
+      </div>
       <div className="catalog-filter__main">
         <label className="catalog-search-field">
           <Search size={18} />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, CheckCircle, ShoppingCart, Truck } from "lucide-react";
+import { ArrowRight, CheckCircle, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import type { Product } from "@/types/domain";
@@ -13,6 +13,7 @@ export function ProductCard({ product }: { product: Product }) {
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
+  const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
 
   function addToCart() {
     if (!hydrated || isAdding || product.stock <= 0) return;
@@ -38,35 +39,31 @@ export function ProductCard({ product }: { product: Product }) {
           sizes="(max-width: 400px) 100vw, (max-width: 820px) 50vw, (max-width: 1200px) 25vw, 220px"
         />
         <div className="product-card__badges">
-          {discount ? <span className="status-pill status-pill--warning">Oferta</span> : null}
+          {discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
           {product.stock > 0 && product.stock <= product.stock_minimum ? (
             <span className="status-pill status-pill--danger">Stock bajo</span>
           ) : null}
-          {product.stock > 0 ? (
-            <span className="status-pill status-pill--success">
-              <Truck size={14} /> Disponible
-            </span>
-          ) : (
-            <span className="status-pill status-pill--danger">Sin stock</span>
-          )}
+          {product.stock <= 0 ? <span className="status-pill status-pill--danger">Sin stock</span> : null}
         </div>
       </Link>
 
       <div className="product-card__body">
         <div className="product-card__meta">
-          <span>{product.category?.name ?? product.subcategory}</span>
           <span>{product.brand}</span>
+          <span>{product.category?.name ?? product.subcategory}</span>
         </div>
         <Link href={`/producto/${product.slug}`} prefetch={false}>
           <h3>{product.name}</h3>
         </Link>
+        <span className="product-card__seller">Vendido por FZAC</span>
         <div className="product-card__price">
           <strong>{currency(product.price)}</strong>
-          {product.compare_price ? <del>{currency(product.compare_price)}</del> : null}
+          {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
         </div>
         <span className={`product-card__stock ${product.stock > 0 ? "" : "product-card__stock--empty"}`}>
-          {product.stock > 0 ? `${product.stock} ${product.unit} disponibles` : "Sin stock"}
+          {product.stock > 0 ? `En stock · ${product.stock} ${product.unit}` : "Sin stock"}
         </span>
+        <span className="product-card__finance"><ShieldCheck size={14} /> Pago seguro y stock validado</span>
 
         <div className="product-card__actions">
           <button className="btn" type="button" disabled={!hydrated || product.stock <= 0 || isAdding} onClick={addToCart}>

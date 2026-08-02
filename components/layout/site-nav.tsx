@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Grid2X2, Menu, X } from "lucide-react";
 import type { Category } from "@/types/domain";
 
 const productLinks = [
   { href: "/productos", label: "Todos los productos" },
   { href: "/productos?featured=true", label: "Destacados" },
-  { href: "/productos?order=price_desc", label: "Mas vendidos" },
+  { href: "/productos?order=price_desc", label: "Más vendidos" },
   { href: "/ofertas", label: "Ofertas" },
   { href: "/productos?inStock=true", label: "Stock disponible" }
 ];
@@ -16,11 +16,11 @@ const productLinks = [
 const fallbackCategories = [
   { href: "/categoria/materiales", label: "Materiales de obra" },
   { href: "/categoria/construccion-en-seco", label: "Construcción en seco" },
-  { href: "/categoria/ferreteria", label: "Ferreteria" },
+  { href: "/categoria/ferreteria", label: "Ferretería" },
   { href: "/categoria/herramientas", label: "Herramientas" },
   { href: "/categoria/electricidad", label: "Electricidad" },
   { href: "/categoria/plomeria", label: "Plomería" },
-  { href: "/categoria/pintura", label: "Pintura e impermeabilizacion" },
+  { href: "/categoria/pintura", label: "Pintura e impermeabilización" },
   { href: "/categoria/revestimientos", label: "Revestimientos" },
   { href: "/ofertas", label: "Ofertas" }
 ];
@@ -61,7 +61,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
 
   return (
     <div className="site-nav-wrap" ref={navRef}>
-      <nav className="category-nav" aria-label="Navegacion principal">
+      <nav className="category-nav" aria-label="Navegación principal">
         <div className="container category-nav__inner">
           <Link href="/" onClick={closeAll} prefetch={false}>
             Inicio
@@ -69,7 +69,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
           <div className="nav-dropdown-wrap">
             <button
               type="button"
-              className="category-nav__button"
+              className="category-nav__button category-nav__button--primary"
               aria-expanded={openDropdown === "products"}
               onClick={() => setOpenDropdown(openDropdown === "products" ? null : "products")}
             >
@@ -92,7 +92,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
               aria-expanded={openDropdown === "categories"}
               onClick={() => setOpenDropdown(openDropdown === "categories" ? null : "categories")}
             >
-              Categorias <ChevronDown size={16} />
+              <Grid2X2 size={16} /> Categorías <ChevronDown size={16} />
             </button>
             {openDropdown === "categories" ? (
               <div className="nav-dropdown">
@@ -108,7 +108,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             Ofertas
           </Link>
           <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
-            Como comprar
+            Cómo comprar
           </Link>
           <Link href="/contacto" onClick={closeAll} prefetch={false}>
             Contacto
@@ -129,7 +129,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             Productos
           </Link>
           <button type="button" onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}>
-            Categorias <ChevronDown size={16} />
+            Categorías <ChevronDown size={16} />
           </button>
           {mobileCategoriesOpen ? (
             <div className="mobile-nav-panel__group">
@@ -144,7 +144,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             Ofertas
           </Link>
           <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
-            Como comprar
+            Cómo comprar
           </Link>
           <Link href="/contacto" onClick={closeAll} prefetch={false}>
             Contacto

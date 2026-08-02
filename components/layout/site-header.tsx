@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { RotateCcw, ShieldCheck } from "lucide-react";
+import { MapPin, RotateCcw, ShieldCheck } from "lucide-react";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { CartStatus } from "@/components/layout/cart-status";
 import { SearchSuggest } from "@/components/layout/search-suggest";
@@ -17,8 +17,8 @@ export async function SiteHeader() {
     <>
       <div className="topbar">
         <div className="container topbar__inner">
-          <span>Fortaleza Construcciones Rosario</span>
-          <span className="topbar__message">Envíos coordinados, retiro acordado y pagos online.</span>
+          <span className="topbar__location"><MapPin size={14} /> Rosario y zona</span>
+          <span className="topbar__message">Comprá online con stock validado y entrega coordinada.</span>
           <Link className="topbar__consumer-link" href="/arrepentimiento" prefetch={false}>
             <RotateCcw size={14} aria-hidden="true" />
             Botón de arrepentimiento
@@ -33,8 +33,8 @@ export async function SiteHeader() {
               <Image src="/logoFZAC.jpg" alt="FZAC" width={42} height={42} priority unoptimized />
             </span>
             <span className="brand__text">
-              <strong>Materiales FZAC</strong>
-              <span>E-Commerce</span>
+              <strong>FZAC Materiales</strong>
+              <span>Fortaleza Construcciones</span>
             </span>
           </Link>
 

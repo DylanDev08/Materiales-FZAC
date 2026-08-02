@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, MessageCircle, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
+import { CheckCircle, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
@@ -16,6 +16,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
+  const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
   const maxQuantity = product.stock;
   const subtotal = product.price * quantity;
   const lowStockThreshold = Math.max(5, product.stock_minimum);
@@ -54,10 +55,11 @@ export function ProductBuyBox({ product }: { product: Product }) {
       <p className="product-buybox__meta">
         SKU {product.sku} - Categoría {product.category?.name ?? product.subcategory}
       </p>
+      <p className="product-buybox__seller"><ShieldCheck size={16} /> Vendido y verificado por FZAC</p>
 
       <div className="product-price">
         <strong>{currency(product.price)}</strong>
-        {product.compare_price ? <del>{currency(product.compare_price)}</del> : null}
+        {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
         {discount ? <span className="status-pill status-pill--warning">-{discount}%</span> : null}
       </div>
 

@@ -100,8 +100,9 @@ export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
 
   if (!profile) {
     return (
-      <Link className="icon-link" href="/login" aria-label="Ingresar a cuenta" prefetch={false}>
+      <Link className="icon-link header-action-link" href="/login" aria-label="Ingresar a cuenta" prefetch={false}>
         <UserRound size={20} />
+        <span className="header-action-copy"><small>Hola</small><strong>Ingresá</strong></span>
       </Link>
     );
   }
@@ -110,6 +111,7 @@ export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
     <div className="account-menu" ref={ref}>
       <button className="account-menu__trigger" type="button" aria-expanded={open} onClick={toggleMenu}>
         <ProfileAvatar profile={profile} />
+        <span className="header-action-copy"><small>Mi cuenta</small><strong>{profile.full_name?.split(" ")[0] || "Perfil"}</strong></span>
         <ChevronDown size={15} />
       </button>
 

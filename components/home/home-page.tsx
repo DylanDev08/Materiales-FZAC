@@ -3,14 +3,16 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
+  ChevronRight,
+  CreditCard,
   Droplets,
   Hammer,
+  Headphones,
   Layers3,
   MessageCircle,
   Package,
   PaintRoller,
   PanelsTopLeft,
-  Search,
   ShieldCheck,
   Truck,
   Wrench,
@@ -21,201 +23,148 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { getProducts } from "@/lib/db/catalog";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
+const buyingNeeds = [
+  { label: "Materiales de obra", helper: "Cemento, cal y áridos", href: "/productos?search=cemento", icon: Building2 },
+  { label: "Construcción en seco", helper: "Placas y perfiles", href: "/productos?search=durlock", icon: PanelsTopLeft },
+  { label: "Ferretería", helper: "Fijaciones y adhesivos", href: "/productos?search=ferreteria", icon: Wrench },
+  { label: "Herramientas", helper: "Manuales y eléctricas", href: "/productos?search=herramientas", icon: Hammer },
+  { label: "Electricidad", helper: "Cables y canalización", href: "/productos?search=electricidad", icon: Zap },
+  { label: "Plomería", helper: "Caños y conexiones", href: "/productos?search=plomeria", icon: Droplets },
+  { label: "Pintura", helper: "Látex e impermeabilización", href: "/productos?search=pintura", icon: PaintRoller },
+  { label: "Revestimientos", helper: "Pegamentos y terminaciones", href: "/productos?search=revestimientos", icon: Layers3 }
+];
+
 export async function HomePage() {
   const [featured, offers] = await Promise.all([
-    getProducts({ featured: true, limit: 4 }),
-    getProducts({ onSale: true, limit: 4 })
+    getProducts({ featured: true, limit: 8 }),
+    getProducts({ onSale: true, limit: 8 })
   ]);
   const materialHelpHref = getWhatsAppHref("Hola FZAC, no encuentro un material en la tienda y necesito asesoramiento.");
-  const spotlightProducts = [...offers, ...featured]
-    .filter((product, index, list) => list.findIndex((item) => item.id === product.id) === index)
-    .slice(0, 4);
-  const buyingNeeds = [
-    { label: "Materiales de obra", helper: "Cemento, cal, arena, hierro y ladrillos.", href: "/productos?search=cemento", icon: Building2 },
-    { label: "Construcción en seco", helper: "Placas, perfiles, masillas y aislantes.", href: "/productos?search=durlock", icon: PanelsTopLeft },
-    { label: "Ferretería", helper: "Tornillería, adhesivos y fijaciones.", href: "/productos?search=ferreteria", icon: Wrench },
-    { label: "Herramientas", helper: "Manuales, eléctricas y consumibles.", href: "/productos?search=herramientas", icon: Hammer },
-    { label: "Electricidad", helper: "Cables, cajas, llaves y canalización.", href: "/productos?search=electricidad", icon: Zap },
-    { label: "Plomería", helper: "Caños, conexiones y accesorios sanitarios.", href: "/productos?search=plomeria", icon: Droplets },
-    { label: "Pintura e impermeabilización", helper: "Látex, membranas y preparadores.", href: "/productos?search=pintura", icon: PaintRoller },
-    { label: "Revestimientos", helper: "Pegamentos, pastinas y terminaciones.", href: "/productos?search=revestimientos", icon: Layers3 }
-  ];
+  const offerShelf = (offers.length ? offers : featured).slice(0, 8);
+  const featuredShelf = featured.filter((product) => !offerShelf.some((item) => item.id === product.id)).slice(0, 8);
 
   return (
     <>
-      <section className="home-promo" aria-label="Beneficios de compra">
+      <section className="home-promo storefront-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
-          <span>
-            <Truck size={18} /> Envíos coordinados
-          </span>
-          <span>
-            <Package size={18} /> Retiro coordinado
-          </span>
-          <span>
-            <ShieldCheck size={18} /> Orden segura
-          </span>
-          <span>
-            <ShieldCheck size={18} /> Stock validado al comprar
-          </span>
+          <span><Truck size={18} /> Envíos coordinados</span>
+          <span><Package size={18} /> Retiro coordinado</span>
+          <span><ShieldCheck size={18} /> Compra protegida</span>
+          <span><BadgeCheck size={18} /> Stock validado</span>
         </div>
       </section>
 
-      <section className="home-hero home-hero--clean">
-        <div className="container home-hero__grid home-hero__grid--single">
-          <div className="home-hero__content home-hero__content--wide">
-            <span className="kicker">E-Commerce FZAC</span>
-            <h1>Comprá materiales para obra con stock visible y atención FZAC.</h1>
-            <p>
-              Buscá por material, armá tu pedido y elegí cómo pagar o coordinar. FZAC valida stock, precios y datos
-              antes de confirmar la compra.
-            </p>
-            <form className="hero-search" action="/productos">
-              <Search size={20} />
-              <input name="search" placeholder="¿Qué material necesitás hoy?" aria-label="Buscar materiales" />
-              <button className="btn" type="submit">
-                Buscar
-              </button>
-            </form>
-            <div className="hero-actions">
+      <section className="storefront-hero">
+        <div className="container storefront-hero__inner">
+          <div className="storefront-hero__content">
+            <span className="storefront-hero__eyebrow">Fortaleza Construcciones</span>
+            <h1>Todo para tu obra, en un solo lugar.</h1>
+            <p>Materiales, herramientas y soluciones con precios claros, stock visible y atención de FZAC.</p>
+            <div className="storefront-hero__actions">
               <Link className="btn" href="/productos" prefetch={false}>
-                Comprar materiales <ArrowRight size={18} />
+                Comprar ahora <ArrowRight size={18} />
               </Link>
-              <Link className="btn btn--ghost" href="/ofertas" prefetch={false}>
-                Ver ofertas
-              </Link>
-              <a className="btn btn--ghost" href={materialHelpHref} target="_blank" rel="noreferrer">
-                <MessageCircle size={18} /> ¿No encontrás un material?
-              </a>
+              <Link className="btn btn--ghost" href="/ofertas" prefetch={false}>Ver ofertas</Link>
             </div>
-            <div className="home-trust-row" aria-label="Garantías de compra FZAC">
-              <span>
-                <Truck size={18} />
-                Entrega o retiro coordinado
-              </span>
-              <span>
-                <ShieldCheck size={18} />
-                Stock validado antes de confirmar
-              </span>
-              <span>
-                <BadgeCheck size={18} />
-                Comprobante y seguimiento
-              </span>
-              <span>
-                <MessageCircle size={18} />
-                Asistencia por WhatsApp
-              </span>
+            <div className="storefront-hero__facts" aria-label="Condiciones de compra">
+              <span><BadgeCheck size={17} /> Stock validado</span>
+              <span><CreditCard size={17} /> Pago seguro</span>
+              <span><Truck size={17} /> Entrega coordinada</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="page-section page-section--tight">
+      <section className="storefront-section storefront-categories">
         <div className="container">
           <SectionHeader
-            eyebrow="Rubros"
-            title="Comprar por necesidad"
-            text="Entrá directo al material que necesitás sin recorrer secciones de más."
-            action={
-              <Link className="btn btn--ghost" href="/categorias" prefetch={false}>
-                Ver rubros
-              </Link>
-            }
+            eyebrow="Categorías"
+            title="Encontrá lo que necesitás"
+            text="Accesos directos a los rubros principales de la tienda."
+            action={<Link className="btn btn--ghost" href="/categorias" prefetch={false}>Ver todas <ArrowRight size={16} /></Link>}
           />
-          <div className="home-floating-rubros">
-            {buyingNeeds.map((need) => {
-              const Icon = need.icon;
-              return (
-                <Link className="home-need-link" href={need.href} key={need.label} prefetch={false}>
-                  <span>
-                    <Icon size={18} />
-                  </span>
-                  <strong>{need.label}</strong>
-                  <small>{need.helper}</small>
-                  <ArrowRight size={18} />
-                </Link>
-              );
-            })}
+          <div className="storefront-category-rail">
+            {buyingNeeds.map(({ href, icon: Icon, label, helper }) => (
+              <Link className="storefront-category" href={href} key={label} prefetch={false}>
+                <span className="storefront-category__icon"><Icon size={22} /></span>
+                <strong>{label}</strong>
+                <small>{helper}</small>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="page-section page-section--tight">
-        <div className="container home-steps-band home-steps-band--five" aria-label="Proceso de compra FZAC">
-          <div className="home-step-item">
-            <Search size={22} />
-            <span>1</span>
-            <strong>Elegís productos</strong>
-            <small>Buscás por rubro, oferta o nombre.</small>
-          </div>
-          <div className="home-step-item">
-            <ShieldCheck size={22} />
-            <span>2</span>
-            <strong>Confirmás datos</strong>
-            <small>Cargás comprador, retiro o envío.</small>
-          </div>
-          <div className="home-step-item">
-            <BadgeCheck size={22} />
-            <span>3</span>
-            <strong>Validamos stock</strong>
-            <small>FZAC revisa productos y cantidades.</small>
-          </div>
-          <div className="home-step-item">
-            <ShieldCheck size={22} />
-            <span>4</span>
-            <strong>Pagás o coordinás</strong>
-            <small>Mercado Pago, transferencia o WhatsApp.</small>
-          </div>
-          <div className="home-step-item">
-            <Truck size={22} />
-            <span>5</span>
-            <strong>Retirás o recibís</strong>
-            <small>Entrega y retiro se coordinan con FZAC.</small>
-          </div>
+      <section className="storefront-section storefront-shelf">
+        <div className="container">
+          <SectionHeader
+            eyebrow="Precios destacados"
+            title={offers.length ? "Ofertas para aprovechar" : "Productos destacados"}
+            text="Sumá materiales al carrito sin perder de vista precio y disponibilidad."
+            action={<Link className="storefront-section-link" href={offers.length ? "/ofertas" : "/productos"} prefetch={false}>Ver más <ChevronRight size={17} /></Link>}
+          />
+          <ProductGrid products={offerShelf} variant="rail" />
         </div>
       </section>
 
-      <section className="page-section page-section--tight">
-        <div className="container banner-band banner-band--commercial">
+      <section className="storefront-benefits" aria-label="Servicios FZAC">
+        <div className="container storefront-benefits__grid">
+          <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y stock.</small></span></div>
+          <div><Truck size={22} /><span><strong>Entrega o retiro</strong><small>Coordinación según tu pedido.</small></span></div>
+          <div><CreditCard size={22} /><span><strong>Medios de pago</strong><small>Online, transferencia o coordinación.</small></span></div>
+          <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Ayuda antes y después de comprar.</small></span></div>
+        </div>
+      </section>
+
+      {featuredShelf.length ? (
+        <section className="storefront-section storefront-shelf">
+          <div className="container">
+            <SectionHeader
+              eyebrow="Selección FZAC"
+              title="Recomendados para tu obra"
+              text="Productos elegidos por disponibilidad y utilidad en proyectos frecuentes."
+              action={<Link className="storefront-section-link" href="/productos?featured=true" prefetch={false}>Ver más <ChevronRight size={17} /></Link>}
+            />
+            <ProductGrid products={featuredShelf} variant="rail" />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="storefront-section storefront-projects">
+        <div className="container storefront-projects__layout">
+          <div className="storefront-projects__intro">
+            <span className="kicker">Compra simple</span>
+            <h2>De la lista de materiales al pedido confirmado.</h2>
+            <p>Un proceso claro, con validación real y asistencia cuando la necesitás.</p>
+            <Link className="btn btn--ghost" href="/como-comprar" prefetch={false}>Cómo comprar <ArrowRight size={17} /></Link>
+          </div>
+          <ol className="storefront-projects__steps">
+            <li><span>1</span><div><strong>Elegí</strong><small>Buscá por producto, rubro u oferta.</small></div></li>
+            <li><span>2</span><div><strong>Revisá</strong><small>Confirmá cantidades y forma de entrega.</small></div></li>
+            <li><span>3</span><div><strong>Pagá o coordiná</strong><small>Elegí el medio que mejor se adapte.</small></div></li>
+            <li><span>4</span><div><strong>Recibí</strong><small>Seguí el pedido desde tu cuenta.</small></div></li>
+          </ol>
+        </div>
+      </section>
+
+      <section className="storefront-section storefront-support">
+        <div className="container storefront-support__inner">
           <div>
-            <span className="kicker">Asesoramiento FZAC</span>
-            <h2>¿No encontrás un material?</h2>
-            <p>Pedí asesoramiento a FZAC por WhatsApp para elegir medidas, cantidades o alternativas disponibles.</p>
+            <span className="kicker">Asesoramiento comercial</span>
+            <h2>¿No encontrás el material o la medida?</h2>
+            <p>Contanos qué estás construyendo y te ayudamos a completar el pedido.</p>
           </div>
           <a className="btn" href={materialHelpHref} target="_blank" rel="noreferrer">
-            <MessageCircle size={18} /> Consultar
+            <MessageCircle size={18} /> Consultar por WhatsApp
           </a>
         </div>
       </section>
 
-      <section className="page-section">
+      <section className="storefront-legal-strip">
         <div className="container">
-          <SectionHeader
-            eyebrow="Vidriera FZAC"
-            title="Productos para empezar el pedido"
-            text="Selección corta, rápida de escanear y lista para sumar al carrito."
-            action={
-              <Link className="btn btn--ghost" href="/productos" prefetch={false}>
-                Catálogo completo
-              </Link>
-            }
-          />
-          <ProductGrid products={spotlightProducts} variant="rail" />
-        </div>
-      </section>
-
-      <section className="page-section page-section--tight">
-        <div className="container home-legal-row">
-          <div>
-            <span className="kicker">Derecho del consumidor</span>
-            <strong>Compra clara, cambios y devoluciones disponibles.</strong>
-            <p>Consulta condiciones legales, plazos y requisitos antes de confirmar tu pedido.</p>
-          </div>
-          <Link className="btn btn--ghost" href="/arrepentimiento" prefetch={false}>
-            Botón de arrepentimiento
-          </Link>
-          <Link className="btn btn--ghost" href="/cambios-y-devoluciones" prefetch={false}>
-            Ver política
-          </Link>
+          <span><ShieldCheck size={17} /> Tus derechos de compra siempre visibles.</span>
+          <Link href="/cambios-y-devoluciones" prefetch={false}>Cambios y devoluciones</Link>
+          <Link href="/arrepentimiento" prefetch={false}>Botón de arrepentimiento</Link>
         </div>
       </section>
     </>
