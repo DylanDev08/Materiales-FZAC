@@ -74,7 +74,15 @@ const entries: KnowledgeEntry[] = [
     href: "/medios-de-pago",
     intents: ["payment"],
     keywords: ["transferencia", "transferir", "alias", "cbu", "comprobante", "bancaria"],
-    phrases: ["pagar por transferencia", "pagar con transferencia", "datos para transferir", "enviar comprobante"],
+    phrases: [
+      "pagar por transferencia",
+      "pagar con transferencia",
+      "como pago por transferencia",
+      "como pagar por transferencia",
+      "pago por transferencia",
+      "datos para transferir",
+      "enviar comprobante"
+    ],
     answers: [
       "Al elegir transferencia, FZAC genera un pedido pendiente y no te redirige a Mercado Pago. Administración revisa el pedido y te comunica los datos para transferir; la acreditación y el stock se confirman después de validar el pago.",
       "La transferencia funciona como pedido pendiente: primero se crea la orden, luego FZAC informa los datos bancarios y valida el comprobante. No compartas comprobantes ni datos bancarios dentro del chatbot."

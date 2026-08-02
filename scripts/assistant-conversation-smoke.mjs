@@ -39,6 +39,9 @@ assert.equal(paymentAfterDelivery.body.intent, "payment", "El mensaje actual deb
 assert.equal(paymentAfterDelivery.body.knowledge_id, "bank-transfer");
 assert.ok(paymentAfterDelivery.body.sources.some((source) => source.href === "/medios-de-pago"));
 
+const naturalTransferQuestion = await ask("¿Cómo pago por transferencia?");
+assert.equal(naturalTransferQuestion.body.knowledge_id, "bank-transfer");
+
 const distanceFollowUp = await ask("30 km", [
   { role: "user", content: "Necesito envio" },
   { role: "assistant", content: delivery.body.message }
