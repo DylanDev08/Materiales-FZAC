@@ -63,6 +63,11 @@ const sections = [
     use: "Registra gastos y otros ingresos que no provienen de ventas online. Las ventas pagadas se incorporan solas; no deben cargarse otra vez."
   },
   {
+    title: "Rentabilidad",
+    target: "Margen comercial y cobertura de costos.",
+    use: "Relaciona ventas pagadas con el último costo de compra registrado. Señala productos sin costo y márgenes negativos. Es una estimación operativa: no reemplaza el cierre contable ni modifica precios, pedidos o stock."
+  },
+  {
     title: "Arrepentimientos",
     target: "Solicitudes de devolución o revisión del consumidor.",
     use: "Permite recibir, revisar y responder cada trámite con número de seguimiento. Aprobar una solicitud no devuelve dinero: si corresponde, el reembolso se procesa después desde Pagos."
@@ -96,6 +101,7 @@ const routines = [
   "Revisar Arrepentimientos y responder primero los trámites nuevos.",
   "Ver Inventario, revisar cobertura y confirmar manualmente cada reposicion sugerida.",
   "Revisar Cuentas por pagar, priorizar vencimientos y registrar cada pago una sola vez.",
+  "Abrir Rentabilidad y completar primero los productos marcados como Sin costo antes de tomar decisiones de margen.",
   "Usar Clientes para contactar compradores y resolver dudas.",
   "Revisar Conocimiento IA cuando aumenten las respuestas marcadas para mejorar.",
   "Abrir Calidad IA, priorizar los casos urgentes y documentar la decision antes de modificar una respuesta.",

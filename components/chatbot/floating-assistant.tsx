@@ -21,7 +21,7 @@ type Message = {
 const HISTORY_KEY = "fzac-assistant-history-v1";
 const CONVERSATION_KEY = "fzac-assistant-conversation-id";
 const VISITOR_KEY = "fzac-visitor-id";
-const initialOptions = ["Comprar materiales", "Consultar envio", "Medios de pago", "Estado de pedido"];
+const initialOptions = ["Comprar materiales", "Calcular materiales", "Estado de pedido", "Ayuda con mi cuenta"];
 const initialActions = initialOptions.map((label) => ({ label, message: label }));
 const welcomeMessage: Message = {
   role: "assistant",
@@ -318,7 +318,7 @@ export function FloatingAssistant() {
               <span className="floating-chat__avatar"><Bot size={18} /></span>
               <span>
                 <strong id="floating-chat-title">Asistente FZAC</strong>
-                <small><i aria-hidden="true" /> Disponible para ayudarte</small>
+                <small><i aria-hidden="true" /> Catálogo y cuenta, en tiempo real</small>
               </span>
             </div>
             <div className="floating-chat__controls">
@@ -397,7 +397,7 @@ export function FloatingAssistant() {
 
           <footer className="floating-chat__composer">
             {feedbackNotice ? <span className="floating-chat__notice" role="status">{feedbackNotice}</span> : null}
-            <span className="floating-chat__privacy"><ShieldCheck size={13} /> No compartas datos de tarjeta ni contraseñas.</span>
+            <span className="floating-chat__privacy"><ShieldCheck size={13} /> Consultas privadas. No compartas tarjetas ni contraseñas.</span>
             <form className="chatbot__form" onSubmit={submit}>
               <input
                 aria-label="Consulta para el asistente FZAC"

@@ -3896,6 +3896,46 @@ body:has(.admin-page) .site-main {
   }
 }
 
+/* Rentabilidad: lectura operativa compacta y trazable. */
+.admin-profitability { display: grid; gap: 18px; }
+.admin-profitability__periods { display: inline-flex; width: fit-content; gap: 4px; border: 1px solid var(--color-border); border-radius: 7px; background: #0d0d0d; padding: 4px; }
+.admin-profitability__periods a { min-height: 40px; display: inline-flex; align-items: center; border-radius: 5px; color: var(--color-muted); padding: 0 18px; font-size: .78rem; font-weight: 850; }
+.admin-profitability__periods a.is-active { background: var(--color-yellow); color: #090909; }
+.admin-profitability__metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--color-yellow-border); background: rgba(244,196,0,.03); }
+.admin-profitability__metrics article { min-height: 112px; display: grid; grid-template-columns: auto 1fr; align-content: center; gap: 5px 8px; border-right: 1px solid var(--color-border); padding: 16px; }
+.admin-profitability__metrics article:last-child { border-right: 0; }
+.admin-profitability__metrics svg { color: var(--color-yellow); }
+.admin-profitability__metrics span,.admin-profitability__metrics small { color: var(--color-muted); }
+.admin-profitability__metrics strong { grid-column: 1 / -1; font-size: clamp(1.2rem,2.4vw,1.8rem); }
+.admin-profitability__explanation { display: flex; align-items: flex-start; gap: 12px; border-left: 3px solid var(--color-yellow); }
+.admin-profitability__explanation svg { flex: 0 0 auto; color: var(--color-yellow); }
+.admin-profitability__explanation strong,.admin-profitability__explanation p { margin: 0; }
+.admin-profitability__explanation p { margin-top: 4px; color: var(--color-muted); font-size: .82rem; line-height: 1.5; }
+.admin-profitability__table-wrap { overflow-x: auto; }
+.admin-profitability__table { width: 100%; border-collapse: collapse; }
+.admin-profitability__table th,.admin-profitability__table td { border-bottom: 1px solid var(--color-border); padding: 13px 10px; text-align: left; vertical-align: middle; }
+.admin-profitability__table th { color: var(--color-muted); font-size: .7rem; text-transform: uppercase; }
+.admin-profitability__table td { font-size: .82rem; }
+.admin-profitability__table td:first-child { display: grid; gap: 3px; }
+.admin-profitability__table td:first-child small { color: var(--color-muted); }
+.status-pill--warning { border-color: rgba(244,196,0,.28); color: var(--color-yellow); }
+.status-pill--danger { border-color: rgba(239,68,68,.35); color: #ff8c8c; }
+.status-pill--success { border-color: rgba(34,197,94,.3); color: #7ee49b; }
+
+@media (max-width: 900px) { .admin-profitability__metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .admin-profitability__metrics article:nth-child(2) { border-right: 0; } }
+@media (max-width: 620px) {
+  .admin-profitability__periods { width: 100%; }
+  .admin-profitability__periods a { flex: 1; justify-content: center; padding-inline: 8px; }
+  .admin-profitability__metrics { grid-template-columns: 1fr 1fr; }
+  .admin-profitability__metrics article { min-height: 102px; padding: 12px; }
+  .admin-profitability__table thead { display: none; }
+  .admin-profitability__table,.admin-profitability__table tbody,.admin-profitability__table tr,.admin-profitability__table td { display: block; width: 100%; }
+  .admin-profitability__table tr { border-bottom: 1px solid var(--color-yellow-border); padding: 10px 0; }
+  .admin-profitability__table td { display: grid; grid-template-columns: minmax(110px,.8fr) minmax(0,1.2fr); gap: 10px; border: 0; padding: 6px 2px; text-align: right; }
+  .admin-profitability__table td::before { content: attr(data-label); color: var(--color-muted); text-align: left; }
+  .admin-profitability__table td:first-child { grid-template-columns: minmax(110px,.8fr) minmax(0,1.2fr); }
+}
+
 /* Supplier finance: invoices, due dates, payments and cost history. */
 .admin-supplier-finance {
   display: grid;

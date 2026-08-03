@@ -590,7 +590,7 @@ try {
   assert(inventoryMobileMetrics.undersizedActions === 0, "Inventory forecast contains undersized touch actions.");
   await page.screenshot({ path: inventoryScreenshot, fullPage: true });
 
-  for (const route of ["pedidos", "pagos", "clientes", "productos", "logs"]) {
+  for (const route of ["pedidos", "pagos", "clientes", "productos", "logs", "rentabilidad"]) {
     await page.goto(`${baseUrl}${adminPath}/${route}`, { waitUntil: "domcontentloaded" });
     await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
     const routeMetrics = await page.evaluate(() => ({

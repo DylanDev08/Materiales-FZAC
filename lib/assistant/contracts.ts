@@ -6,6 +6,7 @@ export const ASSISTANT_INTENTS = [
   "price",
   "estimate",
   "order_status",
+  "account",
   "returns",
   "store_policy",
   "human",

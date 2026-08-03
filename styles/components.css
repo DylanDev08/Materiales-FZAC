@@ -2777,6 +2777,35 @@
   font-weight: 850;
 }
 
+.account-field-ok { color: #7ee49b !important; font-weight: 800; }
+.account-unsaved { color: var(--color-yellow); font-weight: 800; }
+.account-settings-form__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.account-settings-form__actions .btn { width: auto; }
+
+.account-setup-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--color-border);
+  background: rgba(255,255,255,.018);
+}
+.account-setup-list > a {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-white);
+  padding: 12px;
+}
+.account-setup-list > a:last-child { border-right: 0; }
+.account-setup-list > a > svg:first-child { color: var(--color-yellow); }
+.account-setup-list > a > svg:last-child { color: var(--color-muted); }
+.account-setup-list > a span { display: grid; gap: 3px; }
+.account-setup-list > a small { color: var(--color-muted); }
+.account-security-note__actions { display: grid; justify-items: end; gap: 8px; }
+.account-security-note__actions a { display: inline-flex; align-items: center; gap: 5px; color: var(--color-yellow); font-size: .78rem; font-weight: 850; }
+
 .account-settings-form input[aria-invalid="true"] {
   border-color: rgba(229, 83, 61, 0.72);
   box-shadow: 0 0 0 3px rgba(229, 83, 61, 0.09);
@@ -2881,6 +2910,10 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .account-setup-list { grid-template-columns: 1fr; }
+  .account-setup-list > a { border-right: 0; border-bottom: 1px solid var(--color-border); }
+  .account-setup-list > a:last-child { border-bottom: 0; }
+
   .account-metrics > span:nth-child(2) {
     border-right: 0;
   }
@@ -2972,4 +3005,8 @@
     width: 64px;
     height: 64px;
   }
+
+  .account-settings-form__actions { display: grid; grid-template-columns: 1fr; }
+  .account-settings-form__actions .btn { width: 100%; }
+  .account-security-note__actions { justify-items: start; }
 }

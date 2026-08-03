@@ -82,11 +82,25 @@ export function extractAssistantFacts(message: string) {
 }
 
 export function mergeAssistantFacts(previous: AssistantState | null, message: string, intent: AssistantIntent) {
-  const sameTopic = previous?.topic === intent || (intent === "fallback" && previous?.topic);
+  const resetTopic = shouldResetConversationTopic(message);
+  const sameTopic = !resetTopic && (previous?.topic === intent || (intent === "fallback" && previous?.topic));
   return {
     ...(sameTopic ? previous?.gathered : {}),
     ...extractAssistantFacts(message)
   };
+}
+
+export function shouldResetConversationTopic(message: string) {
+  const normalized = normalizeAssistantText(message);
+  return includesAny(normalized, [
+    "cambiemos de tema",
+    "otra consulta",
+    "otra cosa",
+    "empezar de nuevo",
+    "reiniciar conversacion",
+    "eso no era",
+    "no era lo que"
+  ]);
 }
 
 export function parseAssistantState(value: unknown): AssistantState | null {
@@ -108,7 +122,8 @@ export function deriveAssistantState(input: {
   reply: string;
   previous: AssistantState | null;
 }) {
-  const topic = input.intent === "fallback" && input.previous?.topic ? input.previous.topic : input.intent;
+  const resetTopic = shouldResetConversationTopic(input.message);
+  const topic = input.intent === "fallback" && input.previous?.topic && !resetTopic ? input.previous.topic : input.intent;
   const sameTopic = input.previous?.topic === topic;
   const gathered = mergeAssistantFacts(input.previous, input.message, topic);
   const project = gathered.project;
@@ -116,6 +131,7 @@ export function deriveAssistantState(input: {
   let stage = topic === "fallback" ? "NEEDS_CONTEXT" : "ANSWERED";
   if (topic === "delivery") stage = gathered.distance ? "LOCATION_RECEIVED" : "AWAITING_LOCATION";
   if (topic === "stock" || topic === "price") stage = "AWAITING_PRODUCT";
+  if (topic === "account") stage = "ACCOUNT_GUIDANCE";
   if (topic === "estimate") {
     if (!project) stage = "AWAITING_PROJECT";
     else if (!gathered.areaM2) stage = "AWAITING_AREA";

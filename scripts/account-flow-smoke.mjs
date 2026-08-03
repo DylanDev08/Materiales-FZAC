@@ -229,9 +229,16 @@ try {
   const validProfile = await api("/api/account/profile", {
     method: "PATCH",
     cookies,
-    body: { full_name: "FZAC Account QA Actualizado", phone: "+54 9 341 555 0199", avatar_url: "" }
+    body: { full_name: "FZAC Account QA Actualizado", phone: "+54 9 341 555 0199", avatar_url: "https://tracking.example.invalid/avatar.png" }
   });
   assert(validProfile.response.status === 200, "Valid profile update failed.");
+
+  const unsafeProfile = await api("/api/account/profile", {
+    method: "PATCH",
+    cookies,
+    body: { full_name: "Robert'); DROP TABLE profiles;--", phone: "+54 9 341 555 0199", avatar_url: "" }
+  });
+  assert(unsafeProfile.response.status === 422, "Unsafe profile content was not rejected.");
 
   const summary = await api("/api/account/summary", { cookies });
   assert(summary.response.status === 200, "Authenticated account summary failed.");
@@ -256,12 +263,13 @@ try {
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("role,full_name,phone")
+    .select("role,full_name,phone,avatar_url")
     .eq("id", primary.id)
     .single();
   if (profileError || !profile) throw new Error("Could not verify the updated QA profile.");
   assert(profile.role !== "ADMIN", "Profile update escalated the user's role.");
   assert(profile.full_name === "FZAC Account QA Actualizado", "Profile update was not persisted.");
+  assert(!profile.avatar_url, "Profile update accepted an untrusted external avatar URL.");
 
   browser = await chromium.launch({ headless: true });
   const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -292,6 +300,10 @@ try {
   const mobilePage = await mobileContext.newPage();
   await mobilePage.goto(`${baseUrl}/cuenta/ajustes`, { waitUntil: "domcontentloaded" });
   await mobilePage.locator(".account-settings-form").waitFor({ state: "visible", timeout: 20_000 });
+  assert(await mobilePage.locator(".account-setup-list").isVisible(), "Account setup guide is not visible on mobile.");
+  assert(await mobilePage.locator("input[placeholder='https://...']").count() === 0, "Account exposes a technical avatar URL field.");
+  const touchTargets = await mobilePage.locator(".account-sidebar a, .account-setup-list a, .account-settings-form button").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height).filter(Boolean));
+  assert(touchTargets.every((height) => height >= 38), "Account contains undersized touch targets.");
   const accountMobileMetrics = await mobilePage.evaluate(() => ({
     viewport: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth
@@ -330,11 +342,14 @@ try {
     registrationValidation: true,
     profileValidation: true,
     profileRolePreserved: true,
+    unsafeProfileRejected: true,
+    externalAvatarIgnored: true,
     addressCrud: true,
     addressOwnership: true,
     unsafeAddressRejected: true,
     accountSummary: true,
     accountSettingsResponsive: true,
+    accountTouchTargets: true,
     emailEnumerationBlocked: true
   };
 } catch (error) {

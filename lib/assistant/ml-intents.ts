@@ -97,6 +97,9 @@ function ruleIntent(message: string): AssistantIntent | null {
   if (includesAny(normalized, ["estado del pedido", "estado de la orden", "seguir mi pedido", "seguimiento", "mi pedido", "mi orden", "factura de mi compra"])) {
     return "order_status";
   }
+  if (includesAny(normalized, ["mi cuenta", "mis datos", "mi perfil", "cambiar mi telefono", "cambiar mi foto", "guardar direccion", "mis direcciones", "ajustes de cuenta", "cambiar contrasena"])) {
+    return "account";
+  }
   if (
     /\b\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\s?(?:x|por)\s?\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\b/.test(normalized) ||
     /\b\d+(?:[.,]\d+)?\s?(m2|m\u00b2|metros?)\b/.test(normalized) ||

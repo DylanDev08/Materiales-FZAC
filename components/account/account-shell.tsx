@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
+  CheckCircle2,
+  Circle,
   LayoutDashboard,
   LockKeyhole,
   MapPin,
@@ -9,6 +11,7 @@ import {
   Package,
   RotateCcw,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   UserRound
 } from "lucide-react";
@@ -30,19 +33,16 @@ const nav = [
 
 type AccountView = (typeof nav)[number]["view"];
 
-export function AccountShell({
-  profile,
-  overview,
-  view = "inicio"
-}: {
-  profile: SessionProfile;
-  overview: AccountOverview;
-  view?: AccountView;
-}) {
+export function AccountShell({ profile, overview, view = "inicio" }: { profile: SessionProfile; overview: AccountOverview; view?: AccountView }) {
   const adminPath = getAdminConsolePath();
   const active = nav.find((item) => item.view === view) ?? nav[0];
   const completionItems = [Boolean(profile.full_name), Boolean(profile.phone), Boolean(overview.addresses.length), Boolean(profile.email)];
   const profileCompletion = Math.round((completionItems.filter(Boolean).length / completionItems.length) * 100);
+  const setupItems = [
+    { label: "Identidad y contacto", done: Boolean(profile.full_name && profile.phone), href: "/cuenta/ajustes" },
+    { label: "Dirección para entregas", done: Boolean(overview.addresses.length), href: "/cuenta/direcciones" },
+    { label: "Email de acceso verificado", done: Boolean(profile.email), href: "/cuenta/ajustes" }
+  ];
 
   return (
     <main className="account-page">
@@ -53,9 +53,7 @@ export function AccountShell({
               {profile.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.avatar_url} alt={profile.full_name || profile.email} referrerPolicy="no-referrer" />
-              ) : (
-                <Image src="/logoFZAC.jpg" alt="FZAC" width={72} height={72} />
-              )}
+              ) : <Image src="/logoFZAC.jpg" alt="FZAC" width={72} height={72} />}
             </span>
             <div><span className="kicker">Mi cuenta FZAC</span><h1>{profile.full_name || "Mi cuenta"}</h1><p>{profile.email}</p></div>
           </div>
@@ -70,67 +68,37 @@ export function AccountShell({
         <aside className="account-sidebar">
           <nav aria-label="Secciones de Mi cuenta">
             {nav.map(({ href, label, icon: Icon, view: itemView }) => (
-              <Link href={href} key={href} className={view === itemView ? "is-active" : ""}><Icon size={18} /> {label}<ArrowRight size={15} /></Link>
+              <Link href={href} key={href} className={view === itemView ? "is-active" : ""} aria-current={view === itemView ? "page" : undefined}>
+                <Icon size={18} /> {label}<ArrowRight size={15} />
+              </Link>
             ))}
           </nav>
-          <div className="account-sidebar__context">
-            <small>Última compra</small><strong>{overview.lastOrderDate}</strong>
-            <small>Productos reservados</small><strong>{overview.reservedProducts}</strong>
-          </div>
+          <div className="account-sidebar__context"><small>Última compra</small><strong>{overview.lastOrderDate}</strong><small>Productos reservados</small><strong>{overview.reservedProducts}</strong></div>
         </aside>
 
         <div className="account-main">
           <header className="account-main__title"><div><span className="kicker">{active.label}</span><h2>{view === "inicio" ? "Tu actividad en FZAC" : active.label}</h2></div></header>
 
-          {view === "inicio" ? (
-            <>
-              <AccountSummary overview={overview} />
-              <div className="account-main__columns">
-                <section className="account-section"><header className="account-section__head"><div><h2>Últimos pedidos</h2><p>Importes y estados más recientes.</p></div><Link href="/cuenta/pedidos">Ver todos <ArrowRight size={15} /></Link></header><AccountOrders rows={overview.orders.slice(0, 4)} /></section>
-                <section className="account-section"><header className="account-section__head"><div><h2>Productos comprados</h2><p>Cantidades y stock actual.</p></div></header><AccountProducts rows={overview.products.slice(0, 4)} /></section>
-              </div>
-            </>
-          ) : null}
+          {view === "inicio" ? <><AccountSummary overview={overview} /><div className="account-main__columns">
+            <section className="account-section"><header className="account-section__head"><div><h2>Últimos pedidos</h2><p>Importes y estados más recientes.</p></div><Link href="/cuenta/pedidos">Ver todos <ArrowRight size={15} /></Link></header><AccountOrders rows={overview.orders.slice(0, 4)} /></section>
+            <section className="account-section"><header className="account-section__head"><div><h2>Productos comprados</h2><p>Cantidades y stock actual.</p></div></header><AccountProducts rows={overview.products.slice(0, 4)} /></section>
+          </div></> : null}
 
           {view === "pedidos" ? <section className="account-section"><header className="account-section__head"><div><h2>Compras y pedidos</h2><p>Seguimiento de todas las compras asociadas a tu cuenta.</p></div></header><AccountOrders rows={overview.orders} /></section> : null}
 
-          {view === "direcciones" ? (
-            <>
-              <section className="account-section account-personal-summary"><header className="account-section__head"><div><span className="kicker">Datos del comprador</span><h2>Información personal</h2></div></header><div><span><UserRound size={17} /> {profile.full_name || "Nombre pendiente"}</span><span>{profile.phone || "Teléfono pendiente"}</span><span>{profile.email}</span></div></section>
-              <AccountAddressManager initialAddresses={overview.addresses} />
-            </>
-          ) : null}
+          {view === "direcciones" ? <><section className="account-section account-personal-summary"><header className="account-section__head"><div><span className="kicker">Datos del comprador</span><h2>Información personal</h2></div></header><div><span><UserRound size={17} /> {profile.full_name || "Nombre pendiente"}</span><span>{profile.phone || "Teléfono pendiente"}</span><span>{profile.email}</span></div></section><AccountAddressManager initialAddresses={overview.addresses} /></> : null}
 
-          {view === "conversaciones" ? (
-            <section className="account-section"><header className="account-section__head"><div><h2>Conversaciones</h2><p>Historial del asistente y consultas asociadas a tu cuenta.</p></div></header>
-              <div className="account-conversation-list">{overview.conversations.length ? overview.conversations.map((conversation) => <article key={conversation.id}><MessageCircle size={19} /><div><strong>{conversation.subject}</strong><span>{conversation.lastMessageAt}</span></div><span className="status-pill">{conversation.status === "OPEN" ? "Abierta" : conversation.status === "RESOLVED" ? "Resuelta" : "En seguimiento"}</span></article>) : <p className="account-empty">Todavía no hay conversaciones guardadas.</p>}</div>
-            </section>
-          ) : null}
+          {view === "conversaciones" ? <section className="account-section"><header className="account-section__head"><div><h2>Conversaciones</h2><p>Historial del asistente asociado únicamente a tu cuenta.</p></div></header><div className="account-conversation-list">{overview.conversations.length ? overview.conversations.map((conversation) => <article key={conversation.id}><MessageCircle size={19} /><div><strong>{conversation.subject}</strong><span>{conversation.lastMessageAt}</span></div><span className="status-pill">{conversation.status === "OPEN" ? "Abierta" : conversation.status === "RESOLVED" ? "Resuelta" : "En seguimiento"}</span></article>) : <p className="account-empty">Todavía no hay conversaciones guardadas.</p>}</div></section> : null}
 
-          {view === "solicitudes" ? (
-            <section className="account-section">
-              <header className="account-section__head">
-                <div>
-                  <h2>Arrepentimientos y devoluciones</h2>
-                  <p>Seguimiento de solicitudes registradas con tu cuenta o email.</p>
-                </div>
-                <Link href="/arrepentimiento">Nueva solicitud <ArrowRight size={15} /></Link>
-              </header>
-              <AccountConsumerRequests rows={overview.consumerRequests} />
-            </section>
-          ) : null}
+          {view === "solicitudes" ? <section className="account-section"><header className="account-section__head"><div><h2>Arrepentimientos y devoluciones</h2><p>Seguimiento de solicitudes registradas con tu cuenta o email.</p></div><Link href="/arrepentimiento">Nueva solicitud <ArrowRight size={15} /></Link></header><AccountConsumerRequests rows={overview.consumerRequests} /></section> : null}
 
-          {view === "ajustes" ? (
-            <>
-              <section className="account-settings-progress">
-                <div><span className="kicker">Estado del perfil</span><strong>{profileCompletion}% completo</strong><p>Completá contacto y dirección para acelerar tu próximo checkout.</p></div>
-                <div aria-label={`Perfil ${profileCompletion}% completo`}><span style={{ width: `${profileCompletion}%` }} /></div>
-              </section>
-              <section className="account-section"><header className="account-section__head"><div><span className="kicker">Perfil</span><h2>Identidad y contacto</h2><p>Información usada para completar compras y mostrar tu cuenta.</p></div></header><AccountSettingsForm profile={profile} /></section>
-              <AccountAddressManager initialAddresses={overview.addresses} />
-              <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Acceso protegido por Fortaleza Construcciones</strong><p>FZAC nunca puede ver tu contraseña. Podés solicitar un enlace seguro si necesitás cambiarla.</p></div><Link href="/recuperar">Cambiar contraseña <ArrowRight size={15} /></Link></section>
-            </>
-          ) : null}
+          {view === "ajustes" ? <>
+            <section className="account-settings-progress"><div><span className="kicker">Preparación de la cuenta</span><strong>{profileCompletion}% completo</strong><p>Completá estos datos una vez y acelerá tus próximos pedidos.</p></div><div aria-label={`Perfil ${profileCompletion}% completo`}><span style={{ width: `${profileCompletion}%` }} /></div></section>
+            <section className="account-setup-list" aria-label="Pasos para completar la cuenta">{setupItems.map((item) => <Link href={item.href} key={item.label}>{item.done ? <CheckCircle2 size={19} /> : <Circle size={19} />}<span><strong>{item.label}</strong><small>{item.done ? "Listo" : "Pendiente"}</small></span><ArrowRight size={16} /></Link>)}</section>
+            <section className="account-section"><header className="account-section__head"><div><span className="kicker">Perfil</span><h2>Identidad y contacto</h2><p>Información que completa tus compras automáticamente.</p></div></header><AccountSettingsForm profile={profile} /></section>
+            <AccountAddressManager initialAddresses={overview.addresses} />
+            <section className="account-section account-security-note"><LockKeyhole size={22} /><div><strong>Privacidad y acceso</strong><p>FZAC nunca puede ver tu contraseña ni datos de tarjeta. El cambio de clave usa un enlace seguro.</p></div><div className="account-security-note__actions"><Link href="/recuperar">Cambiar contraseña <ArrowRight size={15} /></Link><Link href="/privacidad"><ShieldCheck size={15} /> Ver privacidad</Link></div></section>
+          </> : null}
         </div>
       </div>
     </main>

@@ -48,6 +48,17 @@ const distanceFollowUp = await ask("30 km", [
 ]);
 assert.equal(distanceFollowUp.body.intent, "delivery");
 
+const accountHelp = await ask("Donde edito mi perfil y telefono?");
+assert.equal(accountHelp.body.intent, "account");
+assert.ok(accountHelp.body.actions.some((action) => action.href === "/cuenta/ajustes"));
+
+const topicReset = await ask("Cambiemos de tema", [
+  { role: "user", content: "Necesito envio" },
+  { role: "assistant", content: delivery.body.message }
+]);
+assert.equal(topicReset.body.intent, "fallback");
+assert.doesNotMatch(topicReset.body.message, /distancia|kilometros|direccion exacta/i);
+
 const returns = await ask("Quiero solicitar la devolucion del pedido");
 assert.equal(returns.body.intent, "returns");
 assert.ok(returns.body.sources.some((source) => source.href === "/cambios-y-devoluciones"));
@@ -124,6 +135,8 @@ console.log(
     greeting: greeting.body.intent,
     topicSwitch: paymentAfterDelivery.body.intent,
     distanceFollowUp: distanceFollowUp.body.intent,
+    accountHelp: accountHelp.body.intent,
+    topicReset: topicReset.body.intent,
     returns: returns.body.intent,
     knowledgeSources: [
       paymentAfterDelivery.body.knowledge_id,

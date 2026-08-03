@@ -223,6 +223,20 @@ function guidedReply(message: string, intent: AssistantIntent, history: Assistan
     };
   }
 
+  if (intent === "account" || includesAny(message, ["mi cuenta", "mis datos", "mi perfil", "mis direcciones", "cambiar contrasena"])) {
+    return {
+      message: chooseReply(
+        [
+          "Desde Mi cuenta podés actualizar nombre, teléfono, foto y direcciones. Esos datos se reutilizan en checkout; tu contraseña nunca queda visible para FZAC.",
+          "Tu cuenta reúne compras, productos, direcciones, conversaciones y solicitudes. En Ajustes podés completar el perfil y pedir un enlace seguro para cambiar la contraseña.",
+          "Para preparar una compra más rápido, completá teléfono y una dirección desde Mi cuenta. El email de acceso se administra con tu método de ingreso seguro."
+        ],
+        history
+      ),
+      options: fourOptions(["Abrir mi cuenta", "Editar mis datos", "Mis direcciones", "Cambiar contraseña"])
+    };
+  }
+
   if (intent === "returns" || includesAny(message, ["devolucion", "devolver", "cambio", "garantia"])) {
     return {
       message:
@@ -367,9 +381,12 @@ async function resolveConversationContext(input: {
 }
 
 function actionFor(label: string): AssistantAction {
-  const normalized = label.toLowerCase();
+  const normalized = normalizeAssistantText(label);
   if (normalized.includes("mis pedidos") || normalized.includes("estado de pedido")) return { label, href: "/cuenta/pedidos" };
   if (normalized.includes("direccion")) return { label, href: "/cuenta/direcciones" };
+  if (normalized.includes("mi cuenta")) return { label, href: "/cuenta" };
+  if (normalized.includes("editar mis datos")) return { label, href: "/cuenta/ajustes" };
+  if (normalized.includes("contrasena")) return { label, href: "/recuperar" };
   if (normalized.includes("carrito")) return { label, href: "/carrito" };
   if (normalized.includes("terminos")) return { label, href: "/terminos" };
   if (normalized.includes("categorias")) return { label, href: "/categorias" };
@@ -782,6 +799,7 @@ export async function POST(request: Request) {
   const knowledgeEligible = ![
     "greeting",
     "order_status",
+    "account",
     "stock",
     "price",
     "product_search",

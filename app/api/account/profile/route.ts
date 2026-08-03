@@ -12,6 +12,7 @@ const profileSchema = z.object({
     .trim()
     .min(2, "Ingresa tu nombre completo.")
     .max(120, "El nombre es demasiado largo.")
+    .regex(/^[\p{L}\p{M}\s.'-]+$/u, "Usá únicamente letras y separadores habituales.")
     .refine((value) => !hasSqlMeta(value), "El nombre contiene caracteres no permitidos."),
   phone: z
     .string()
@@ -57,7 +58,6 @@ export async function PATCH(request: Request) {
         email: user.email,
         full_name: payload.full_name,
         phone: payload.phone,
-        avatar_url: payload.avatar_url || null,
         updated_at: new Date().toISOString()
       },
       { onConflict: "id" }

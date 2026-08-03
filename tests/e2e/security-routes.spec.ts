@@ -126,6 +126,12 @@ test.describe("Controles de seguridad no destructivos", () => {
     }
   });
 
+  test("rentabilidad administrativa no expone datos a sesiones anónimas", async ({ request }) => {
+    const response = await request.get("/admin/rentabilidad", { maxRedirects: 0 });
+    expect([302, 303, 307, 308, 401, 403]).toContain(response.status());
+    expect(response.headers()["cache-control"] ?? "no-store").toContain("no-store");
+  });
+
   test("el entorno previo al dominio mantiene cerrada la indexación", async ({ request }) => {
     const robots = await request.get("/robots.txt");
     const content = await robots.text();

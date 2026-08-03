@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   ShoppingBasket,
+  BadgeDollarSign,
   TrendingUp,
   Users,
   X
@@ -50,7 +51,8 @@ const linkGroups = [
       { path: "/tickets", label: "Tickets", icon: FileText },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
-      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark }
+      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
+      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign }
     ]
   },
   {
