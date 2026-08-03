@@ -43,6 +43,11 @@ const sections = [
     use: "Ordena los productos por urgencia usando ventas confirmadas, cobertura y pedidos pendientes. La compra sugerida es una ayuda: nunca cambia stock ni publica una orden automaticamente."
   },
   {
+    title: "Compras y proveedores",
+    target: "Reposicion con trazabilidad.",
+    use: "Permite guardar proveedores, preparar ordenes y confirmar recepciones parciales o totales. Crear o enviar una orden no cambia stock: solo la recepcion fisica suma unidades."
+  },
+  {
     title: "Comprobantes de pago",
     target: "Revisión del proveedor de pagos.",
     use: "Muestra eventos de Mercado Pago y otros medios. Se usa cuando un cobro necesita verificacion."

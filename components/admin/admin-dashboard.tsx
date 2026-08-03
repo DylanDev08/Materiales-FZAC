@@ -318,6 +318,8 @@ export async function AdminDashboard({ period }: { period?: string }) {
           </nav>
         </div>
 
+        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
+
         <div className="admin-model-cards">
           <DashboardCycleCard
             amount={plus(periodIncome.value)}
@@ -421,8 +423,6 @@ export async function AdminDashboard({ period }: { period?: string }) {
             title="Evolución financiera"
           />
         </div>
-
-        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
 
         <section className="admin-model-footer">
           <PackageCheck size={19} />

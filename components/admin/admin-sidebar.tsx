@@ -26,6 +26,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  ShoppingBasket,
   TrendingUp,
   Users,
   X
@@ -33,40 +34,46 @@ import {
 
 const linkGroups = [
   {
-    title: "Control",
+    title: "Resumen",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
-      { path: "/logs", label: "Actividad", icon: Activity },
-      { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
-      { path: "?tab=notifications", label: "Notificaciones", icon: Bell }
+      { path: "?tab=notifications", label: "Notificaciones", icon: Bell },
+      { path: "/logs", label: "Actividad", icon: Activity }
     ]
   },
   {
-    title: "Operacion comercial",
+    title: "Ventas y clientes",
     links: [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
-      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
       { path: "/tickets", label: "Tickets", icon: FileText },
-      { path: "/arrepentimientos", label: "Arrepentimientos", icon: RotateCcw },
       { path: "/clientes", label: "Clientes", icon: Users },
+      { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
+      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark }
+    ]
+  },
+  {
+    title: "Stock y compras",
+    links: [
+      { path: "/inventario", label: "Inventario", icon: Package },
+      { path: "/compras", label: "Compras y proveedores", icon: ShoppingBasket },
+      { path: "/productos", label: "Productos", icon: Package },
+      { path: "/categorias", label: "Categorias", icon: Grid3X3 },
+      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp }
+    ]
+  },
+  {
+    title: "Atencion asistida",
+    links: [
       { path: "/chats", label: "Chats", icon: MessageCircle },
       { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit },
       { path: "/calidad-ia", label: "Calidad IA", icon: ListChecks }
     ]
   },
   {
-    title: "Catálogo",
+    title: "Configuracion",
     links: [
-      { path: "/productos", label: "Productos", icon: Package },
-      { path: "/categorias", label: "Categorias", icon: Grid3X3 },
-      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
-      { path: "/inventario", label: "Inventario", icon: Package }
-    ]
-  },
-  {
-    title: "Sistema",
-    links: [
+      { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
       { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
       { path: "/sistema", label: "Estado del sistema", icon: ShieldCheck },
       { path: "/apariencia", label: "Apariencia", icon: Palette },

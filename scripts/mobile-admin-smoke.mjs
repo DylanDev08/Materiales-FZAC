@@ -10,10 +10,14 @@ const port = Number(process.env.QA_ADMIN_PORT || 3211);
 const baseUrl = `http://${host}:${port}`;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env["\uFEFFNEXT_PUBLIC_SUPABASE_URL"];
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase server configuration is missing.");
+if (!supabaseUrl || !serviceRoleKey || !anonKey) throw new Error("Supabase server configuration is missing.");
 
 const admin = createClient(supabaseUrl, serviceRoleKey, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
+const anonymous = createClient(supabaseUrl, anonKey, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
 const suffix = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
@@ -32,16 +36,20 @@ const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.
 const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant-quality.png");
 const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-market-prices.png");
 const inventoryScreenshot = path.join(screenshotDirectory, "mobile-admin-inventory.png");
+const procurementScreenshot = path.join(screenshotDirectory, "mobile-admin-procurement.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 const desktopMarketPricesScreenshot = path.join(screenshotDirectory, "desktop-admin-market-prices.png");
 const desktopInventoryScreenshot = path.join(screenshotDirectory, "desktop-admin-inventory.png");
+const desktopProcurementScreenshot = path.join(screenshotDirectory, "desktop-admin-procurement.png");
 let userId = null;
 let financialMovementId = null;
 let assistantConversationId = null;
 let marketProductId = null;
 let marketSourceIds = [];
+let procurementSupplierId = null;
+let procurementOrderId = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -85,6 +93,18 @@ async function cleanup() {
       .delete()
       .eq("id", financialMovementId);
     if (auditLogError || financialMovementError) cleanupErrors.push("Could not remove isolated financial QA data.");
+  }
+  if (procurementOrderId) {
+    const { error: procurementInventoryError } = await admin.from("inventory_movements").delete().eq("product_id", marketProductId).eq("type", "PURCHASE_RECEIPT");
+    const { error: procurementAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "purchase_orders").eq("entity_id", procurementOrderId);
+    const { error: procurementItemsError } = await admin.from("purchase_order_items").delete().eq("purchase_order_id", procurementOrderId);
+    const { error: procurementOrderError } = await admin.from("purchase_orders").delete().eq("id", procurementOrderId);
+    if (procurementInventoryError || procurementAuditError || procurementItemsError || procurementOrderError) cleanupErrors.push("Could not remove isolated procurement order data.");
+  }
+  if (procurementSupplierId) {
+    const { error: supplierAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "suppliers").eq("entity_id", procurementSupplierId);
+    const { error: supplierError } = await admin.from("suppliers").delete().eq("id", procurementSupplierId);
+    if (supplierAuditError || supplierError) cleanupErrors.push("Could not remove isolated procurement supplier data.");
   }
   if (marketProductId) {
     const { error: marketAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "products").eq("entity_id", marketProductId);
@@ -361,6 +381,88 @@ try {
   const { data: updatedMarketProduct, error: updatedMarketProductError } = await admin.from("products").select("price").eq("id", marketProductId).single();
   assert(!updatedMarketProductError && Number(updatedMarketProduct?.price) === 1050, "Supervised market price was not persisted.");
 
+  const procurementLifecycle = await page.evaluate(async ({ productId, suffix }) => {
+    const call = async (method, body) => {
+      const response = await fetch("/api/admin/procurement", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      return { status: response.status, body: await response.json() };
+    };
+    const supplier = await call("POST", {
+      action: "SAVE_SUPPLIER",
+      code: `QA-${suffix}`.toUpperCase().slice(0, 40),
+      name: "Proveedor temporal QA",
+      contactName: "Control automatizado",
+      email: "proveedor-qa@example.com",
+      phone: "+54 341 555 0199",
+      taxId: "30-00000000-1",
+      paymentTerms: "Prueba sin obligacion comercial",
+      leadTimeDays: 5,
+      notes: "Dato aislado para validar compras",
+      active: true
+    });
+    if (supplier.status !== 201) return { stage: "supplier", supplier };
+    const requestKey = crypto.randomUUID();
+    const payload = {
+      action: "CREATE_ORDER",
+      supplierId: supplier.body.id,
+      requestKey,
+      expectedAt: "",
+      notes: "Orden temporal QA",
+      items: [{ productId, quantity: 2, unitCost: 100 }]
+    };
+    const created = await call("POST", payload);
+    const replay = await call("POST", payload);
+    if (created.status !== 201 || replay.status !== 201 || created.body.orderId !== replay.body.orderId) return { stage: "idempotency", supplier, created, replay };
+    const sent = await call("PATCH", { action: "ORDER_PURCHASE", orderId: created.body.orderId });
+    const snapshotResponse = await fetch("/api/admin/procurement", { cache: "no-store" });
+    const snapshot = await snapshotResponse.json();
+    const order = snapshot.orders?.find((item) => item.id === created.body.orderId);
+    const item = order?.items?.[0];
+    if (sent.status !== 200 || !item) return { stage: "sent", supplier, created, sent };
+    const receipt = { action: "RECEIVE_PURCHASE", orderId: created.body.orderId, items: [{ itemId: item.id, quantity: 2 }] };
+    const received = await call("PATCH", receipt);
+    const repeatedReceipt = await call("PATCH", receipt);
+    return { stage: "done", supplierId: supplier.body.id, orderId: created.body.orderId, received, repeatedReceipt };
+  }, { productId: marketProductId, suffix });
+  assert(procurementLifecycle.stage === "done", `Procurement lifecycle failed at ${procurementLifecycle.stage}.`);
+  assert(procurementLifecycle.received?.status === 200 && procurementLifecycle.received?.body?.status === "RECEIVED", "Purchase receipt was not confirmed.");
+  assert(procurementLifecycle.repeatedReceipt?.status === 409, "A purchase order was received twice.");
+  procurementSupplierId = procurementLifecycle.supplierId;
+  procurementOrderId = procurementLifecycle.orderId;
+  const [anonymousSupplier, anonymousOrder] = await Promise.all([
+    anonymous.from("suppliers").select("id").eq("id", procurementSupplierId),
+    anonymous.from("purchase_orders").select("id").eq("id", procurementOrderId)
+  ]);
+  assert(Boolean(anonymousSupplier.error) || anonymousSupplier.data?.length === 0, "Anonymous users can read suppliers.");
+  assert(Boolean(anonymousOrder.error) || anonymousOrder.data?.length === 0, "Anonymous users can read purchase orders.");
+  const { data: receivedProduct, error: receivedProductError } = await admin.from("products").select("stock").eq("id", marketProductId).single();
+  assert(!receivedProductError && Number(receivedProduct?.stock) === 3, "Purchase receipt did not increase stock exactly once.");
+
+  await page.goto(`${baseUrl}${adminPath}/compras`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-procurement").waitFor({ state: "visible", timeout: 25_000 });
+  await page.locator(".admin-procurement__loading").waitFor({ state: "hidden", timeout: 25_000 });
+  await page.getByText("Proveedor temporal QA").first().waitFor({ state: "visible", timeout: 25_000 });
+  const procurementMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-procurement button, .admin-procurement a"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(procurementMobileMetrics.documentWidth <= procurementMobileMetrics.viewport + 2, "Procurement generates mobile horizontal overflow.");
+  assert(procurementMobileMetrics.undersizedActions === 0, "Procurement contains undersized touch actions.");
+  await page.screenshot({ path: procurementScreenshot, fullPage: true });
+  await page.getByRole("button", { name: "Nueva orden" }).first().click();
+  await page.locator(".admin-procurement__form").waitFor({ state: "visible" });
+  const procurementFormMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedFields: Array.from(document.querySelectorAll(".admin-procurement__form input, .admin-procurement__form select, .admin-procurement__form button"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(procurementFormMetrics.documentWidth <= procurementFormMetrics.viewport + 2, "Procurement form generates mobile horizontal overflow.");
+  assert(procurementFormMetrics.undersizedFields === 0, "Procurement form contains undersized controls.");
+  await page.getByRole("button", { name: "Proveedores" }).click();
+  await page.getByRole("heading", { name: "Nuevo proveedor" }).waitFor({ state: "visible" });
+
   await page.goto(`${baseUrl}${adminPath}/inventario`, { waitUntil: "domcontentloaded" });
   await page.locator(".admin-inventory").waitFor({ state: "visible", timeout: 25_000 });
   await page.locator(".admin-inventory__skeleton").waitFor({ state: "hidden", timeout: 25_000 });
@@ -417,6 +519,12 @@ try {
   const desktopInventoryMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   assert(desktopInventoryMetrics.documentWidth <= desktopInventoryMetrics.viewport + 2, "Inventory forecast generates desktop horizontal overflow.");
   await desktopPage.screenshot({ path: desktopInventoryScreenshot, fullPage: true });
+  await desktopPage.goto(`${baseUrl}${adminPath}/compras`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-procurement").waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.locator(".admin-procurement__loading").waitFor({ state: "hidden", timeout: 25_000 });
+  const desktopProcurementMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  assert(desktopProcurementMetrics.documentWidth <= desktopProcurementMetrics.viewport + 2, "Procurement generates desktop horizontal overflow.");
+  await desktopPage.screenshot({ path: desktopProcurementScreenshot, fullPage: true });
   await desktopContext.close();
 
   process.stdout.write(
@@ -432,6 +540,9 @@ try {
       marketPriceIntelligenceResponsive: true,
       marketPriceApprovalLifecycle: true,
       inventoryForecastResponsive: true,
+      procurementResponsive: true,
+      procurementLifecycle: true,
+      procurementIdempotency: true,
       sidebarDrawer: true,
       desktopSidebarCollapse: true,
       sharedMobileRoutes: true,
@@ -444,11 +555,13 @@ try {
         path.relative(process.cwd(), qualityScreenshot),
         path.relative(process.cwd(), marketPricesScreenshot),
         path.relative(process.cwd(), inventoryScreenshot),
+        path.relative(process.cwd(), procurementScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot),
         path.relative(process.cwd(), desktopMarketPricesScreenshot),
-        path.relative(process.cwd(), desktopInventoryScreenshot)
+        path.relative(process.cwd(), desktopInventoryScreenshot),
+        path.relative(process.cwd(), desktopProcurementScreenshot)
       ]
     })}\n`
   );

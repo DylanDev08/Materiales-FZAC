@@ -28,9 +28,9 @@
     "test:load": "node scripts/load-smoke.mjs",
     "qa:cleanup": "node --env-file-if-exists=.env scripts/cleanup-qa-orders.mjs",
     "test:e2e": "playwright test",
-    "db:types": "supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
-    "db:push": "supabase db push",
-    "db:seed": "supabase db reset --linked"
+    "db:types": "npx supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
+    "db:push": "npx supabase db push",
+    "db:seed": "npx supabase db reset --linked"
   },
   "dependencies": {
     "@emnapi/core": "1.11.2",

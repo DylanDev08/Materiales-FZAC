@@ -3896,6 +3896,596 @@ body:has(.admin-page) .site-main {
   }
 }
 
+/* Procurement workspace and final admin information architecture. */
+.admin-page {
+  background: #080808;
+}
+
+.admin-workspace {
+  background: #0e0e0e;
+}
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  min-height: 72px;
+  background: rgba(18, 18, 18, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.admin-content {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.admin-sidebar {
+  background: #080808;
+}
+
+.admin-sidebar nav {
+  gap: 9px;
+}
+
+.admin-sidebar__group {
+  gap: 3px;
+}
+
+.admin-sidebar__group p {
+  margin-top: 9px;
+}
+
+.admin-sidebar nav a {
+  min-height: 42px;
+}
+
+.admin-procurement {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-procurement__intro {
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-left: 3px solid var(--color-yellow);
+  background: linear-gradient(90deg, rgba(244, 196, 0, 0.09), rgba(255, 255, 255, 0.02));
+  padding: 18px 20px;
+}
+
+.admin-procurement__intro h2,
+.admin-procurement__intro p,
+.admin-procurement__orders h2,
+.admin-procurement__form h2 {
+  margin: 0;
+}
+
+.admin-procurement__intro h2 {
+  margin-top: 4px;
+  font-size: 1.25rem;
+}
+
+.admin-procurement__intro p {
+  max-width: 760px;
+  margin-top: 7px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.admin-procurement__tabs {
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.admin-procurement__tabs button {
+  min-width: max-content;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.admin-procurement__tabs button:hover,
+.admin-procurement__tabs button.active {
+  border-color: rgba(244, 196, 0, 0.28);
+  background: rgba(244, 196, 0, 0.1);
+  color: var(--color-white);
+}
+
+.admin-procurement__tabs button:last-child {
+  margin-left: auto;
+}
+
+.admin-procurement__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-block: 1px solid var(--color-border);
+}
+
+.admin-procurement__metrics > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 15px 16px;
+}
+
+.admin-procurement__metrics > span + span {
+  border-left: 1px solid var(--color-border);
+}
+
+.admin-procurement__metrics strong {
+  overflow: hidden;
+  color: var(--color-white);
+  font-size: 1.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-procurement__metrics small {
+  color: var(--color-muted);
+}
+
+.admin-procurement__loading {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-procurement__loading span {
+  height: 72px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(100deg, #151515 20%, #222 42%, #151515 65%);
+  background-size: 240% 100%;
+  animation: admin-shimmer 1.35s linear infinite;
+}
+
+.admin-procurement__orders,
+.admin-procurement__form,
+.admin-procurement__suppliers {
+  border: 1px solid var(--color-border);
+  background: #161616;
+  padding: 18px;
+}
+
+.admin-procurement__orders > header,
+.admin-procurement__form > header,
+.admin-procurement__suppliers > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.admin-procurement__form > header p {
+  margin: 5px 0 0;
+  color: var(--color-muted);
+}
+
+.admin-procurement__form > header > strong {
+  color: var(--color-yellow);
+  font-size: 1.35rem;
+}
+
+.admin-procurement-order {
+  border-left: 3px solid var(--color-yellow);
+  border-bottom: 1px solid var(--color-border);
+  background: #111;
+}
+
+.admin-procurement-order--success { border-left-color: #0f9d66; }
+.admin-procurement-order--danger { border-left-color: #e5533d; }
+
+.admin-procurement-order + .admin-procurement-order {
+  margin-top: 8px;
+}
+
+.admin-procurement-order__main {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 42px minmax(170px, 1.25fr) minmax(105px, 0.55fr) minmax(120px, 0.65fr) minmax(130px, 0.6fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.admin-procurement-order__toggle {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  background: #181818;
+  color: var(--color-muted);
+}
+
+.admin-procurement-order__toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.admin-procurement-order__main > div:nth-child(2),
+.admin-procurement-order__main > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-procurement-order__main strong {
+  color: var(--color-white);
+}
+
+.admin-procurement-order__main small {
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-procurement-order__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.admin-procurement-order__actions .btn {
+  min-height: 42px;
+  padding-inline: 11px;
+}
+
+.admin-procurement-order__items {
+  display: grid;
+  border-top: 1px solid var(--color-border);
+  padding: 8px 14px 14px 56px;
+}
+
+.admin-procurement-order__items > span {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 100px 130px;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-procurement-order__items small,
+.admin-procurement-order__items em,
+.admin-procurement-order__items b {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-style: normal;
+}
+
+.admin-procurement-order__items small {
+  grid-row: 2;
+}
+
+.admin-procurement-order__panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(auto-fit, minmax(170px, 0.55fr));
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid rgba(244, 196, 0, 0.22);
+  background: rgba(244, 196, 0, 0.045);
+  padding: 14px;
+}
+
+.admin-procurement-order__panel p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.admin-procurement-order__panel label,
+.admin-procurement__form label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.admin-procurement-order__panel input,
+.admin-procurement-order__panel textarea,
+.admin-procurement__form input,
+.admin-procurement__form select,
+.admin-procurement__form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #0d0d0d;
+  color: var(--color-white);
+  padding: 10px 12px;
+  font-size: 1rem;
+}
+
+.admin-procurement-order__panel textarea,
+.admin-procurement__form textarea {
+  resize: vertical;
+}
+
+.admin-procurement-order__panel-actions,
+.admin-procurement__form > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-procurement__form {
+  display: grid;
+  gap: 15px;
+}
+
+.admin-procurement__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-procurement__lines {
+  display: grid;
+  gap: 8px;
+  border-block: 1px solid var(--color-border);
+  padding-block: 14px;
+}
+
+.admin-procurement__line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-procurement__line {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 130px 170px 46px;
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-procurement__line > button {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  background: #111;
+  color: var(--color-muted);
+}
+
+.admin-procurement__line > button:hover:not(:disabled) {
+  border-color: rgba(229, 83, 61, 0.45);
+  color: #ff8170;
+}
+
+.admin-procurement__check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.admin-procurement__check input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.admin-procurement__supplier-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(290px, 0.65fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.admin-procurement__suppliers {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-procurement__suppliers > button {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  background: #101010;
+  color: var(--color-white);
+  padding: 9px 11px;
+  text-align: left;
+}
+
+.admin-procurement__suppliers > button:hover {
+  border-color: rgba(244, 196, 0, 0.32);
+}
+
+.admin-procurement__suppliers > button.is-inactive {
+  opacity: 0.55;
+}
+
+.admin-procurement__suppliers span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-procurement__suppliers small {
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-procurement__suppliers em {
+  min-width: max-content;
+  color: var(--color-yellow);
+  font-style: normal;
+  font-weight: 900;
+}
+
+@media (min-width: 1021px) {
+  .admin-app-shell {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+
+  .admin-app-shell:has(.admin-sidebar.is-collapsed) {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1120px) {
+  .admin-procurement-order__main {
+    grid-template-columns: 42px minmax(170px, 1fr) 110px 130px;
+  }
+
+  .admin-procurement-order__main > .status-pill,
+  .admin-procurement-order__actions {
+    grid-column: span 2;
+  }
+
+  .admin-procurement-order__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-procurement__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-procurement__metrics > span:nth-child(4) {
+    border-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-content {
+    padding: 14px;
+  }
+
+  .admin-topbar {
+    min-height: 64px;
+  }
+
+  .admin-procurement__intro {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .admin-procurement__intro .btn,
+  .admin-procurement__orders > header .btn,
+  .admin-procurement__form > footer .btn {
+    width: 100%;
+  }
+
+  .admin-procurement__tabs button:last-child {
+    margin-left: 0;
+  }
+
+  .admin-procurement__tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .admin-procurement__tabs button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .admin-procurement__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-procurement__metrics > span,
+  .admin-procurement__metrics > span:nth-child(4) {
+    border-left: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .admin-procurement__metrics > span:nth-child(even) {
+    border-left: 1px solid var(--color-border);
+  }
+
+  .admin-procurement__orders,
+  .admin-procurement__form,
+  .admin-procurement__suppliers {
+    padding: 13px;
+  }
+
+  .admin-procurement__orders > header,
+  .admin-procurement__form > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-procurement-order__main {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .admin-procurement-order__main > span,
+  .admin-procurement-order__actions {
+    grid-column: 1 / -1;
+  }
+
+  .admin-procurement-order__main > span:not(.status-pill) {
+    grid-template-columns: 110px 1fr;
+  }
+
+  .admin-procurement-order__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-procurement-order__actions .btn {
+    width: 100%;
+  }
+
+  .admin-procurement-order__items {
+    padding: 8px 12px 12px;
+  }
+
+  .admin-procurement-order__items > span,
+  .admin-procurement-order__panel,
+  .admin-procurement__form-grid,
+  .admin-procurement__line,
+  .admin-procurement__supplier-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-procurement-order__items small {
+    grid-row: auto;
+  }
+
+  .admin-procurement-order__panel-actions,
+  .admin-procurement__form > footer,
+  .admin-procurement__line-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-procurement-order__panel-actions .btn,
+  .admin-procurement__line-head .btn {
+    width: 100%;
+  }
+
+  .admin-procurement__line > button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1020px) {
   .admin-sidebar__collapse {
     display: none;
@@ -5954,7 +6544,7 @@ body:has(.admin-page) .site-main {
 /* Keep the desktop shell authoritative after legacy admin rules. */
 @media (min-width: 1021px) {
   .admin-app-shell {
-    grid-template-columns: 236px minmax(0, 1fr);
+    grid-template-columns: 248px minmax(0, 1fr);
   }
 
   .admin-app-shell:has(.admin-sidebar.is-collapsed) {

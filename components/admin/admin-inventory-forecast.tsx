@@ -182,7 +182,7 @@ export function AdminInventoryForecast({ adminPath }: { adminPath: string }) {
               <span><small>Reponer</small><strong>{row.suggestedOrder || "-"}</strong></span>
             </div>
             <div className="admin-inventory__signal"><span className={`status-pill status-pill--${statusTone(row.status)}`}>{statusLabels[row.status]}</span><p>{row.reason}</p><small>Confianza {confidenceLabel(row.confidence)} · punto de reposición {row.reorderPoint}</small></div>
-            <Link className="btn btn--ghost" href={`${adminPath}/productos?product=${encodeURIComponent(row.productId)}`}><PackageCheck size={17} />Editar stock</Link>
+            <Link className="btn btn--ghost" href={`${adminPath}/compras?product=${encodeURIComponent(row.productId)}`}><PackageCheck size={17} />Preparar compra</Link>
           </article>)}
         </div>}
       </section>
