@@ -39,19 +39,28 @@ export const marketPriceObservationSchema = z.object({
   path: ["expiresAt"]
 });
 
+export const marketPriceApplySchema = z.object({
+  action: z.literal("APPLY_PRICE"),
+  productId: z.string().uuid(),
+  proposedPrice: z.coerce.number().positive().max(1_000_000_000),
+  expectedCurrentPrice: z.coerce.number().nonnegative().max(1_000_000_000),
+  reason: safeText(10, 300)
+});
+
 export const marketPricePayloadSchema = z.union([
   marketPriceSourceSchema,
-  marketPriceObservationSchema
+  marketPriceObservationSchema,
+  marketPriceApplySchema
 ]);
 
 export const marketFeedSchema = z.object({
   items: z.array(z.object({
-    external_key: z.string().trim().min(1).max(160),
-    fzac_sku: z.string().trim().min(1).max(80),
-    name: z.string().trim().min(2).max(240),
+    external_key: safeText(1, 160),
+    fzac_sku: safeText(1, 80),
+    name: safeText(2, 240),
     price: z.coerce.number().positive().max(1_000_000_000),
     currency: z.literal("ARS").default("ARS"),
-    sale_unit: z.string().trim().min(1).max(40),
+    sale_unit: safeText(1, 40),
     equivalent_quantity: z.coerce.number().positive().max(100_000).default(1),
     url: httpsUrl.optional(),
     observed_at: z.string().datetime().optional()

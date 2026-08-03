@@ -30,12 +30,16 @@ const closedScreenshot = path.join(screenshotDirectory, "mobile-admin-dashboard.
 const openScreenshot = path.join(screenshotDirectory, "mobile-admin-navigation.png");
 const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.png");
 const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant-quality.png");
+const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-market-prices.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
+const desktopMarketPricesScreenshot = path.join(screenshotDirectory, "desktop-admin-market-prices.png");
 let userId = null;
 let financialMovementId = null;
 let assistantConversationId = null;
+let marketProductId = null;
+let marketSourceIds = [];
 let browser = null;
 let server = null;
 let testError = null;
@@ -79,6 +83,15 @@ async function cleanup() {
       .delete()
       .eq("id", financialMovementId);
     if (auditLogError || financialMovementError) cleanupErrors.push("Could not remove isolated financial QA data.");
+  }
+  if (marketProductId) {
+    const { error: marketAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "products").eq("entity_id", marketProductId);
+    const { error: marketProductError } = await admin.from("products").delete().eq("id", marketProductId);
+    if (marketAuditError || marketProductError) cleanupErrors.push("Could not remove isolated market price product data.");
+  }
+  if (marketSourceIds.length) {
+    const { error: marketSourceError } = await admin.from("market_price_sources").delete().in("id", marketSourceIds);
+    if (marketSourceError) cleanupErrors.push("Could not remove isolated market price sources.");
   }
   const { error: notificationError } = await admin
     .from("notifications")
@@ -269,6 +282,81 @@ try {
     .single();
   assert(!resolvedReviewError && resolvedReview?.status === "RESOLVED", "Assistant quality review was not persisted as resolved.");
 
+  const { data: marketCategory, error: marketCategoryError } = await admin
+    .from("categories")
+    .select("id")
+    .eq("active", true)
+    .limit(1)
+    .single();
+  if (marketCategoryError || !marketCategory) throw new Error("Could not find a category for isolated market price QA.");
+  const { data: marketProduct, error: marketProductError } = await admin.from("products").insert({
+    slug: `qa-market-${suffix}`,
+    sku: `QA-MARKET-${suffix}`.slice(0, 80),
+    name: "Producto temporal de inteligencia de precios",
+    description: "Producto aislado para validar decisiones de precio.",
+    category_id: marketCategory.id,
+    subcategory: "QA",
+    brand: "FZAC QA",
+    price: 800,
+    stock: 1,
+    stock_minimum: 0,
+    unit: "bolsa",
+    image_url: "",
+    gallery: [],
+    specifications: {},
+    active: true
+  }).select("id").single();
+  if (marketProductError || !marketProduct) throw new Error("Could not create isolated market price product.");
+  marketProductId = marketProduct.id;
+  const { data: marketSources, error: marketSourcesError } = await admin.from("market_price_sources").insert([
+    { slug: `qa-market-a-${suffix}`, name: "Fuente QA A", source_type: "MANUAL", active: true, trusted: true, created_by: userId },
+    { slug: `qa-market-b-${suffix}`, name: "Fuente QA B", source_type: "MANUAL", active: true, trusted: true, created_by: userId }
+  ]).select("id");
+  if (marketSourcesError || !marketSources || marketSources.length !== 2) throw new Error("Could not create isolated market price sources.");
+  marketSourceIds = marketSources.map((source) => source.id);
+  const observedAt = new Date(Date.now() - 60_000).toISOString();
+  const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+  const { error: marketObservationsError } = await admin.from("market_price_observations").insert(marketSources.map((source, index) => ({
+    product_id: marketProductId,
+    source_id: source.id,
+    external_key: `qa-${index}-${suffix}`,
+    external_name: `Producto comparable QA ${index + 1}`,
+    observed_price: index ? 1050 : 1000,
+    currency: "ARS",
+    sale_unit: "bolsa",
+    equivalent_quantity: 1,
+    observed_at: observedAt,
+    expires_at: expiresAt,
+    fingerprint: crypto.createHash("sha256").update(`${source.id}-${suffix}`).digest("hex"),
+    metadata: { origin: "QA" },
+    created_by: userId
+  })));
+  if (marketObservationsError) throw new Error("Could not create isolated market price observations.");
+
+  await page.goto(`${baseUrl}${adminPath}/precios-mercado`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-market-prices").last().waitFor({ state: "visible", timeout: 25_000 });
+  await page.getByText("Cargando inteligencia de precios...").last().waitFor({ state: "hidden", timeout: 25_000 });
+  const marketDecision = page.locator(".admin-market-prices__decision").filter({ hasText: "Producto temporal de inteligencia de precios" }).last();
+  await marketDecision.waitFor({ state: "visible", timeout: 25_000 });
+  const marketPriceMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-market-prices button"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(marketPriceMobileMetrics.documentWidth <= marketPriceMobileMetrics.viewport + 2, "Market price intelligence generates mobile horizontal overflow.");
+  assert(marketPriceMobileMetrics.undersizedActions === 0, "Market price intelligence contains undersized touch actions.");
+  await marketDecision.getByRole("button", { name: /Revisar/ }).click();
+  await marketDecision.getByText("Confirmación de publicación").waitFor({ state: "visible" });
+  await page.screenshot({ path: marketPricesScreenshot, fullPage: true });
+  const marketApplyResponse = page.waitForResponse((response) => response.url().includes("/api/admin/market-prices") && response.request().method() === "POST");
+  await marketDecision.getByRole("button", { name: "Aplicar precio" }).click();
+  const marketApply = await marketApplyResponse;
+  assert(marketApply.status() === 200, "Admin could not apply a supervised market price suggestion.");
+  await page.getByText(/Precio actualizado con evidencia vigente/).waitFor({ state: "visible" });
+  const { data: updatedMarketProduct, error: updatedMarketProductError } = await admin.from("products").select("price").eq("id", marketProductId).single();
+  assert(!updatedMarketProductError && Number(updatedMarketProduct?.price) === 1050, "Supervised market price was not persisted.");
+
   for (const route of ["pedidos", "pagos", "clientes", "productos", "logs"]) {
     await page.goto(`${baseUrl}${adminPath}/${route}`, { waitUntil: "domcontentloaded" });
     await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
@@ -300,6 +388,12 @@ try {
   await desktopPage.goto(`${baseUrl}${adminPath}/finanzas`, { waitUntil: "domcontentloaded" });
   await desktopPage.locator(".admin-finance-page").last().waitFor({ state: "visible", timeout: 25_000 });
   await desktopPage.screenshot({ path: desktopFinanceScreenshot, fullPage: true });
+  await desktopPage.goto(`${baseUrl}${adminPath}/precios-mercado`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-market-prices").last().waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.getByText("Cargando inteligencia de precios...").last().waitFor({ state: "hidden", timeout: 25_000 });
+  const desktopMarketMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  assert(desktopMarketMetrics.documentWidth <= desktopMarketMetrics.viewport + 2, "Market price intelligence generates desktop horizontal overflow.");
+  await desktopPage.screenshot({ path: desktopMarketPricesScreenshot, fullPage: true });
   await desktopContext.close();
 
   process.stdout.write(
@@ -312,6 +406,8 @@ try {
       financesResponsive: true,
       assistantQualityResponsive: true,
       assistantQualityLifecycle: true,
+      marketPriceIntelligenceResponsive: true,
+      marketPriceApprovalLifecycle: true,
       sidebarDrawer: true,
       desktopSidebarCollapse: true,
       sharedMobileRoutes: true,
@@ -322,9 +418,11 @@ try {
         path.relative(process.cwd(), openScreenshot),
         path.relative(process.cwd(), financeScreenshot),
         path.relative(process.cwd(), qualityScreenshot),
+        path.relative(process.cwd(), marketPricesScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
-        path.relative(process.cwd(), desktopFinanceScreenshot)
+        path.relative(process.cwd(), desktopFinanceScreenshot),
+        path.relative(process.cwd(), desktopMarketPricesScreenshot)
       ]
     })}\n`
   );

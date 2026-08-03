@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
+import { invalidateAssistantCatalogCache } from "@/lib/assistant/catalog-intelligence";
 import { getApiAdmin } from "@/lib/auth/api-guards";
-import { getMarketPriceAdminData, saveMarketObservation } from "@/lib/market-pricing/service";
+import { applyMarketPriceSuggestion, getMarketPriceAdminData, saveMarketObservation } from "@/lib/market-pricing/service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
@@ -56,6 +57,23 @@ export async function POST(request: Request) {
         message: `Fuente de precios guardada: ${data.name}`
       });
       return Response.json({ source: data }, { status: payload.id ? 200 : 201 });
+    }
+
+    if (payload.action === "APPLY_PRICE") {
+      const result = await applyMarketPriceSuggestion({
+        productId: payload.productId,
+        proposedPrice: payload.proposedPrice,
+        expectedCurrentPrice: payload.expectedCurrentPrice,
+        reason: payload.reason,
+        actorId: access.profile.id,
+        actorEmail: access.profile.email
+      });
+      invalidateAssistantCatalogCache();
+      return Response.json({
+        ok: true,
+        message: "Precio actualizado con evidencia vigente y registro de auditoria.",
+        ...result
+      });
     }
 
     const observation = await saveMarketObservation({

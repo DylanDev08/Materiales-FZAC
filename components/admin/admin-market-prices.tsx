@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { DatabaseZap, RefreshCw, Save, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CheckCircle2, DatabaseZap, RefreshCw, Save, ShieldCheck, TrendingUp } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 
 type Source = {
@@ -35,9 +35,54 @@ type SyncRun = {
   started_at: string;
   source?: { name?: string } | null;
 };
-type AdminData = { sources: Source[]; observations: Observation[]; runs: SyncRun[]; products: ProductOption[] };
+type MarketAnalysis = {
+  productId: string;
+  productName: string;
+  sku: string;
+  saleUnit: string;
+  status: "READY" | "INSUFFICIENT" | "ANOMALOUS";
+  action: "KEEP" | "RAISE" | "LOWER" | "REVIEW";
+  observations: number;
+  sources: number;
+  outliers: number;
+  minimum: number | null;
+  median: number | null;
+  maximum: number | null;
+  currentPrice: number;
+  suggestedPrice: number | null;
+  differencePercent: number | null;
+  spreadPercent: number | null;
+  trendPercent: number | null;
+  confidence: number;
+  observedAt: string | null;
+  history: Array<{ date: string; median: number; observations: number }>;
+  reason: string;
+};
+type MarketOverview = { products: number; ready: number; actionable: number; aligned: number; review: number; insufficient: number; anomalous: number };
+type AdminData = {
+  sources: Source[];
+  observations: Observation[];
+  runs: SyncRun[];
+  products: ProductOption[];
+  analyses: MarketAnalysis[];
+  overview: MarketOverview;
+};
 
-const emptyData: AdminData = { sources: [], observations: [], runs: [], products: [] };
+const emptyData: AdminData = {
+  sources: [], observations: [], runs: [], products: [], analyses: [],
+  overview: { products: 0, ready: 0, actionable: 0, aligned: 0, review: 0, insufficient: 0, anomalous: 0 }
+};
+
+function normalizedData(value: Partial<AdminData>): AdminData {
+  return {
+    sources: value.sources ?? [],
+    observations: value.observations ?? [],
+    runs: value.runs ?? [],
+    products: value.products ?? [],
+    analyses: value.analyses ?? [],
+    overview: { ...emptyData.overview, ...(value.overview ?? {}) }
+  };
+}
 
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({})) as Record<string, unknown>;
@@ -54,19 +99,16 @@ export function AdminMarketPrices() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [notice, setNotice] = useState("");
+  const [proposal, setProposal] = useState<{ productId: string; price: string; reason: string } | null>(null);
   const [sourceForm, setSourceForm] = useState({ id: "", name: "", slug: "", sourceType: "MANUAL" as Source["source_type"], baseUrl: "", feedUrl: "", active: true, trusted: false });
   const [observationForm, setObservationForm] = useState({ productId: "", sourceId: "", externalName: "", observedPrice: "", saleUnit: "", equivalentQuantity: "1", sourceUrl: "" });
 
   async function load() {
     const response = await fetch("/api/admin/market-prices", { cache: "no-store" });
     const next = await readResponse(response) as unknown as AdminData;
-    setData({
-      sources: next.sources ?? [],
-      observations: next.observations ?? [],
-      runs: next.runs ?? [],
-      products: next.products ?? []
-    });
+    setData(normalizedData(next));
   }
 
   useEffect(() => {
@@ -76,7 +118,7 @@ export function AdminMarketPrices() {
       .then((next) => {
         if (!active) return;
         const result = next as unknown as AdminData;
-        setData({ sources: result.sources ?? [], observations: result.observations ?? [], runs: result.runs ?? [], products: result.products ?? [] });
+        setData(normalizedData(result));
       })
       .catch((error: unknown) => active && setNotice(error instanceof Error ? error.message : "No pudimos cargar las referencias."))
       .finally(() => active && setLoading(false));
@@ -84,6 +126,40 @@ export function AdminMarketPrices() {
   }, []);
 
   const trustedCount = useMemo(() => data.sources.filter((source) => source.active && source.trusted).length, [data.sources]);
+  const visibleAnalyses = useMemo(
+    () => data.analyses
+      .filter((analysis) => analysis.action !== "KEEP" && (analysis.sources > 0 || analysis.status === "ANOMALOUS"))
+      .slice(0, 30),
+    [data.analyses]
+  );
+
+  async function applyProposal(event: FormEvent<HTMLFormElement>, analysis: MarketAnalysis) {
+    event.preventDefault();
+    if (!proposal || applying) return;
+    setApplying(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/market-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "APPLY_PRICE",
+          productId: analysis.productId,
+          proposedPrice: proposal.price,
+          expectedCurrentPrice: analysis.currentPrice,
+          reason: proposal.reason
+        })
+      });
+      const result = await readResponse(response);
+      setProposal(null);
+      setNotice(typeof result.message === "string" ? result.message : "Precio actualizado correctamente.");
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No pudimos aplicar la propuesta.");
+    } finally {
+      setApplying(false);
+    }
+  }
 
   async function saveSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,9 +259,12 @@ export function AdminMarketPrices() {
       </section>
 
       <div className="admin-market-prices__summary" aria-label="Resumen de inteligencia de precios">
-        <span><strong>{data.sources.length}</strong> fuentes</span>
-        <span><strong>{trustedCount}</strong> confiables activas</span>
-        <span><strong>{data.observations.length}</strong> observaciones recientes</span>
+        <span><strong>{data.overview.ready}</strong> con evidencia</span>
+        <span><strong>{data.overview.actionable}</strong> por decidir</span>
+        <span><strong>{data.overview.aligned}</strong> alineados</span>
+        <span><strong>{data.overview.review}</strong> a revisar</span>
+        <span><strong>{data.overview.insufficient}</strong> sin evidencia</span>
+        <span><strong>{trustedCount}</strong> fuentes confiables</span>
         <button className="btn btn--ghost" type="button" onClick={() => void syncFeeds()} disabled={syncing}>
           <RefreshCw size={17} className={syncing ? "is-spinning" : undefined} /> {syncing ? "Leyendo fuentes" : "Sincronizar"}
         </button>
@@ -193,6 +272,50 @@ export function AdminMarketPrices() {
 
       {notice ? <p className="notice" role="status">{notice}</p> : null}
       {loading ? <div className="admin-panel admin-empty">Cargando inteligencia de precios...</div> : null}
+
+      {!loading ? <section className="admin-panel admin-market-prices__decisions">
+        <header><TrendingUp size={20} /><div><h2>Decisiones de precio</h2><p>Señales calculadas con la lectura más reciente de cada fuente verificada. Nada se publica sin tu aprobación.</p></div></header>
+        {!visibleAnalyses.length ? <p className="admin-empty">{data.overview.ready ? "No hay decisiones pendientes. Los productos con evidencia suficiente están alineados." : "Todavía no hay evidencia comparable. Cargá dos fuentes verificadas para comenzar."}</p> : <div className="admin-market-prices__decision-list">
+          {visibleAnalyses.map((analysis) => {
+            const actionable = analysis.status === "READY" && (analysis.action === "RAISE" || analysis.action === "LOWER") && analysis.suggestedPrice !== null;
+            const selected = proposal?.productId === analysis.productId;
+            const maximumHistory = Math.max(...analysis.history.map((point) => point.median), 1);
+            return <article className={`admin-market-prices__decision admin-market-prices__decision--${analysis.action.toLowerCase()}`} key={analysis.productId}>
+              <div className="admin-market-prices__decision-main">
+                <span className="admin-market-prices__signal-icon" aria-hidden="true">
+                  {analysis.action === "RAISE" ? <ArrowUpRight size={19} /> : analysis.action === "LOWER" ? <ArrowDownRight size={19} /> : analysis.action === "KEEP" ? <CheckCircle2 size={19} /> : <AlertTriangle size={19} />}
+                </span>
+                <div><strong>{analysis.productName}</strong><small>{analysis.sku} · {analysis.saleUnit}</small></div>
+              </div>
+              <div className="admin-market-prices__values">
+                <span><small>FZAC</small><strong>{currency(analysis.currentPrice)}</strong></span>
+                <span><small>Mediana</small><strong>{analysis.median === null ? "Sin datos" : currency(analysis.median)}</strong></span>
+                <span><small>Confianza</small><strong>{analysis.confidence}%</strong></span>
+                <span><small>Fuentes</small><strong>{analysis.sources}</strong></span>
+              </div>
+              <div className="admin-market-prices__history" aria-label={`Historial reciente de ${analysis.productName}`}>
+                {analysis.history.length ? analysis.history.map((point) => <span key={point.date} style={{ height: `${Math.max(18, (point.median / maximumHistory) * 100)}%` }} title={`${point.date}: ${currency(point.median)}`} />) : <small>Sin historial suficiente</small>}
+              </div>
+              <div className="admin-market-prices__decision-copy">
+                <span className={`status-pill status-pill--${analysis.action === "KEEP" ? "success" : analysis.action === "REVIEW" ? "warning" : "info"}`}>
+                  {analysis.action === "RAISE" ? "Evaluar aumento" : analysis.action === "LOWER" ? "Evaluar baja" : analysis.action === "KEEP" ? "Precio alineado" : "Revisión manual"}
+                </span>
+                <p>{analysis.reason}</p>
+                {analysis.spreadPercent !== null ? <small>Dispersión {analysis.spreadPercent.toFixed(1)}%{analysis.trendPercent !== null ? ` · tendencia ${analysis.trendPercent >= 0 ? "+" : ""}${analysis.trendPercent.toFixed(1)}%` : ""}</small> : null}
+              </div>
+              {actionable ? <button className="btn btn--ghost admin-market-prices__review-button" type="button" onClick={() => setProposal(selected ? null : { productId: analysis.productId, price: String(analysis.suggestedPrice), reason: "Ajuste aprobado tras revisar fuentes verificadas y unidad comparable." })}>
+                {selected ? "Cerrar revisión" : `Revisar ${currency(analysis.suggestedPrice!)}`}
+              </button> : null}
+              {selected && proposal ? <form className="admin-market-prices__approval" onSubmit={(event) => void applyProposal(event, analysis)}>
+                <div><strong>Confirmación de publicación</strong><p>Este cambio modifica el precio visible del producto. El servidor volverá a validar la evidencia antes de guardarlo.</p></div>
+                <label>Nuevo precio<input required inputMode="decimal" value={proposal.price} onChange={(event) => setProposal({ ...proposal, price: event.target.value.replace(/[^0-9.,]/g, "").replace(",", ".") })} /></label>
+                <label>Motivo<textarea required minLength={10} maxLength={300} rows={2} value={proposal.reason} onChange={(event) => setProposal({ ...proposal, reason: event.target.value })} /></label>
+                <div className="admin-market-prices__approval-actions"><button className="btn btn--ghost" type="button" disabled={applying} onClick={() => setProposal(null)}>Cancelar</button><button className="btn btn--primary" type="submit" disabled={applying}>{applying ? "Validando evidencia" : "Aplicar precio"}</button></div>
+              </form> : null}
+            </article>;
+          })}
+        </div>}
+      </section> : null}
 
       {!loading ? <div className="admin-market-prices__forms">
         <section className="admin-panel">

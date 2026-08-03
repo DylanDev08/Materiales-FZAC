@@ -422,7 +422,12 @@ async function marketReferenceReply(message: string, product: Product) {
     return " No hay suficientes referencias vigentes y comparables para publicar un valor de mercado confiable. No voy a inventar una comparacion.";
   }
   const date = summary.observedAt?.slice(0, 10) ?? "fecha no disponible";
-  return ` Referencia informativa para la misma unidad: mediana ${currency(summary.median)}, rango ${currency(summary.minimum)} a ${currency(summary.maximum)}, basada en ${summary.observations} observaciones de ${summary.sources} fuentes al ${date}. El precio valido para comprar es el publicado por FZAC y se vuelve a validar en checkout.`;
+  const position = summary.position === "BELOW"
+    ? "El precio FZAC esta por debajo de esa mediana."
+    : summary.position === "ABOVE"
+      ? "El precio FZAC esta por encima de esa mediana."
+      : "El precio FZAC esta alineado con esa mediana.";
+  return ` Referencia informativa para la misma unidad: mediana ${currency(summary.median)}, rango ${currency(summary.minimum)} a ${currency(summary.maximum)}, basada en ${summary.observations} observaciones de ${summary.sources} fuentes al ${date}, con confianza ${summary.confidence}%. ${position} El precio valido para comprar es el publicado por FZAC y se vuelve a validar en checkout; el asistente nunca lo modifica.`;
 }
 
 async function persistConversation(input: {

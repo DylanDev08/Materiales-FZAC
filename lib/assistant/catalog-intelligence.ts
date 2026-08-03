@@ -71,6 +71,17 @@ function specificationText(product: Product) {
     .join(" ");
 }
 
+function comparableSpecifications(product: Product) {
+  const result = new Map<string, string>();
+  for (const [rawKey, rawValue] of Object.entries(product.specifications ?? {})) {
+    if (!["string", "number", "boolean"].includes(typeof rawValue)) continue;
+    const key = normalize(rawKey);
+    const value = normalize(rawValue);
+    if (key && value) result.set(key, value);
+  }
+  return result;
+}
+
 function categoryCounts(snapshot: CatalogSnapshot) {
   return snapshot.categories
     .map((category) => ({
@@ -164,6 +175,8 @@ function scoreProduct(product: Product, query: string, queryTokens: string[]) {
 }
 
 function equivalentMatches(anchor: Product, products: Product[]) {
+  const anchorSpecs = comparableSpecifications(anchor);
+  const criticalSpecs = ["medida", "espesor", "diametro", "largo", "ancho", "capacidad", "peso", "material", "tipo"];
   return products
     .filter((product) => product.id !== anchor.id && product.active)
     .map((product) => {
@@ -181,9 +194,21 @@ function equivalentMatches(anchor: Product, products: Product[]) {
         score += 5;
         reasons.push("misma unidad de venta");
       }
-      const sharedSpecs = Object.keys(anchor.specifications ?? {}).filter((key) => key in (product.specifications ?? {}));
-      score += Math.min(sharedSpecs.length, 3);
-      return { product, score, reasons };
+      const candidateSpecs = comparableSpecifications(product);
+      let matchingSpecs = 0;
+      let conflictingSpecs = 0;
+      for (const [key, value] of anchorSpecs) {
+        const candidateValue = candidateSpecs.get(key);
+        if (!candidateValue) continue;
+        if (candidateValue === value) matchingSpecs += 1;
+        else if (criticalSpecs.some((term) => key.includes(term))) conflictingSpecs += 1;
+      }
+      if (matchingSpecs) {
+        score += Math.min(matchingSpecs * 3, 9);
+        reasons.push("especificaciones compatibles");
+      }
+      score -= conflictingSpecs * 7;
+      return { product, score, reasons: Array.from(new Set(reasons)).slice(0, 3) };
     })
     .filter((match) => match.score >= 12)
     .sort((left, right) => right.score - left.score || left.product.price - right.product.price)

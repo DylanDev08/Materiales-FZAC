@@ -1,7 +1,15 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import {
+  analyzeMarketProduct,
+  buildMarketPriceIntelligence,
+  normalizeMarketUnit,
+  type MarketAnalyticsObservation,
+  type MarketAnalyticsProduct
+} from "@/lib/market-pricing/analytics";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { marketFeedSchema } from "@/lib/validations/market-pricing";
 import type { Product } from "@/types/domain";
@@ -36,36 +44,11 @@ export type MarketPriceSummary = {
   differencePercent: number | null;
   position: "BELOW" | "ALIGNED" | "ABOVE" | null;
   observedAt: string | null;
+  confidence: number;
+  spreadPercent: number | null;
+  suggestedPrice: number | null;
+  outliers: number;
 };
-
-function normalizeUnit(value: unknown) {
-  const unit = String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-  const aliases: Record<string, string> = {
-    unidades: "unidad",
-    un: "unidad",
-    u: "unidad",
-    bolsas: "bolsa",
-    baldes: "balde",
-    litros: "litro",
-    l: "litro",
-    kilos: "kg",
-    kilogramo: "kg",
-    kilogramos: "kg",
-    metros: "metro",
-    m: "metro"
-  };
-  return aliases[unit] ?? unit;
-}
-
-function median(values: number[]) {
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
 
 export async function getMarketPriceSummary(product: Pick<Product, "id" | "price" | "unit">): Promise<MarketPriceSummary> {
   const empty: MarketPriceSummary = {
@@ -80,7 +63,11 @@ export async function getMarketPriceSummary(product: Pick<Product, "id" | "price
     fzacPrice: Number(product.price),
     differencePercent: null,
     position: null,
-    observedAt: null
+    observedAt: null,
+    confidence: 0,
+    spreadPercent: null,
+    suggestedPrice: null,
+    outliers: 0
   };
   const admin = getSupabaseAdminClient();
   if (!admin) return empty;
@@ -103,25 +90,29 @@ export async function getMarketPriceSummary(product: Pick<Product, "id" | "price
     .limit(100);
   if (error) return empty;
 
-  const comparable = (data ?? []).filter((row) => normalizeUnit(row.sale_unit) === normalizeUnit(product.unit));
-  const values = comparable.map((row) => Number(row.normalized_price)).filter((value) => Number.isFinite(value) && value > 0);
-  const sources = new Set(comparable.map((row) => row.source_id)).size;
-  if (!values.length) return { ...empty, status: "INSUFFICIENT" };
-  const marketMedian = median(values);
-  const difference = marketMedian > 0 ? ((Number(product.price) - marketMedian) / marketMedian) * 100 : null;
+  const analysis = analyzeMarketProduct(
+    { id: product.id, name: "Producto FZAC", sku: "", unit: product.unit, price: product.price },
+    (data ?? []).map((row) => ({ ...row, product_id: product.id, source: { trusted: true } })),
+    Date.now()
+  );
+  if (analysis.median === null) return { ...empty, status: "INSUFFICIENT" };
   return {
-    status: values.length >= 2 && sources >= 2 ? "READY" : "INSUFFICIENT",
+    status: analysis.status === "READY" ? "READY" : "INSUFFICIENT",
     productId: product.id,
     saleUnit: product.unit,
-    observations: values.length,
-    sources,
-    minimum: Math.min(...values),
-    median: marketMedian,
-    maximum: Math.max(...values),
+    observations: analysis.observations,
+    sources: analysis.sources,
+    minimum: analysis.minimum,
+    median: analysis.median,
+    maximum: analysis.maximum,
     fzacPrice: Number(product.price),
-    differencePercent: difference,
-    position: difference === null ? null : difference < -5 ? "BELOW" : difference > 5 ? "ABOVE" : "ALIGNED",
-    observedAt: comparable[0]?.observed_at ?? null
+    differencePercent: analysis.differencePercent,
+    position: analysis.action === "RAISE" ? "BELOW" : analysis.action === "LOWER" ? "ABOVE" : analysis.action === "KEEP" ? "ALIGNED" : null,
+    observedAt: analysis.observedAt,
+    confidence: analysis.confidence,
+    spreadPercent: analysis.spreadPercent,
+    suggestedPrice: analysis.suggestedPrice,
+    outliers: analysis.outliers
   };
 }
 
@@ -138,11 +129,15 @@ export async function getMarketPriceAdminData() {
     admin.from("market_price_sync_runs").select("*,source:market_price_sources(name,slug)").order("started_at", { ascending: false }).limit(30),
     admin.from("products").select("id,name,sku,unit,price").eq("active", true).order("name").limit(500)
   ]);
+  const observationRows = (observations.data ?? []) as unknown as MarketObservationRow[];
+  const productRows = (products.data ?? []) as unknown as MarketAnalyticsProduct[];
+  const intelligence = buildMarketPriceIntelligence(productRows, observationRows as unknown as MarketAnalyticsObservation[]);
   return {
     sources: sources.data ?? [],
-    observations: (observations.data ?? []) as unknown as MarketObservationRow[],
+    observations: observationRows,
     runs: runs.data ?? [],
-    products: products.data ?? []
+    products: productRows,
+    ...intelligence
   };
 }
 
@@ -183,7 +178,7 @@ function buildObservationRow(input: MarketObservationInput) {
     source_url: input.sourceUrl ?? null,
     observed_price: input.observedPrice,
     currency: "ARS",
-    sale_unit: normalizeUnit(input.saleUnit),
+    sale_unit: normalizeMarketUnit(input.saleUnit),
     equivalent_quantity: input.equivalentQuantity,
     observed_at: observedAt,
     expires_at: expiresAt,
@@ -238,10 +233,73 @@ function isSafeRemoteHost(hostname: string) {
     && !host.endsWith(".local");
 }
 
+function isPrivateAddress(address: string) {
+  const normalized = address.toLowerCase();
+  if (normalized === "::1" || normalized === "::" || normalized.startsWith("fc") || normalized.startsWith("fd") || /^(fe8|fe9|fea|feb)/.test(normalized)) {
+    return true;
+  }
+  const ipv4 = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  const parts = ipv4.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  return parts[0] === 0
+    || parts[0] === 10
+    || parts[0] === 127
+    || parts[0] >= 224
+    || (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+    || (parts[0] === 169 && parts[1] === 254)
+    || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+    || (parts[0] === 192 && parts[1] === 168)
+    || (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19));
+}
+
+async function assertSafeFeedUrl(url: URL, hosts: Set<string>, resolvedHosts: Set<string>) {
+  const hostname = url.hostname.toLowerCase();
+  if (
+    url.protocol !== "https:"
+    || url.username
+    || url.password
+    || (url.port && url.port !== "443")
+    || !isSafeRemoteHost(hostname)
+    || !hosts.has(hostname)
+  ) {
+    throw new Error("Host no autorizado.");
+  }
+  if (resolvedHosts.has(hostname)) return;
+  const addresses = await lookup(hostname, { all: true, verbatim: true });
+  if (!addresses.length || addresses.some(({ address }) => isPrivateAddress(address))) {
+    throw new Error("La fuente resuelve a una red no permitida.");
+  }
+  resolvedHosts.add(hostname);
+}
+
+async function readLimitedBody(response: Response, maximumBytes = 1_000_000) {
+  const declaredLength = Number(response.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maximumBytes) {
+    throw new Error("La respuesta del feed supera el limite permitido.");
+  }
+  if (!response.body) throw new Error("La fuente no devolvio contenido.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let body = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maximumBytes) {
+      await reader.cancel();
+      throw new Error("La respuesta del feed supera el limite permitido.");
+    }
+    body += decoder.decode(value, { stream: true });
+  }
+  return body + decoder.decode();
+}
+
 export async function syncMarketPriceFeeds() {
   const admin = getSupabaseAdminClient();
   if (!admin) throw new Error("Backend administrativo no disponible.");
   const hosts = allowedMarketHosts();
+  const resolvedHosts = new Set<string>();
   const tokens = feedTokens();
   const { data: sources, error } = await admin
     .from("market_price_sources")
@@ -265,7 +323,9 @@ export async function syncMarketPriceFeeds() {
     try {
       if (!source.feed_url) throw new Error("La fuente no tiene feed configurado.");
       const url = new URL(source.feed_url);
-      if (url.protocol !== "https:" || !isSafeRemoteHost(url.hostname) || !hosts.has(url.hostname.toLowerCase())) {
+      try {
+        await assertSafeFeedUrl(url, hosts, resolvedHosts);
+      } catch {
         summary.skipped += 1;
         if (runId) {
           await admin.from("market_price_sync_runs").update({ status: "SKIPPED", error_message: "Host no autorizado.", finished_at: new Date().toISOString() }).eq("id", runId);
@@ -281,7 +341,11 @@ export async function syncMarketPriceFeeds() {
         signal: controller.signal
       }).finally(() => clearTimeout(timeout));
       if (!response.ok) throw new Error(`La fuente respondió HTTP ${response.status}.`);
-      const text = await response.text();
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/json") && !contentType.includes("+json")) {
+        throw new Error("La fuente no devolvio JSON.");
+      }
+      const text = await readLimitedBody(response);
       if (text.length > 1_000_000) throw new Error("La respuesta del feed supera el límite permitido.");
       const feed = marketFeedSchema.parse(JSON.parse(text));
       const rows: ReturnType<typeof buildObservationRow>[] = [];
@@ -294,7 +358,9 @@ export async function syncMarketPriceFeeds() {
         }
         if (item.url) {
           const itemUrl = new URL(item.url);
-          if (!isSafeRemoteHost(itemUrl.hostname) || !hosts.has(itemUrl.hostname.toLowerCase())) {
+          try {
+            await assertSafeFeedUrl(itemUrl, hosts, resolvedHosts);
+          } catch {
             rejected += 1;
             continue;
           }
@@ -337,4 +403,60 @@ export async function syncMarketPriceFeeds() {
     }
   }
   return summary;
+}
+
+export async function applyMarketPriceSuggestion(input: {
+  productId: string;
+  proposedPrice: number;
+  expectedCurrentPrice: number;
+  reason: string;
+  actorId: string;
+  actorEmail: string;
+}) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("Backend administrativo no disponible.");
+  const { data: product, error: productError } = await admin
+    .from("products")
+    .select("id,name,sku,unit,price,active")
+    .eq("id", input.productId)
+    .eq("active", true)
+    .maybeSingle();
+  if (productError || !product) throw new Error("El producto ya no esta disponible.");
+
+  const currentPrice = Number(product.price);
+  if (!Number.isFinite(currentPrice) || Math.abs(currentPrice - input.expectedCurrentPrice) > 0.01) {
+    throw new Error("El precio cambio mientras revisabas la propuesta. Actualiza la pantalla antes de continuar.");
+  }
+  const evidence = await getMarketPriceSummary({ id: product.id, price: currentPrice, unit: product.unit });
+  if (evidence.status !== "READY" || evidence.median === null || evidence.confidence < 60 || evidence.position === "ALIGNED") {
+    throw new Error("La evidencia vigente no alcanza para aplicar esta propuesta.");
+  }
+  const deviation = Math.abs(input.proposedPrice - evidence.median) / evidence.median;
+  if (deviation > 0.15) {
+    throw new Error("El precio propuesto se aleja mas de 15% de la mediana verificada.");
+  }
+  if (Math.abs(input.proposedPrice - currentPrice) < 0.01) {
+    throw new Error("El precio propuesto es igual al precio actual.");
+  }
+
+  const { data: updated, error: updateError } = await admin
+    .from("products")
+    .update({ price: input.proposedPrice, updated_at: new Date().toISOString() })
+    .eq("id", product.id)
+    .eq("price", product.price)
+    .select("id,name,sku,unit,price,updated_at")
+    .maybeSingle();
+  if (updateError || !updated) {
+    throw new Error("El producto fue modificado por otra operacion. Actualiza la pantalla e intenta nuevamente.");
+  }
+
+  await admin.from("admin_audit_logs").insert({
+    actor_id: input.actorId,
+    actor_email: input.actorEmail,
+    action: "MARKET_PRICE_SUGGESTION_APPLIED",
+    entity: "products",
+    entity_id: product.id,
+    message: `Precio revisado de ${currentPrice} a ${input.proposedPrice}. ${input.reason}`.slice(0, 500)
+  });
+  return { product: updated, previousPrice: currentPrice, evidence };
 }
