@@ -20,6 +20,7 @@ import { createEstimateGuidance } from "@/lib/assistant/estimators";
 import { retrieveFzacKnowledge } from "@/lib/assistant/knowledge";
 import { searchAssistantCatalog } from "@/lib/assistant/catalog-intelligence";
 import { refineGroundedAssistantAnswer } from "@/lib/assistant/language-model";
+import { enqueueAssistantReview, type AssistantReviewReason } from "@/lib/assistant/quality";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { currency } from "@/lib/formatters/currency";
 import { getMarketPriceSummary } from "@/lib/market-pricing/service";
@@ -435,6 +436,7 @@ async function persistConversation(input: {
   state: AssistantState;
   options: string[];
   sources?: AssistantSource[];
+  knowledgeId?: string;
   traceId?: string;
   waitingAdmin: boolean;
   wasWaitingAdmin: boolean;
@@ -473,7 +475,7 @@ async function persistConversation(input: {
         .eq("id", conversationId);
     }
 
-    await admin.from("chat_messages").insert([
+    const { data: savedMessages } = await admin.from("chat_messages").insert([
       {
         conversation_id: conversationId,
         sender_id: input.userId ?? null,
@@ -494,13 +496,39 @@ async function persistConversation(input: {
           assistant_state: input.state,
           options: input.options.slice(0, 4),
           knowledge_sources: input.sources?.slice(0, 3) ?? [],
+          knowledge_id: input.knowledgeId ?? null,
           trace_id: input.traceId ?? null,
           engine: input.classification.engine,
           classification_source: input.classification.source,
           confidence: input.classification.confidence
         }
       }
-    ]);
+    ]).select("id,role");
+
+    const userMessageId = savedMessages?.find((message) => message.role === "USER")?.id ?? null;
+    const assistantMessageId = savedMessages?.find((message) => message.role === "ASSISTANT")?.id ?? null;
+    if (assistantMessageId && conversationId) {
+      const reviewConversationId = conversationId;
+      const reviewReasons = new Set<AssistantReviewReason>();
+      if (input.waitingAdmin) reviewReasons.add("HANDOFF");
+      if (input.state.unresolvedAttempts >= 2) reviewReasons.add("UNRESOLVED");
+      if (
+        !input.waitingAdmin
+        && input.intent !== "greeting"
+        && input.classification.confidence < 0.52
+      ) {
+        reviewReasons.add("LOW_CONFIDENCE");
+      }
+      await Promise.all(Array.from(reviewReasons, (reason) => enqueueAssistantReview({
+        conversationId: reviewConversationId,
+        userMessageId,
+        assistantMessageId,
+        knowledgeSlug: input.knowledgeId ?? null,
+        intent: input.intent,
+        reason,
+        confidence: input.classification.confidence
+      })));
+    }
 
     if (input.waitingAdmin && !input.wasWaitingAdmin) {
       await admin.from("notifications").insert({
@@ -781,6 +809,7 @@ export async function POST(request: Request) {
       state,
       options,
       sources: knowledge.sources,
+      knowledgeId: knowledge.id,
       traceId,
       waitingAdmin: false,
       wasWaitingAdmin: conversation.waitingAdmin,

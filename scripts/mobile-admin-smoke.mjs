@@ -29,10 +29,12 @@ const screenshotDirectory = path.join(process.cwd(), "test-results");
 const closedScreenshot = path.join(screenshotDirectory, "mobile-admin-dashboard.png");
 const openScreenshot = path.join(screenshotDirectory, "mobile-admin-navigation.png");
 const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.png");
+const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant-quality.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 let userId = null;
 let financialMovementId = null;
+let assistantConversationId = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -61,6 +63,10 @@ async function cleanup() {
   if (server && !server.killed) server.kill();
 
   if (!userId) return;
+  if (assistantConversationId) {
+    const { error: conversationError } = await admin.from("chat_conversations").delete().eq("id", assistantConversationId);
+    if (conversationError) cleanupErrors.push("Could not remove isolated assistant quality data.");
+  }
   if (financialMovementId) {
     const { error: auditLogError } = await admin
       .from("admin_audit_logs")
@@ -202,6 +208,60 @@ try {
   assert(financeMobileMetrics.documentWidth <= financeMobileMetrics.viewport + 2, "Admin finances generate mobile horizontal overflow.");
   await page.screenshot({ path: financeScreenshot, fullPage: true });
 
+  const { data: conversation, error: conversationError } = await admin
+    .from("chat_conversations")
+    .insert({ visitor_id: crypto.randomUUID(), channel: "AI", status: "OPEN", subject: "QA calidad IA" })
+    .select("id")
+    .single();
+  if (conversationError || !conversation) throw new Error("Could not create assistant quality QA conversation.");
+  assistantConversationId = conversation.id;
+  const { data: qualityMessages, error: qualityMessageError } = await admin
+    .from("chat_messages")
+    .insert([
+      { conversation_id: assistantConversationId, role: "USER", content: "Pregunta temporal de calidad" },
+      { conversation_id: assistantConversationId, role: "ASSISTANT", content: "Respuesta temporal para revision" }
+    ])
+    .select("id,role");
+  if (qualityMessageError || !qualityMessages) throw new Error("Could not create assistant quality QA messages.");
+  const userMessageId = qualityMessages.find((message) => message.role === "USER")?.id;
+  const assistantMessageId = qualityMessages.find((message) => message.role === "ASSISTANT")?.id;
+  if (!userMessageId || !assistantMessageId) throw new Error("Assistant quality QA messages are incomplete.");
+  const { error: qualityQueueError } = await admin.from("assistant_review_queue").insert({
+    conversation_id: assistantConversationId,
+    user_message_id: userMessageId,
+    assistant_message_id: assistantMessageId,
+    intent: "fallback",
+    reason: "LOW_CONFIDENCE",
+    confidence: 0.2,
+    priority: 1,
+    status: "OPEN"
+  });
+  if (qualityQueueError) throw new Error("Could not create assistant quality QA review.");
+
+  await page.goto(`${baseUrl}${adminPath}/calidad-ia`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-ai-quality").waitFor({ state: "visible", timeout: 25_000 });
+  await page.getByText("Pregunta temporal de calidad").waitFor({ state: "visible" });
+  const qualityMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    clippedElements: Array.from(document.querySelectorAll(
+      ".admin-ai-quality__guardrail, .admin-ai-quality__guardrail p, .admin-ai-quality__row, .admin-ai-quality__exchange, .admin-ai-quality__exchange p"
+    )).filter((element) => element.scrollWidth > element.clientWidth + 1).length
+  }));
+  assert(qualityMobileMetrics.documentWidth <= qualityMobileMetrics.viewport + 2, "Assistant quality generates mobile horizontal overflow.");
+  assert(qualityMobileMetrics.clippedElements === 0, "Assistant quality contains internally clipped text.");
+  await page.screenshot({ path: qualityScreenshot, fullPage: true });
+  await page.getByRole("button", { name: "Revisar" }).last().click();
+  await page.getByLabel("Notas internas").fill("Respuesta revisada durante QA automatizado");
+  await page.getByRole("button", { name: "Resolver" }).click();
+  await page.getByText(/Revision resuelta/).waitFor({ state: "visible" });
+  const { data: resolvedReview, error: resolvedReviewError } = await admin
+    .from("assistant_review_queue")
+    .select("status,review_notes")
+    .eq("conversation_id", assistantConversationId)
+    .single();
+  assert(!resolvedReviewError && resolvedReview?.status === "RESOLVED", "Assistant quality review was not persisted as resolved.");
+
   const storageState = await context.storageState();
   const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState });
   const desktopPage = await desktopContext.newPage();
@@ -221,6 +281,8 @@ try {
       financialMovementLifecycle: true,
       dashboardResponsive: true,
       financesResponsive: true,
+      assistantQualityResponsive: true,
+      assistantQualityLifecycle: true,
       sidebarDrawer: true,
       touchTargets: true,
       horizontalOverflow: false,
@@ -228,6 +290,7 @@ try {
         path.relative(process.cwd(), closedScreenshot),
         path.relative(process.cwd(), openScreenshot),
         path.relative(process.cwd(), financeScreenshot),
+        path.relative(process.cwd(), qualityScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot)
       ]

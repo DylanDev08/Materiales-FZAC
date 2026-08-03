@@ -310,6 +310,91 @@ export type Database = {
           },
         ]
       }
+      assistant_review_queue: {
+        Row: {
+          assistant_message_id: string
+          confidence: number | null
+          conversation_id: string
+          created_at: string
+          first_seen_at: string
+          id: string
+          intent: string
+          knowledge_slug: string | null
+          last_seen_at: string
+          occurrence_count: number
+          priority: number
+          reason: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_message_id: string | null
+        }
+        Insert: {
+          assistant_message_id: string
+          confidence?: number | null
+          conversation_id: string
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          intent: string
+          knowledge_slug?: string | null
+          last_seen_at?: string
+          occurrence_count?: number
+          priority?: number
+          reason: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_message_id?: string | null
+        }
+        Update: {
+          assistant_message_id?: string
+          confidence?: number | null
+          conversation_id?: string
+          created_at?: string
+          first_seen_at?: string
+          id?: string
+          intent?: string
+          knowledge_slug?: string | null
+          last_seen_at?: string
+          occurrence_count?: number
+          priority?: number
+          reason?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_review_queue_assistant_message_id_fkey"
+            columns: ["assistant_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistant_review_queue_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistant_review_queue_user_message_id_fkey"
+            columns: ["user_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       AuditLog: {
         Row: {
           action: string

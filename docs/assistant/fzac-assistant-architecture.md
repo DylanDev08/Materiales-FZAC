@@ -66,6 +66,10 @@ El asistente ayuda a encontrar productos, entender stock y precios visibles, cal
    - Historial local acotado y bloqueo durante cada envio.
    - Los enlaces recuperados se limitan a rutas internas FZAC antes de guardarlos o mostrarlos.
    - Escalamiento humano solo para reclamos sensibles o intentos sin resolucion.
+   - El feedback valida que la traza pertenezca a una respuesta real de la conversacion antes de persistirse.
+   - `/admin/calidad-ia` reune votos negativos, baja confianza, intentos sin resolver y derivaciones para revision humana.
+   - La cola referencia mensajes ya protegidos y no duplica su contenido. Resolver un caso nunca entrena ni publica conocimiento automaticamente.
+   - Solo un administrador puede gestionar la cola; RLS esta forzado y cada decision queda registrada en auditoria.
    - Cada respuesta basada en conocimiento recibe una traza anónima. El voto útil/por mejorar se guarda sin copiar mensajes, datos del carrito ni información de pago.
 
 ## Limites de seguridad

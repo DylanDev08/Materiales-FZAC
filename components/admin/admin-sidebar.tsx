@@ -15,6 +15,7 @@ import {
   Grid3X3,
   Home,
   Landmark,
+  ListChecks,
   Menu,
   MessageCircle,
   Package,
@@ -48,7 +49,8 @@ const linkGroups = [
       { path: "/arrepentimientos", label: "Arrepentimientos", icon: RotateCcw },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/chats", label: "Chats", icon: MessageCircle },
-      { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit }
+      { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit },
+      { path: "/calidad-ia", label: "Calidad IA", icon: ListChecks }
     ]
   },
   {

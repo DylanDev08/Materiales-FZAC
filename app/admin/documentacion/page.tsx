@@ -63,6 +63,11 @@ const sections = [
     use: "Permite crear, editar, publicar o pausar respuestas comerciales sin tocar código. Cada cambio conserva una versión anterior y los votos de clientes ayudan a detectar qué contenido necesita revisión."
   },
   {
+    title: "Calidad IA",
+    target: "Revision humana de respuestas dudosas.",
+    use: "Reune votos negativos, conversaciones sin resolver y respuestas con poca seguridad. Resolver una revision no publica cambios: primero hay que verificar la informacion y luego editar Conocimiento IA."
+  },
+  {
     title: "Precios de mercado",
     target: "Referencias privadas para decidir precios.",
     use: "Permite registrar fuentes y valores comparables por unidad. El asistente solo informa una referencia cuando hay al menos dos fuentes vigentes y verificadas. Esta seccion nunca cambia el precio publicado de FZAC."
@@ -82,6 +87,7 @@ const routines = [
   "Ver Inventario antes de confirmar productos con bajo stock.",
   "Usar Clientes para contactar compradores y resolver dudas.",
   "Revisar Conocimiento IA cuando aumenten las respuestas marcadas para mejorar.",
+  "Abrir Calidad IA, priorizar los casos urgentes y documentar la decision antes de modificar una respuesta.",
   "Revisar Precios de mercado antes de tomar decisiones comerciales; nunca copiar un valor sin confirmar presentacion, IVA, fecha y unidad.",
   "Consultar Actividad si algo no coincide."
 ];

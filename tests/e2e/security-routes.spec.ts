@@ -22,16 +22,20 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las APIs administrativas bloquean sesiones anónimas", async ({ request }) => {
-    const [metrics, environment, marketPrices, marketSync] = await Promise.all([
+    const [metrics, environment, marketPrices, marketSync, assistantQuality, assistantQualityUpdate] = await Promise.all([
       request.get("/api/admin/metrics"),
       request.get("/api/health/env"),
       request.get("/api/admin/market-prices"),
-      request.post("/api/admin/market-prices/sync", { data: {} })
+      request.post("/api/admin/market-prices/sync", { data: {} }),
+      request.get("/api/admin/assistant-quality"),
+      request.patch("/api/admin/assistant-quality", { data: { id: crypto.randomUUID(), status: "RESOLVED" } })
     ]);
     expect([401, 403]).toContain(metrics.status());
     expect([401, 403]).toContain(environment.status());
     expect([401, 403]).toContain(marketPrices.status());
     expect([401, 403]).toContain(marketSync.status());
+    expect([401, 403]).toContain(assistantQuality.status());
+    expect([401, 403]).toContain(assistantQualityUpdate.status());
   });
 
   test("la automatizacion de mercado nunca queda publica", async ({ request }) => {

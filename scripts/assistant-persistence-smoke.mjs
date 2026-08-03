@@ -47,6 +47,19 @@ try {
   assert.match(third.trace_id, /^[0-9a-f-]{36}$/i);
   feedbackTraceId = third.trace_id;
 
+  const forgedFeedbackResponse = await fetch(new URL("/api/assistant/feedback", baseUrl), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      conversationId,
+      visitorId,
+      traceId: crypto.randomUUID(),
+      knowledgeId: third.knowledge_id,
+      rating: "DOWN"
+    })
+  });
+  assert.equal(forgedFeedbackResponse.status, 404, "Una traza ajena no debe contaminar la calidad del asistente.");
+
   const feedbackResponse = await fetch(new URL("/api/assistant/feedback", baseUrl), {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -55,7 +68,7 @@ try {
       visitorId,
       traceId: feedbackTraceId,
       knowledgeId: third.knowledge_id,
-      rating: "UP"
+      rating: "DOWN"
     })
   });
   assert.equal(feedbackResponse.status, 200, "Una conversación propia debe poder calificar la respuesta.");
@@ -85,6 +98,14 @@ try {
   if (feedbackError) throw feedbackError;
   assert.equal(feedbackCount, 1, "La calificación debe quedar asociada a una única traza.");
 
+  const { count: reviewCount, error: reviewError } = await admin
+    .from("assistant_review_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conversationId)
+    .eq("reason", "NEGATIVE_FEEDBACK");
+  if (reviewError) throw reviewError;
+  assert.equal(reviewCount, 1, "Un voto negativo valido debe crear una unica revision supervisada.");
+
   console.log(
     JSON.stringify({
       ok: true,
@@ -93,6 +114,8 @@ try {
       stateContinued: true,
       knowledgeTracePersisted: true,
       feedbackPersisted: feedbackCount === 1,
+      forgedTraceRejected: forgedFeedbackResponse.status === 404,
+      supervisedReviewCreated: reviewCount === 1,
       messagesPersisted: count
     })
   );
