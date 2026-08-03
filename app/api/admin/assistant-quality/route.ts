@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { buildAssistantQualityAnalytics } from "@/lib/assistant/quality-analytics";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
@@ -25,6 +26,11 @@ async function guard(request: Request) {
 export async function GET(request: Request) {
   const access = await guard(request);
   if ("error" in access) return access.error;
+  const range = z.enum(["7", "30", "90"]).catch("30").parse(new URL(request.url).searchParams.get("range"));
+  const days = Number(range);
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - days + 1);
+  since.setUTCHours(0, 0, 0, 0);
 
   const { data: queue, error } = await access.admin
     .from("assistant_review_queue")
@@ -59,6 +65,43 @@ export async function GET(request: Request) {
     assistant_message: messagesById.get(item.assistant_message_id) ?? null
   }));
 
+  const [{ data: assistantMessages, error: messagesError }, { data: feedback, error: feedbackError }] = await Promise.all([
+    access.admin
+      .from("chat_messages")
+      .select("id,created_at,metadata")
+      .eq("role", "ASSISTANT")
+      .gte("created_at", since.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(5000),
+    access.admin
+      .from("assistant_feedback")
+      .select("rating,created_at")
+      .gte("created_at", since.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(5000)
+  ]);
+  if (messagesError || feedbackError) return jsonError("No pudimos calcular las metricas del asistente.", 500);
+
+  const analytics = buildAssistantQualityAnalytics({
+    days,
+    messages: assistantMessages ?? [],
+    feedback: (feedback ?? []).flatMap((item) => item.rating === "UP" || item.rating === "DOWN"
+      ? [{ rating: item.rating, created_at: item.created_at }]
+      : []),
+    reviews: (queue ?? []).map((item) => ({
+      assistant_message_id: item.assistant_message_id,
+      intent: item.intent,
+      reason: item.reason,
+      confidence: item.confidence,
+      priority: item.priority,
+      status: item.status,
+      occurrence_count: item.occurrence_count,
+      knowledge_slug: item.knowledge_slug,
+      last_seen_at: item.last_seen_at,
+      user_message: item.user_message_id ? messagesById.get(item.user_message_id) ?? null : null
+    }))
+  });
+
   const metrics = {
     pending: items.filter((item) => item.status === "OPEN").length,
     reviewing: items.filter((item) => item.status === "REVIEWING").length,
@@ -66,7 +109,7 @@ export async function GET(request: Request) {
     negative: items.filter((item) => item.reason === "NEGATIVE_FEEDBACK" && item.status !== "DISMISSED").length,
     urgent: items.filter((item) => item.priority >= 3 && ["OPEN", "REVIEWING"].includes(item.status)).length
   };
-  return Response.json({ items, metrics }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ items, metrics, analytics }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function PATCH(request: Request) {

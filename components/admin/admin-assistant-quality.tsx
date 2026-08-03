@@ -24,9 +24,32 @@ type ReviewItem = {
 type QualityData = {
   items: ReviewItem[];
   metrics: { pending: number; reviewing: number; resolved: number; negative: number; urgent: number };
+  analytics: {
+    periodDays: number;
+    summary: {
+      responses: number;
+      feedback: number;
+      helpfulRate: number | null;
+      averageConfidence: number | null;
+      escalationRate: number | null;
+      reviewResolutionRate: number | null;
+    };
+    trend: Array<{ date: string; responses: number; helpful: number; negative: number; signals: number }>;
+    intents: Array<{ intent: string; responses: number; averageConfidence: number | null; signals: number }>;
+    opportunities: Array<{ intent: string; reason: ReviewReason; knowledgeSlug: string | null; count: number; priority: number; lastSeen: string; example: string }>;
+    questions: Array<{ question: string; count: number; priority: number; lastSeen: string }>;
+  };
 };
 
-const emptyData: QualityData = { items: [], metrics: { pending: 0, reviewing: 0, resolved: 0, negative: 0, urgent: 0 } };
+const emptyAnalytics: QualityData["analytics"] = {
+  periodDays: 30,
+  summary: { responses: 0, feedback: 0, helpfulRate: null, averageConfidence: null, escalationRate: null, reviewResolutionRate: null },
+  trend: [],
+  intents: [],
+  opportunities: [],
+  questions: []
+};
+const emptyData: QualityData = { items: [], metrics: { pending: 0, reviewing: 0, resolved: 0, negative: 0, urgent: 0 }, analytics: emptyAnalytics };
 const reasonLabel: Record<ReviewReason, string> = {
   NEGATIVE_FEEDBACK: "El cliente indico que no ayudo",
   LOW_CONFIDENCE: "Clasificacion poco segura",
@@ -38,6 +61,20 @@ const statusLabel: Record<ReviewStatus, string> = {
   REVIEWING: "En revision",
   RESOLVED: "Resuelta",
   DISMISSED: "Descartada"
+};
+const intentLabel: Record<string, string> = {
+  greeting: "Saludos",
+  delivery: "Envios y retiro",
+  payment: "Pagos",
+  stock: "Stock",
+  price: "Precios",
+  estimate: "Calculo de materiales",
+  order_status: "Estado de pedido",
+  returns: "Cambios y devoluciones",
+  store_policy: "Politicas comerciales",
+  human: "Atencion humana",
+  product_search: "Busqueda de productos",
+  fallback: "Consulta sin clasificar"
 };
 
 async function readResponse(response: Response) {
@@ -55,27 +92,32 @@ export function AdminAssistantQuality() {
   const adminBase = pathname.replace(/\/calidad-ia\/?$/, "");
   const [data, setData] = useState<QualityData>(emptyData);
   const [filter, setFilter] = useState<ReviewStatus>("OPEN");
+  const [range, setRange] = useState<"7" | "30" | "90">("30");
   const [selected, setSelected] = useState<ReviewItem | null>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
 
-  async function load() {
-    const response = await fetch("/api/admin/assistant-quality", { cache: "no-store" });
+  async function load(selectedRange = range) {
+    const response = await fetch(`/api/admin/assistant-quality?range=${selectedRange}`, { cache: "no-store" });
     const next = await readResponse(response) as unknown as QualityData;
-    setData({ items: next.items ?? [], metrics: next.metrics ?? emptyData.metrics });
+    setData({ items: next.items ?? [], metrics: next.metrics ?? emptyData.metrics, analytics: next.analytics ?? emptyAnalytics });
   }
 
   useEffect(() => {
     let active = true;
-    void fetch("/api/admin/assistant-quality", { cache: "no-store" })
+    void fetch(`/api/admin/assistant-quality?range=${range}`, { cache: "no-store" })
       .then(readResponse)
-      .then((next) => active && setData(next as unknown as QualityData))
+      .then((next) => {
+        if (!active) return;
+        const result = next as unknown as QualityData;
+        setData({ items: result.items ?? [], metrics: result.metrics ?? emptyData.metrics, analytics: result.analytics ?? emptyAnalytics });
+      })
       .catch((error: unknown) => active && setNotice(error instanceof Error ? error.message : "No pudimos cargar la calidad del asistente."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, []);
+  }, [range]);
 
   useEffect(() => {
     if (!selected) return;
@@ -92,6 +134,7 @@ export function AdminAssistantQuality() {
   }, [selected]);
 
   const filtered = useMemo(() => data.items.filter((item) => item.status === filter), [data.items, filter]);
+  const maxTrendResponses = Math.max(1, ...data.analytics.trend.map((item) => item.responses));
 
   function openReview(item: ReviewItem) {
     setSelected(item);
@@ -135,6 +178,63 @@ export function AdminAssistantQuality() {
         <span><strong>{data.metrics.negative}</strong>Votos negativos</span>
         <span><strong>{data.metrics.resolved}</strong>Resueltas</span>
       </div>
+
+      <section className="admin-ai-evaluation" aria-labelledby="assistant-evaluation-title">
+        <header className="admin-ai-evaluation__head">
+          <div><span className="kicker">Evaluacion continua</span><h2 id="assistant-evaluation-title">Que entiende bien y que debemos mejorar</h2><p>Datos reales del asistente. Los porcentajes sin suficientes señales se muestran como sin datos.</p></div>
+          <div className="admin-ai-evaluation__periods" role="group" aria-label="Periodo de evaluacion">
+            {(["7", "30", "90"] as const).map((days) => <button type="button" key={days} className={range === days ? "active" : undefined} aria-pressed={range === days} onClick={() => { if (range !== days) setLoading(true); setRange(days); }}>{days} dias</button>)}
+          </div>
+        </header>
+
+        <div className="admin-ai-evaluation__summary" aria-label="Indicadores del periodo">
+          <span><strong>{data.analytics.summary.responses}</strong>Respuestas</span>
+          <span><strong>{data.analytics.summary.helpfulRate === null ? "Sin datos" : `${data.analytics.summary.helpfulRate}%`}</strong>Respuestas utiles</span>
+          <span><strong>{data.analytics.summary.averageConfidence === null ? "Sin datos" : `${data.analytics.summary.averageConfidence}%`}</strong>Confianza media</span>
+          <span><strong>{data.analytics.summary.escalationRate === null ? "Sin datos" : `${data.analytics.summary.escalationRate}%`}</strong>Derivadas</span>
+          <span><strong>{data.analytics.summary.reviewResolutionRate === null ? "Sin datos" : `${data.analytics.summary.reviewResolutionRate}%`}</strong>Casos resueltos</span>
+        </div>
+
+        <div className="admin-ai-evaluation__visuals">
+          <section className="admin-ai-trend" aria-label={`Actividad de los ultimos ${data.analytics.periodDays} dias`}>
+            <header><div><h3>Actividad diaria</h3><p>Respuestas y senales que requieren revision.</p></div><span>{data.analytics.summary.feedback} valoraciones</span></header>
+            <div className="admin-ai-trend__plot">
+              {data.analytics.trend.map((day, index) => (
+                <div className="admin-ai-trend__day" key={day.date} title={`${day.date}: ${day.responses} respuestas, ${day.signals} senales`}>
+                  <span className="admin-ai-trend__bar" style={{ height: `${Math.max(4, Math.round((day.responses / maxTrendResponses) * 100))}%` }}><i style={{ height: `${Math.min(100, day.responses ? Math.round((day.signals / day.responses) * 100) : 0)}%` }} /></span>
+                  {(index === 0 || index === data.analytics.trend.length - 1 || (data.analytics.trend.length <= 7)) ? <small>{new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(new Date(`${day.date}T12:00:00Z`))}</small> : null}
+                </div>
+              ))}
+            </div>
+            <div className="admin-ai-trend__legend"><span><i />Respuestas</span><span><i />Para revisar</span></div>
+          </section>
+
+          <section className="admin-ai-intents" aria-label="Rendimiento por tema">
+            <header><h3>Temas mas consultados</h3><p>Volumen, confianza y alertas por intencion.</p></header>
+            <div>{data.analytics.intents.length ? data.analytics.intents.map((item) => (
+              <article key={item.intent}>
+                <span><strong>{intentLabel[item.intent] ?? item.intent}</strong><small>{item.responses} respuestas · {item.signals} alertas</small></span>
+                <span className="admin-ai-intents__score"><i style={{ width: `${item.averageConfidence ?? 0}%` }} /><b>{item.averageConfidence === null ? "-" : `${item.averageConfidence}%`}</b></span>
+              </article>
+            )) : <p className="admin-empty">Todavia no hay actividad suficiente en este periodo.</p>}</div>
+          </section>
+        </div>
+
+        <section className="admin-ai-opportunities" aria-label="Oportunidades de mejora">
+          <header><div><h3>Oportunidades de mejora</h3><p>Agrupadas por tema y motivo. Primero revisa las de prioridad alta.</p></div><strong>{data.analytics.opportunities.length} grupos</strong></header>
+          <div>{data.analytics.opportunities.length ? data.analytics.opportunities.map((item) => (
+            <article key={`${item.intent}-${item.reason}-${item.knowledgeSlug ?? "general"}`}>
+              <span className={`admin-ai-opportunities__priority priority-${item.priority}`}>{item.priority >= 3 ? "Alta" : "Normal"}</span>
+              <span><strong>{intentLabel[item.intent] ?? item.intent}</strong><small>{reasonLabel[item.reason]} · {item.count} caso{item.count === 1 ? "" : "s"}</small>{item.example ? <p>“{item.example}”</p> : null}</span>
+              <button type="button" onClick={() => setFilter("OPEN")}>Ver pendientes</button>
+            </article>
+          )) : <p className="admin-empty">No hay oportunidades pendientes en este momento.</p>}</div>
+        </section>
+        {data.analytics.questions.length ? <section className="admin-ai-questions" aria-label="Preguntas que conviene cubrir">
+          <div><h3>Preguntas que conviene cubrir</h3><p>El contenido sensible se oculta antes de agruparlas.</p></div>
+          <div>{data.analytics.questions.map((item) => <span key={`${item.question}-${item.lastSeen}`}><strong>{item.count}</strong>{item.question}</span>)}</div>
+        </section> : null}
+      </section>
 
       <div className="admin-ai-quality__toolbar">
         <div role="tablist" aria-label="Estado de revisiones">

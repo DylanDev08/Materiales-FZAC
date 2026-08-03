@@ -135,10 +135,12 @@ export function FloatingAssistant() {
   const [loading, setLoading] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const askRef = useRef<(text: string) => Promise<void>>(async () => undefined);
   const requestInFlightRef = useRef(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
+  const [feedbackNotice, setFeedbackNotice] = useState("");
 
   const whatsapp = useMemo(() => {
     const configured = process.env.NEXT_PUBLIC_FZAC_WHATSAPP || "";
@@ -161,6 +163,21 @@ export function FloatingAssistant() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!open) return;
+    const compact = window.matchMedia("(max-width: 620px)").matches;
+    const previousOverflow = document.body.style.overflow;
+    if (compact) document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
 
   useEffect(() => {
     askRef.current = ask;
@@ -258,6 +275,7 @@ export function FloatingAssistant() {
     setConversationId(null);
     setMessages([welcomeMessage]);
     setInput("");
+    setFeedbackNotice("Conversacion reiniciada.");
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -268,6 +286,7 @@ export function FloatingAssistant() {
   async function submitFeedback(message: Message, rating: "UP" | "DOWN") {
     if (!message.traceId || !message.knowledgeId || !message.conversationId || message.feedback) return;
     setMessages((current) => current.map((item) => item.traceId === message.traceId ? { ...item, feedback: rating } : item));
+    setFeedbackNotice("");
     try {
       const response = await fetch("/api/assistant/feedback", {
         method: "POST",
@@ -281,20 +300,24 @@ export function FloatingAssistant() {
         })
       });
       if (!response.ok) throw new Error("feedback_failed");
+      setFeedbackNotice(rating === "UP" ? "Gracias. Registramos que la respuesta fue util." : "Gracias. La respuesta quedo pendiente de revision humana.");
     } catch {
       setMessages((current) => current.map((item) => item.traceId === message.traceId ? { ...item, feedback: undefined } : item));
+      setFeedbackNotice("No pudimos guardar la valoracion. Podes intentarlo nuevamente.");
     }
   }
 
   return (
     <div className="floating-assist" aria-live="polite">
       {open ? (
-        <section className="floating-chat" aria-label="Asistente FZAC">
+        <>
+        <button className="floating-chat__backdrop" type="button" aria-label="Cerrar asistente FZAC" onClick={() => setOpen(false)} />
+        <section className="floating-chat" role="dialog" aria-labelledby="floating-chat-title">
           <header className="floating-chat__head">
             <div className="floating-chat__identity">
               <span className="floating-chat__avatar"><Bot size={18} /></span>
               <span>
-                <strong>Asistente FZAC</strong>
+                <strong id="floating-chat-title">Asistente FZAC</strong>
                 <small><i aria-hidden="true" /> Disponible para ayudarte</small>
               </span>
             </div>
@@ -373,11 +396,15 @@ export function FloatingAssistant() {
           </div>
 
           <footer className="floating-chat__composer">
+            {feedbackNotice ? <span className="floating-chat__notice" role="status">{feedbackNotice}</span> : null}
             <span className="floating-chat__privacy"><ShieldCheck size={13} /> No compartas datos de tarjeta ni contraseñas.</span>
             <form className="chatbot__form" onSubmit={submit}>
               <input
                 aria-label="Consulta para el asistente FZAC"
                 autoComplete="off"
+                enterKeyHint="send"
+                inputMode="text"
+                ref={inputRef}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Escribí tu consulta"
@@ -389,12 +416,20 @@ export function FloatingAssistant() {
             </form>
           </footer>
         </section>
+        </>
       ) : null}
 
       <a className="floating-whatsapp" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" aria-label="WhatsApp FZAC">
         <WhatsappLogo />
       </a>
-      <button className="floating-chat-button" type="button" onClick={() => setOpen((current) => !current)} aria-label="Abrir asistente FZAC">
+      <button
+        className="floating-chat-button"
+        type="button"
+        disabled={!storageReady}
+        onClick={() => setOpen((current) => !current)}
+        aria-label={open ? "Cerrar asistente FZAC" : "Abrir asistente FZAC"}
+        aria-expanded={open}
+      >
         <Bot size={22} />
         <span>AI CHATBOT FZAC</span>
       </button>

@@ -5,6 +5,7 @@ import { evaluatePaymentProductionReadiness } from "../../lib/payments/productio
 import { getRequestSiteUrl } from "../../lib/utils/env";
 import { safeInternalPath } from "../../lib/utils/navigation";
 import { sanitizeCspReport } from "../../lib/security/csp-report";
+import { buildAssistantQualityAnalytics, redactAssistantQuestion } from "../../lib/assistant/quality-analytics";
 import {
   buildMercadoPagoProviderEventId,
   isMercadoPagoPaymentId,
@@ -360,5 +361,52 @@ test.describe("Origen canónico", () => {
     expect(safeInternalPath("/\\atacante.invalid")).toBe("/cuenta");
     expect(safeInternalPath("/%5C%5Catacante.invalid")).toBe("/cuenta");
     expect(safeInternalPath("/%2F%2Fatacante.invalid")).toBe("/cuenta");
+  });
+});
+
+test.describe("Evaluacion continua del asistente", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop-chromium", "La agregacion pura se prueba una sola vez.");
+  });
+
+  test("calcula indicadores reales sin inventar porcentajes", () => {
+    const analytics = buildAssistantQualityAnalytics({
+      days: 7,
+      now: new Date("2026-08-03T12:00:00Z"),
+      messages: [
+        { id: "m1", created_at: "2026-08-03T10:00:00Z", metadata: { confidence: 0.8, assistant_state: { topic: "payment" } } },
+        { id: "m2", created_at: "2026-08-02T10:00:00Z", metadata: { confidence: 0.6, assistant_state: { topic: "delivery" } } }
+      ],
+      feedback: [
+        { rating: "UP", created_at: "2026-08-03T10:02:00Z" },
+        { rating: "DOWN", created_at: "2026-08-02T10:02:00Z" }
+      ],
+      reviews: [
+        { assistant_message_id: "m1", intent: "payment", reason: "HANDOFF", confidence: 0.8, priority: 4, status: "OPEN", occurrence_count: 1, knowledge_slug: "payment-overview", last_seen_at: "2026-08-03T10:03:00Z", user_message: { content: "Me cobraron dos veces" } },
+        { assistant_message_id: "m2", intent: "delivery", reason: "UNRESOLVED", confidence: 0.6, priority: 3, status: "RESOLVED", occurrence_count: 1, knowledge_slug: null, last_seen_at: "2026-08-02T10:03:00Z", user_message: { content: "Envian a zona norte" } }
+      ]
+    });
+
+    expect(analytics.summary).toEqual({
+      responses: 2,
+      feedback: 2,
+      helpfulRate: 50,
+      averageConfidence: 70,
+      escalationRate: 50,
+      reviewResolutionRate: 50
+    });
+    expect(analytics.intents[0]).toMatchObject({ intent: "payment", responses: 1, signals: 1 });
+    expect(analytics.opportunities).toHaveLength(1);
+    expect(analytics.trend.reduce((total, day) => total + day.responses, 0)).toBe(2);
+  });
+
+  test("redacta identidad y referencias antes de agrupar preguntas", () => {
+    const redacted = redactAssistantQuestion("Mi email es cliente@example.com y mi telefono +54 9 341 555-1234, pedido ORD-123456");
+    expect(redacted).not.toContain("cliente@example.com");
+    expect(redacted).not.toContain("341 555-1234");
+    expect(redacted).not.toContain("ORD-123456");
+    expect(redacted).toContain("[email]");
+    expect(redacted).toContain("[telefono]");
+    expect(redacted).toContain("[referencia]");
   });
 });

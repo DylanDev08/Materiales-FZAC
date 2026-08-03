@@ -31,6 +31,7 @@ const openScreenshot = path.join(screenshotDirectory, "mobile-admin-navigation.p
 const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.png");
 const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant-quality.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
+const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 let userId = null;
 let financialMovementId = null;
@@ -240,12 +241,18 @@ try {
 
   await page.goto(`${baseUrl}${adminPath}/calidad-ia`, { waitUntil: "domcontentloaded" });
   await page.locator(".admin-ai-quality").waitFor({ state: "visible", timeout: 25_000 });
-  await page.getByText("Pregunta temporal de calidad").waitFor({ state: "visible" });
+  await page.locator(".admin-ai-evaluation").waitFor({ state: "visible", timeout: 25_000 });
+  await page.locator(".admin-ai-quality__exchange").getByText("Pregunta temporal de calidad", { exact: false }).first().waitFor({ state: "visible" });
+  const periodButtons = await page.locator(".admin-ai-evaluation__periods button").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().height));
+  assert(periodButtons.length === 3 && periodButtons.every((height) => height >= 44), "Assistant evaluation period controls are not mobile friendly.");
+  const rangeResponse = page.waitForResponse((response) => response.url().includes("/api/admin/assistant-quality?range=7") && response.status() === 200);
+  await page.getByRole("button", { name: "7 dias" }).click();
+  await rangeResponse;
   const qualityMobileMetrics = await page.evaluate(() => ({
     viewport: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth,
     clippedElements: Array.from(document.querySelectorAll(
-      ".admin-ai-quality__guardrail, .admin-ai-quality__guardrail p, .admin-ai-quality__row, .admin-ai-quality__exchange, .admin-ai-quality__exchange p"
+      ".admin-ai-quality__guardrail, .admin-ai-quality__guardrail p, .admin-ai-quality__row, .admin-ai-quality__exchange, .admin-ai-quality__exchange p, .admin-ai-evaluation, .admin-ai-evaluation__head"
     )).filter((element) => element.scrollWidth > element.clientWidth + 1).length
   }));
   assert(qualityMobileMetrics.documentWidth <= qualityMobileMetrics.viewport + 2, "Assistant quality generates mobile horizontal overflow.");
@@ -262,12 +269,34 @@ try {
     .single();
   assert(!resolvedReviewError && resolvedReview?.status === "RESOLVED", "Assistant quality review was not persisted as resolved.");
 
+  for (const route of ["pedidos", "pagos", "clientes", "productos", "logs"]) {
+    await page.goto(`${baseUrl}${adminPath}/${route}`, { waitUntil: "domcontentloaded" });
+    await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
+    const routeMetrics = await page.evaluate(() => ({
+      viewport: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth
+    }));
+    assert(routeMetrics.documentWidth <= routeMetrics.viewport + 2, `Admin ${route} generates mobile horizontal overflow.`);
+  }
+
   const storageState = await context.storageState();
   const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState });
   const desktopPage = await desktopContext.newPage();
   await desktopPage.goto(`${baseUrl}${adminPath}`, { waitUntil: "domcontentloaded" });
   await desktopPage.locator(".admin-dashboard-model").last().waitFor({ state: "visible", timeout: 25_000 });
   await desktopPage.screenshot({ path: desktopScreenshot, fullPage: true });
+  const collapseButton = desktopPage.getByRole("button", { name: "Contraer menu administrativo" });
+  await collapseButton.click();
+  await desktopPage.locator(".admin-sidebar.is-collapsed").waitFor({ state: "visible" });
+  const collapsedMetrics = await desktopPage.evaluate(() => ({
+    sidebarWidth: document.querySelector(".admin-sidebar")?.getBoundingClientRect().width ?? 999,
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(collapsedMetrics.sidebarWidth <= 80, "Collapsed desktop sidebar is wider than expected.");
+  assert(collapsedMetrics.documentWidth <= collapsedMetrics.viewport + 2, "Collapsed desktop admin generates horizontal overflow.");
+  await desktopPage.screenshot({ path: desktopCollapsedScreenshot, fullPage: true });
+  await desktopPage.getByRole("button", { name: "Expandir menu administrativo" }).click();
   await desktopPage.goto(`${baseUrl}${adminPath}/finanzas`, { waitUntil: "domcontentloaded" });
   await desktopPage.locator(".admin-finance-page").last().waitFor({ state: "visible", timeout: 25_000 });
   await desktopPage.screenshot({ path: desktopFinanceScreenshot, fullPage: true });
@@ -284,6 +313,8 @@ try {
       assistantQualityResponsive: true,
       assistantQualityLifecycle: true,
       sidebarDrawer: true,
+      desktopSidebarCollapse: true,
+      sharedMobileRoutes: true,
       touchTargets: true,
       horizontalOverflow: false,
       screenshots: [
@@ -292,6 +323,7 @@ try {
         path.relative(process.cwd(), financeScreenshot),
         path.relative(process.cwd(), qualityScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
+        path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot)
       ]
     })}\n`

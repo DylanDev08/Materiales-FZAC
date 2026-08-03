@@ -1,7 +1,7 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { ShieldCheck, Store } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -10,6 +10,9 @@ export function AdminShell({ title, description, children }: { title: string; de
 
   return (
     <main className="admin-page">
+      <a className="admin-skip-link" href="#admin-main-content">
+        Ir al contenido principal
+      </a>
       <div className="admin-app-shell">
         <AdminSidebar adminPath={adminPath} />
         <section className="admin-workspace">
@@ -31,13 +34,13 @@ export function AdminShell({ title, description, children }: { title: string; de
                   <small>Administrador</small>
                 </div>
               </div>
-              <Link className="admin-topbar__logout" href="/" aria-label="Salir a la tienda">
-                <LogOut size={17} />
-                <span>Salir</span>
+              <Link className="admin-topbar__logout" href="/" aria-label="Abrir vista de la tienda">
+                <Store size={17} />
+                <span>Tienda</span>
               </Link>
             </div>
           </header>
-          <div className="admin-content">{children}</div>
+          <div className="admin-content" id="admin-main-content">{children}</div>
         </section>
       </div>
     </main>

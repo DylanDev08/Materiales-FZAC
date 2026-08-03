@@ -28,8 +28,34 @@ test("muestra conocimiento trazable en desktop", async ({ page }) => {
 
 test("mantiene el conocimiento usable en mobile", async ({ page }) => {
   await openKnowledgeAnswer(page, { width: 390, height: 844 });
-  const chat = page.locator(".floating-chat");
+  const chat = page.getByRole("dialog", { name: "Asistente FZAC" });
   await expect(chat).toBeVisible();
   const box = await chat.boundingBox();
   expect(box?.width ?? 0).toBeLessThanOrEqual(390);
+  expect(box?.height ?? 0).toBeLessThanOrEqual(844);
+  const touchTargets = await chat.locator("button, a").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().height));
+  expect(touchTargets.filter((height) => height > 0).every((height) => height >= 44)).toBe(true);
+  const inputHeight = await page.getByLabel("Consulta para el asistente FZAC").evaluate((element) => element.getBoundingClientRect().height);
+  expect(inputHeight).toBeGreaterThanOrEqual(48);
+  await page.getByRole("button", { name: "Cerrar chat" }).click();
+  await expect(chat).toBeHidden();
 });
+
+for (const viewport of [{ width: 360, height: 740 }, { width: 414, height: 896 }]) {
+  test(`abre y cierra el dialogo sin desborde en ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Abrir asistente FZAC" }).click();
+    const dialog = page.getByRole("dialog", { name: "Asistente FZAC" });
+    await expect(dialog).toBeVisible();
+    const layout = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      document: document.documentElement.scrollWidth,
+      dialog: document.querySelector(".floating-chat")?.getBoundingClientRect().width ?? 0
+    }));
+    expect(layout.document).toBeLessThanOrEqual(layout.viewport + 1);
+    expect(layout.dialog).toBeLessThanOrEqual(layout.viewport - 16);
+    await page.locator(".floating-chat__backdrop").click({ position: { x: 2, y: 2 } });
+    await expect(dialog).toBeHidden();
+  });
+}

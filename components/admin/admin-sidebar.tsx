@@ -19,6 +19,8 @@ import {
   Menu,
   MessageCircle,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   Palette,
   RotateCcw,
   Settings,
@@ -82,6 +84,14 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
   const pathname = normalizePath(usePathname());
   const normalizedAdminPath = normalizePath(adminPath);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setCollapsed(window.localStorage.getItem("fzac-admin-sidebar-collapsed") === "true");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -113,6 +123,14 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem("fzac-admin-sidebar-collapsed", String(next));
+      return next;
+    });
+  }
+
   return (
     <>
       <button
@@ -134,13 +152,18 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
-      <aside className={`admin-sidebar ${mobileOpen ? "is-open" : ""}`} id="admin-primary-navigation">
+      <aside
+        className={`admin-sidebar ${mobileOpen ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}
+        id="admin-primary-navigation"
+      >
         <Link className="admin-sidebar__brand" href={normalizedAdminPath} onClick={() => setMobileOpen(false)}>
           <span>
             <Image src="/logoFZAC.jpg" alt="FZAC" width={58} height={58} unoptimized />
           </span>
-          <strong>FZAC Materiales</strong>
-          <small>Panel comercial</small>
+          <div className="admin-sidebar__brand-copy">
+            <strong>FZAC Materiales</strong>
+            <small>Panel comercial</small>
+          </div>
         </Link>
         <nav aria-label="Secciones de administracion">
           {linkGroups.map((group) => (
@@ -152,13 +175,25 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
                   key={`${group.title}-${path || "dashboard"}`}
                   href={hrefFor(path)}
                   onClick={() => setMobileOpen(false)}
+                  title={collapsed ? label : undefined}
                 >
-                  <Icon size={18} /> {label}
+                  <Icon size={18} />
+                  <span>{label}</span>
                 </Link>
               ))}
             </div>
           ))}
         </nav>
+        <button
+          className="admin-sidebar__collapse"
+          type="button"
+          aria-label={collapsed ? "Expandir menu administrativo" : "Contraer menu administrativo"}
+          aria-pressed={collapsed}
+          onClick={toggleCollapsed}
+        >
+          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          <span>{collapsed ? "Expandir menu" : "Contraer menu"}</span>
+        </button>
       </aside>
     </>
   );

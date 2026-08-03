@@ -1474,6 +1474,10 @@
   pointer-events: auto;
 }
 
+.floating-chat__backdrop {
+  display: none;
+}
+
 .floating-chat {
   width: min(410px, calc(100vw - 28px));
   max-height: min(680px, calc(100vh - 120px));
@@ -1634,6 +1638,19 @@
 
 .floating-chat__privacy svg {
   color: var(--color-yellow);
+}
+
+.floating-chat__notice {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--color-yellow);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.floating-chat-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .floating-chat .chatbot__form input {

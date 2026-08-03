@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Info, Search, X } from "lucide-react";
 import { AdminRefundAction } from "@/components/admin/admin-refund-action";
 import { AdminConsumerRequestAction } from "@/components/admin/admin-consumer-request-action";
@@ -171,6 +171,22 @@ export function AdminInteractiveTable({
     ? Object.entries(selectedRow).filter(([key]) => !key.startsWith("__") && (technicalKey(key) || !visibleColumns.includes(key)))
     : [];
 
+  useEffect(() => {
+    if (!selectedRow) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setSelectedRow(null);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [selectedRow]);
+
   function clearFilters() {
     setQuery("");
     setActiveFilter("Todos");
@@ -293,7 +309,19 @@ export function AdminInteractiveTable({
           <tbody>
             {visibleRows.length ? (
               visibleRows.map((row, index) => (
-                <tr key={index} className="admin-table-row-clickable" onClick={() => setSelectedRow(row)}>
+                <tr
+                  key={index}
+                  className="admin-table-row-clickable"
+                  tabIndex={0}
+                  aria-label={`Abrir detalle del registro ${index + 1}`}
+                  onClick={() => setSelectedRow(row)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedRow(row);
+                    }
+                  }}
+                >
                   {visibleColumns.map((column) => (
                     <td data-label={column} key={column}>
                       {cellText(row[column])}
@@ -332,7 +360,14 @@ export function AdminInteractiveTable({
       </footer>
 
       {selectedRow ? (
-        <aside className="admin-row-drawer" aria-label={`Detalle de ${title}`}>
+        <>
+        <button
+          className="admin-row-drawer-backdrop"
+          type="button"
+          aria-label="Cerrar detalle"
+          onClick={() => setSelectedRow(null)}
+        />
+        <aside className="admin-row-drawer" role="dialog" aria-modal="true" aria-label={`Detalle de ${title}`}>
           <header>
             <div>
               <span className="kicker">Detalle</span>
@@ -414,6 +449,7 @@ export function AdminInteractiveTable({
             </details>
           ) : null}
         </aside>
+        </>
       ) : null}
     </section>
   );

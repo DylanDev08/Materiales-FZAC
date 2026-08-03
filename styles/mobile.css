@@ -372,11 +372,89 @@
   }
 
   .floating-chat {
-    position: absolute;
-    right: 0;
-    bottom: 112px;
-    width: calc(100vw - 20px);
-    max-height: calc(100dvh - 132px - env(safe-area-inset-bottom));
+    position: fixed;
+    z-index: 152;
+    inset: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    height: auto;
+    max-height: none;
+    border-radius: var(--radius-sm);
+  }
+
+  .floating-chat__backdrop {
+    position: fixed;
+    z-index: 151;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgba(0, 0, 0, .78);
+    pointer-events: auto;
+  }
+
+  .floating-chat__head {
+    min-height: 62px;
+    padding: 0 10px 0 12px;
+  }
+
+  .floating-chat__controls button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .floating-chat__messages {
+    min-height: 0;
+    max-height: none;
+    padding: 14px 12px;
+    overscroll-behavior: contain;
+  }
+
+  .chatbot__message {
+    max-width: 92%;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+  }
+
+  .chatbot__sources,
+  .chatbot__feedback,
+  .chatbot__inline-options {
+    max-width: 100%;
+  }
+
+  .chatbot__sources a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 2px;
+  }
+
+  .chatbot__feedback button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .chatbot__inline-options button,
+  .chatbot__inline-options a {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .floating-chat__composer {
+    padding: 9px 10px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .floating-chat .chatbot__form input,
+  .floating-chat .chatbot__form .btn {
+    min-height: 48px;
+  }
+
+  .floating-chat .chatbot__form .btn {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  .floating-assist:has(.floating-chat) > .floating-whatsapp,
+  .floating-assist:has(.floating-chat) > .floating-chat-button {
+    display: none;
   }
 
   .floating-whatsapp,
@@ -675,6 +753,16 @@
 
   .admin-pagination > div {
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 390px) {
+  .chatbot__inline-options {
+    grid-template-columns: 1fr;
+  }
+
+  .floating-chat__identity small {
+    display: none;
   }
 }
 
