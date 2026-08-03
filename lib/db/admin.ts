@@ -142,6 +142,7 @@ export type AdminFinancialMovement = {
   category: string;
   description: string;
   amount: number;
+  source: "MANUAL" | "ADJUSTMENT" | "PURCHASE_PAYMENT";
   occurredAt: string;
   status: "ACTIVE" | "VOID";
   voidReason: string;
@@ -157,7 +158,7 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
 
   const { data, error } = await admin
     .from("financial_movements")
-    .select("id,type,category,description,amount,occurred_at,status,void_reason,created_at")
+    .select("id,type,category,description,amount,source,occurred_at,status,void_reason,created_at")
     .order("occurred_at", { ascending: false })
     .limit(limit);
 
@@ -169,6 +170,9 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
       category: String(movement.category ?? "General"),
       description: String(movement.description ?? "Movimiento"),
       amount: Number(movement.amount ?? 0),
+      source: String(movement.source) === "PURCHASE_PAYMENT"
+        ? "PURCHASE_PAYMENT"
+        : String(movement.source) === "ADJUSTMENT" ? "ADJUSTMENT" : "MANUAL",
       occurredAt: String(movement.occurred_at ?? movement.created_at ?? ""),
       status: String(movement.status) === "VOID" ? "VOID" : "ACTIVE",
       voidReason: String(movement.void_reason ?? ""),
@@ -521,7 +525,8 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     { data: paymentEvents },
     { data: recentOrders },
     { data: recentTickets },
-    { data: financialMovements, error: financialMovementsError }
+    { data: financialMovements, error: financialMovementsError },
+    { data: supplierInvoices, error: supplierInvoicesError }
   ] = await Promise.all([
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", today),
     admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", selectedStart),
@@ -554,7 +559,12 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       .select("id,type,category,description,amount,occurred_at,status")
       .gte("occurred_at", selectedStart)
       .order("occurred_at", { ascending: false })
-      .limit(600)
+      .limit(600),
+    admin
+      .from("supplier_invoices")
+      .select("id,status,amount,paid_amount,due_at")
+      .in("status", ["PENDING", "PARTIALLY_PAID"])
+      .limit(1_000)
   ]);
 
   const salesToday = (paidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
@@ -568,6 +578,12 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     .filter((movement) => movement.type === "EXPENSE")
     .reduce((sum, movement) => sum + Number(movement.amount ?? 0), 0);
   const selectedBalance = selectedIncome - selectedExpenses;
+  const openSupplierInvoices = supplierInvoices ?? [];
+  const supplierOutstanding = openSupplierInvoices.reduce(
+    (sum, invoice) => sum + Math.max(0, Number(invoice.amount ?? 0) - Number(invoice.paid_amount ?? 0)),
+    0
+  );
+  const overdueSupplierInvoices = openSupplierInvoices.filter((invoice) => String(invoice.due_at) < today.slice(0, 10));
   const salesMonth = (monthOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
   const pendingPayments = (payments ?? []).filter((payment) => payment.status === "PENDING");
@@ -621,6 +637,9 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       { label: "Balance del periodo", value: currency(selectedBalance), helper: "Ingresos menos egresos" },
       { label: "Ingresos manuales", value: currency(selectedManualIncome), helper: "Movimientos distintos de ventas online" },
       { label: "Movimientos financieros", value: String(activeFinancialMovements.length), helper: "Registros vigentes del periodo" },
+      { label: "Saldo proveedores", value: currency(supplierOutstanding), helper: supplierInvoicesError ? "Módulo de proveedores no disponible" : "Facturas pendientes de pago" },
+      { label: "Cuentas vencidas", value: String(overdueSupplierInvoices.length), helper: "Facturas de proveedores fuera de término" },
+      { label: "Facturas pendientes", value: String(openSupplierInvoices.length), helper: "Documentos abiertos de proveedores" },
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
       { label: "Usuarios registrados", value: String(allProfiles?.length ?? 0), helper: `${newTodayProfiles?.length ?? 0} nuevos hoy` },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -724,6 +724,7 @@ export type Database = {
           metadata: Json
           occurred_at: string
           source: string
+          source_reference: string | null
           status: string
           type: string
           updated_at: string
@@ -741,6 +742,7 @@ export type Database = {
           metadata?: Json
           occurred_at?: string
           source?: string
+          source_reference?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -758,6 +760,7 @@ export type Database = {
           metadata?: Json
           occurred_at?: string
           source?: string
+          source_reference?: string | null
           status?: string
           type?: string
           updated_at?: string
@@ -1909,6 +1912,174 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          currency: string
+          due_at: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          notes: string | null
+          paid_amount: number
+          purchase_order_id: string
+          request_key: string
+          status: string
+          supplier_id: string
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          currency?: string
+          due_at: string
+          id?: string
+          invoice_number: string
+          issued_at: string
+          notes?: string | null
+          paid_amount?: number
+          purchase_order_id: string
+          request_key: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          currency?: string
+          due_at?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          notes?: string | null
+          paid_amount?: number
+          purchase_order_id?: string
+          request_key?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          method: string
+          notes: string | null
+          paid_at: string
+          reference: string | null
+          request_key: string
+          status: string
+          supplier_invoice_id: string
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          id?: string
+          method: string
+          notes?: string | null
+          paid_at: string
+          reference?: string | null
+          request_key: string
+          status?: string
+          supplier_invoice_id: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string
+          reference?: string | null
+          request_key?: string
+          status?: string
+          supplier_invoice_id?: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_supplier_invoice_id_fkey"
+            columns: ["supplier_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active: boolean
@@ -2144,7 +2315,50 @@ export type Database = {
           status: string
         }[]
       }
+      register_supplier_invoice: {
+        Args: {
+          p_actor_id: string
+          p_amount: number
+          p_due_at: string
+          p_invoice_number: string
+          p_issued_at: string
+          p_notes: string
+          p_purchase_order_id: string
+          p_request_key: string
+        }
+        Returns: {
+          invoice_id: string
+          invoice_status: string
+        }[]
+      }
+      register_supplier_payment: {
+        Args: {
+          p_actor_id: string
+          p_amount: number
+          p_method: string
+          p_notes: string
+          p_paid_at: string
+          p_reference: string
+          p_request_key: string
+          p_supplier_invoice_id: string
+        }
+        Returns: {
+          invoice_status: string
+          payment_id: string
+        }[]
+      }
       request_is_service_role: { Args: never; Returns: boolean }
+      void_supplier_invoice: {
+        Args: { p_actor_id: string; p_invoice_id: string; p_reason: string }
+        Returns: string
+      }
+      void_supplier_payment: {
+        Args: { p_actor_id: string; p_payment_id: string; p_reason: string }
+        Returns: {
+          invoice_status: string
+          payment_id: string
+        }[]
+      }
     }
     Enums: {
       AuthProvider: "LOCAL" | "GOOGLE"

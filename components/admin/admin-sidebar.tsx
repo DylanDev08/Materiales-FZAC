@@ -23,6 +23,7 @@ import {
   PanelLeftOpen,
   Palette,
   RotateCcw,
+  ReceiptText,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -57,6 +58,7 @@ const linkGroups = [
     links: [
       { path: "/inventario", label: "Inventario", icon: Package },
       { path: "/compras", label: "Compras y proveedores", icon: ShoppingBasket },
+      { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorias", icon: Grid3X3 },
       { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp }

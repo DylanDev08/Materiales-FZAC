@@ -80,6 +80,7 @@ export async function PATCH(request: Request) {
       })
       .eq("id", payload.id)
       .eq("status", "ACTIVE")
+      .in("source", ["MANUAL", "ADJUSTMENT"])
       .select("id")
       .maybeSingle();
 

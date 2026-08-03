@@ -23,11 +23,12 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las APIs administrativas bloquean sesiones anónimas", async ({ request }) => {
-    const [metrics, environment, inventoryForecast, procurement, marketPrices, marketSync, assistantQuality, assistantQualityUpdate] = await Promise.all([
+    const [metrics, environment, inventoryForecast, procurement, supplierFinance, marketPrices, marketSync, assistantQuality, assistantQualityUpdate] = await Promise.all([
       request.get("/api/admin/metrics"),
       request.get("/api/health/env"),
       request.get("/api/admin/inventory/forecast"),
       request.get("/api/admin/procurement"),
+      request.get("/api/admin/supplier-finance"),
       request.get("/api/admin/market-prices"),
       request.post("/api/admin/market-prices/sync", { data: {} }),
       request.get("/api/admin/assistant-quality"),
@@ -37,6 +38,7 @@ test.describe("Controles de seguridad no destructivos", () => {
     expect([401, 403]).toContain(environment.status());
     expect([401, 403]).toContain(inventoryForecast.status());
     expect([401, 403]).toContain(procurement.status());
+    expect([401, 403]).toContain(supplierFinance.status());
     expect([401, 403]).toContain(marketPrices.status());
     expect([401, 403]).toContain(marketSync.status());
     expect([401, 403]).toContain(assistantQuality.status());

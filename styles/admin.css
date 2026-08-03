@@ -3896,6 +3896,801 @@ body:has(.admin-page) .site-main {
   }
 }
 
+/* Supplier finance: invoices, due dates, payments and cost history. */
+.admin-supplier-finance {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-supplier-finance__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px;
+  background: linear-gradient(90deg, rgba(244, 196, 0, 0.1), rgba(23, 23, 23, 0.35) 58%, transparent);
+  border-left: 3px solid var(--color-primary);
+}
+
+.admin-supplier-finance__intro h2,
+.admin-supplier-finance__payables h2,
+.admin-supplier-finance__form h2,
+.admin-supplier-finance__costs h2,
+.admin-supplier-finance__drawer h2 {
+  margin: 4px 0 5px;
+  font-size: clamp(1.22rem, 2vw, 1.65rem);
+  line-height: 1.15;
+}
+
+.admin-supplier-finance__intro p,
+.admin-supplier-finance__form header p,
+.admin-supplier-finance__costs header p,
+.admin-supplier-finance__drawer header p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.admin-supplier-finance__rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  color: #8be0b6;
+  background: rgba(22, 163, 106, 0.1);
+  border: 1px solid rgba(22, 163, 106, 0.28);
+  font-weight: 800;
+}
+
+.admin-supplier-finance__tabs {
+  display: grid;
+  grid-template-columns: max-content max-content max-content 44px;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-supplier-finance__tabs button,
+.admin-supplier-finance__filters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 15px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-supplier-finance__tabs button.active,
+.admin-supplier-finance__filters button.active {
+  color: var(--color-text);
+  background: rgba(244, 196, 0, 0.09);
+  border-color: rgba(244, 196, 0, 0.34);
+}
+
+.admin-supplier-finance__tabs button:last-child {
+  justify-self: end;
+  grid-column: -2;
+  padding: 0;
+}
+
+.admin-supplier-finance__tabs button:focus-visible,
+.admin-supplier-finance__filters button:focus-visible,
+.admin-supplier-invoice button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.admin-supplier-finance__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-block: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-supplier-finance__metrics > span {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-content: center;
+  gap: 3px 8px;
+  min-height: 88px;
+  padding: 14px 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-supplier-finance__metrics > span:last-child {
+  border-right: 0;
+}
+
+.admin-supplier-finance__metrics svg {
+  grid-row: 1 / span 2;
+  color: var(--color-primary);
+}
+
+.admin-supplier-finance__metrics small {
+  color: var(--color-text-muted);
+}
+
+.admin-supplier-finance__metrics strong {
+  font-size: 1.18rem;
+  line-height: 1.1;
+}
+
+.admin-supplier-finance__metrics .is-danger svg,
+.admin-supplier-finance__metrics .is-danger strong {
+  color: #ff8290;
+}
+
+.admin-supplier-finance__payables,
+.admin-supplier-finance__form,
+.admin-supplier-finance__costs {
+  padding: 18px;
+  background: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.admin-supplier-finance__payables > header,
+.admin-supplier-finance__form > header,
+.admin-supplier-finance__costs > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.admin-supplier-finance__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-supplier-finance__filters button {
+  min-height: 38px;
+  padding-inline: 12px;
+  font-size: 0.82rem;
+}
+
+.admin-supplier-invoice {
+  margin-top: 8px;
+  background: #0e0e0e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #c69f00;
+}
+
+.admin-supplier-invoice--success {
+  border-left-color: #20b77a;
+}
+
+.admin-supplier-invoice--danger {
+  border-left-color: #ef5264;
+}
+
+.admin-supplier-invoice--muted {
+  opacity: 0.66;
+  border-left-color: #686868;
+}
+
+.admin-supplier-invoice__main {
+  display: grid;
+  grid-template-columns: 42px minmax(190px, 1.5fr) minmax(120px, 0.7fr) minmax(140px, 0.8fr) minmax(115px, auto) minmax(150px, auto);
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 10px 12px;
+}
+
+.admin-supplier-invoice__toggle {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: #171717;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.admin-supplier-invoice__toggle[aria-expanded="true"] svg {
+  rotate: 180deg;
+}
+
+.admin-supplier-invoice__main > div,
+.admin-supplier-invoice__main > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-supplier-invoice__main small,
+.admin-supplier-invoice__main em,
+.admin-supplier-invoice__detail span,
+.admin-supplier-invoice__payments small,
+.admin-supplier-invoice__payments em {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-supplier-invoice__main > div > strong,
+.admin-supplier-invoice__main > span > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-supplier-invoice__main > span > em {
+  color: #ff8290;
+}
+
+.admin-supplier-invoice__main .btn {
+  width: 100%;
+  min-height: 44px;
+  padding-inline: 12px;
+}
+
+.admin-supplier-invoice__detail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+  gap: 14px;
+  padding: 15px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141414;
+}
+
+.admin-supplier-invoice__detail > div:not(.admin-supplier-invoice__payments) {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.admin-supplier-finance__void {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #ff9aa5;
+  background: transparent;
+  border: 1px solid rgba(239, 82, 100, 0.28);
+  cursor: pointer;
+}
+
+.admin-supplier-invoice__payments {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-supplier-invoice__payments > span {
+  display: grid;
+  grid-template-columns: 120px minmax(180px, 1fr) minmax(140px, 1fr) 40px;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-supplier-invoice__payments > span.is-void {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.admin-supplier-invoice__payments button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #ff9aa5;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.admin-supplier-finance__form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-supplier-finance__form header > strong {
+  color: var(--color-primary);
+  font-size: 1.55rem;
+  white-space: nowrap;
+}
+
+.admin-supplier-finance__form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-supplier-finance__form label,
+.admin-supplier-finance__drawer label,
+.admin-supplier-finance__void-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.admin-supplier-finance__form input,
+.admin-supplier-finance__form select,
+.admin-supplier-finance__form textarea,
+.admin-supplier-finance__drawer input,
+.admin-supplier-finance__drawer select,
+.admin-supplier-finance__drawer textarea,
+.admin-supplier-finance__void-panel input,
+.admin-supplier-finance__costs input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  color: var(--color-text);
+  background: #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.admin-supplier-finance__form textarea,
+.admin-supplier-finance__drawer textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.admin-supplier-finance__form input:focus,
+.admin-supplier-finance__form select:focus,
+.admin-supplier-finance__form textarea:focus,
+.admin-supplier-finance__drawer input:focus,
+.admin-supplier-finance__drawer select:focus,
+.admin-supplier-finance__drawer textarea:focus,
+.admin-supplier-finance__void-panel input:focus,
+.admin-supplier-finance__costs input:focus {
+  outline: 2px solid rgba(244, 196, 0, 0.42);
+  border-color: var(--color-primary);
+}
+
+.admin-supplier-finance__form footer,
+.admin-supplier-finance__drawer footer,
+.admin-supplier-finance__void-panel footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-supplier-finance__empty {
+  display: grid;
+  place-items: center;
+  gap: 7px;
+  min-height: 190px;
+  padding: 28px;
+  color: var(--color-text-muted);
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.admin-supplier-finance__empty svg {
+  color: var(--color-primary);
+}
+
+.admin-supplier-finance__empty p {
+  margin: 0;
+}
+
+.admin-supplier-finance__costs > header label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(360px, 100%);
+  padding-left: 12px;
+  color: var(--color-text-muted);
+  background: #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.admin-supplier-finance__costs > header label input {
+  min-height: 44px;
+  padding-left: 0;
+  border: 0;
+}
+
+.admin-supplier-finance__cost-table {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.admin-supplier-finance__cost-head,
+.admin-supplier-finance__cost-table article {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(120px, 0.65fr) minmax(110px, 0.6fr) minmax(120px, 0.65fr) minmax(190px, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 840px;
+  padding: 12px 14px;
+}
+
+.admin-supplier-finance__cost-head {
+  color: var(--color-text-muted);
+  background: #0c0c0c;
+  border-block: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-supplier-finance__cost-table article {
+  min-height: 66px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-supplier-finance__cost-table article > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-supplier-finance__cost-table small {
+  color: var(--color-text-muted);
+}
+
+.admin-cost-variation {
+  display: inline-flex !important;
+  grid-auto-flow: column;
+  grid-template-columns: min-content max-content;
+  justify-content: start;
+  align-items: center;
+  gap: 5px !important;
+  font-weight: 850;
+}
+
+.admin-cost-variation--up { color: #ff8290; }
+.admin-cost-variation--down { color: #67d9aa; }
+.admin-cost-variation--neutral { color: var(--color-text-muted); }
+
+.admin-supplier-finance__drawer {
+  position: fixed;
+  z-index: 120;
+  inset: 0 0 0 auto;
+  display: grid;
+  align-content: start;
+  gap: 15px;
+  width: min(440px, 100%);
+  height: 100dvh;
+  padding: 24px;
+  overflow-y: auto;
+  color: var(--color-text);
+  background: #111;
+  border-left: 1px solid rgba(244, 196, 0, 0.28);
+  box-shadow: -22px 0 50px rgba(0, 0, 0, 0.54);
+}
+
+.admin-supplier-finance__drawer::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0 440px 0 0;
+  background: rgba(0, 0, 0, 0.64);
+  backdrop-filter: blur(2px);
+}
+
+.admin-supplier-finance__drawer header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-supplier-finance__drawer header > button {
+  width: 44px;
+  height: 44px;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.admin-supplier-finance__payment-balance {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-block: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-supplier-finance__payment-balance span {
+  color: var(--color-text-muted);
+}
+
+.admin-supplier-finance__payment-balance strong {
+  color: var(--color-primary);
+  font-size: 1.45rem;
+}
+
+.admin-supplier-finance__drawer > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 11px;
+  color: #f3d778;
+  background: rgba(244, 196, 0, 0.07);
+  border: 1px solid rgba(244, 196, 0, 0.18);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.admin-supplier-finance__void-panel {
+  position: fixed;
+  z-index: 130;
+  left: 50%;
+  bottom: 24px;
+  translate: -50% 0;
+  display: grid;
+  gap: 14px;
+  width: min(620px, calc(100% - 32px));
+  padding: 18px;
+  color: var(--color-text);
+  background: #181313;
+  border: 1px solid rgba(239, 82, 100, 0.4);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+}
+
+.admin-supplier-finance__void-panel > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.admin-supplier-finance__void-panel p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+}
+
+.admin-finance-manage {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-finance-manage:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.admin-supplier-finance__loading {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.admin-supplier-finance__loading span {
+  min-height: 86px;
+  background: linear-gradient(90deg, #141414 25%, #202020 50%, #141414 75%);
+  background-size: 200% 100%;
+  animation: admin-shimmer 1.4s linear infinite;
+}
+
+@media (max-width: 1180px) {
+  .admin-supplier-finance__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-supplier-finance__metrics > span:nth-child(3) {
+    border-right: 0;
+  }
+
+  .admin-supplier-finance__metrics > span:nth-child(n + 4) {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .admin-supplier-invoice__main {
+    grid-template-columns: 42px minmax(180px, 1.4fr) minmax(110px, 0.7fr) minmax(120px, 0.75fr) minmax(110px, auto);
+  }
+
+  .admin-supplier-invoice__main > .btn {
+    grid-column: 2 / -1;
+    width: max-content;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-supplier-finance {
+    gap: 12px;
+  }
+
+  .admin-supplier-finance__intro {
+    display: grid;
+    gap: 16px;
+    padding: 18px 16px;
+  }
+
+  .admin-supplier-finance__rule {
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .admin-supplier-finance__tabs {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .admin-supplier-finance__tabs button {
+    justify-content: flex-start;
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .admin-supplier-finance__tabs button:last-child {
+    grid-column: auto;
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  .admin-supplier-finance__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-supplier-finance__metrics > span,
+  .admin-supplier-finance__metrics > span:nth-child(3) {
+    min-height: 80px;
+    padding: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .admin-supplier-finance__metrics > span:nth-child(odd) {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .admin-supplier-finance__metrics > span:nth-child(even) {
+    border-right: 0;
+  }
+
+  .admin-supplier-finance__payables,
+  .admin-supplier-finance__form,
+  .admin-supplier-finance__costs {
+    padding: 14px;
+  }
+
+  .admin-supplier-finance__payables > header,
+  .admin-supplier-finance__form > header,
+  .admin-supplier-finance__costs > header {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .admin-supplier-finance__filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-supplier-finance__filters button {
+    min-height: 44px;
+  }
+
+  .admin-supplier-invoice__main {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px 10px;
+  }
+
+  .admin-supplier-invoice__main > div {
+    grid-column: 2 / -1;
+  }
+
+  .admin-supplier-invoice__main > span:not(.status-pill) {
+    padding: 9px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .admin-supplier-invoice__main > span:nth-of-type(1) {
+    grid-column: 2;
+  }
+
+  .admin-supplier-invoice__main > span:nth-of-type(2) {
+    grid-column: 3;
+  }
+
+  .admin-supplier-invoice__main .status-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .admin-supplier-invoice__main > .btn {
+    grid-column: 2 / -1;
+    width: 100%;
+  }
+
+  .admin-supplier-invoice__detail {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-supplier-invoice__detail > div:nth-child(3),
+  .admin-supplier-invoice__detail > .admin-supplier-finance__void {
+    grid-column: 1 / -1;
+  }
+
+  .admin-supplier-invoice__payments > span {
+    grid-template-columns: 1fr 40px;
+    gap: 4px 8px;
+    padding: 9px;
+  }
+
+  .admin-supplier-invoice__payments > span b,
+  .admin-supplier-invoice__payments > span small,
+  .admin-supplier-invoice__payments > span em {
+    grid-column: 1;
+  }
+
+  .admin-supplier-invoice__payments > span button {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .admin-supplier-finance__form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-supplier-finance__form header > strong {
+    font-size: 1.3rem;
+  }
+
+  .admin-supplier-finance__form footer,
+  .admin-supplier-finance__drawer footer,
+  .admin-supplier-finance__void-panel footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-supplier-finance__form footer .btn,
+  .admin-supplier-finance__drawer footer .btn,
+  .admin-supplier-finance__void-panel footer .btn {
+    width: 100%;
+  }
+
+  .admin-supplier-finance__costs > header label {
+    width: 100%;
+  }
+
+  .admin-supplier-finance__drawer {
+    width: 100%;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    border-left: 0;
+  }
+
+  .admin-supplier-finance__drawer::before {
+    display: none;
+  }
+
+  .admin-supplier-finance__void-panel {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
 /* Procurement workspace and final admin information architecture. */
 .admin-page {
   background: #080808;

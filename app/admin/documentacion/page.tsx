@@ -48,6 +48,11 @@ const sections = [
     use: "Permite guardar proveedores, preparar ordenes y confirmar recepciones parciales o totales. Crear o enviar una orden no cambia stock: solo la recepcion fisica suma unidades."
   },
   {
+    title: "Cuentas por pagar",
+    target: "Facturas, vencimientos y pagos a proveedores.",
+    use: "Registra las facturas asociadas a órdenes de compra y controla su saldo. El egreso se crea únicamente al confirmar un pago; las anulaciones también se hacen desde esta sección para conservar la contabilidad sincronizada."
+  },
+  {
     title: "Comprobantes de pago",
     target: "Revisión del proveedor de pagos.",
     use: "Muestra eventos de Mercado Pago y otros medios. Se usa cuando un cobro necesita verificacion."
@@ -90,6 +95,7 @@ const routines = [
   "Revisar Pagos si hay cobros pendientes o rechazados.",
   "Revisar Arrepentimientos y responder primero los trámites nuevos.",
   "Ver Inventario, revisar cobertura y confirmar manualmente cada reposicion sugerida.",
+  "Revisar Cuentas por pagar, priorizar vencimientos y registrar cada pago una sola vez.",
   "Usar Clientes para contactar compradores y resolver dudas.",
   "Revisar Conocimiento IA cuando aumenten las respuestas marcadas para mejorar.",
   "Abrir Calidad IA, priorizar los casos urgentes y documentar la decision antes de modificar una respuesta.",

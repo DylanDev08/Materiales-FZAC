@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { ArrowDownRight, CreditCard, Landmark, MessageCircle, PackageCheck, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
+import { ArrowDownRight, CreditCard, Landmark, MessageCircle, PackageCheck, ReceiptText, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
 import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
@@ -208,6 +208,13 @@ function AdminTaskCenter({
       helper: "Reponer productos sin disponibilidad antes de vender."
     },
     {
+      label: "Cuentas vencidas",
+      value: numericMetric(metrics, "Cuentas vencidas"),
+      href: `${adminPath}/cuentas-proveedores`,
+      icon: ReceiptText,
+      helper: "Revisar facturas vencidas y registrar pagos pendientes."
+    },
+    {
       label: "Chats pendientes",
       value: numericMetric(metrics, "Chats pendientes"),
       href: `${adminPath}/chats`,
@@ -273,6 +280,7 @@ export async function AdminDashboard({ period }: { period?: string }) {
   const averageTicket = getMetric(metrics, "Ticket promedio");
   const manualIncome = getMetric(metrics, "Ingresos manuales");
   const financialMovements = getMetric(metrics, "Movimientos financieros");
+  const supplierOutstanding = getMetric(metrics, "Saldo proveedores");
 
   const statusSegments: StatusSegment[] = [
     { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
@@ -429,6 +437,7 @@ export async function AdminDashboard({ period }: { period?: string }) {
           <span>Periodo: {periodLabel(selectedPeriod)}</span>
           <span>Mes: {salesMonth.value}</span>
           <span>Ticket promedio: {averageTicket.value}</span>
+          <span>Proveedores: {supplierOutstanding.value}</span>
           <span>Stock activo: {getMetric(metrics, "Productos activos").value}</span>
           <span>Sin stock: {getMetric(metrics, "Productos sin stock").value}</span>
           <span>Usuarios: {getMetric(metrics, "Usuarios registrados").value}</span>

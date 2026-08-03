@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Ban, CheckCircle2, Loader2, Plus, Scale } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import type { AdminFinancialMovement } from "@/lib/db/admin";
@@ -195,10 +196,10 @@ export function AdminFinancialManager({
                     <tr className={row.status === "VOID" ? "is-void" : ""} key={row.id}>
                       <td>{movementDate(row.occurredAt)}</td>
                       <td><span className={`admin-finance-kind admin-finance-kind--${row.type.toLowerCase()}`}>{row.type === "INCOME" ? "Ingreso" : "Egreso"}</span></td>
-                      <td><strong>{row.description}</strong><small>{row.category}</small>{row.voidReason ? <em>Motivo: {row.voidReason}</em> : null}</td>
+                      <td><strong>{row.description}</strong><small>{row.category}{row.source === "PURCHASE_PAYMENT" ? " · Automático" : ""}</small>{row.voidReason ? <em>Motivo: {row.voidReason}</em> : null}</td>
                       <td>{currency(row.amount)}</td>
                       <td>{row.status === "ACTIVE" ? "Vigente" : "Anulado"}</td>
-                      <td>{row.status === "ACTIVE" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : "-"}</td>
+                      <td>{row.status === "ACTIVE" && row.source !== "PURCHASE_PAYMENT" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : row.status === "ACTIVE" ? <Link className="admin-finance-manage" href="./cuentas-proveedores">Gestionar pago</Link> : "-"}</td>
                     </tr>
                   ))}
                 </tbody>

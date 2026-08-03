@@ -37,12 +37,14 @@ const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant
 const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-market-prices.png");
 const inventoryScreenshot = path.join(screenshotDirectory, "mobile-admin-inventory.png");
 const procurementScreenshot = path.join(screenshotDirectory, "mobile-admin-procurement.png");
+const supplierFinanceScreenshot = path.join(screenshotDirectory, "mobile-admin-supplier-finance.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 const desktopMarketPricesScreenshot = path.join(screenshotDirectory, "desktop-admin-market-prices.png");
 const desktopInventoryScreenshot = path.join(screenshotDirectory, "desktop-admin-inventory.png");
 const desktopProcurementScreenshot = path.join(screenshotDirectory, "desktop-admin-procurement.png");
+const desktopSupplierFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-supplier-finance.png");
 let userId = null;
 let financialMovementId = null;
 let assistantConversationId = null;
@@ -50,6 +52,8 @@ let marketProductId = null;
 let marketSourceIds = [];
 let procurementSupplierId = null;
 let procurementOrderId = null;
+let supplierInvoiceId = null;
+let supplierPaymentId = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -93,6 +97,17 @@ async function cleanup() {
       .delete()
       .eq("id", financialMovementId);
     if (auditLogError || financialMovementError) cleanupErrors.push("Could not remove isolated financial QA data.");
+  }
+  if (supplierPaymentId) {
+    const { error: supplierPaymentMovementError } = await admin.from("financial_movements").delete().eq("source", "PURCHASE_PAYMENT").eq("source_reference", supplierPaymentId);
+    const { error: supplierPaymentAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "supplier_payments").eq("entity_id", supplierPaymentId);
+    const { error: supplierPaymentError } = await admin.from("supplier_payments").delete().eq("id", supplierPaymentId);
+    if (supplierPaymentMovementError || supplierPaymentAuditError || supplierPaymentError) cleanupErrors.push("Could not remove isolated supplier payment data.");
+  }
+  if (supplierInvoiceId) {
+    const { error: supplierInvoiceAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "supplier_invoices").eq("entity_id", supplierInvoiceId);
+    const { error: supplierInvoiceError } = await admin.from("supplier_invoices").delete().eq("id", supplierInvoiceId);
+    if (supplierInvoiceAuditError || supplierInvoiceError) cleanupErrors.push("Could not remove isolated supplier invoice data.");
   }
   if (procurementOrderId) {
     const { error: procurementInventoryError } = await admin.from("inventory_movements").delete().eq("product_id", marketProductId).eq("type", "PURCHASE_RECEIPT");
@@ -152,6 +167,8 @@ try {
   await waitForServer();
   const anonymousInventoryResponse = await fetch(`${baseUrl}/api/admin/inventory/forecast`);
   assert([401, 403].includes(anonymousInventoryResponse.status), "Inventory forecast API is exposed without an admin session.");
+  const anonymousSupplierFinanceResponse = await fetch(`${baseUrl}/api/admin/supplier-finance`);
+  assert([401, 403].includes(anonymousSupplierFinanceResponse.status), "Supplier finance API is exposed without an admin session.");
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -437,6 +454,103 @@ try {
   const { data: receivedProduct, error: receivedProductError } = await admin.from("products").select("stock").eq("id", marketProductId).single();
   assert(!receivedProductError && Number(receivedProduct?.stock) === 3, "Purchase receipt did not increase stock exactly once.");
 
+  const supplierFinanceLifecycle = await page.evaluate(async ({ orderId }) => {
+    const call = async (method, body, endpoint = "/api/admin/supplier-finance") => {
+      const response = await fetch(endpoint, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      return { status: response.status, body: await response.json() };
+    };
+    const invoiceRequestKey = crypto.randomUUID();
+    const invoicePayload = {
+      action: "CREATE_INVOICE",
+      purchaseOrderId: orderId,
+      requestKey: invoiceRequestKey,
+      invoiceNumber: `QA-${Date.now()}`,
+      amount: 200,
+      issuedAt: new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10),
+      dueAt: new Date(Date.now() - 86_400_000).toISOString().slice(0, 10),
+      notes: "Factura temporal de control automatizado"
+    };
+    const invoice = await call("POST", invoicePayload);
+    const invoiceReplay = await call("POST", invoicePayload);
+    if (invoice.status !== 201 || invoiceReplay.status !== 201 || invoice.body.invoiceId !== invoiceReplay.body.invoiceId) {
+      return { stage: "invoice", invoice, invoiceReplay };
+    }
+    const paymentRequestKey = crypto.randomUUID();
+    const paymentPayload = {
+      action: "CREATE_PAYMENT",
+      invoiceId: invoice.body.invoiceId,
+      requestKey: paymentRequestKey,
+      amount: 200,
+      method: "BANK_TRANSFER",
+      reference: "QA-TRANSFERENCIA",
+      paidAt: new Date().toISOString(),
+      notes: "Pago temporal de control automatizado"
+    };
+    const payment = await call("POST", paymentPayload);
+    const paymentReplay = await call("POST", paymentPayload);
+    return { stage: "done", invoice, invoiceReplay, payment, paymentReplay };
+  }, { orderId: procurementOrderId });
+  assert(supplierFinanceLifecycle.stage === "done", `Supplier finance lifecycle failed: ${JSON.stringify(supplierFinanceLifecycle)}.`);
+  assert(supplierFinanceLifecycle.payment?.status === 201 && supplierFinanceLifecycle.payment?.body?.status === "PAID", "Supplier payment was not confirmed.");
+  assert(supplierFinanceLifecycle.paymentReplay?.status === 201 && supplierFinanceLifecycle.paymentReplay?.body?.paymentId === supplierFinanceLifecycle.payment?.body?.paymentId, "Supplier payment idempotency failed.");
+  supplierInvoiceId = supplierFinanceLifecycle.invoice.body.invoiceId;
+  supplierPaymentId = supplierFinanceLifecycle.payment.body.paymentId;
+
+  const { data: linkedMovements, error: linkedMovementError } = await admin.from("financial_movements")
+    .select("id,status,amount,source")
+    .eq("source", "PURCHASE_PAYMENT")
+    .eq("source_reference", supplierPaymentId);
+  assert(!linkedMovementError && linkedMovements?.length === 1 && linkedMovements[0].status === "ACTIVE" && Number(linkedMovements[0].amount) === 200, "Supplier payment did not create exactly one cash expense.");
+  const genericVoidAttempt = await page.evaluate(async (movementId) => {
+    const response = await fetch("/api/admin/financial-movements", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: movementId, reason: "Intento desde libro generico" })
+    });
+    return response.status;
+  }, linkedMovements[0].id);
+  assert(genericVoidAttempt === 409, "A supplier payment expense can be voided outside its controlled workflow.");
+
+  const supplierPaymentVoid = await page.evaluate(async (paymentId) => {
+    const payload = { action: "VOID_PAYMENT", paymentId, reason: "Finalizacion de prueba automatizada" };
+    const response = await fetch("/api/admin/supplier-finance", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const repeated = await fetch("/api/admin/supplier-finance", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    return { status: response.status, body: await response.json(), repeatedStatus: repeated.status };
+  }, supplierPaymentId);
+  assert(supplierPaymentVoid.status === 200 && supplierPaymentVoid.body?.status === "PENDING", "Supplier payment was not voided consistently.");
+  assert(supplierPaymentVoid.repeatedStatus === 409, "Supplier payment was voided twice.");
+
+  const [{ data: persistedInvoice }, { data: persistedSupplierPayment }, { data: persistedExpense }] = await Promise.all([
+    admin.from("supplier_invoices").select("status,paid_amount").eq("id", supplierInvoiceId).single(),
+    admin.from("supplier_payments").select("status").eq("id", supplierPaymentId).single(),
+    admin.from("financial_movements").select("status").eq("source_reference", supplierPaymentId).single()
+  ]);
+  assert(persistedInvoice?.status === "PENDING" && Number(persistedInvoice.paid_amount) === 0, "Invoice balance was not restored after voiding payment.");
+  assert(persistedSupplierPayment?.status === "VOID" && persistedExpense?.status === "VOID", "Payment and financial expense were not voided together.");
+
+  const [anonymousInvoice, anonymousSupplierPayment] = await Promise.all([
+    anonymous.from("supplier_invoices").select("id").eq("id", supplierInvoiceId),
+    anonymous.from("supplier_payments").select("id").eq("id", supplierPaymentId)
+  ]);
+  assert(Boolean(anonymousInvoice.error) || anonymousInvoice.data?.length === 0, "Anonymous users can read supplier invoices.");
+  assert(Boolean(anonymousSupplierPayment.error) || anonymousSupplierPayment.data?.length === 0, "Anonymous users can read supplier payments.");
+
+  await page.goto(`${baseUrl}${adminPath}/cuentas-proveedores`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-supplier-finance").waitFor({ state: "visible", timeout: 25_000 });
+  await page.locator(".admin-supplier-finance__loading").waitFor({ state: "hidden", timeout: 25_000 });
+  await page.getByText("Proveedor temporal QA").first().waitFor({ state: "visible", timeout: 25_000 });
+  const supplierFinanceMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-supplier-finance button, .admin-supplier-finance a, .admin-supplier-finance input, .admin-supplier-finance select"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(supplierFinanceMobileMetrics.documentWidth <= supplierFinanceMobileMetrics.viewport + 2, "Supplier finance generates mobile horizontal overflow.");
+  assert(supplierFinanceMobileMetrics.undersizedActions === 0, "Supplier finance contains undersized touch controls.");
+  await page.screenshot({ path: supplierFinanceScreenshot, fullPage: true });
+  await page.getByRole("button", { name: "Evolución de costos" }).click();
+  await page.getByText("Producto temporal de inteligencia de precios").first().waitFor({ state: "visible" });
+
   await page.goto(`${baseUrl}${adminPath}/compras`, { waitUntil: "domcontentloaded" });
   await page.locator(".admin-procurement").waitFor({ state: "visible", timeout: 25_000 });
   await page.locator(".admin-procurement__loading").waitFor({ state: "hidden", timeout: 25_000 });
@@ -525,6 +639,12 @@ try {
   const desktopProcurementMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   assert(desktopProcurementMetrics.documentWidth <= desktopProcurementMetrics.viewport + 2, "Procurement generates desktop horizontal overflow.");
   await desktopPage.screenshot({ path: desktopProcurementScreenshot, fullPage: true });
+  await desktopPage.goto(`${baseUrl}${adminPath}/cuentas-proveedores`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-supplier-finance").waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.locator(".admin-supplier-finance__loading").waitFor({ state: "hidden", timeout: 25_000 });
+  const desktopSupplierFinanceMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  assert(desktopSupplierFinanceMetrics.documentWidth <= desktopSupplierFinanceMetrics.viewport + 2, "Supplier finance generates desktop horizontal overflow.");
+  await desktopPage.screenshot({ path: desktopSupplierFinanceScreenshot, fullPage: true });
   await desktopContext.close();
 
   process.stdout.write(
@@ -543,6 +663,9 @@ try {
       procurementResponsive: true,
       procurementLifecycle: true,
       procurementIdempotency: true,
+      supplierFinanceResponsive: true,
+      supplierFinanceLifecycle: true,
+      supplierFinanceIdempotency: true,
       sidebarDrawer: true,
       desktopSidebarCollapse: true,
       sharedMobileRoutes: true,
@@ -556,12 +679,14 @@ try {
         path.relative(process.cwd(), marketPricesScreenshot),
         path.relative(process.cwd(), inventoryScreenshot),
         path.relative(process.cwd(), procurementScreenshot),
+        path.relative(process.cwd(), supplierFinanceScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot),
         path.relative(process.cwd(), desktopMarketPricesScreenshot),
         path.relative(process.cwd(), desktopInventoryScreenshot),
-        path.relative(process.cwd(), desktopProcurementScreenshot)
+        path.relative(process.cwd(), desktopProcurementScreenshot),
+        path.relative(process.cwd(), desktopSupplierFinanceScreenshot)
       ]
     })}\n`
   );
