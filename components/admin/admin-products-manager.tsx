@@ -53,14 +53,19 @@ const emptyProduct: ProductForm = {
 export function AdminProductsManager({
   products,
   categories,
-  mode = "full"
+  mode = "full",
+  initialProductId
 }: {
   products: Product[];
   categories: Category[];
   mode?: "full" | "create-only";
+  initialProductId?: string;
 }) {
   const [rows, setRows] = useState(products);
-  const [form, setForm] = useState({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+  const [form, setForm] = useState(() => {
+    const selected = products.find((product) => product.id === initialProductId);
+    return selected ? { ...emptyProduct, ...selected } : { ...emptyProduct, category_id: categories[0]?.id ?? "" };
+  });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);

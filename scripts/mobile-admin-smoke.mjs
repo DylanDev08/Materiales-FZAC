@@ -31,10 +31,12 @@ const openScreenshot = path.join(screenshotDirectory, "mobile-admin-navigation.p
 const financeScreenshot = path.join(screenshotDirectory, "mobile-admin-finances.png");
 const qualityScreenshot = path.join(screenshotDirectory, "mobile-admin-assistant-quality.png");
 const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-market-prices.png");
+const inventoryScreenshot = path.join(screenshotDirectory, "mobile-admin-inventory.png");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
 const desktopMarketPricesScreenshot = path.join(screenshotDirectory, "desktop-admin-market-prices.png");
+const desktopInventoryScreenshot = path.join(screenshotDirectory, "desktop-admin-inventory.png");
 let userId = null;
 let financialMovementId = null;
 let assistantConversationId = null;
@@ -128,6 +130,8 @@ try {
     }
   );
   await waitForServer();
+  const anonymousInventoryResponse = await fetch(`${baseUrl}/api/admin/inventory/forecast`);
+  assert([401, 403].includes(anonymousInventoryResponse.status), "Inventory forecast API is exposed without an admin session.");
 
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -357,6 +361,19 @@ try {
   const { data: updatedMarketProduct, error: updatedMarketProductError } = await admin.from("products").select("price").eq("id", marketProductId).single();
   assert(!updatedMarketProductError && Number(updatedMarketProduct?.price) === 1050, "Supervised market price was not persisted.");
 
+  await page.goto(`${baseUrl}${adminPath}/inventario`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-inventory").waitFor({ state: "visible", timeout: 25_000 });
+  await page.locator(".admin-inventory__skeleton").waitFor({ state: "hidden", timeout: 25_000 });
+  const inventoryMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-inventory button, .admin-inventory a"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(inventoryMobileMetrics.documentWidth <= inventoryMobileMetrics.viewport + 2, "Inventory forecast generates mobile horizontal overflow.");
+  assert(inventoryMobileMetrics.undersizedActions === 0, "Inventory forecast contains undersized touch actions.");
+  await page.screenshot({ path: inventoryScreenshot, fullPage: true });
+
   for (const route of ["pedidos", "pagos", "clientes", "productos", "logs"]) {
     await page.goto(`${baseUrl}${adminPath}/${route}`, { waitUntil: "domcontentloaded" });
     await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
@@ -394,6 +411,12 @@ try {
   const desktopMarketMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
   assert(desktopMarketMetrics.documentWidth <= desktopMarketMetrics.viewport + 2, "Market price intelligence generates desktop horizontal overflow.");
   await desktopPage.screenshot({ path: desktopMarketPricesScreenshot, fullPage: true });
+  await desktopPage.goto(`${baseUrl}${adminPath}/inventario`, { waitUntil: "domcontentloaded" });
+  await desktopPage.locator(".admin-inventory").waitFor({ state: "visible", timeout: 25_000 });
+  await desktopPage.locator(".admin-inventory__skeleton").waitFor({ state: "hidden", timeout: 25_000 });
+  const desktopInventoryMetrics = await desktopPage.evaluate(() => ({ viewport: window.innerWidth, documentWidth: document.documentElement.scrollWidth }));
+  assert(desktopInventoryMetrics.documentWidth <= desktopInventoryMetrics.viewport + 2, "Inventory forecast generates desktop horizontal overflow.");
+  await desktopPage.screenshot({ path: desktopInventoryScreenshot, fullPage: true });
   await desktopContext.close();
 
   process.stdout.write(
@@ -408,6 +431,7 @@ try {
       assistantQualityLifecycle: true,
       marketPriceIntelligenceResponsive: true,
       marketPriceApprovalLifecycle: true,
+      inventoryForecastResponsive: true,
       sidebarDrawer: true,
       desktopSidebarCollapse: true,
       sharedMobileRoutes: true,
@@ -419,10 +443,12 @@ try {
         path.relative(process.cwd(), financeScreenshot),
         path.relative(process.cwd(), qualityScreenshot),
         path.relative(process.cwd(), marketPricesScreenshot),
+        path.relative(process.cwd(), inventoryScreenshot),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot),
-        path.relative(process.cwd(), desktopMarketPricesScreenshot)
+        path.relative(process.cwd(), desktopMarketPricesScreenshot),
+        path.relative(process.cwd(), desktopInventoryScreenshot)
       ]
     })}\n`
   );

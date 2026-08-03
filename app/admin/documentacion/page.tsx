@@ -39,8 +39,8 @@ const sections = [
   },
   {
     title: "Inventario",
-    target: "Stock disponible.",
-    use: "Ayuda a detectar productos sin stock o con bajo stock. Antes de aprobar pedidos conviene revisar esta informacion."
+    target: "Stock, demanda y reposicion.",
+    use: "Ordena los productos por urgencia usando ventas confirmadas, cobertura y pedidos pendientes. La compra sugerida es una ayuda: nunca cambia stock ni publica una orden automaticamente."
   },
   {
     title: "Comprobantes de pago",
@@ -84,7 +84,7 @@ const routines = [
   "Entrar en Pedidos para preparar, aprobar o coordinar compras.",
   "Revisar Pagos si hay cobros pendientes o rechazados.",
   "Revisar Arrepentimientos y responder primero los trámites nuevos.",
-  "Ver Inventario antes de confirmar productos con bajo stock.",
+  "Ver Inventario, revisar cobertura y confirmar manualmente cada reposicion sugerida.",
   "Usar Clientes para contactar compradores y resolver dudas.",
   "Revisar Conocimiento IA cuando aumenten las respuestas marcadas para mejorar.",
   "Abrir Calidad IA, priorizar los casos urgentes y documentar la decision antes de modificar una respuesta.",

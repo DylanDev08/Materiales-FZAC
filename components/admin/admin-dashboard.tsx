@@ -203,7 +203,7 @@ function AdminTaskCenter({
     {
       label: "Bajo stock",
       value: numericMetric(metrics, "Productos sin stock"),
-      href: `${adminPath}/productos?view=inventario`,
+      href: `${adminPath}/inventario`,
       icon: PackageCheck,
       helper: "Reponer productos sin disponibilidad antes de vender."
     },

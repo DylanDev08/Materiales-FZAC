@@ -79,6 +79,12 @@ services:
         sync: false
       - key: MARKET_PRICE_CRON_SECRET
         sync: false
+      - key: INVENTORY_LEAD_TIME_DAYS
+        value: "7"
+      - key: INVENTORY_SAFETY_DAYS
+        value: "5"
+      - key: INVENTORY_TARGET_COVERAGE_DAYS
+        value: "30"
       - key: NEXT_PUBLIC_FZAC_WHATSAPP
         value: "+5493415847000"
       - key: FZAC_WHATSAPP
