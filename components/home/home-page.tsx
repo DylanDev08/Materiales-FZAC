@@ -10,9 +10,9 @@ import {
   Headphones,
   Layers3,
   MessageCircle,
-  Package,
   PaintRoller,
   PanelsTopLeft,
+  RotateCcw,
   ShieldCheck,
   Truck,
   Wrench,
@@ -48,9 +48,9 @@ export async function HomePage() {
       <section className="home-promo storefront-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
           <span><Truck size={18} /> Envíos coordinados</span>
-          <span><Package size={18} /> Retiro coordinado</span>
           <span><ShieldCheck size={18} /> Compra protegida</span>
           <span><BadgeCheck size={18} /> Stock validado</span>
+          <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={18} /> Botón de arrepentimiento</Link>
         </div>
       </section>
 

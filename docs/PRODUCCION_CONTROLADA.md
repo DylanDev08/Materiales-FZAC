@@ -11,8 +11,19 @@ Esta checklist se usa antes de cambiar Materiales FZAC de pruebas a operacion re
 - Confirmar que Google OAuth tenga redirect URL del dominio final.
 - Confirmar que Mercado Pago use el mismo dominio en `back_urls` y webhook.
 
+### Privacidad y consentimiento
+
+- Verificar que el aviso de cookies aparezca en el primer acceso y no bloquee navegación ni compra.
+- Confirmar que sesión, carrito e idempotencia se expliquen como almacenamiento necesario.
+- Confirmar que búsquedas e historial local del asistente respeten la preferencia opcional.
+- Verificar que analítica y publicidad permanezcan desactivadas hasta contar con consentimiento específico.
+- Probar que el usuario pueda cambiar su decisión desde el footer.
+- Mantener separadas la aceptación de cookies y la aceptación versionada de términos de cuenta/checkout.
+- Citar la Disposición 954/2025 como norma vigente para arrepentimiento y publicar horario de atención.
+
 ### SEO y buscadores
 
+- Confirmar que el catálogo tenga productos activos con precio, stock e imagen real antes de habilitar indexación o campañas.
 - Verificar que el dominio final responda una sola versión HTTPS.
 - Confirmar que `/robots.txt` permita rutas públicas y bloquee cuenta, checkout, carrito, APIs y panel admin.
 - Confirmar que `/sitemap.xml` incluya productos y categorías activas.

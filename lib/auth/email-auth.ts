@@ -3,6 +3,7 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 import { isResendConfigured, sendTransactionalEmail } from "@/lib/email/resend";
 import { recoveryEmailTemplate, verificationEmailTemplate } from "@/lib/email/templates";
+import { legalAcceptanceUserMetadata, type LegalAcceptance } from "@/lib/legal/versions";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/utils/env";
@@ -60,6 +61,7 @@ export async function createSignupWithResend(input: {
   name: string;
   phone?: string | null;
   siteUrl?: string;
+  legalAcceptance: LegalAcceptance;
 }): Promise<{ user: User; channel: "resend" | "supabase" } | null> {
   if (!isResendConfigured()) return null;
   const admin = getSupabaseAdminClient();
@@ -71,7 +73,11 @@ export async function createSignupWithResend(input: {
     email: input.email,
     password: input.password,
     options: {
-      data: { full_name: input.name, phone: input.phone || null },
+      data: {
+        full_name: input.name,
+        phone: input.phone || null,
+        ...legalAcceptanceUserMetadata(input.legalAcceptance)
+      },
       redirectTo
     }
   });

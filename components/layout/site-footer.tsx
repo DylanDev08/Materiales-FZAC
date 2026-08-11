@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { CreditCard, Headphones, RotateCcw, ShieldCheck } from "lucide-react";
+import { CookieSettingsButton } from "@/components/privacy/cookie-settings-button";
 import { getEnv } from "@/lib/utils/env";
 
 export function SiteFooter() {
@@ -64,6 +65,7 @@ export function SiteFooter() {
             <Link href="/cambios-y-devoluciones" prefetch={false}>Cambios y devoluciones</Link>
             <Link href="/envios-y-retiros" prefetch={false}>Envíos y retiros</Link>
             <Link href="/medios-de-pago" prefetch={false}>Medios de pago</Link>
+            <CookieSettingsButton />
             <a href={`mailto:${email}`}>{email}</a>
             <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}>WhatsApp {whatsapp}</a>
             <span>{instagram}</span>

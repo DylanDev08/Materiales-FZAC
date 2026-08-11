@@ -92,6 +92,9 @@ const checkoutBaseSchema = z.object({
   paymentProvider: z.enum(["MERCADOPAGO", "NARANJAX"]).optional(),
   paymentMethod: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
   paymentFlow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: "Aceptá los términos y la política de privacidad para continuar." })
+  }),
   idempotencyKey: safeString("Intento de compra", 8, 120).optional()
 });
 
@@ -116,6 +119,9 @@ const checkoutCreateFieldsSchema = z.object({
   notes: optionalSafeNote("Notas", 500),
   payment_method: z.enum(["MERCADOPAGO", "BANK_TRANSFER", "WHATSAPP"]).optional(),
   payment_flow: z.enum(["CHECKOUT_PRO", "CARD", "TRANSFER", "WHATSAPP"]).optional(),
+  accepted_terms: z.literal(true, {
+    errorMap: () => ({ message: "Aceptá los términos y la política de privacidad para continuar." })
+  }),
   idempotency_key: safeString("Intento de compra", 8, 120).optional(),
   items: z.array(checkoutItemSchema).min(1, "El carrito esta vacio.")
 });
@@ -137,6 +143,7 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
     paymentProvider: "MERCADOPAGO" as PaymentProvider,
     paymentMethod: (value.payment_method ?? fallbackMethod) as PaymentMethod,
     paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow,
+    acceptedTerms: value.accepted_terms,
     idempotencyKey: value.idempotency_key
   };
 }

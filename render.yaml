@@ -17,6 +17,8 @@ services:
         value: "1"
       - key: SEO_INDEXING_ENABLED
         value: "false"
+      - key: GOOGLE_SITE_VERIFICATION
+        sync: false
       - key: NEXT_PUBLIC_SUPABASE_URL
         value: https://gooxgjzetziwnxhuymmx.supabase.co
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY

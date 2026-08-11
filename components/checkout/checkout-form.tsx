@@ -592,6 +592,7 @@ export function CheckoutForm({
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
           payment_method: "MERCADOPAGO",
+          accepted_terms: accepted,
           idempotency_key: checkoutIntentKey()
         })
       });
@@ -720,6 +721,7 @@ export function CheckoutForm({
           notes: normalizeUserNote(notes, 500),
           payment_method: "MERCADOPAGO",
           payment_flow: "CARD",
+          accepted_terms: accepted,
           idempotency_key: checkoutIntentKey(),
           card
         })
@@ -814,6 +816,7 @@ export function CheckoutForm({
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
           payment_method: method,
+          accepted_terms: accepted,
           idempotency_key: checkoutIntentKey()
         })
       });

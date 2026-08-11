@@ -1,3 +1,11 @@
+import { publicPageMetadata } from "@/lib/seo/metadata";
+
+export const metadata = publicPageMetadata({
+  title: "Envíos y retiro de materiales",
+  description: "Conocé cómo coordinar envíos y retiro de materiales para construcción con Materiales FZAC en Rosario.",
+  path: "/envios-y-retiros"
+});
+
 export default function Page() {
   return (
     <main className="page-section legal-page">

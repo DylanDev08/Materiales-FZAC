@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth/get-user";
+import { createLegalAcceptance } from "@/lib/legal/versions";
 import { checkoutSchema, checkoutStockSchema, type CheckoutInput } from "@/lib/validations/checkout";
 import { fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -555,7 +556,8 @@ export async function createCheckout(input: unknown) {
     provider,
     flow: payload.paymentFlow ?? null,
     requested_order_status: orderStatus,
-    checkout_fingerprint: fingerprint
+    checkout_fingerprint: fingerprint,
+    legal_acceptance: createLegalAcceptance("CHECKOUT")
   };
   const atomicItems = lines.map(({ product, quantity }) => ({
     product_id: product.id,

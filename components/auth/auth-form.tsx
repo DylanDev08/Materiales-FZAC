@@ -150,6 +150,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   async function googleLogin() {
     if (googleInFlightRef.current) return;
+    if (mode === "register" && !acceptedTerms) {
+      setFieldErrors((current) => ({ ...current, acceptedTerms: "Aceptá términos y privacidad para continuar con Google." }));
+      setMessage("Revisá la aceptación legal antes de continuar.");
+      setMessageTone("error");
+      return;
+    }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setMessage("El ingreso con Google no esta disponible en este momento.");
@@ -162,7 +168,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setMessage("");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}` }
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}${
+          mode === "register" ? "&legal=register" : ""
+        }`
+      }
     });
 
     if (error) {
@@ -214,6 +224,24 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <span><ShieldCheck size={16} /> Acceso protegido</span>
           <span><MailCheck size={16} /> Confirmación por email</span>
         </div>
+
+        {mode === "register" ? (
+          <label className="field auth-terms auth-terms--oauth">
+            <span>
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(event) => {
+                  setAcceptedTerms(event.target.checked);
+                  clearFieldError("acceptedTerms");
+                }}
+              /> Acepto{" "}
+              <Link href="/terminos" target="_blank">términos</Link>{" "}
+              y <Link href="/privacidad" target="_blank">privacidad</Link>.
+            </span>
+            {fieldErrors.acceptedTerms ? <span className="auth-field-error">{fieldErrors.acceptedTerms}</span> : null}
+          </label>
+        ) : null}
 
         <button className="btn btn--ghost auth-google" type="button" onClick={googleLogin} disabled={loading || googleLoading || successLocked}>
           {googleLoading ? <Loader2 size={18} /> : <LogIn size={18} />}
@@ -339,27 +367,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   </button>
                 </span>
                 {fieldErrors.confirmPassword ? <span className="auth-field-error">{fieldErrors.confirmPassword}</span> : null}
-              </label>
-              <label className="field auth-terms">
-                <span>
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(event) => {
-                      setAcceptedTerms(event.target.checked);
-                      clearFieldError("acceptedTerms");
-                    }}
-                  /> Acepto{" "}
-                  <Link href="/terminos" target="_blank">
-                    términos
-                  </Link>{" "}
-                  y{" "}
-                  <Link href="/privacidad" target="_blank">
-                    privacidad
-                  </Link>
-                  .
-                </span>
-                {fieldErrors.acceptedTerms ? <span className="auth-field-error">{fieldErrors.acceptedTerms}</span> : null}
               </label>
             </>
           ) : null}

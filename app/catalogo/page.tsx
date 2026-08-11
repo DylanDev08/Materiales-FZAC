@@ -1,13 +1,11 @@
-import type { Metadata } from "next";
 import { CatalogPage } from "@/components/catalog/catalog-page";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Catálogo de materiales",
   description: "Catálogo online de Materiales FZAC para obra, refacción y mantenimiento.",
-  alternates: {
-    canonical: "/productos"
-  }
-};
+  path: "/productos"
+});
 
 export default async function Page({
   searchParams

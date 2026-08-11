@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { createSignupWithResend } from "@/lib/auth/email-auth";
+import { createLegalAcceptance, legalAcceptanceUserMetadata } from "@/lib/legal/versions";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     if (!emailLimit.ok) return jsonError("Ya procesamos una solicitud para este email. Revisá tu casilla o esperá antes de reintentar.", 429, retryAfterHeaders(emailLimit));
     const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
+    const legalAcceptance = createLegalAcceptance("REGISTER_EMAIL");
 
     let user = null;
     const resendSignup = await createSignupWithResend({
@@ -45,7 +47,8 @@ export async function POST(request: Request) {
       password: payload.password,
       name: payload.name,
       phone: payload.phone || null,
-      siteUrl
+      siteUrl,
+      legalAcceptance
     });
 
     if (resendSignup) {
@@ -58,7 +61,11 @@ export async function POST(request: Request) {
         email: payload.email,
         password: payload.password,
         options: {
-          data: { full_name: payload.name, phone: payload.phone || null },
+          data: {
+            full_name: payload.name,
+            phone: payload.phone || null,
+            ...legalAcceptanceUserMetadata(legalAcceptance)
+          },
           emailRedirectTo: `${siteUrl}/auth/callback`
         }
       });
@@ -74,6 +81,18 @@ export async function POST(request: Request) {
         );
       }
       user = data.user;
+    }
+
+    if (admin && user?.id) {
+      await admin.from("admin_audit_logs").insert({
+        actor_email: payload.email,
+        actor_role: isAdminEmail(payload.email) ? "ADMIN" : "CUSTOMER",
+        action: "LEGAL_ACCEPTANCE_RECORDED",
+        entity: "profiles",
+        entity_id: user.id,
+        message: "Aceptación de términos y privacidad durante el registro.",
+        metadata: legalAcceptance
+      });
     }
 
     if (admin && user?.id && isAdminEmail(payload.email)) {

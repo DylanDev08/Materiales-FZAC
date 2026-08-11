@@ -6,9 +6,14 @@ import {
   getPublicSiteUrl,
   isSeoIndexingEnabled,
   SITE_DESCRIPTION,
+  SITE_KEYWORDS,
   SITE_NAME,
+  SOCIAL_IMAGE,
+  SOCIAL_IMAGE_HEIGHT,
+  SOCIAL_IMAGE_WIDTH,
   toAbsoluteUrl
 } from "@/lib/seo/site";
+import { getEnv, hasRealValue } from "@/lib/utils/env";
 import "./globals.css";
 
 const staticAssetRecoveryScript = `
@@ -50,6 +55,7 @@ const staticAssetRecoveryScript = `
 `;
 
 const indexingEnabled = isSeoIndexingEnabled();
+const googleVerification = getEnv("GOOGLE_SITE_VERIFICATION");
 
 export const metadata: Metadata = {
   applicationName: SITE_NAME,
@@ -62,18 +68,18 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/"
   },
-  keywords: [
-    "materiales de construcción",
-    "corralón Rosario",
-    "ferretería Rosario",
-    "construcción en seco",
-    "materiales para obra",
-    "Fortaleza Construcciones"
-  ],
+  keywords: SITE_KEYWORDS,
   authors: [{ name: "Fortaleza Construcciones" }],
   creator: "Fortaleza Construcciones",
   publisher: SITE_NAME,
   category: "E-commerce de materiales para construcción",
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false
+  },
+  verification: hasRealValue(googleVerification) ? { google: googleVerification } : undefined,
   icons: {
     icon: [{ url: "/icon", type: "image/png" }],
     apple: [{ url: "/logoFZAC.jpg", type: "image/jpeg" }]
@@ -88,10 +94,10 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: toAbsoluteUrl("/logoFZAC.jpg"),
-        width: 1080,
-        height: 1080,
-        alt: "Logo de Materiales FZAC"
+        url: toAbsoluteUrl(SOCIAL_IMAGE),
+        width: SOCIAL_IMAGE_WIDTH,
+        height: SOCIAL_IMAGE_HEIGHT,
+        alt: "Materiales para construcción y obra de Materiales FZAC"
       }
     ]
   },
@@ -99,7 +105,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_NAME} | Materiales para construcción`,
     description: SITE_DESCRIPTION,
-    images: [toAbsoluteUrl("/logoFZAC.jpg")]
+    images: [toAbsoluteUrl(SOCIAL_IMAGE)]
   },
   robots: {
     index: indexingEnabled,

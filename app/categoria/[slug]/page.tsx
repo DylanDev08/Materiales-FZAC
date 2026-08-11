@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CatalogPage } from "@/components/catalog/catalog-page";
 import { getCategories } from "@/lib/db/catalog";
-import { toAbsoluteUrl } from "@/lib/seo/site";
+import { SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;
@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: Pick<CategoryPageProps, "para
   const canonical = `/categoria/${category.slug}`;
   const description =
     category.description || `Productos de ${category.name} disponibles en el catálogo online de Materiales FZAC.`;
+  const socialImage = toAbsoluteUrl(category.image_url || SOCIAL_IMAGE);
 
   return {
     title: category.name,
@@ -31,10 +32,18 @@ export async function generateMetadata({ params }: Pick<CategoryPageProps, "para
     alternates: { canonical },
     openGraph: {
       type: "website",
+      locale: "es_AR",
+      siteName: SITE_NAME,
       title: `${category.name} | Materiales FZAC`,
       description,
       url: canonical,
-      images: category.image_url ? [{ url: toAbsoluteUrl(category.image_url), alt: category.name }] : undefined
+      images: [{ url: socialImage, alt: category.name }]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${category.name} | ${SITE_NAME}`,
+      description,
+      images: [socialImage]
     }
   };
 }

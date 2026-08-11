@@ -1,6 +1,13 @@
 import { HelpCenter } from "@/components/help/help-center";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import { getEnv } from "@/lib/utils/env";
+import { publicPageMetadata } from "@/lib/seo/metadata";
+
+export const metadata = publicPageMetadata({
+  title: "Contacto y ayuda para tu compra",
+  description: "Consultá por materiales, stock, entrega, pagos y pedidos con el centro de ayuda de Materiales FZAC.",
+  path: "/contacto"
+});
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ tema?: string | string[] }> }) {
   const params = await searchParams;

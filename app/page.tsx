@@ -1,15 +1,13 @@
-import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { HomePage } from "@/components/home/home-page";
-import { getPublicContact, getPublicSiteUrl, SITE_DESCRIPTION, SITE_NAME, toAbsoluteUrl } from "@/lib/seo/site";
+import { publicPageMetadata } from "@/lib/seo/metadata";
+import { getPublicContact, getPublicSiteUrl, SITE_DESCRIPTION, SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Materiales para construcción en Rosario",
   description: SITE_DESCRIPTION,
-  alternates: {
-    canonical: "/"
-  }
-};
+  path: "/"
+});
 
 export default function Page() {
   const siteUrl = getPublicSiteUrl();
@@ -22,7 +20,7 @@ export default function Page() {
     alternateName: "Fortaleza Construcciones",
     url: siteUrl,
     logo: toAbsoluteUrl("/logoFZAC.jpg"),
-    image: toAbsoluteUrl("/logoFZAC.jpg"),
+    image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
     areaServed: {
       "@type": "AdministrativeArea",

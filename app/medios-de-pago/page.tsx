@@ -1,4 +1,11 @@
 import { Banknote, CreditCard, ShieldCheck } from "lucide-react";
+import { publicPageMetadata } from "@/lib/seo/metadata";
+
+export const metadata = publicPageMetadata({
+  title: "Medios de pago seguros",
+  description: "Pagá materiales con Mercado Pago, solicitá transferencia o coordiná tu pedido con Materiales FZAC.",
+  path: "/medios-de-pago"
+});
 
 const methods = [
   {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, Bot, RotateCcw, Send, ShieldCheck, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { ASSISTANT_OPEN_EVENT, type AssistantOpenDetail } from "@/components/chatbot/assistant-launcher";
 import type { AssistantAction, AssistantResponse, AssistantSource } from "@/lib/assistant/contracts";
+import { preferenceStorage, preferencesAllowed, subscribePrivacyConsent } from "@/lib/privacy/consent";
 
 type Message = {
   role: "user" | "assistant";
@@ -48,10 +49,11 @@ function WhatsappLogo() {
 }
 
 function visitorId() {
-  const existing = window.localStorage.getItem(VISITOR_KEY);
+  const storage = preferenceStorage();
+  const existing = storage.getItem(VISITOR_KEY);
   if (existing) return existing;
   const next = crypto.randomUUID();
-  window.localStorage.setItem(VISITOR_KEY, next);
+  storage.setItem(VISITOR_KEY, next);
   return next;
 }
 
@@ -66,9 +68,9 @@ function normalizeSources(data: AssistantResponse) {
     .slice(0, 3);
 }
 
-function loadStoredMessages() {
+function loadStoredMessages(storage: Storage) {
   try {
-    const raw = window.localStorage.getItem(HISTORY_KEY);
+    const raw = storage.getItem(HISTORY_KEY);
     if (!raw) return [welcomeMessage];
     const stored = JSON.parse(raw) as unknown;
     if (!Array.isArray(stored)) return [welcomeMessage];
@@ -124,7 +126,7 @@ function loadStoredMessages() {
     });
     return safeMessages.length ? safeMessages.slice(-30) : [welcomeMessage];
   } catch {
-    window.localStorage.removeItem(HISTORY_KEY);
+    storage.removeItem(HISTORY_KEY);
     return [welcomeMessage];
   }
 }
@@ -134,6 +136,7 @@ export function FloatingAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const [rememberPreferences, setRememberPreferences] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const askRef = useRef<(text: string) => Promise<void>>(async () => undefined);
@@ -149,16 +152,34 @@ export function FloatingAssistant() {
 
   useEffect(() => {
     window.queueMicrotask(() => {
-      setMessages(loadStoredMessages());
-      setConversationId(window.localStorage.getItem(CONVERSATION_KEY));
+      const enabled = preferencesAllowed();
+      const storage = preferenceStorage();
+      setRememberPreferences(enabled);
+      setMessages(loadStoredMessages(storage));
+      setConversationId(storage.getItem(CONVERSATION_KEY));
       setStorageReady(true);
+    });
+
+    return subscribePrivacyConsent((consent) => {
+      const enabled = consent?.preferences === true;
+      if (enabled) {
+        const sessionHistory = window.sessionStorage.getItem(HISTORY_KEY);
+        const sessionConversation = window.sessionStorage.getItem(CONVERSATION_KEY);
+        const sessionVisitor = window.sessionStorage.getItem(VISITOR_KEY);
+        if (sessionHistory) window.localStorage.setItem(HISTORY_KEY, sessionHistory);
+        if (sessionConversation) window.localStorage.setItem(CONVERSATION_KEY, sessionConversation);
+        if (sessionVisitor) window.localStorage.setItem(VISITOR_KEY, sessionVisitor);
+      }
+      setRememberPreferences(enabled);
     });
   }, []);
 
   useEffect(() => {
     if (!storageReady) return;
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
-  }, [messages, storageReady]);
+    const storage = rememberPreferences ? window.localStorage : window.sessionStorage;
+    storage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
+    if (conversationId) storage.setItem(CONVERSATION_KEY, conversationId);
+  }, [conversationId, messages, rememberPreferences, storageReady]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -227,7 +248,7 @@ export function FloatingAssistant() {
 
       if (data.conversationId) {
         setConversationId(data.conversationId);
-        window.localStorage.setItem(CONVERSATION_KEY, data.conversationId);
+        preferenceStorage().setItem(CONVERSATION_KEY, data.conversationId);
       }
 
       const actions = normalizeActions(data);
@@ -272,6 +293,8 @@ export function FloatingAssistant() {
     if (requestInFlightRef.current) return;
     window.localStorage.removeItem(HISTORY_KEY);
     window.localStorage.removeItem(CONVERSATION_KEY);
+    window.sessionStorage.removeItem(HISTORY_KEY);
+    window.sessionStorage.removeItem(CONVERSATION_KEY);
     setConversationId(null);
     setMessages([welcomeMessage]);
     setInput("");

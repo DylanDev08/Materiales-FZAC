@@ -47,6 +47,7 @@ function checkoutPayload(method: "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP", i
     notes: "QA automatizado FZAC. No preparar mercaderia.",
     payment_method: method,
     payment_flow: method === "MERCADOPAGO" ? "CHECKOUT_PRO" : method === "BANK_TRANSFER" ? "TRANSFER" : "WHATSAPP",
+    accepted_terms: true,
     idempotency_key: idempotencyKey,
     items: [{ product_id: qaProductId, quantity: 1 }]
   };
@@ -59,6 +60,22 @@ async function createCheckout(request: APIRequestContext, method: "MERCADOPAGO" 
 }
 
 test.describe("Render public smoke", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "fzac-privacy-consent-v1",
+        JSON.stringify({
+          version: "2026-08-11",
+          decidedAt: new Date().toISOString(),
+          necessary: true,
+          preferences: false,
+          analytics: false,
+          marketing: false
+        })
+      );
+    });
+  });
+
   for (const route of publicRoutes) {
     test(`carga ruta publica ${route}`, async ({ page }) => {
       const critical = await expectNoCriticalConsole(page);
@@ -71,6 +88,7 @@ test.describe("Render public smoke", () => {
   }
 
   test("header, footer y links internos principales no rompen", async ({ page, request }) => {
+    test.setTimeout(180_000);
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("link", { name: /productos/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /whatsapp|consultar|material/i }).first()).toBeVisible();
@@ -79,15 +97,25 @@ test.describe("Render public smoke", () => {
       Array.from(new Set(anchors.map((anchor) => (anchor as HTMLAnchorElement).getAttribute("href")).filter(Boolean)))
     );
 
-    for (const href of hrefs.slice(0, 25)) {
-      const response = await request.get(href as string, { maxRedirects: 2 });
-      expect(response.status(), `${href} debe existir`).toBeLessThan(400);
+    const internalLinks = hrefs.slice(0, 25) as string[];
+    for (let index = 0; index < internalLinks.length; index += 4) {
+      const batch = internalLinks.slice(index, index + 4);
+      const responses = await Promise.all(
+        batch.map(async (href) => ({ href, response: await request.get(href, { maxRedirects: 2 }) }))
+      );
+      for (const { href, response } of responses) {
+        expect(response.status(), `${href} debe existir`).toBeLessThan(400);
+      }
     }
   });
 
   test("producto se agrega al carrito y checkout carga con productos", async ({ page }) => {
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
     const addButton = page.getByRole("button", { name: /agregar/i }).first();
+    if ((await addButton.count()) === 0) {
+      await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
+      test.skip(true, "El catálogo conectado no tiene productos activos para probar el carrito.");
+    }
     await expect(addButton).toBeVisible();
     await addButton.click();
 
@@ -150,6 +178,7 @@ test.describe("Render public smoke", () => {
         address_snapshot: {},
         payment_method: "BANK_TRANSFER",
         payment_flow: "TRANSFER",
+        accepted_terms: true,
         idempotency_key: `qa-unauthorized-${Date.now()}`,
         items: [{ product_id: "00000000-0000-4000-8000-000000000000", quantity: 1 }]
       }

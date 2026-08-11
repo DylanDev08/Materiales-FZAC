@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { LegalIdentity } from "@/components/legal/legal-identity";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Términos y condiciones",
-  description: "Condiciones de compra, entrega, pago, garantía y arrepentimiento de Materiales FZAC."
-};
+  description: "Condiciones de compra, entrega, pago, garantía y arrepentimiento de Materiales FZAC.",
+  path: "/terminos"
+});
 
 export default function Page() {
   return (
@@ -19,7 +20,7 @@ export default function Page() {
           <div>
             <span className="kicker">Legal FZAC</span>
             <h1>Términos y condiciones</h1>
-            <p>Versión vigente desde el 31 de julio de 2026. Leé estas condiciones antes de confirmar una compra.</p>
+            <p>Versión vigente desde el 11 de agosto de 2026. Leé estas condiciones antes de confirmar una compra.</p>
           </div>
         </header>
 

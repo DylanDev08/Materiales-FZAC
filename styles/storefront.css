@@ -986,7 +986,8 @@ body {
     justify-content: flex-start;
   }
 
-  .storefront-promo .home-promo__inner span {
+  .storefront-promo .home-promo__inner > span,
+  .storefront-promo .home-promo__inner > a {
     min-height: 38px;
     justify-content: flex-start;
     font-size: 0.74rem;

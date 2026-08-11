@@ -1,13 +1,11 @@
-import type { Metadata } from "next";
 import { CatalogPage } from "@/components/catalog/catalog-page";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Ofertas en materiales",
   description: "Ofertas vigentes de Materiales FZAC sujetas a stock y validación al confirmar la compra.",
-  alternates: {
-    canonical: "/ofertas"
-  }
-};
+  path: "/ofertas"
+});
 
 export default async function Page({
   searchParams

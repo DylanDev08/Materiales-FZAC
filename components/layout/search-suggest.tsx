@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Clock, Grid3X3, Search, Tag } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { currency } from "@/lib/formatters/currency";
+import { preferencesAllowed, subscribePrivacyConsent } from "@/lib/privacy/consent";
 
 type Suggestion =
   | {
@@ -35,7 +36,7 @@ export function SearchSuggest() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [recent, setRecent] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+    if (typeof window === "undefined" || !preferencesAllowed()) return [];
     try {
       return JSON.parse(window.localStorage.getItem(RECENT_KEY) || "[]") as string[];
     } catch {
@@ -44,7 +45,26 @@ export function SearchSuggest() {
   });
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberPreferences, setRememberPreferences] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncPreference = (enabled: boolean) => {
+      setRememberPreferences(enabled);
+      if (!enabled) {
+        setRecent([]);
+        return;
+      }
+      try {
+        setRecent(JSON.parse(window.localStorage.getItem(RECENT_KEY) || "[]") as string[]);
+      } catch {
+        setRecent([]);
+      }
+    };
+
+    syncPreference(preferencesAllowed());
+    return subscribePrivacyConsent((consent) => syncPreference(consent?.preferences === true));
+  }, []);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -85,7 +105,7 @@ export function SearchSuggest() {
 
   function remember(term: string) {
     const clean = term.trim();
-    if (!clean) return;
+    if (!clean || !rememberPreferences) return;
     const next = [clean, ...recent.filter((item) => item.toLowerCase() !== clean.toLowerCase())].slice(0, 6);
     setRecent(next);
     window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));

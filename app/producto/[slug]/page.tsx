@@ -34,6 +34,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     alternates: { canonical },
     openGraph: {
       type: "website",
+      locale: "es_AR",
+      siteName: SITE_NAME,
       title: `${product.name} | ${SITE_NAME}`,
       description,
       url: canonical,

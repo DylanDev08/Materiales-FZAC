@@ -1,8 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ConsumerRefundForm } from "@/components/legal/consumer-refund-form";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getEnv } from "@/lib/utils/env";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+
+export const metadata = publicPageMetadata({
+  title: "Botón de arrepentimiento",
+  description: "Iniciá una solicitud de arrepentimiento o revocación de compra en Materiales FZAC sin registro previo.",
+  path: "/arrepentimiento"
+});
 
 export default function Page() {
   const email = getEnv("FZAC_EMAIL") || "fortalezaconstruccionesrosario@gmail.com";

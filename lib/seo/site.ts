@@ -5,6 +5,19 @@ const FALLBACK_SITE_URL = "http://localhost:3000";
 export const SITE_NAME = "Materiales FZAC";
 export const SITE_DESCRIPTION =
   "Materiales para construcción, ferretería y obra en Rosario con stock validado, retiro coordinado y pago seguro.";
+export const SOCIAL_IMAGE = "/fzac-storefront-hero.webp";
+export const SOCIAL_IMAGE_WIDTH = 1920;
+export const SOCIAL_IMAGE_HEIGHT = 789;
+export const SITE_KEYWORDS = [
+  "materiales de construcción Rosario",
+  "corralón Rosario",
+  "ferretería Rosario",
+  "construcción en seco",
+  "cemento y materiales para obra",
+  "herramientas y pintura",
+  "Fortaleza Construcciones",
+  "Materiales FZAC"
+];
 
 export function getPublicSiteUrl() {
   const configured = getSiteUrl();

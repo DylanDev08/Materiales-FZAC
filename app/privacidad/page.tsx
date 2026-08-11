@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { LegalIdentity } from "@/components/legal/legal-identity";
+import { CookieSettingsButton } from "@/components/privacy/cookie-settings-button";
 import { getStoreLegalIdentity } from "@/lib/legal/store-identity";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Política de privacidad",
-  description: "Cómo Materiales FZAC recopila, utiliza y protege los datos personales de clientes y visitantes."
-};
+  description: "Cómo Materiales FZAC recopila, utiliza y protege los datos personales de clientes y visitantes.",
+  path: "/privacidad"
+});
 
 export default function Page() {
   const identity = getStoreLegalIdentity();
@@ -23,12 +25,13 @@ export default function Page() {
           <div>
             <span className="kicker">Privacidad FZAC</span>
             <h1>Política de privacidad</h1>
-            <p>Versión vigente desde el 31 de julio de 2026. Información clara sobre el uso y protección de tus datos.</p>
+            <p>Versión vigente desde el 11 de agosto de 2026. Información clara sobre el uso y protección de tus datos.</p>
           </div>
         </header>
 
         <nav className="legal-page__actions" aria-label="Acciones de privacidad">
           <a className="btn" href={privacyMail}>Ejercer mis derechos</a>
+          <CookieSettingsButton className="btn btn--ghost" />
           <Link className="btn btn--ghost" href="/terminos">Términos y condiciones</Link>
           <Link className="btn btn--ghost" href="/contacto">Centro de ayuda</Link>
         </nav>
@@ -118,9 +121,19 @@ export default function Page() {
 
           <h2>9. Cookies y almacenamiento local</h2>
           <p>
-            El sitio utiliza cookies o almacenamiento del navegador necesarios para sesión, autenticación, carrito,
-            preferencias e idempotencia del checkout. Las herramientas analíticas o publicitarias no esenciales deberán
-            informarse y configurarse antes de activarse.
+            El sitio utiliza cookies y almacenamiento del navegador necesarios para iniciar y proteger la sesión,
+            conservar el carrito y evitar pedidos duplicados. Estos elementos técnicos son indispensables para prestar
+            las funciones solicitadas y no se utilizan para publicidad.
+          </p>
+          <p>
+            Con autorización opcional, FZAC puede recordar en este dispositivo búsquedas recientes y el historial local
+            del asistente. Esa preferencia puede rechazarse o modificarse en cualquier momento desde “Preferencias de
+            cookies” en el pie del sitio. Al desactivarla se eliminan del almacenamiento local esos datos opcionales.
+          </p>
+          <p>
+            Actualmente no se encuentran activadas herramientas publicitarias ni analíticas de terceros. Si se incorporan,
+            permanecerán bloqueadas hasta informar proveedor, finalidad, duración y obtener el consentimiento que corresponda.
+            La aceptación de cookies es independiente de la aceptación de los términos de una cuenta o compra.
           </p>
 
           <h2>10. Reclamos ante la autoridad</h2>

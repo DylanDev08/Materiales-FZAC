@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+
+export const metadata = publicPageMetadata({
+  title: "Cambios y devoluciones",
+  description: "Información sobre cambios, devoluciones, garantía y derecho de arrepentimiento en Materiales FZAC.",
+  path: "/cambios-y-devoluciones"
+});
 
 export default function Page() {
   const refundHref = getWhatsAppHref(

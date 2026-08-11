@@ -63,6 +63,7 @@ async function createCheckout(cookies, productId, method, idempotencyKey) {
       payment_method: method,
       payment_flow:
         method === "MERCADOPAGO" ? "CHECKOUT_PRO" : method === "BANK_TRANSFER" ? "TRANSFER" : "WHATSAPP",
+      accepted_terms: true,
       idempotency_key: idempotencyKey,
       items: [{ product_id: productId, quantity: 1 }]
     })
@@ -236,6 +237,7 @@ try {
         notes: "QA automatizado FZAC no preparar mercaderia",
         payment_method: "MERCADOPAGO",
         payment_flow: "CARD",
+        accepted_terms: true,
         idempotency_key: `fzac-qa-card-disabled-${crypto.randomUUID()}`,
         items: [{ product_id: product.id, quantity: 1 }],
         card: {

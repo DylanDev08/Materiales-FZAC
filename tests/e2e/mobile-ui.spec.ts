@@ -64,6 +64,23 @@ async function addFirstAvailableProduct(page: Page) {
 }
 
 test.describe("Mobile UI audit", () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    skipDesktop(testInfo);
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "fzac-privacy-consent-v1",
+        JSON.stringify({
+          version: "2026-08-11",
+          decidedAt: new Date().toISOString(),
+          necessary: true,
+          preferences: false,
+          analytics: false,
+          marketing: false
+        })
+      );
+    });
+  });
+
   for (const route of publicMobileRoutes) {
     test(`${route} carga sin overflow horizontal`, async ({ page }, testInfo) => {
       skipDesktop(testInfo);
@@ -125,6 +142,10 @@ test.describe("Mobile UI audit", () => {
     skipDesktop(testInfo);
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
+    if ((await page.locator(".product-card").count()) === 0) {
+      await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
+      test.skip(true, "El catálogo conectado no tiene productos activos para probar acciones de compra.");
+    }
     await expect(page.locator(".product-card").first()).toBeVisible();
     await expectTouchTargets(page, ".product-card__actions button, .product-card__actions a");
     await addFirstAvailableProduct(page);
@@ -134,6 +155,9 @@ test.describe("Mobile UI audit", () => {
   test("detalle de producto mobile conserva acciones principales", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    if ((await page.locator("a[href^='/producto/']").count()) === 0) {
+      test.skip(true, "El catálogo conectado no tiene un detalle de producto activo para probar.");
+    }
     const productHref = await page.locator("a[href^='/producto/']").first().getAttribute("href");
     expect(productHref).toBeTruthy();
 
@@ -147,6 +171,9 @@ test.describe("Mobile UI audit", () => {
   test("carrito mobile modifica cantidad y llega al checkout", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    if ((await page.getByRole("button", { name: /^agregar$/i }).count()) === 0) {
+      test.skip(true, "El catálogo conectado no tiene productos activos para preparar el carrito.");
+    }
     await addFirstAvailableProduct(page);
     await page.goto("/carrito", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);

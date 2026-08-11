@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { PurchaseGuide } from "@/components/help/purchase-guide";
+import { publicPageMetadata } from "@/lib/seo/metadata";
+
+export const metadata = publicPageMetadata({
+  title: "Cómo comprar materiales online",
+  description: "Elegí materiales, confirmá stock, seleccioná entrega y pagá o coordiná tu pedido con Materiales FZAC.",
+  path: "/como-comprar"
+});
 
 export default function Page() {
   return (
