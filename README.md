@@ -72,7 +72,7 @@ La configuracion y las pruebas de Mercado Pago, webhooks, reembolsos, Resend, ad
 3. En `.env.local`, completar `MERCADOPAGO_ACCESS_TOKEN` y `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
 4. Activar `PAYMENTS_ENABLED=true`.
 5. Usar `PAYMENTS_ENV=test` y `PAYMENTS_PROVIDER=mercadopago`.
-6. Ejecutar `npm install` y luego `npm run dev`.
+6. Ejecutar `corepack pnpm install` y luego `corepack pnpm run dev`.
 7. Agregar un producto al carrito y completar checkout.
 8. Elegir "Pagar con Mercado Pago" para crear la preferencia y redirigir al checkout de prueba.
 9. Pagar con un usuario comprador de prueba distinto a la cuenta vendedora.
@@ -117,8 +117,8 @@ El proyecto se despliega como un unico **Web Service de Next.js**. La interfaz, 
 
 El Blueprint incluido en `render.yaml` configura:
 
-- instalacion reproducible con `npm ci`;
-- build de produccion con `npm run build`;
+- instalacion reproducible con `pnpm install --frozen-lockfile`;
+- build de produccion con `pnpm run build`;
 - servidor Next.js escuchando en todas las interfaces;
 - health check publico en `/api/health`;
 - despliegues automaticos desde `main`;
@@ -129,6 +129,6 @@ Al crear el servicio en Render hay que completar las variables marcadas como sec
 
 # Como correr el proyecto
 ```bash
-npm run dev
-npm run lint
+corepack pnpm run dev
+corepack pnpm run lint
 ```

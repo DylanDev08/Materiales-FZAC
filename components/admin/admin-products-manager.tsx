@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
-import { Save, Trash2, UploadCloud } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ImageOff, PackageSearch, Save, Search, Trash2, UploadCloud } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import { slugify } from "@/lib/utils/slug";
 import type { Category, Product } from "@/types/domain";
@@ -50,6 +50,18 @@ const emptyProduct: ProductForm = {
   active: true
 };
 
+type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "OUT_OF_STOCK" | "INACTIVE";
+
+function getProductIssues(product: Product, categoryIds: Set<string>) {
+  const issues: string[] = [];
+  if (!product.image_url.trim()) issues.push("Sin foto");
+  if (!product.description.trim()) issues.push("Sin descripcion");
+  if (!categoryIds.has(product.category_id)) issues.push("Sin categoria");
+  if (Number(product.price) <= 0) issues.push("Sin precio");
+  if (Number(product.stock) <= 0) issues.push("Sin stock");
+  return issues;
+}
+
 export function AdminProductsManager({
   products,
   categories,
@@ -69,10 +81,48 @@ export function AdminProductsManager({
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [query, setQuery] = useState("");
+  const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
+  const categoryIds = useMemo(() => new Set(categories.map((category) => category.id)), [categories]);
   const hasCategories = categories.length > 0;
+  const catalogSummary = useMemo(() => {
+    const active = rows.filter((product) => product.active);
+    const ready = active.filter((product) => getProductIssues(product, categoryIds).length === 0);
+    const missingImages = active.filter((product) => !product.image_url.trim()).length;
+    const outOfStock = active.filter((product) => Number(product.stock) <= 0).length;
+    const attention = active.length - ready.length;
+
+    return {
+      active: active.length,
+      ready: ready.length,
+      attention,
+      missingImages,
+      outOfStock,
+      readiness: active.length ? Math.round((ready.length / active.length) * 100) : 0
+    };
+  }, [categoryIds, rows]);
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("es-AR");
+    return sortedRows.filter((product) => {
+      const issues = getProductIssues(product, categoryIds);
+      const matchesQuery =
+        !normalizedQuery ||
+        [product.name, product.sku, product.brand, categoryById.get(product.category_id) ?? ""]
+          .join(" ")
+          .toLocaleLowerCase("es-AR")
+          .includes(normalizedQuery);
+      const matchesFilter =
+        catalogFilter === "ALL" ||
+        (catalogFilter === "READY" && product.active && issues.length === 0) ||
+        (catalogFilter === "ATTENTION" && product.active && issues.length > 0) ||
+        (catalogFilter === "OUT_OF_STOCK" && product.active && Number(product.stock) <= 0) ||
+        (catalogFilter === "INACTIVE" && !product.active);
+      return matchesQuery && matchesFilter;
+    });
+  }, [catalogFilter, categoryById, categoryIds, query, sortedRows]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -276,7 +326,65 @@ export function AdminProductsManager({
 
       {mode === "full" ? (
       <section className="admin-panel admin-panel--table">
-        <h2>Productos</h2>
+        <div className="admin-catalog-readiness">
+          <div className="admin-catalog-readiness__copy">
+            <span className="kicker">Preparacion comercial</span>
+            <h2>Catalogo listo para vender</h2>
+            <p>
+              {catalogSummary.active === 0
+                ? "Todavia no hay productos activos. Carga el primer producto para publicar el catalogo."
+                : `${catalogSummary.ready} de ${catalogSummary.active} productos activos tienen precio, foto, categoria, descripcion y stock.`}
+            </p>
+            <div className="admin-catalog-progress" aria-label={`Preparacion del catalogo: ${catalogSummary.readiness}%`}>
+              <span style={{ width: `${catalogSummary.readiness}%` }} />
+            </div>
+          </div>
+          <dl className="admin-catalog-readiness__stats">
+            <div>
+              <CheckCircle2 size={18} />
+              <dt>Listos</dt>
+              <dd>{catalogSummary.ready}</dd>
+            </div>
+            <div>
+              <AlertTriangle size={18} />
+              <dt>Revisar</dt>
+              <dd>{catalogSummary.attention}</dd>
+            </div>
+            <div>
+              <ImageOff size={18} />
+              <dt>Sin foto</dt>
+              <dd>{catalogSummary.missingImages}</dd>
+            </div>
+            <div>
+              <PackageSearch size={18} />
+              <dt>Sin stock</dt>
+              <dd>{catalogSummary.outOfStock}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="admin-catalog-toolbar">
+          <label className="admin-catalog-search">
+            <Search size={17} aria-hidden="true" />
+            <span className="sr-only">Buscar productos</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar por nombre, SKU, marca o categoria"
+            />
+          </label>
+          <label className="admin-catalog-filter">
+            <span>Estado</span>
+            <select value={catalogFilter} onChange={(event) => setCatalogFilter(event.target.value as CatalogFilter)}>
+              <option value="ALL">Todos</option>
+              <option value="READY">Listos para vender</option>
+              <option value="ATTENTION">Requieren revision</option>
+              <option value="OUT_OF_STOCK">Sin stock</option>
+              <option value="INACTIVE">Inactivos</option>
+            </select>
+          </label>
+        </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -286,17 +394,31 @@ export function AdminProductsManager({
                 <th>Categoria</th>
                 <th>Precio</th>
                 <th>Stock</th>
+                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((product) => (
+              {visibleRows.map((product) => {
+                const issues = getProductIssues(product, categoryIds);
+                return (
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{product.sku}</td>
                   <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
                   <td>{currency(product.price)}</td>
                   <td>{product.stock}</td>
+                  <td>
+                    {!product.active ? (
+                      <span className="status-pill">Inactivo</span>
+                    ) : issues.length === 0 ? (
+                      <span className="status-pill status-pill--success">Listo</span>
+                    ) : (
+                      <span className="status-pill status-pill--warning" title={issues.join(", ")}>
+                        {issues[0]}{issues.length > 1 ? ` +${issues.length - 1}` : ""}
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <div className="admin-actions">
                       <button className="btn btn--ghost" type="button" onClick={() => setForm({ ...emptyProduct, ...product })}>
@@ -308,7 +430,21 @@ export function AdminProductsManager({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
+              {visibleRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="admin-catalog-empty">
+                      <PackageSearch size={24} />
+                      <strong>No encontramos productos con estos filtros.</strong>
+                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); }}>
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

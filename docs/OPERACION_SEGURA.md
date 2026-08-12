@@ -142,8 +142,8 @@ Cada respuesta debe devolver cuatro acciones, no inventar precios o stock y cons
 ## Comandos de control
 
 ```bash
-npm run security:check
-npm run typecheck
-npm run lint
-npm run build
+corepack pnpm run security:check
+corepack pnpm run typecheck
+corepack pnpm run lint
+corepack pnpm run build
 ```

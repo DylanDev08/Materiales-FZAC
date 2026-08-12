@@ -147,7 +147,10 @@ try {
     email_confirm: true,
     user_metadata: { full_name: "FZAC Admin Mobile QA" }
   });
-  if (createError || !created.user) throw new Error("Could not create the isolated admin QA user.");
+  if (createError || !created.user) {
+    const reason = createError?.message?.slice(0, 240) || "Supabase returned no user.";
+    throw new Error(`Could not create the isolated admin QA user: ${reason}`);
+  }
   userId = created.user.id;
 
   server = spawn(

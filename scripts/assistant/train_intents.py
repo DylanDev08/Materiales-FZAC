@@ -141,7 +141,7 @@ def main() -> int:
         if args.check:
             current = MODEL_PATH.read_text(encoding="utf-8") if MODEL_PATH.exists() else ""
             if current != expected:
-                print("Generated assistant model is stale. Run npm run assistant:train.", file=sys.stderr)
+                print("Generated assistant model is stale. Run corepack pnpm run assistant:train.", file=sys.stderr)
                 return 1
         else:
             MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)

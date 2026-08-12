@@ -1,38 +1,36 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 27 de julio de 2026, 11:34 a. m.
+Fecha: 12 de agosto de 2026, 12:32 p. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.
 
 ## Resumen ejecutivo
 
-Estado: **Apto para venta controlada**
+Estado: **Requiere saneamiento comercial**
 
 | Métrica | Valor |
 | --- | ---: |
-| Productos totales auditados | 3 |
-| Productos activos | 3 |
+| Productos totales auditados | 0 |
+| Productos activos | 0 |
 | Productos inactivos | 0 |
-| Categorías totales auditadas | 8 |
-| Categorías activas | 8 |
+| Categorías totales auditadas | 0 |
+| Categorías activas | 0 |
 | Categorías inactivas | 0 |
-| Productos destacados | 2 |
-| Productos en oferta | 1 |
-| Stock total visible | 120 |
-| Precio mínimo activo | $ 500 |
-| Precio máximo activo | $ 12.500 |
+| Productos destacados | 0 |
+| Productos en oferta | 0 |
+| Stock total visible | 0 |
+| Precio mínimo activo | - |
+| Precio máximo activo | $ 0 |
 
 ## Hallazgos
 
 | Item | Estado | Acción sugerida |
 | --- | --- | --- |
-| Productos sin foto | 2 | Cargar imagen real al bucket product-images. |
-| Productos con foto placeholder/banco | 2 | Reemplazar por foto real del producto o proveedor. |
-| Productos con descripción débil | 1 | Completar uso, presentación y recomendaciones. |
-| Productos bajo stock | 1 | Reponer o revisar stock mínimo. |
-| Rubros sin imagen | 8 | Agregar imagen real o mantener ícono como fallback. |
-| Rubros sin productos activos | 5 | Asignar productos o ocultar el rubro. |
+| Consulta Supabase | Error | Productos: TypeError: fetch failed |
+| Consulta Supabase | Error | Categorías: TypeError: fetch failed |
+| Categorías activas | Bloqueante | Publicar al menos un rubro activo. |
+| Productos activos | Bloqueante | Publicar productos reales antes de vender. |
 
 ## Detalle para carga comercial
 
@@ -40,44 +38,31 @@ Estado: **Apto para venta controlada**
 _Sin elementos._
 
 ### Productos sin foto
-- Clavos (20003)
-- Placa Drywall 12,5mm (FZAC-DRY-125)
+_Sin elementos._
 
 ### Productos con foto placeholder o banco
-- Clavos (20003)
-- Placa Drywall 12,5mm (FZAC-DRY-125)
+_Sin elementos._
 
 ### Productos con imagen de host no permitido
 _Sin elementos._
 
 ### Productos con descripción débil
-- Clavos (20003)
+_Sin elementos._
 
 ### Productos sin stock activo
 _Sin elementos._
 
 ### Productos bajo stock
-- Clavos (20003)
+_Sin elementos._
 
 ### Rubros sin productos activos
-- Ferretería
-- Herramientas
-- Electricidad
-- Pintura e impermeabilización
-- Revestimientos
+_Sin elementos._
 
 ### Rubros con descripción débil
 _Sin elementos._
 
 ### Rubros sin imagen propia
-- Materiales de obra
-- Construcción en seco
-- Ferretería
-- Herramientas
-- Electricidad
-- Plomería
-- Pintura e impermeabilización
-- Revestimientos
+_Sin elementos._
 
 ### Slugs duplicados
 _Sin elementos._

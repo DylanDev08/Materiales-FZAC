@@ -1,7 +1,16 @@
-import { CheckCircle2, CircleAlert, ShieldCheck, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, CircleAlert, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { getSystemStatus, type SystemStatusItem } from "@/lib/system/status";
+import { getSystemStatus, type SystemStatusArea, type SystemStatusItem } from "@/lib/system/status";
+import { getAdminConsolePath } from "@/lib/utils/env";
+
+const AREAS: Array<{ name: SystemStatusArea; description: string }> = [
+  { name: "Comercio", description: "Catálogo, stock, pedidos y comprobantes necesarios para vender." },
+  { name: "Pagos", description: "Ambiente, proveedor, webhook e integraciones de cobro." },
+  { name: "Infraestructura", description: "Servicios externos, dominio, correo e indexación." },
+  { name: "Seguridad", description: "Autorización, transacciones, idempotencia y cumplimiento." }
+];
 
 function StatusIcon({ tone }: { tone: SystemStatusItem["tone"] }) {
   if (tone === "success") return <CheckCircle2 size={18} />;
@@ -12,6 +21,7 @@ function StatusIcon({ tone }: { tone: SystemStatusItem["tone"] }) {
 export default async function Page() {
   await requireAdmin();
   const status = await getSystemStatus();
+  const adminPath = getAdminConsolePath();
 
   return (
     <AdminShell title="Estado del sistema" description="Control de producción para pagos, emails, Supabase y seguridad.">
@@ -32,17 +42,63 @@ export default async function Page() {
           </div>
         </article>
 
-        <section className="admin-system-grid" aria-label="Estado de integraciones">
-          {status.items.map((item) => (
-            <article className={`admin-system-card admin-system-card--${item.tone}`} key={item.label}>
-              <header>
-                <StatusIcon tone={item.tone} />
-                <span>{item.value}</span>
-              </header>
-              <h3>{item.label}</h3>
-              <p>{item.detail}</p>
-            </article>
-          ))}
+        {status.pending.length ? (
+          <section className="admin-system-priority" aria-labelledby="system-priority-title">
+            <div>
+              <span className="kicker">Atención prioritaria</span>
+              <h2 id="system-priority-title">Qué resolver antes de cobrar en producción</h2>
+            </div>
+            <ol>
+              {status.pending.slice(0, 5).map((item) => (
+                <li key={item.label}>
+                  <strong>{item.label}</strong>
+                  <span>{item.detail}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
+
+        <div className="admin-system-sections">
+          {AREAS.map((area) => {
+            const items = status.items.filter((item) => item.area === area.name);
+            const pending = items.filter((item) => item.tone !== "success").length;
+            return (
+              <section className="admin-system-section" key={area.name}>
+                <header className="admin-system-section__head">
+                  <div>
+                    <h2>{area.name}</h2>
+                    <p>{area.description}</p>
+                  </div>
+                  <span>{pending ? `${pending} pendientes` : "Sin pendientes"}</span>
+                </header>
+                <div className="admin-system-list">
+                  {items.map((item) => (
+                    <article className={`admin-system-row admin-system-row--${item.tone}`} key={item.label}>
+                      <StatusIcon tone={item.tone} />
+                      <div>
+                        <h3>{item.label}</h3>
+                        <p>{item.detail}</p>
+                      </div>
+                      <span>{item.value}</span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <section className="admin-system-actions" aria-label="Acciones operativas">
+          <Link className="btn" href={`${adminPath}/productos`}>
+            Revisar productos <ExternalLink size={16} />
+          </Link>
+          <Link className="btn btn--ghost" href={`${adminPath}/categorias`}>
+            Ordenar categorías
+          </Link>
+          <Link className="btn btn--ghost" href={`${adminPath}/documentacion`}>
+            Abrir guía del panel
+          </Link>
         </section>
 
         <section className="admin-docs-note">

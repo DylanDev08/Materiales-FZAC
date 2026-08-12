@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free
     branch: main
-    buildCommand: npm ci --include=dev && NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run build
-    startCommand: NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" npm run start -- -p $PORT
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" pnpm run build
+    startCommand: NEXT_PUBLIC_SITE_URL="https://$RENDER_EXTERNAL_HOSTNAME" NEXT_PUBLIC_API_URL="https://$RENDER_EXTERNAL_HOSTNAME/api" pnpm run start -p $PORT
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:

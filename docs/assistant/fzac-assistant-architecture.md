@@ -97,10 +97,10 @@ Corpus JSON -> validacion Python -> entrenamiento Naive Bayes
 Comandos:
 
 ```bash
-npm run assistant:train
-npm run assistant:check
-npm run assistant:test
-npm run assistant:test:persistence
+corepack pnpm run assistant:train
+corepack pnpm run assistant:check
+corepack pnpm run assistant:test
+corepack pnpm run assistant:test:persistence
 ```
 
 `assistant:check` debe ejecutarse en CI para impedir que el corpus y el modelo publicado queden desincronizados.

@@ -4,7 +4,6 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
 import { isTestPaymentEnv } from "@/lib/payments/config";
-import { resolveProductImageUrl } from "@/lib/products/images";
 import type { Category, Product } from "@/types/domain";
 
 function normalizeProduct(row: Record<string, unknown>): Product {
@@ -30,7 +29,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     active: Boolean(row.active ?? true)
   };
 
-  return { ...product, image_url: resolveProductImageUrl(product) };
+  return product;
 }
 
 function normalizeCategory(row: Record<string, unknown>): Category {
@@ -116,16 +115,18 @@ export async function getAdminProducts() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackProducts;
 
-  const { data } = await admin.from("products").select("*").order("created_at", { ascending: false }).limit(300);
-  return data?.map(normalizeProduct) ?? fallbackProducts;
+  const { data, error } = await admin.from("products").select("*").order("created_at", { ascending: false }).limit(300);
+  if (error) return [];
+  return (data ?? []).map(normalizeProduct);
 }
 
 export async function getAdminCategories() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackCategories;
 
-  const { data } = await admin.from("categories").select("*").order("sort_order", { ascending: true }).limit(300);
-  return data?.map(normalizeCategory) ?? fallbackCategories;
+  const { data, error } = await admin.from("categories").select("*").order("sort_order", { ascending: true }).limit(300);
+  if (error) return [];
+  return (data ?? []).map(normalizeCategory);
 }
 
 export async function getAdminRows(table: string, limit = 200) {
