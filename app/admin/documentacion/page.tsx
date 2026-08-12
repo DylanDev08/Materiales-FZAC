@@ -30,7 +30,7 @@ const sections = [
   {
     title: "Clientes",
     target: "Personas registradas y compradores.",
-    use: "Sirve para buscar clientes, revisar contacto, compras, pagos, tickets y datos utiles para atencion o entrega."
+    use: "Sirve para buscar clientes, revisar contacto, compras, pagos y tickets. Exportar CSV entrega datos para planillas; Informe FZAC abre una version con logo e identidad lista para imprimir o guardar como PDF."
   },
   {
     title: "Productos",
@@ -60,7 +60,7 @@ const sections = [
   {
     title: "Ingresos y egresos",
     target: "Control de caja y gastos operativos.",
-    use: "Registra gastos y otros ingresos que no provienen de ventas online. Las ventas pagadas se incorporan solas; no deben cargarse otra vez."
+    use: "Registra gastos y otros ingresos que no provienen de ventas online. Las ventas pagadas se incorporan solas. Limpiar vista solo restablece filtros; Mantenimiento anula movimientos manuales con motivo y auditoria, sin borrar comprobantes."
   },
   {
     title: "Rentabilidad",
@@ -147,7 +147,8 @@ export default async function Page() {
           <strong>Importante</strong>
           <p>
             Los datos tecnicos, IDs internos, credenciales y configuraciones sensibles no deben compartirse con clientes.
-            Si un dato parece de prueba, revisalo antes de aprobar pedidos o emitir comprobantes definitivos.
+            Si un dato parece de prueba, revisalo antes de aprobar pedidos o emitir comprobantes definitivos. Tickets,
+            pagos y comprobantes no se eliminan desde el panel: se filtran, cancelan, rechazan o anulan segun corresponda.
           </p>
         </section>
       </section>

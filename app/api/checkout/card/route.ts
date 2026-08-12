@@ -17,6 +17,7 @@ import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { checkoutCardCreateSchema } from "@/lib/validations/checkout";
 
 function paymentStatus(status: string) {
@@ -58,9 +59,11 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-card"), 8, 60_000);
+  const mutation = validateJsonMutationRequest(request, 96 * 1024);
   if (!limit.ok) {
     return jsonError("Demasiados intentos de pago. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   }
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
     const payload = checkoutCardCreateSchema.parse(await request.json());

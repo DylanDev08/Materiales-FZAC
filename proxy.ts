@@ -20,9 +20,7 @@ function applySecurityHeaders(response: NextResponse, noIndex = false, noStore =
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   response.headers.set("Cross-Origin-Resource-Policy", "same-site");
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
-  response.headers.set(
-    "Content-Security-Policy-Report-Only",
-    [
+  const contentSecurityPolicy = [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
@@ -30,14 +28,16 @@ function applySecurityHeaders(response: NextResponse, noIndex = false, noStore =
       "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://*.supabase.co https://accounts.google.com",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.mercadopago.com https://*.mercadopago.com.ar https://sdk.mercadopago.com https://www.gstatic.com https://accounts.google.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://*.googleusercontent.com https://http2.mlstatic.com https://*.mercadopago.com https://*.mercadopago.com.ar",
+      "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://*.googleusercontent.com https://images.unsplash.com https://res.cloudinary.com https://http2.mlstatic.com https://*.mercadopago.com https://*.mercadopago.com.ar",
       "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.ar",
       "frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://accounts.google.com",
+      "worker-src 'self' blob:",
       "report-uri /api/security/csp-report"
-    ].join("; ")
-  );
+    ].join("; ");
+  response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
   if (process.env.NODE_ENV === "production") {
+    response.headers.set("Content-Security-Policy", `${contentSecurityPolicy}; upgrade-insecure-requests`);
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
   if (noIndex) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
@@ -64,6 +64,10 @@ export async function proxy(request: NextRequest) {
     "/recuperar",
     "/restablecer"
   ].some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
+  const requiresAuthenticatedPage =
+    request.nextUrl.pathname === "/checkout" ||
+    request.nextUrl.pathname === "/cuenta" ||
+    request.nextUrl.pathname.startsWith("/cuenta/");
   const isSensitivePath =
     isConsolePath ||
     isPrivatePagePath ||
@@ -90,6 +94,17 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.redirect(url), true, true);
   }
 
+  const hasSupabaseSessionCookie = request.cookies
+    .getAll()
+    .some(({ name }) => /^sb-.*-auth-token(?:\.\d+)?$/.test(name));
+  if (requiresAuthenticatedPage && !hasSupabaseSessionCookie) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return applySecurityHeaders(NextResponse.redirect(url), true, true);
+  }
+
   if (!supabaseUrl || !supabaseAnonKey || /^<.*>$/.test(supabaseAnonKey)) {
     return applySecurityHeaders(response, isConsolePath || isPrivatePagePath, isSensitivePath);
   }
@@ -112,7 +127,14 @@ export async function proxy(request: NextRequest) {
     }
   });
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (requiresAuthenticatedPage && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return applySecurityHeaders(NextResponse.redirect(url), true, true);
+  }
   return applySecurityHeaders(response, isConsolePath || isPrivatePagePath, isSensitivePath);
 }
 

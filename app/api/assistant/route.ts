@@ -28,6 +28,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Product } from "@/types/domain";
 
@@ -570,7 +571,9 @@ async function persistConversation(input: {
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "assistant"), 30, 60_000);
+  const mutation = validateJsonMutationRequest(request, 16 * 1024);
   if (!limit.ok) return jsonError("Demasiadas consultas al asistente.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   let payload: z.infer<typeof schema>;
   try {

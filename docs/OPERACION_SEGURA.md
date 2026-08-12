@@ -89,14 +89,30 @@ No abrir inserción pública en la tabla. El alta se realiza desde la API server
 
 ## Headers y CSP
 
-La aplicación publica CSP en modo `Report-Only` para observar dependencias reales de Supabase, Google OAuth y Mercado Pago sin interrumpir compras. Los reportes llegan a `/api/security/csp-report`, que limita tamaño y frecuencia y no persiste datos del cliente.
+La aplicación publica CSP en modo de observación durante desarrollo y la aplica de forma bloqueante en producción. La allowlist contempla únicamente los orígenes necesarios para Supabase, Google OAuth, imágenes autorizadas y Mercado Pago. Los reportes llegan a `/api/security/csp-report`, que limita tamaño y frecuencia y no persiste datos del cliente.
 
-Antes de pasar CSP a modo obligatorio:
+Después de cada cambio de proveedor externo:
 
-1. Revisar los reportes de Render durante varios flujos reales de prueba.
+1. Revisar los reportes de Render durante los flujos de prueba.
 2. Confirmar login Google, imágenes, Checkout Pro y Brick.
 3. Reducir dominios permitidos si no se usan.
-4. Aplicar enforcement en un deploy controlado y repetir Playwright.
+4. Repetir Playwright antes de mantener el cambio en producción.
+
+## Mantenimiento de ingresos, egresos y comprobantes
+
+- `Limpiar vista` solo restablece filtros y no modifica la base.
+- Un movimiento manual incorrecto se anula con motivo y responsable; nunca se reescribe ni se elimina.
+- `Mantenimiento` permite anular por lote hasta 250 movimientos `MANUAL` o `ADJUSTMENT`, con confirmación textual y auditoría atómica.
+- Ventas, pagos de proveedores, tickets y comprobantes quedan fuera de la limpieza masiva.
+- La función requiere `supabase/migrations/20260812000000_admin_maintenance_and_rls_hardening.sql` aplicada en el proyecto remoto.
+- El informe de clientes con estilo FZAC se abre desde Admin > Clientes > Informe FZAC y puede imprimirse o guardarse como PDF. El CSV se conserva como formato de datos editable.
+
+## Validación con Docker
+
+- El `Dockerfile` usa Node 22, pnpm con lockfile, etapas separadas y un usuario sin privilegios.
+- El runtime ejecuta el binario local de Next directamente: no descarga paquetes ni necesita escribir una caché de Corepack al iniciar.
+- Cuando se use `docker run --env-file`, los valores del archivo deben escribirse sin comillas. Docker conserva las comillas literalmente, a diferencia del cargador de entorno de Next.
+- Validar `/api/health`, Home y la redirección anónima de Admin antes de publicar la imagen.
 
 ## Resend y recuperacion
 

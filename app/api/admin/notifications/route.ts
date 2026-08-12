@@ -1,19 +1,17 @@
 import { ZodError, z } from "zod";
-import { getApiAdmin } from "@/lib/auth/api-guards";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 const patchSchema = z.object({
   id: z.string().uuid().optional(),
   markAll: z.boolean().optional()
 }).refine((value) => value.markAll || value.id, "Selecciona una notificacion.");
 
-export async function GET() {
-  const profile = await getApiAdmin();
-  if (!profile) return jsonError("No autorizado.", 401);
-
-  const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
+export async function GET(request: Request) {
+  const context = await getAdminApiContext(request, { scope: "admin-notifications-read", limit: 90 });
+  if (!context.ok) return context.response;
+  const { admin } = context;
 
   const { data, error } = await admin
     .from("notifications")
@@ -27,11 +25,11 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const profile = await getApiAdmin();
-  if (!profile) return jsonError("No autorizado.", 401);
-
-  const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
+  const mutation = validateJsonMutationRequest(request, 4 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
+  const context = await getAdminApiContext(request, { scope: "admin-notifications-update", limit: 30 });
+  if (!context.ok) return context.response;
+  const { admin } = context;
 
   let payload: z.infer<typeof patchSchema>;
   try {

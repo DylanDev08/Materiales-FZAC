@@ -57,3 +57,12 @@ export const voidFinancialMovementSchema = z.object({
   id: z.string().uuid("Movimiento inválido."),
   reason: safeText("Motivo", 3, 240)
 });
+
+export const bulkVoidFinancialMovementsSchema = z.object({
+  type: z.enum(["ALL", "INCOME", "EXPENSE"]),
+  before: z.string().datetime({ offset: true, message: "Elegí una fecha límite válida." }),
+  reason: safeText("Motivo", 8, 240),
+  confirmation: z.literal("ANULAR", {
+    errorMap: () => ({ message: "Escribí ANULAR para confirmar la operación." })
+  })
+});

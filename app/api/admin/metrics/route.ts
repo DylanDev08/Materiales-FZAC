@@ -1,13 +1,9 @@
-import { getApiAdmin } from "@/lib/auth/api-guards";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { jsonError } from "@/lib/utils/api";
+import { getAdminApiContext } from "@/lib/auth/admin-api";
 
-export async function GET() {
-  const profile = await getApiAdmin();
-  if (!profile) return jsonError("No autorizado.", 401);
-
-  const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
+export async function GET(request: Request) {
+  const context = await getAdminApiContext(request, { scope: "admin-metrics", limit: 90 });
+  if (!context.ok) return context.response;
+  const { admin } = context;
 
   const [{ count: products }, { count: pending }, { count: tickets }, { count: customers }] = await Promise.all([
     admin.from("products").select("id", { count: "exact", head: true }).eq("active", true),

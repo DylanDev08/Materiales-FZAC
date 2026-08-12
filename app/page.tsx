@@ -1,5 +1,6 @@
 import { JsonLd } from "@/components/seo/json-ld";
 import { HomePage } from "@/components/home/home-page";
+import { getStoreLegalIdentity } from "@/lib/legal/store-identity";
 import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getPublicContact, getPublicSiteUrl, SITE_DESCRIPTION, SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
@@ -12,6 +13,7 @@ export const metadata = publicPageMetadata({
 export default function Page() {
   const siteUrl = getPublicSiteUrl();
   const contact = getPublicContact();
+  const identity = getStoreLegalIdentity();
   const organization = {
     "@context": "https://schema.org",
     "@type": "OnlineStore",
@@ -22,13 +24,31 @@ export default function Page() {
     logo: toAbsoluteUrl("/logoFZAC.jpg"),
     image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
+    currenciesAccepted: "ARS",
+    paymentAccepted: "Mercado Pago, tarjeta, transferencia bancaria",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: identity.address,
+      addressLocality: "Rosario",
+      addressRegion: "Santa Fe",
+      addressCountry: "AR"
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: identity.email,
+      telephone: identity.phone,
+      availableLanguage: "Spanish"
+    },
     areaServed: {
       "@type": "AdministrativeArea",
       name: "Rosario y alrededores, Santa Fe, Argentina"
     },
     ...(contact.email ? { email: contact.email } : {}),
     ...(contact.phone ? { telephone: contact.phone } : {}),
-    ...(contact.instagram ? { sameAs: [contact.instagram] } : {})
+    ...(contact.instagram ? { sameAs: [contact.instagram] } : {}),
+    ...(identity.legalName ? { legalName: identity.legalName } : {}),
+    ...(identity.taxId ? { taxID: identity.taxId } : {})
   };
   const website = {
     "@context": "https://schema.org",

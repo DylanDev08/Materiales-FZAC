@@ -48,8 +48,13 @@ export function retryAfterHeaders(result: { retryAfter: number }) {
   return { "Retry-After": String(Math.max(1, result.retryAfter)) };
 }
 
+function normalizeClientAddress(value: string | null | undefined) {
+  const address = value?.trim().slice(0, 64) ?? "";
+  return /^[0-9a-f:.]+$/i.test(address) ? address.toLowerCase() : "unknown";
+}
+
 export function getRequestKey(request: Request, scope: string) {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || request.headers.get("x-real-ip") || "local";
+  const ip = normalizeClientAddress(forwarded || request.headers.get("x-real-ip"));
   return `${scope}:${ip}`;
 }

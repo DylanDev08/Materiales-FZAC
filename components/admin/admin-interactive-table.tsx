@@ -231,6 +231,13 @@ export function AdminInteractiveTable({
         <span className="status-pill">{filteredRows.length} registros</span>
       </div>
 
+      {documentKind ? (
+        <p className="notice notice--info admin-document-retention">
+          <strong>Registro protegido:</strong> limpiar la vista solo restablece filtros. Los tickets, pagos y comprobantes
+          no se borran; sus cambios de estado permanecen disponibles para control y auditoria.
+        </p>
+      ) : null}
+
       {tabs.length ? (
         <div className="admin-filter-chips admin-filter-chips--tabs" aria-label={`Tabs de ${title}`}>
           {tabs.map((tab) => (
@@ -271,7 +278,7 @@ export function AdminInteractiveTable({
         </label>
         <div className="admin-table-actions">
           <button className="btn btn--ghost" type="button" onClick={clearFilters} disabled={!query && activeFilter === "Todos" && activeTab === "Todos" && !dateFrom && !dateTo}>
-            <X size={16} /> Limpiar
+            <X size={16} /> Limpiar vista
           </button>
           <button className="btn btn--ghost" type="button" onClick={exportCsv} disabled={!filteredRows.length}>
             <Download size={16} /> Exportar CSV

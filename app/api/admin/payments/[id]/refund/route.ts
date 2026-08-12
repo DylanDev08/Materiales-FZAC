@@ -15,6 +15,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 const paramsSchema = z.object({ id: z.string().uuid("Pago invalido.") });
 const bodySchema = z.object({
@@ -59,6 +60,8 @@ async function createRefundFailureNotification(paymentId: string, orderId: strin
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const profile = await getApiAdmin();
   if (!profile) return jsonError("No autorizado.", 403);
 

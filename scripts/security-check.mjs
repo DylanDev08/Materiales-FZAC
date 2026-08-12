@@ -6,8 +6,21 @@ const sourceRoots = ["app", "components", "lib"];
 const publicFiles = ["README.md", ".env.example", ".github", "docs", "scripts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|RESEND_API_KEY|ASSISTANT_LLM_API_KEY|MARKET_PRICE_FEED_TOKENS_JSON|MARKET_PRICE_CRON_SECRET/;
-const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}/;
+const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}|re_[A-Za-z0-9_]{20,}|sbp_[A-Za-z0-9_]{20,}|rnd_[A-Za-z0-9_]{20,}/;
 const failures = [];
+const criticalJsonMutationRoutes = [
+  "app/api/auth/login/route.ts",
+  "app/api/auth/register/route.ts",
+  "app/api/auth/recover/route.ts",
+  "app/api/auth/reset-password/route.ts",
+  "app/api/cart/route.ts",
+  "app/api/cart/validate/route.ts",
+  "app/api/checkout/route.ts",
+  "app/api/checkout/create/route.ts",
+  "app/api/checkout/card/route.ts",
+  "app/api/shipping/quote/route.ts",
+  "app/api/assistant/route.ts"
+];
 
 async function exists(relativePath) {
   return access(path.join(root, relativePath)).then(() => true).catch(() => false);
@@ -30,10 +43,23 @@ for (const sourceRoot of sourceRoots) {
   for (const file of await filesAt(sourceRoot)) {
     if (!sourceExtensions.has(path.extname(file))) continue;
     const content = await readFile(path.join(root, file), "utf8");
+    if (secretValues.test(content)) failures.push(`${file}: contiene una credencial hardcodeada.`);
     if (/^[\s\r\n]*["']use client["'];/.test(content) && secretNames.test(content)) {
       failures.push(`${file}: un modulo cliente referencia el nombre de un secreto.`);
     }
   }
+}
+
+for (const file of criticalJsonMutationRoutes) {
+  const content = await readFile(path.join(root, file), "utf8").catch(() => "");
+  if (!content.includes("validateJsonMutationRequest")) {
+    failures.push(`${file}: falta validar origen, tipo y tamano del cuerpo JSON.`);
+  }
+}
+
+const legacyCheckout = await readFile(path.join(root, "app/api/checkout/route.ts"), "utf8");
+if (/safeParse[\s\S]{0,300}rawPayload/.test(legacyCheckout)) {
+  failures.push("app/api/checkout/route.ts: no debe continuar con un payload que falle el schema.");
 }
 
 for (const entry of publicFiles) {
@@ -58,6 +84,16 @@ if (await exists("package-lock.json")) {
 const renderConfig = await readFile(path.join(root, "render.yaml"), "utf8").catch(() => "");
 if (/\bnpm\s+(?:ci|install|run)\b|\bnpx\b/.test(renderConfig)) {
   failures.push("render.yaml: el deploy debe usar pnpm de forma exclusiva.");
+}
+
+const dockerConfig = await readFile(path.join(root, "Dockerfile"), "utf8").catch(() => "");
+if (!dockerConfig.includes("pnpm install --frozen-lockfile") || /\bnpm\s+(?:ci|install|run)\b|\bnpx\b/.test(dockerConfig)) {
+  failures.push("Dockerfile: el contenedor debe instalar y ejecutar exclusivamente con pnpm.");
+}
+
+const proxyConfig = await readFile(path.join(root, "proxy.ts"), "utf8").catch(() => "");
+for (const header of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "Referrer-Policy"]) {
+  if (!proxyConfig.includes(header)) failures.push(`proxy.ts: falta el header defensivo ${header}.`);
 }
 
 for (const file of await filesAt(".github/workflows")) {

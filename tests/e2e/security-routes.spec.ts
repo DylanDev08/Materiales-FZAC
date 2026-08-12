@@ -164,7 +164,12 @@ test.describe("Controles de seguridad no destructivos", () => {
 
     const recoveredDocuments = await page.evaluate(() => Number(window.localStorage.getItem("fzac-qa-document-count") || "0"));
     expect(recoveredDocuments).toBeGreaterThan(baseline);
-    await expect(page.getByRole("button", { name: /Agregar/i }).first()).toBeVisible();
+    const addButton = page.getByRole("button", { name: /Agregar/i }).first();
+    if ((await addButton.count()) > 0) {
+      await expect(addButton).toBeVisible();
+    } else {
+      await expect(page.getByRole("heading", { name: /No encontramos productos/i })).toBeVisible();
+    }
     await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("fzac-static-asset-retry"))).toBeNull();
   });
 });

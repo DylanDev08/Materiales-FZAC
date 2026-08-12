@@ -10,6 +10,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "@/lib/legal/versions";
+import { getStoreLegalIdentity } from "@/lib/legal/store-identity";
 import { PRIVACY_CONSENT_VERSION } from "@/lib/privacy/consent";
 import { isSeoIndexingEnabled } from "@/lib/seo/site";
 
@@ -115,6 +116,7 @@ export async function getSystemStatus() {
   const siteState = siteUrlState(payment.siteUrl);
   const productionMode = payment.paymentsEnv === "production";
   const seoEnabled = isSeoIndexingEnabled();
+  const legalIdentity = getStoreLegalIdentity();
   const [integrity, catalog] = await Promise.all([getDatabaseIntegrityStatus(), getCatalogOperationalStatus()]);
 
   const items: SystemStatusItem[] = [
@@ -205,6 +207,26 @@ export async function getSystemStatus() {
       detail: fiscalInvoicingEnabled
         ? "Proveedor fiscal habilitado. Validar certificado, punto de venta y numeración antes de emitir."
         : "El comprobante FZAC es operativo y no reemplaza una factura fiscal de ARCA."
+    },
+    {
+      area: "Comercio",
+      label: "Identidad legal del comercio",
+      ...(legalIdentity.legalName && legalIdentity.taxId
+        ? status("success", "Completa")
+        : status("danger", "Datos pendientes")),
+      detail: legalIdentity.legalName && legalIdentity.taxId
+        ? "Razón social, CUIT y domicilio están disponibles en textos y reportes."
+        : "Completar FZAC_LEGAL_NAME y FZAC_CUIT con datos validados por el responsable fiscal."
+    },
+    {
+      area: "Comercio",
+      label: "Atención al consumidor",
+      ...(legalIdentity.customerServiceHours
+        ? status("success", "Horario publicado")
+        : status("warning", "Horario pendiente")),
+      detail: legalIdentity.customerServiceHours
+        ? legalIdentity.customerServiceHours
+        : "Definir FZAC_CUSTOMER_SERVICE_HOURS antes de iniciar cobros reales."
     },
     {
       area: "Seguridad",

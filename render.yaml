@@ -47,8 +47,20 @@ services:
         sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
         sync: false
+      - key: MERCADOPAGO_PRODUCTION_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY
+        sync: false
       - key: MERCADOPAGO_CARD_ENABLED
         value: "false"
+      - key: MERCADOPAGO_CARD_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY
+        sync: false
+      - key: MERCADOPAGO_PRODUCTION_CARD_ACCESS_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_CARD_PUBLIC_KEY
+        sync: false
       - key: PURCHASE_AUTO_APPROVAL_LIMIT
         value: "250000"
       - key: ADMIN_EMAILS
@@ -97,5 +109,13 @@ services:
         value: fortalezaconstruccionesrosario@gmail.com
       - key: FZAC_INSTAGRAM
         value: "@fzaconstrucciones"
+      - key: FZAC_LEGAL_NAME
+        sync: false
+      - key: FZAC_CUIT
+        sync: false
+      - key: FZAC_LEGAL_ADDRESS
+        sync: false
+      - key: FZAC_CUSTOMER_SERVICE_HOURS
+        sync: false
       - key: NARANJAX_ENABLED
         value: "false"

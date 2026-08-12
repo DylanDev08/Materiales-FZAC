@@ -3,6 +3,7 @@ import { requestPasswordRecoveryEmail } from "@/lib/auth/email-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { normalizeEmail } from "@/lib/validations/auth";
 
 const recoverSchema = z.object({
@@ -13,7 +14,9 @@ const genericMessage = "Si existe una cuenta con ese email, vas a recibir un lin
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-recover"), 5, 60_000);
+  const mutation = validateJsonMutationRequest(request, 2 * 1024);
   if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
     const payload = recoverSchema.parse(await request.json());

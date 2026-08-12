@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Download, Mail, MessageCircle, Search, SlidersHorizontal, UserRound, X } from "lucide-react";
+import { ChevronRight, Download, FileDown, Mail, MessageCircle, Search, SlidersHorizontal, UserRound, X } from "lucide-react";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 type CustomerRow = {
@@ -33,6 +33,15 @@ type CustomerRow = {
   UltimoPago?: string;
   Chats?: number;
   Actividad?: string[];
+};
+
+export type CustomerReportIdentity = {
+  commercialName: string;
+  legalName: string | null;
+  taxId: string | null;
+  address: string;
+  email: string;
+  phone: string;
 };
 
 const pageSize = 8;
@@ -69,6 +78,113 @@ function csvEscape(value: string) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
+function htmlEscape(value: string | number | null | undefined) {
+  return String(value ?? "-")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function customerReportHtml(rows: CustomerRow[], identity: CustomerReportIdentity) {
+  const generatedAt = new Intl.DateTimeFormat("es-AR", { dateStyle: "full", timeStyle: "short" }).format(new Date());
+  const totalSpent = rows.reduce((sum, row) => sum + Number(row.TotalGastadoNumero ?? 0), 0);
+  const totalOrders = rows.reduce((sum, row) => sum + Number(row.Pedidos ?? 0), 0);
+  const logoUrl = `${window.location.origin}/logoFZAC.jpg`;
+  const body = rows
+    .map(
+      (row) => `<tr>
+        <td><strong>${htmlEscape(row.Nombre || "Sin nombre")}</strong><small>${htmlEscape(row.Email)}</small></td>
+        <td>${htmlEscape(row.Telefono)}</td>
+        <td>${htmlEscape(row.Registro)}</td>
+        <td>${htmlEscape(row.UltimoLogin)}</td>
+        <td>${htmlEscape(row.EstadoCliente || "Sin compras")}</td>
+        <td class="numeric">${htmlEscape(row.Pedidos ?? 0)}</td>
+        <td class="numeric">${htmlEscape(row.TotalGastado || "$0")}</td>
+      </tr>`
+    )
+    .join("");
+
+  return `<!doctype html>
+  <html lang="es-AR">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Informe de clientes FZAC</title>
+      <style>
+        :root { color-scheme: light; --fzac: #f4c400; --ink: #111; --muted: #5f6368; --line: #dedede; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #ececec; color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+        .toolbar { position: sticky; top: 0; display: flex; justify-content: flex-end; gap: 10px; background: #0b0b0b; padding: 12px 20px; }
+        button { min-height: 42px; border: 0; border-radius: 5px; background: var(--fzac); color: #050505; padding: 0 18px; font-weight: 800; cursor: pointer; }
+        .sheet { width: min(1120px, calc(100% - 28px)); margin: 24px auto; background: #fff; box-shadow: 0 16px 50px rgba(0,0,0,.18); }
+        header { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; border-bottom: 6px solid var(--fzac); background: #0b0b0b; color: #fff; padding: 22px 26px; }
+        header img { width: 66px; height: 66px; border: 2px solid var(--fzac); border-radius: 50%; object-fit: cover; }
+        header h1 { margin: 0 0 5px; color: var(--fzac); font-size: 24px; }
+        header p, header small { margin: 0; color: #d0d0d0; }
+        header .date { max-width: 240px; text-align: right; }
+        .identity { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; border-bottom: 1px solid var(--line); padding: 16px 26px; }
+        .identity div, .summary div { min-width: 0; }
+        .identity span, .summary span { display: block; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .identity strong { display: block; margin-top: 4px; overflow-wrap: anywhere; font-size: 13px; }
+        .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); margin: 18px 26px; border: 1px solid var(--line); }
+        .summary div { background: #fff; padding: 14px; }
+        .summary strong { display: block; margin-top: 4px; font-size: 20px; }
+        .table-wrap { padding: 0 26px 26px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #171717; color: #fff; padding: 10px 9px; text-align: left; }
+        td { border-bottom: 1px solid var(--line); padding: 10px 9px; vertical-align: top; }
+        td strong, td small { display: block; }
+        td small { margin-top: 3px; color: var(--muted); }
+        .numeric { text-align: right; white-space: nowrap; }
+        footer { border-top: 1px solid var(--line); color: var(--muted); padding: 14px 26px 22px; font-size: 11px; }
+        @page { size: A4 landscape; margin: 10mm; }
+        @media print {
+          body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .toolbar { display: none; }
+          .sheet { width: 100%; margin: 0; box-shadow: none; }
+          thead { display: table-header-group; }
+          tr { break-inside: avoid; }
+        }
+        @media (max-width: 720px) {
+          header { grid-template-columns: auto 1fr; }
+          header .date { grid-column: 1 / -1; max-width: none; text-align: left; }
+          .identity, .summary { grid-template-columns: 1fr 1fr; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="toolbar"><button type="button" onclick="window.print()">Imprimir o guardar PDF</button></div>
+      <main class="sheet">
+        <header>
+          <img src="${htmlEscape(logoUrl)}" alt="FZAC" />
+          <div><h1>Informe de clientes</h1><p>${htmlEscape(identity.commercialName)}</p></div>
+          <small class="date">Generado el ${htmlEscape(generatedAt)}</small>
+        </header>
+        <section class="identity">
+          <div><span>Razón social</span><strong>${htmlEscape(identity.legalName || "Pendiente de configuración")}</strong></div>
+          <div><span>CUIT</span><strong>${htmlEscape(identity.taxId || "Pendiente de configuración")}</strong></div>
+          <div><span>Dirección</span><strong>${htmlEscape(identity.address)}</strong></div>
+          <div><span>Contacto</span><strong>${htmlEscape(identity.email)} · ${htmlEscape(identity.phone)}</strong></div>
+        </section>
+        <section class="summary">
+          <div><span>Clientes incluidos</span><strong>${rows.length}</strong></div>
+          <div><span>Pedidos registrados</span><strong>${totalOrders}</strong></div>
+          <div><span>Total comprado</span><strong>${htmlEscape(new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(totalSpent))}</strong></div>
+        </section>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Cliente</th><th>Teléfono</th><th>Registro</th><th>Último acceso</th><th>Estado</th><th class="numeric">Pedidos</th><th class="numeric">Total</th></tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+        <footer>Documento administrativo generado por FZAC. Contiene datos personales: conservar y compartir únicamente con personal autorizado.</footer>
+      </main>
+    </body>
+  </html>`;
+}
+
 function UserAvatar({ row, large = false }: { row: CustomerRow; large?: boolean }) {
   const [failed, setFailed] = useState(false);
 
@@ -84,7 +200,7 @@ function UserAvatar({ row, large = false }: { row: CustomerRow; large?: boolean 
   );
 }
 
-export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
+export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow[]; reportIdentity: CustomerReportIdentity }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("recent");
@@ -132,13 +248,20 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
         .map(csvEscape)
         .join(",")
     );
-    const blob = new Blob([[columns.map(csvEscape).join(","), ...csvRows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([`\uFEFF${[columns.map(csvEscape).join(","), ...csvRows].join("\n")}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "clientes-fzac.csv";
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function openCustomerReport() {
+    const blob = new Blob([customerReportHtml(filtered, reportIdentity)], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   return (
@@ -194,6 +317,9 @@ export function AdminCustomersView({ rows }: { rows: CustomerRow[] }) {
             </button>
             <button className="btn btn--ghost" type="button" onClick={exportCsv} disabled={!filtered.length}>
               <Download size={16} /> Exportar CSV
+            </button>
+            <button className="btn" type="button" onClick={openCustomerReport} disabled={!filtered.length}>
+              <FileDown size={16} /> Informe FZAC
             </button>
           </div>
         </div>

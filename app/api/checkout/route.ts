@@ -9,7 +9,8 @@ import {
 } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { checkoutCreateSchema } from "@/lib/validations/checkout";
 
 function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
@@ -23,12 +24,14 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout"), 12, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos. Proba nuevamente en un minuto.", 429);
+  const mutation = validateJsonMutationRequest(request, 64 * 1024);
+  if (!limit.ok) {
+    return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  }
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
-    const rawPayload = await request.json();
-    const parsedPayload = checkoutCreateSchema.safeParse(rawPayload);
-    const payload = parsedPayload.success ? parsedPayload.data : rawPayload;
+    const payload = checkoutCreateSchema.parse(await request.json());
     const result = await createCheckout(payload);
     logCheckoutResult(result);
     return Response.json(result, { status: 201 });

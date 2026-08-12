@@ -2,6 +2,7 @@ import { ZodError, z } from "zod";
 import { quoteDeliveryForAddress } from "@/lib/shipping/quote";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { hasSqlMeta } from "@/lib/validations/security";
 
 const addressSchema = z
@@ -18,7 +19,9 @@ const addressSchema = z
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "shipping-quote"), 24, 60_000);
+  const mutation = validateJsonMutationRequest(request, 8 * 1024);
   if (!limit.ok) return jsonError("Demasiadas cotizaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
     const payload = addressSchema.parse(await request.json());

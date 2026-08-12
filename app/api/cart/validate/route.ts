@@ -2,10 +2,13 @@ import { ZodError } from "zod";
 import { inspectCheckoutStock } from "@/lib/db/orders";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "cart-validate"), 60, 60_000);
+  const mutation = validateJsonMutationRequest(request, 48 * 1024);
   if (!limit.ok) return jsonError("Demasiadas validaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
     const payload = await request.json();

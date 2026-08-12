@@ -2,6 +2,7 @@ import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { assistantKnowledgeSchema } from "@/lib/validations/assistant-knowledge";
 
 async function guard(request: Request) {
@@ -37,6 +38,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 16 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const access = await guard(request);
   if ("error" in access) return access.error;
   const parsed = assistantKnowledgeSchema.safeParse(await request.json().catch(() => null));
@@ -63,6 +66,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const mutation = validateJsonMutationRequest(request, 16 * 1024);
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const access = await guard(request);
   if ("error" in access) return access.error;
   const parsed = assistantKnowledgeSchema.safeParse(await request.json().catch(() => null));

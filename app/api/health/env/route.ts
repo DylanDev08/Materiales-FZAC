@@ -1,19 +1,18 @@
 import { getSupabaseConfig } from "@/lib/supabase/config";
-import { getApiAdmin } from "@/lib/auth/api-guards";
+import { getAdminApiContext } from "@/lib/auth/admin-api";
 import {
   getMercadoPagoEnvironmentState,
   getPaymentProductionReadiness,
   isPaymentsEnabled
 } from "@/lib/payments/config";
 import { canQuoteShipping } from "@/lib/shipping/quote";
-import { jsonError } from "@/lib/utils/api";
 import { hasRealValue } from "@/lib/utils/env";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const profile = await getApiAdmin();
-  if (!profile) return jsonError("No autorizado.", 401);
+export async function GET(request: Request) {
+  const context = await getAdminApiContext(request, { scope: "admin-environment-health", limit: 30 });
+  if (!context.ok) return context.response;
 
   const supabase = getSupabaseConfig();
   const mercadoPago = getMercadoPagoEnvironmentState();

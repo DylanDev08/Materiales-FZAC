@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Ban, CheckCircle2, Loader2, Plus, Scale } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Ban, CheckCircle2, FilterX, Loader2, Plus, Scale, ShieldAlert } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import type { AdminFinancialMovement } from "@/lib/db/admin";
 
@@ -16,6 +16,12 @@ function localDateTimeValue() {
   const date = new Date();
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
   return date.toISOString().slice(0, 16);
+}
+
+function localDateValue() {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
 }
 
 function movementDate(value: string) {
@@ -48,6 +54,13 @@ export function AdminFinancialManager({
   const [ok, setOk] = useState(false);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [viewType, setViewType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [showVoided, setShowVoided] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkType, setBulkType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [bulkBefore, setBulkBefore] = useState(localDateValue);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkConfirmation, setBulkConfirmation] = useState("");
 
   const totals = useMemo(() => {
     const active = rows.filter((row) => row.status === "ACTIVE");
@@ -55,6 +68,26 @@ export function AdminFinancialManager({
     const expense = active.filter((row) => row.type === "EXPENSE").reduce((sum, row) => sum + row.amount, 0);
     return { income, expense, balance: income - expense };
   }, [rows]);
+
+  const visibleRows = useMemo(
+    () =>
+      rows.filter(
+        (row) => (viewType === "ALL" || row.type === viewType) && (showVoided || row.status === "ACTIVE")
+      ),
+    [rows, showVoided, viewType]
+  );
+
+  const bulkEligibleCount = useMemo(() => {
+    if (!bulkBefore) return 0;
+    const cutoff = new Date(`${bulkBefore}T23:59:59.999`);
+    return rows.filter(
+      (row) =>
+        row.status === "ACTIVE" &&
+        ["MANUAL", "ADJUSTMENT"].includes(row.source) &&
+        (bulkType === "ALL" || row.type === bulkType) &&
+        new Date(row.occurredAt) <= cutoff
+    ).length;
+  }, [bulkBefore, bulkType, rows]);
 
   function selectType(nextType: "INCOME" | "EXPENSE") {
     setType(nextType);
@@ -123,6 +156,45 @@ export function AdminFinancialManager({
     }
   }
 
+  async function bulkVoidMovements() {
+    if (loading || !bulkBefore || bulkReason.trim().length < 8 || bulkConfirmation !== "ANULAR") return;
+    setLoading(true);
+    setMessage("");
+    setOk(false);
+    try {
+      const before = new Date(`${bulkBefore}T23:59:59.999`).toISOString();
+      const response = await fetch("/api/admin/financial-movements/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: bulkType,
+          before,
+          reason: bulkReason,
+          confirmation: bulkConfirmation
+        })
+      });
+      const data = (await response.json()) as { message?: string; count?: number };
+      if (!response.ok) throw new Error(data.message || "No pudimos completar el mantenimiento.");
+      setBulkOpen(false);
+      setBulkReason("");
+      setBulkConfirmation("");
+      setShowVoided(false);
+      setOk(true);
+      setMessage(data.message || `${data.count ?? 0} movimientos anulados con trazabilidad.`);
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No pudimos completar el mantenimiento.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function clearLedgerView() {
+    setViewType("ALL");
+    setShowVoided(false);
+    setMessage("");
+  }
+
   return (
     <div className="admin-finance-page">
       {!available ? (
@@ -185,27 +257,47 @@ export function AdminFinancialManager({
         <section className="admin-finance-ledger">
           <header>
             <div><span className="kicker">Historial auditable</span><h2>Últimos movimientos</h2></div>
-            <span>{rows.length} registros</span>
+            <span>{visibleRows.length} de {rows.length} registros</span>
           </header>
-          {rows.length ? (
+          <div className="admin-finance-ledger__tools">
+            <label>
+              Ver
+              <select value={viewType} onChange={(event) => setViewType(event.target.value as typeof viewType)}>
+                <option value="ALL">Ingresos y egresos</option>
+                <option value="INCOME">Solo ingresos</option>
+                <option value="EXPENSE">Solo egresos</option>
+              </select>
+            </label>
+            <label className="admin-finance-ledger__toggle">
+              <input type="checkbox" checked={showVoided} onChange={(event) => setShowVoided(event.target.checked)} />
+              Mostrar anulados
+            </label>
+            <button className="btn btn--ghost" type="button" onClick={clearLedgerView} disabled={viewType === "ALL" && !showVoided}>
+              <FilterX size={16} /> Limpiar vista
+            </button>
+            <button className="btn btn--danger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading}>
+              <ShieldAlert size={16} /> Mantenimiento
+            </button>
+          </div>
+          {visibleRows.length ? (
             <div className="admin-finance-table-wrap">
               <table>
                 <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Importe</th><th>Estado</th><th>Acción</th></tr></thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {visibleRows.map((row) => (
                     <tr className={row.status === "VOID" ? "is-void" : ""} key={row.id}>
-                      <td>{movementDate(row.occurredAt)}</td>
-                      <td><span className={`admin-finance-kind admin-finance-kind--${row.type.toLowerCase()}`}>{row.type === "INCOME" ? "Ingreso" : "Egreso"}</span></td>
-                      <td><strong>{row.description}</strong><small>{row.category}{row.source === "PURCHASE_PAYMENT" ? " · Automático" : ""}</small>{row.voidReason ? <em>Motivo: {row.voidReason}</em> : null}</td>
-                      <td>{currency(row.amount)}</td>
-                      <td>{row.status === "ACTIVE" ? "Vigente" : "Anulado"}</td>
-                      <td>{row.status === "ACTIVE" && row.source !== "PURCHASE_PAYMENT" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : row.status === "ACTIVE" ? <Link className="admin-finance-manage" href="./cuentas-proveedores">Gestionar pago</Link> : "-"}</td>
+                      <td data-label="Fecha">{movementDate(row.occurredAt)}</td>
+                      <td data-label="Tipo"><span className={`admin-finance-kind admin-finance-kind--${row.type.toLowerCase()}`}>{row.type === "INCOME" ? "Ingreso" : "Egreso"}</span></td>
+                      <td data-label="Detalle"><strong>{row.description}</strong><small>{row.category}{row.source === "PURCHASE_PAYMENT" ? " · Automático" : ""}</small>{row.voidReason ? <em>Motivo: {row.voidReason}</em> : null}</td>
+                      <td data-label="Importe">{currency(row.amount)}</td>
+                      <td data-label="Estado">{row.status === "ACTIVE" ? "Vigente" : "Anulado"}</td>
+                      <td data-label="Acción">{row.status === "ACTIVE" && row.source !== "PURCHASE_PAYMENT" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : row.status === "ACTIVE" ? <Link className="admin-finance-manage" href="./cuentas-proveedores">Gestionar pago</Link> : "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : <p className="admin-empty-state">Todavía no hay movimientos manuales. Las ventas aprobadas ya aparecen en el dashboard.</p>}
+          ) : <p className="admin-empty-state">No hay movimientos para esta vista. Las ventas aprobadas permanecen en el dashboard.</p>}
         </section>
       </div>
 
@@ -214,6 +306,49 @@ export function AdminFinancialManager({
           <div><Ban size={20} /><div><strong>Anular movimiento</strong><p>El registro seguirá visible y dejará de afectar las métricas.</p></div></div>
           <label>Motivo obligatorio<input value={voidReason} onChange={(event) => setVoidReason(event.target.value)} minLength={3} maxLength={240} autoFocus /></label>
           <div><button className="btn btn--ghost" type="button" onClick={() => setVoidingId(null)} disabled={loading}>Cancelar</button><button className="btn" type="button" onClick={voidMovement} disabled={loading || voidReason.trim().length < 3}>{loading ? <Loader2 size={17} className="spin" /> : <Ban size={17} />} Confirmar anulación</button></div>
+        </section>
+      ) : null}
+
+      {bulkOpen ? (
+        <section className="admin-finance-maintenance" aria-labelledby="finance-maintenance-title" aria-live="polite">
+          <header>
+            <ShieldAlert size={22} />
+            <div>
+              <span className="kicker">Mantenimiento seguro</span>
+              <h2 id="finance-maintenance-title">Anular movimientos manuales</h2>
+              <p>Esta acción no borra ventas, pagos, tickets ni comprobantes. Conserva los registros y la auditoría.</p>
+            </div>
+          </header>
+          <div className="admin-finance-maintenance__form">
+            <label>
+              Tipo
+              <select value={bulkType} onChange={(event) => setBulkType(event.target.value as typeof bulkType)} disabled={loading}>
+                <option value="ALL">Ingresos y egresos manuales</option>
+                <option value="INCOME">Solo ingresos manuales</option>
+                <option value="EXPENSE">Solo egresos manuales</option>
+              </select>
+            </label>
+            <label>
+              Hasta el día inclusive
+              <input type="date" max={localDateValue()} value={bulkBefore} onChange={(event) => setBulkBefore(event.target.value)} disabled={loading} />
+            </label>
+            <label className="admin-finance-maintenance__wide">
+              Motivo obligatorio
+              <input minLength={8} maxLength={240} value={bulkReason} onChange={(event) => setBulkReason(event.target.value)} placeholder="Ejemplo: cierre de registros de capacitación" disabled={loading} />
+            </label>
+            <label>
+              Escribí ANULAR
+              <input value={bulkConfirmation} onChange={(event) => setBulkConfirmation(event.target.value.toUpperCase())} autoComplete="off" disabled={loading} />
+            </label>
+          </div>
+          <p className="notice notice--warning"><strong>{bulkEligibleCount}</strong> movimientos visibles cumplen el criterio. El servidor vuelve a validarlos antes de actuar.</p>
+          <footer>
+            <button className="btn btn--ghost" type="button" onClick={() => setBulkOpen(false)} disabled={loading}>Volver</button>
+            <button className="btn btn--danger" type="button" onClick={bulkVoidMovements} disabled={loading || !bulkEligibleCount || bulkReason.trim().length < 8 || bulkConfirmation !== "ANULAR"}>
+              {loading ? <Loader2 size={17} className="spin" /> : <Ban size={17} />}
+              Confirmar anulación
+            </button>
+          </footer>
         </section>
       ) : null}
 

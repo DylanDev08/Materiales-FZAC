@@ -10,6 +10,7 @@ import {
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { checkoutCreateSchema } from "@/lib/validations/checkout";
 
 function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
@@ -23,7 +24,9 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-create"), 12, 60_000);
+  const mutation = validateJsonMutationRequest(request, 64 * 1024);
   if (!limit.ok) return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
     const payload = checkoutCreateSchema.parse(await request.json());

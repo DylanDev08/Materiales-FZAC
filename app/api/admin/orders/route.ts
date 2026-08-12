@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { getApiAdmin } from "@/lib/auth/api-guards";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
 
 const querySchema = z.object({
@@ -13,11 +12,9 @@ const querySchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const profile = await getApiAdmin();
-  if (!profile) return jsonError("No autorizado.", 401);
-
-  const admin = getSupabaseAdminClient();
-  if (!admin) return jsonError("Backend administrativo no disponible.", 500);
+  const context = await getAdminApiContext(request, { scope: "admin-orders-read", limit: 90 });
+  if (!context.ok) return context.response;
+  const { admin } = context;
 
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!parsed.success) return jsonError("Filtros invalidos.", 422);

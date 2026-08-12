@@ -2,7 +2,8 @@ import { ZodError, z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit } from "@/lib/utils/rate-limit";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 const cartSchema = z.object({
   items: z.array(z.object({ productId: z.string().min(1), quantity: z.coerce.number().int().min(1).max(999) }))
@@ -11,7 +12,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 export async function GET(request: Request) {
   const limit = rateLimit(getRequestKey(request, "cart-read"), 90, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas consultas al carrito.", 429);
+  if (!limit.ok) return jsonError("Demasiadas consultas al carrito.", 429, retryAfterHeaders(limit));
 
   const user = await getCurrentUser();
   const admin = getSupabaseAdminClient();
@@ -28,7 +29,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "cart-sync"), 45, 60_000);
-  if (!limit.ok) return jsonError("Demasiadas actualizaciones del carrito.", 429);
+  const mutation = validateJsonMutationRequest(request, 48 * 1024);
+  if (!limit.ok) return jsonError("Demasiadas actualizaciones del carrito.", 429, retryAfterHeaders(limit));
+  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   const user = await getCurrentUser();
   const admin = getSupabaseAdminClient();

@@ -1,5 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "fzac-privacy-consent-v1",
+      JSON.stringify({
+        version: "2026-08-11",
+        decidedAt: new Date().toISOString(),
+        necessary: true,
+        preferences: false,
+        analytics: false,
+        marketing: false
+      })
+    );
+  });
+});
+
 async function openKnowledgeAnswer(page: Page, viewport: { width: number; height: number }) {
   await page.setViewportSize(viewport);
   await page.route("**/api/assistant", async (route) => {
