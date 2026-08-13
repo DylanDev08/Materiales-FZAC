@@ -4,6 +4,7 @@ import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { assistantKnowledgeSchema } from "@/lib/validations/assistant-knowledge";
+import { invalidateFzacKnowledgeCache } from "@/lib/assistant/knowledge";
 
 async function guard(request: Request) {
   const limit = rateLimit(getRequestKey(request, "admin-assistant-knowledge"), 80, 60_000);
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
     .select("*")
     .single();
   if (error) return jsonError("No pudimos crear la respuesta. Revisá que el identificador no esté repetido.", 400);
+  invalidateFzacKnowledgeCache();
 
   await access.admin.from("admin_audit_logs").insert({
     actor_id: access.profile.id,
@@ -81,6 +83,7 @@ export async function PATCH(request: Request) {
     .select("*")
     .single();
   if (error) return jsonError("No pudimos actualizar la respuesta.", 400);
+  invalidateFzacKnowledgeCache();
 
   await access.admin.from("admin_audit_logs").insert({
     actor_id: access.profile.id,
@@ -106,6 +109,7 @@ export async function DELETE(request: Request) {
     .select("id,title")
     .single();
   if (error) return jsonError("No pudimos desactivar la respuesta.", 400);
+  invalidateFzacKnowledgeCache();
 
   await access.admin.from("admin_audit_logs").insert({
     actor_id: access.profile.id,

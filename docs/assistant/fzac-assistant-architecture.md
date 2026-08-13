@@ -19,49 +19,60 @@ El asistente ayuda a encontrar productos, entender stock y precios visibles, cal
    - La salida incluye intencion, confianza, margen y origen de la decision.
 
 3. Orquestacion comercial
+   - `lib/assistant/orchestrator.ts` decide una ruta tipada antes de acceder a datos: seguridad, calculo, catalogo, pedido propio, conocimiento o guia.
+   - `lib/assistant/tools.ts` concentra herramientas server-side de solo lectura y registra trazas sin payloads sensibles.
    - `app/api/assistant/route.ts` consulta catalogo y pedidos propios.
    - Las respuestas de pagos, devoluciones y seguridad usan reglas deterministicas.
    - Las conversaciones se persisten solo despues de validar propiedad por usuario o visitante.
 
-4. Estado y estimaciones
+4. Seguridad y minimizacion
+   - `lib/assistant/safety.ts` bloquea inyecciones de prompt, solicitudes de secretos, codigo ejecutable y pedidos de datos de terceros.
+   - Email, telefono, documentos, UUID, contrasenas y datos de tarjeta se eliminan antes del historial o de un proveedor opcional.
+   - Sin consentimiento de preferencias, el asistente responde con historial de sesion pero no crea conversaciones en Supabase.
+   - Al retirar el consentimiento se descarta el identificador persistido y no se vuelve a leer esa conversacion.
+
+5. Estado y estimaciones
    - `lib/assistant/conversation-state.ts` extrae proyecto, superficie, dimensiones, manos, margen, espesor y distancia.
    - `lib/assistant/estimators.ts` calcula rangos de pintura, placas estandar y volumen de obra.
    - Cada resultado explica supuestos y pide datos faltantes. No convierte volumen en bolsas sin una dosificacion valida.
 
-5. Conocimiento FZAC
+6. Conocimiento FZAC
    - `lib/assistant/knowledge.ts` recupera respuestas publicadas desde `assistant_knowledge` y usa el contenido estático versionado solo como respaldo ante una caída o configuración incompleta.
    - Cada coincidencia incluye una fuente interna visible y acciones hacia la politica o flujo correspondiente.
    - Las fichas de producto se leen del catalogo activo; precio y stock siguen siendo datos server-side y se revalidan en checkout.
    - La metadata conserva el identificador de conocimiento usado para facilitar auditoria y mejora del corpus.
+   - Cada fuente conserva version y fecha de actualizacion; publicar, editar o pausar contenido invalida la cache del proceso inmediatamente.
 
-6. Catalogo dinamico
+7. Catalogo dinamico
    - `lib/assistant/catalog-intelligence.ts` construye una vista temporal de productos y categorias activos.
    - Busca por nombre, SKU, marca, rubro, subcategoria, descripcion y ficha tecnica, con sinonimos comunes de obra.
    - Una alta o modificacion desde Admin invalida la cache; en otras instancias aparece en un maximo de 20 segundos.
    - Los productos nuevos no requieren reentrenar el clasificador: el ML detecta la intencion y la recuperacion consulta la informacion vigente.
    - Las alternativas son sugerencias del mismo rubro/unidad. Nunca se garantiza equivalencia tecnica sin revisar medidas, rendimiento y fabricante.
 
-7. Administracion y versionado
+8. Administracion y versionado
    - `/admin/conocimiento` permite al administrador crear, editar, publicar o pausar respuestas verificadas.
    - El API `/api/admin/assistant-knowledge` exige sesión administrativa, Zod y rate limit; no expone datos técnicos al cliente.
    - El trigger `archive_assistant_knowledge_version` conserva el contenido anterior en `assistant_knowledge_versions` antes de cada actualización.
    - RLS permite a visitantes leer únicamente contenido activo. La administración, versiones y feedback quedan fuera del acceso anónimo.
 
-8. Capa de lenguaje opcional
+9. Capa de lenguaje opcional
    - `lib/assistant/language-model.ts` puede mejorar la redaccion sobre una respuesta ya fundamentada.
    - Esta desactivada por defecto y el asistente funciona sin proveedor externo.
    - El endpoint debe ser HTTPS y estar permitido por host; la clave solo existe en servidor.
    - Se redactan emails, identificadores y secuencias numericas antes de enviar contexto.
    - La salida se descarta si agrega numeros o enlaces, excede el limite o demora mas de cuatro segundos.
+   - Un disyuntor temporal evita insistir con un proveedor que falla y la respuesta deterministica permanece disponible.
+   - Ni la pregunta original ni datos de otros usuarios se envian al proveedor.
 
-9. Inteligencia de precios
+10. Inteligencia de precios
    - `/admin/precios-mercado` administra fuentes y observaciones privadas.
    - Las referencias se normalizan por unidad y cantidad, vencen y se deduplican por huella.
    - El asistente solo informa un rango con al menos dos observaciones de dos fuentes activas y verificadas.
    - Los feeds deben ser HTTPS, estar permitidos por host, pasar Zod y respetar limites de tiempo y tamano.
    - Una referencia nunca modifica el precio FZAC, checkout, stock ni pedidos.
 
-10. Calidad e interfaz
+11. Calidad e interfaz
    - Maximo de cuatro acciones por respuesta.
    - Historial local acotado y bloqueo durante cada envio.
    - Los enlaces recuperados se limitan a rutas internas FZAC antes de guardarlos o mostrarlos.
@@ -71,6 +82,7 @@ El asistente ayuda a encontrar productos, entender stock y precios visibles, cal
    - La cola referencia mensajes ya protegidos y no duplica su contenido. Resolver un caso nunca entrena ni publica conocimiento automaticamente.
    - Solo un administrador puede gestionar la cola; RLS esta forzado y cada decision queda registrada en auditoria.
    - Cada respuesta basada en conocimiento recibe una traza anónima. El voto útil/por mejorar se guarda sin copiar mensajes, datos del carrito ni información de pago.
+   - El tablero mide respuestas fundamentadas, eventos de seguridad, uso de herramientas y uso real de la capa de lenguaje.
 
 ## Limites de seguridad
 
@@ -99,6 +111,7 @@ Comandos:
 ```bash
 corepack pnpm run assistant:train
 corepack pnpm run assistant:check
+corepack pnpm run assistant:eval
 corepack pnpm run assistant:test
 corepack pnpm run assistant:test:persistence
 ```

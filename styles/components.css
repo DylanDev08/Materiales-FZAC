@@ -1375,6 +1375,18 @@
   color: var(--color-yellow);
 }
 
+.chatbot__source {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.chatbot__source small {
+  color: var(--color-muted);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
 .chatbot__feedback {
   display: flex;
   max-width: 92%;

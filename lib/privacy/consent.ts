@@ -47,6 +47,13 @@ export function preferencesAllowed() {
   return readPrivacyConsent()?.preferences === true;
 }
 
+export function preferenceConsentCookieEnabled(cookieHeader: string | null | undefined) {
+  if (!cookieHeader) return false;
+  return cookieHeader
+    .split(";")
+    .some((entry) => entry.trim() === `${PRIVACY_CONSENT_COOKIE}=v1.p1`);
+}
+
 export function preferenceStorage(): Storage {
   return preferencesAllowed() ? window.localStorage : window.sessionStorage;
 }

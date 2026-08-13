@@ -6800,7 +6800,7 @@ body:has(.admin-page) .site-main {
 
 .admin-ai-evaluation__summary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
 
@@ -6814,6 +6814,16 @@ body:has(.admin-page) .site-main {
 
 .admin-ai-evaluation__summary span:last-child { border-right: 0; }
 .admin-ai-evaluation__summary strong { display: block; margin-bottom: 3px; color: #fff; font-size: 1.12rem; }
+
+.admin-ai-evaluation__tools {
+  margin: 0;
+  padding: 10px 20px;
+  color: #a9a9a9;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  font-size: .78rem;
+}
+
+.admin-ai-evaluation__tools strong { color: #f4c400; }
 
 .admin-ai-evaluation__visuals {
   display: grid;
@@ -6920,6 +6930,7 @@ body:has(.admin-page) .site-main {
     scroll-snap-align: start;
   }
   .admin-ai-evaluation__head { align-items: stretch; flex-direction: column; padding: 17px 16px; }
+  .admin-ai-evaluation__tools { padding: 10px 16px; line-height: 1.55; }
   .admin-ai-evaluation__periods { width: 100%; }
   .admin-ai-evaluation__periods button { flex: 1; min-height: 44px; }
   .admin-ai-trend,

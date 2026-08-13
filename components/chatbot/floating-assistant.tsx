@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, Bot, RotateCcw, Send, ShieldCheck, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { ASSISTANT_OPEN_EVENT, type AssistantOpenDetail } from "@/components/chatbot/assistant-launcher";
 import type { AssistantAction, AssistantResponse, AssistantSource } from "@/lib/assistant/contracts";
+import { redactAssistantSensitiveText } from "@/lib/assistant/safety";
 import { preferenceStorage, preferencesAllowed, subscribePrivacyConsent } from "@/lib/privacy/consent";
 
 type Message = {
@@ -65,6 +66,10 @@ function normalizeSources(data: AssistantResponse) {
   if (!Array.isArray(data.sources)) return [];
   return data.sources
     .filter((source) => source && typeof source.id === "string" && typeof source.label === "string" && safeInternalHref(source.href))
+    .map((source) => ({
+      ...source,
+      updatedAt: typeof source.updatedAt === "string" && !Number.isNaN(Date.parse(source.updatedAt)) ? source.updatedAt : undefined
+    }))
     .slice(0, 3);
 }
 
@@ -101,7 +106,10 @@ function loadStoredMessages(storage: Storage) {
               source.label.length <= 80 &&
               safeInternalHref(source.href)
             );
-          }).slice(0, 3)
+          }).map((source) => ({
+            ...source,
+            updatedAt: typeof source.updatedAt === "string" && !Number.isNaN(Date.parse(source.updatedAt)) ? source.updatedAt : undefined
+          })).slice(0, 3)
         : undefined;
       const traceId = typeof candidate.traceId === "string" && /^[0-9a-f-]{36}$/i.test(candidate.traceId)
         ? candidate.traceId
@@ -129,6 +137,11 @@ function loadStoredMessages(storage: Storage) {
     storage.removeItem(HISTORY_KEY);
     return [welcomeMessage];
   }
+}
+
+function sourceUpdatedLabel(value?: string) {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `Act. ${match[3]}/${match[2]}/${match[1]}` : null;
 }
 
 export function FloatingAssistant() {
@@ -169,6 +182,10 @@ export function FloatingAssistant() {
         if (sessionHistory) window.localStorage.setItem(HISTORY_KEY, sessionHistory);
         if (sessionConversation) window.localStorage.setItem(CONVERSATION_KEY, sessionConversation);
         if (sessionVisitor) window.localStorage.setItem(VISITOR_KEY, sessionVisitor);
+      } else {
+        window.localStorage.removeItem(CONVERSATION_KEY);
+        window.sessionStorage.removeItem(CONVERSATION_KEY);
+        setConversationId(null);
       }
       setRememberPreferences(enabled);
     });
@@ -222,7 +239,11 @@ export function FloatingAssistant() {
     if (!message || loading || requestInFlightRef.current) return;
 
     requestInFlightRef.current = true;
-    const nextUserMessage: Message = { role: "user", content: message, createdAt: new Date().toISOString() };
+    const nextUserMessage: Message = {
+      role: "user",
+      content: redactAssistantSensitiveText(message),
+      createdAt: new Date().toISOString()
+    };
     setMessages((current) => [...current, nextUserMessage]);
     setInput("");
     setLoading(true);
@@ -239,6 +260,7 @@ export function FloatingAssistant() {
           message,
           conversationId,
           visitorId: visitorId(),
+          persistenceConsent: rememberPreferences,
           history: messages.slice(-8)
         })
       });
@@ -365,11 +387,14 @@ export function FloatingAssistant() {
                     <BookOpen size={13} aria-hidden="true" />
                     <span>Fuente FZAC:</span>
                     {message.sources.map((source) => (
-                      <Link href={source.href} key={source.id} onClick={() => setOpen(false)}>{source.label}</Link>
+                      <span className="chatbot__source" key={source.id}>
+                        <Link href={source.href} onClick={() => setOpen(false)}>{source.label}</Link>
+                        {sourceUpdatedLabel(source.updatedAt) ? <small>{sourceUpdatedLabel(source.updatedAt)}</small> : null}
+                      </span>
                     ))}
                   </div>
                 ) : null}
-                {message.role === "assistant" && message.traceId && message.knowledgeId ? (
+                {message.role === "assistant" && message.traceId && message.knowledgeId && message.conversationId ? (
                   <div className="chatbot__feedback" aria-label="Valorar respuesta">
                     <span>{message.feedback ? "Gracias por ayudarnos a mejorar." : "¿Te sirvió?"}</span>
                     <button

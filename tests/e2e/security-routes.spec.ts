@@ -410,7 +410,10 @@ test.describe("Evaluacion continua del asistente", () => {
       helpfulRate: 50,
       averageConfidence: 70,
       escalationRate: 50,
-      reviewResolutionRate: 50
+      reviewResolutionRate: 50,
+      groundedRate: 0,
+      safetyEvents: 0,
+      languageModelRewriteRate: 0
     });
     expect(analytics.intents[0]).toMatchObject({ intent: "payment", responses: 1, signals: 1 });
     expect(analytics.opportunities).toHaveLength(1);

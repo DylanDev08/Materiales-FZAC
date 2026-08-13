@@ -30,6 +30,35 @@ function messageConfidence(metadata: unknown) {
   return Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
 }
 
+function messageIsGrounded(metadata: unknown) {
+  if (!isRecord(metadata)) return false;
+  if (typeof metadata.knowledge_id === "string" && metadata.knowledge_id.length > 0) return true;
+  if (!Array.isArray(metadata.tool_trace)) return false;
+  return metadata.tool_trace.some((item) => {
+    if (!isRecord(item)) return false;
+    return item.status === "OK" && Number(item.resultCount) > 0;
+  });
+}
+
+function messageSafetyDecision(metadata: unknown) {
+  if (!isRecord(metadata)) return "ALLOW";
+  return metadata.safety_decision === "BLOCK" || metadata.safety_decision === "REDACT"
+    ? metadata.safety_decision
+    : "ALLOW";
+}
+
+function messageUsedLanguageModel(metadata: unknown) {
+  return isRecord(metadata) && isRecord(metadata.language_model) && metadata.language_model.used === true;
+}
+
+function messageTools(metadata: unknown) {
+  if (!isRecord(metadata) || !Array.isArray(metadata.tool_trace)) return [];
+  return metadata.tool_trace.flatMap((item): string[] => {
+    if (!isRecord(item) || typeof item.name !== "string" || item.status !== "OK") return [];
+    return [item.name];
+  });
+}
+
 function dayKey(value: string) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
@@ -69,6 +98,10 @@ export function buildAssistantQualityAnalytics(input: {
   const intents = new Map<string, { intent: string; responses: number; confidenceTotal: number; confidenceCount: number; signals: number }>();
   let confidenceTotal = 0;
   let confidenceCount = 0;
+  let groundedResponses = 0;
+  let safetyEvents = 0;
+  let languageModelResponses = 0;
+  const toolUsage = new Map<string, number>();
 
   for (const message of input.messages) {
     const day = dayKey(message.created_at);
@@ -76,6 +109,10 @@ export function buildAssistantQualityAnalytics(input: {
     if (bucket) bucket.responses += 1;
     const intent = messageIntent(message.metadata);
     const confidence = messageConfidence(message.metadata);
+    if (messageIsGrounded(message.metadata)) groundedResponses += 1;
+    if (messageSafetyDecision(message.metadata) !== "ALLOW") safetyEvents += 1;
+    if (messageUsedLanguageModel(message.metadata)) languageModelResponses += 1;
+    for (const tool of messageTools(message.metadata)) toolUsage.set(tool, (toolUsage.get(tool) ?? 0) + 1);
     const intentBucket = intents.get(intent) ?? { intent, responses: 0, confidenceTotal: 0, confidenceCount: 0, signals: 0 };
     intentBucket.responses += 1;
     if (confidence !== null) {
@@ -160,7 +197,10 @@ export function buildAssistantQualityAnalytics(input: {
       helpfulRate: percent(helpful, helpful + negative),
       averageConfidence: confidenceCount ? Math.round((confidenceTotal / confidenceCount) * 100) : null,
       escalationRate: percent(handoffMessages.size, input.messages.length),
-      reviewResolutionRate: percent(resolvedReviews.length, consideredReviews.length)
+      reviewResolutionRate: percent(resolvedReviews.length, consideredReviews.length),
+      groundedRate: percent(groundedResponses, input.messages.length),
+      safetyEvents,
+      languageModelRewriteRate: percent(languageModelResponses, input.messages.length)
     },
     trend,
     intents: Array.from(intents.values())
@@ -172,6 +212,8 @@ export function buildAssistantQualityAnalytics(input: {
       }))
       .sort((a, b) => b.responses - a.responses || b.signals - a.signals)
       .slice(0, 8),
+    tools: Array.from(toolUsage, ([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name)),
     opportunities: Array.from(opportunityMap.values())
       .sort((a, b) => b.priority - a.priority || b.count - a.count || b.lastSeen.localeCompare(a.lastSeen))
       .slice(0, 8),

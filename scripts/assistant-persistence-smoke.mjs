@@ -22,8 +22,11 @@ let feedbackTraceId = null;
 async function ask(message) {
   const response = await fetch(new URL("/api/assistant", baseUrl), {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ message, visitorId, conversationId, history: [] })
+    headers: {
+      "content-type": "application/json",
+      cookie: "fzac_privacy_consent=v1.p1"
+    },
+    body: JSON.stringify({ message, visitorId, conversationId, persistenceConsent: true, history: [] })
   });
   const body = await response.json();
   assert.equal(response.status, 200);

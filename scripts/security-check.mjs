@@ -91,6 +91,24 @@ if (!dockerConfig.includes("pnpm install --frozen-lockfile") || /\bnpm\s+(?:ci|i
   failures.push("Dockerfile: el contenedor debe instalar y ejecutar exclusivamente con pnpm.");
 }
 
+const assistantRoute = await readFile(path.join(root, "app/api/assistant/route.ts"), "utf8").catch(() => "");
+if (!assistantRoute.includes("persistenceConsent") || !assistantRoute.includes("skipAssistantPersistence") || !assistantRoute.includes("preferenceConsentCookieEnabled")) {
+  failures.push("app/api/assistant/route.ts: la persistencia debe depender del consentimiento de preferencias.");
+}
+if (!assistantRoute.includes("assessAssistantInput") || !assistantRoute.includes("createAssistantPlan")) {
+  failures.push("app/api/assistant/route.ts: faltan guardrails u orquestacion segura del asistente.");
+}
+
+const assistantTools = await readFile(path.join(root, "lib/assistant/tools.ts"), "utf8").catch(() => "");
+if (!assistantTools.includes('.eq("user_id", userId)')) {
+  failures.push("lib/assistant/tools.ts: la consulta de pedidos debe estar limitada al usuario autenticado.");
+}
+
+const languageModel = await readFile(path.join(root, "lib/assistant/language-model.ts"), "utf8").catch(() => "");
+if (!languageModel.includes("ASSISTANT_LLM_ALLOWED_HOSTS") || !languageModel.includes("redactAssistantSensitiveText")) {
+  failures.push("lib/assistant/language-model.ts: el proveedor opcional requiere allowlist y redaccion previa.");
+}
+
 const proxyConfig = await readFile(path.join(root, "proxy.ts"), "utf8").catch(() => "");
 for (const header of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "Referrer-Policy"]) {
   if (!proxyConfig.includes(header)) failures.push(`proxy.ts: falta el header defensivo ${header}.`);

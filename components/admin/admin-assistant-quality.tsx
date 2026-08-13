@@ -33,21 +33,36 @@ type QualityData = {
       averageConfidence: number | null;
       escalationRate: number | null;
       reviewResolutionRate: number | null;
+      groundedRate: number | null;
+      safetyEvents: number;
+      languageModelRewriteRate: number | null;
     };
     trend: Array<{ date: string; responses: number; helpful: number; negative: number; signals: number }>;
     intents: Array<{ intent: string; responses: number; averageConfidence: number | null; signals: number }>;
     opportunities: Array<{ intent: string; reason: ReviewReason; knowledgeSlug: string | null; count: number; priority: number; lastSeen: string; example: string }>;
     questions: Array<{ question: string; count: number; priority: number; lastSeen: string }>;
+    tools: Array<{ name: string; count: number }>;
   };
 };
 
 const emptyAnalytics: QualityData["analytics"] = {
   periodDays: 30,
-  summary: { responses: 0, feedback: 0, helpfulRate: null, averageConfidence: null, escalationRate: null, reviewResolutionRate: null },
+  summary: {
+    responses: 0,
+    feedback: 0,
+    helpfulRate: null,
+    averageConfidence: null,
+    escalationRate: null,
+    reviewResolutionRate: null,
+    groundedRate: null,
+    safetyEvents: 0,
+    languageModelRewriteRate: null
+  },
   trend: [],
   intents: [],
   opportunities: [],
-  questions: []
+  questions: [],
+  tools: []
 };
 const emptyData: QualityData = { items: [], metrics: { pending: 0, reviewing: 0, resolved: 0, negative: 0, urgent: 0 }, analytics: emptyAnalytics };
 const reasonLabel: Record<ReviewReason, string> = {
@@ -70,6 +85,7 @@ const intentLabel: Record<string, string> = {
   price: "Precios",
   estimate: "Calculo de materiales",
   order_status: "Estado de pedido",
+  account: "Mi cuenta",
   returns: "Cambios y devoluciones",
   store_policy: "Politicas comerciales",
   human: "Atencion humana",
@@ -193,7 +209,16 @@ export function AdminAssistantQuality() {
           <span><strong>{data.analytics.summary.averageConfidence === null ? "Sin datos" : `${data.analytics.summary.averageConfidence}%`}</strong>Confianza media</span>
           <span><strong>{data.analytics.summary.escalationRate === null ? "Sin datos" : `${data.analytics.summary.escalationRate}%`}</strong>Derivadas</span>
           <span><strong>{data.analytics.summary.reviewResolutionRate === null ? "Sin datos" : `${data.analytics.summary.reviewResolutionRate}%`}</strong>Casos resueltos</span>
+          <span><strong>{data.analytics.summary.groundedRate === null ? "Sin datos" : `${data.analytics.summary.groundedRate}%`}</strong>Con fuente real</span>
+          <span><strong>{data.analytics.summary.safetyEvents}</strong>Datos protegidos</span>
+          <span><strong>{data.analytics.summary.languageModelRewriteRate === null ? "Sin datos" : `${data.analytics.summary.languageModelRewriteRate}%`}</strong>Redacción asistida</span>
         </div>
+        {data.analytics.tools.length ? (
+          <p className="admin-ai-evaluation__tools">
+            <strong>Consultas fundamentadas:</strong>{" "}
+            {data.analytics.tools.map((tool) => `${tool.name.replace("catalog.search", "catálogo").replace("catalog.recommend", "recomendaciones").replace("knowledge.retrieve", "conocimiento").replace("orders.latest", "pedidos propios")} (${tool.count})`).join(" · ")}
+          </p>
+        ) : null}
 
         <div className="admin-ai-evaluation__visuals">
           <section className="admin-ai-trend" aria-label={`Actividad de los ultimos ${data.analytics.periodDays} dias`}>

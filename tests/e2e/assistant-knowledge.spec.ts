@@ -33,6 +33,7 @@ async function openKnowledgeAnswer(page: Page, viewport: { width: number; height
   await expect(source).toHaveAttribute("href", "/privacidad");
   await expect(page.getByText("Fuente FZAC:").last()).toBeVisible();
   await expect(page.locator(".chatbot__inline-options").last().locator("a, button")).toHaveCount(3);
+  await expect(page.getByLabel("Valorar respuesta")).toHaveCount(0);
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);

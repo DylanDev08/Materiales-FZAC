@@ -8,7 +8,8 @@ import type {
   AssistantHistoryItem,
   AssistantIntent,
   AssistantSource,
-  AssistantState
+  AssistantState,
+  AssistantToolTrace
 } from "@/lib/assistant/contracts";
 import {
   deliveryDistance,
@@ -17,19 +18,26 @@ import {
   parseAssistantState
 } from "@/lib/assistant/conversation-state";
 import { createEstimateGuidance } from "@/lib/assistant/estimators";
-import { retrieveFzacKnowledge } from "@/lib/assistant/knowledge";
-import { searchAssistantCatalog } from "@/lib/assistant/catalog-intelligence";
-import { refineGroundedAssistantAnswer } from "@/lib/assistant/language-model";
+import { refineGroundedAssistantAnswer, type LanguageModelResult } from "@/lib/assistant/language-model";
+import { createAssistantPlan, isCriticalAssistantMessage } from "@/lib/assistant/orchestrator";
 import { enqueueAssistantReview, type AssistantReviewReason } from "@/lib/assistant/quality";
+import { assessAssistantInput, assistantSafetyReply, type AssistantSafetyAssessment } from "@/lib/assistant/safety";
+import {
+  runCatalogSearchTool,
+  runEstimateRecommendationTool,
+  runKnowledgeTool,
+  runLatestOwnOrderTool
+} from "@/lib/assistant/tools";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { currency } from "@/lib/formatters/currency";
 import { getMarketPriceSummary } from "@/lib/market-pricing/service";
+import { preferenceConsentCookieEnabled } from "@/lib/privacy/consent";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
-import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
+import { sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Product } from "@/types/domain";
 
 type ConversationContext = {
@@ -43,25 +51,12 @@ const schema = z.object({
   message: z.string().trim().min(1).max(500),
   conversationId: z.string().uuid().nullable().optional(),
   visitorId: z.string().uuid().optional(),
+  persistenceConsent: z.boolean().optional().default(false),
   history: z
     .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(600), createdAt: z.string().optional() }))
     .max(12)
     .optional()
 });
-
-function needsHuman(message: string) {
-  return [
-    "reclamo urgente",
-    "denuncia",
-    "no me entregaron",
-    "no entregaron",
-    "cobro duplicado",
-    "me cobraron dos veces",
-    "datos de tarjeta",
-    "problema de seguridad",
-    "reclamo legal"
-  ].some((term) => message.includes(term));
-}
 
 function includesAny(message: string, terms: string[]) {
   return terms.some((term) => message.includes(term));
@@ -264,7 +259,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Assistan
 function advisoryReply(message: string, history: Array<{ role: "user" | "assistant"; content: string }> = []) {
   const context = userContext(message, history);
 
-  if (needsHuman(message)) {
+  if (isCriticalAssistantMessage(message)) {
     return "Dejo esta conversacion marcada para atencion humana. Para resolverlo mas rapido, escribi a FZAC por WhatsApp con producto, cantidad, zona y si necesitas retiro o envio. El equipo puede confirmar stock real, condiciones de entrega y pedidos especiales.";
   }
 
@@ -390,44 +385,31 @@ function actionFor(label: string): AssistantAction {
   if (normalized.includes("contrasena")) return { label, href: "/recuperar" };
   if (normalized.includes("carrito")) return { label, href: "/carrito" };
   if (normalized.includes("terminos")) return { label, href: "/terminos" };
+  if (normalized.includes("privacidad")) return { label, href: "/privacidad" };
+  if (normalized.includes("medios de pago")) return { label, href: "/medios-de-pago" };
+  if (normalized.includes("como comprar")) return { label, href: "/como-comprar" };
   if (normalized.includes("categorias")) return { label, href: "/categorias" };
   if (normalized.includes("mercado pago") || normalized.includes("transferencia")) return { label, href: "/checkout" };
-  if (normalized.includes("ver productos") || normalized.includes("seguir comprando") || normalized.includes("armar carrito")) {
+  if (normalized.includes("ver productos") || normalized.includes("buscar productos") || normalized.includes("seguir comprando") || normalized.includes("armar carrito")) {
     return { label, href: "/productos" };
   }
   return { label, message: label };
 }
 
-async function ownOrderStatus(userId: string) {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return null;
-  const { data } = await admin
-    .from("orders")
-    .select("status,total,created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const order = data?.[0];
-  if (!order) return "No encontre pedidos asociados a tu cuenta. Podes iniciar una compra desde el catalogo y seguirla luego en Mi cuenta.";
-  const statusLabels: Record<string, string> = {
-    PENDING_PAYMENT: "pago pendiente",
-    PENDING_TRANSFER: "transferencia pendiente",
-    PENDING_ADMIN_APPROVAL: "en revision",
-    COORDINATE: "para coordinar",
-    PAID: "aprobado",
-    CANCELLED: "cancelado",
-    FAILED: "rechazado"
-  };
-  const status = statusLabels[order.status] ?? "en seguimiento";
-  return `Tu pedido mas reciente figura ${status}, por ${currency(Number(order.total ?? 0))}. Podes ver el detalle y el historial desde Mi cuenta > Compras.`;
-}
-
 function productTechnicalReply(product: Product) {
-  const description = product.description.trim().replace(/\s+/g, " ").slice(0, 220);
+  const descriptionSafety = assessAssistantInput(product.description);
+  const description = descriptionSafety.decision === "BLOCK"
+    ? ""
+    : descriptionSafety.safeText.trim().replace(/\s+/g, " ").slice(0, 220);
   const specifications = Object.entries(product.specifications ?? {})
     .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
     .slice(0, 4)
-    .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value)}`)
+    .map(([key, value]) => {
+      const valueSafety = assessAssistantInput(String(value));
+      if (valueSafety.decision === "BLOCK") return null;
+      return `${key.replace(/_/g, " ")}: ${valueSafety.safeText}`;
+    })
+    .filter((value): value is string => Boolean(value))
     .join(", ");
   const details = [description, specifications ? `Ficha visible: ${specifications}.` : ""].filter(Boolean).join(" ");
   return `${product.name}: ${details || "No tiene una ficha técnica publicada todavía."} Precio visible ${currency(product.price)} y stock visible ${product.stock} ${product.unit}. Confirmá envase, unidad de venta y uso indicado por el fabricante antes de comprar.`;
@@ -461,6 +443,9 @@ async function persistConversation(input: {
   sources?: AssistantSource[];
   knowledgeId?: string;
   traceId?: string;
+  toolTrace?: AssistantToolTrace[];
+  safety?: AssistantSafetyAssessment;
+  language?: LanguageModelResult;
   waitingAdmin: boolean;
   wasWaitingAdmin: boolean;
   skipPersistence?: boolean;
@@ -508,7 +493,10 @@ async function persistConversation(input: {
           intent: input.intent,
           confidence: input.classification.confidence,
           classification_source: input.classification.source,
-          engine: input.classification.engine
+          engine: input.classification.engine,
+          safety_decision: input.safety?.decision ?? "ALLOW",
+          safety_reason: input.safety?.reason ?? "SAFE",
+          redacted: input.safety?.redacted ?? false
         }
       },
       {
@@ -523,7 +511,11 @@ async function persistConversation(input: {
           trace_id: input.traceId ?? null,
           engine: input.classification.engine,
           classification_source: input.classification.source,
-          confidence: input.classification.confidence
+          confidence: input.classification.confidence,
+          safety_decision: input.safety?.decision ?? "ALLOW",
+          safety_reason: input.safety?.reason ?? "SAFE",
+          tool_trace: input.toolTrace?.slice(0, 4) ?? [],
+          language_model: input.language ? { used: input.language.used, reason: input.language.reason } : null
         }
       }
     ]).select("id,role");
@@ -582,19 +574,63 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Consulta invalida.", 422);
     return jsonError("No pudimos leer la consulta.", 400);
   }
-  if (hasSqlMeta(payload.message)) return jsonError("La consulta contiene caracteres no permitidos.", 422);
-
-  const message = sanitizeSearchTerm(payload.message, 500).toLowerCase();
+  const safety = assessAssistantInput(payload.message);
+  const message = sanitizeSearchTerm(safety.safeText, 500).toLowerCase();
   const user = await getCurrentUser();
   const readOnlyLoadTest = process.env.NODE_ENV !== "production" && request.headers.get("x-fzac-load-test") === "readonly";
+  const persistenceConsent = payload.persistenceConsent === true
+    && preferenceConsentCookieEnabled(request.headers.get("cookie"));
+  const skipAssistantPersistence = readOnlyLoadTest || !persistenceConsent;
   const conversation = await resolveConversationContext({
-    conversationId: payload.conversationId,
+    conversationId: persistenceConsent ? payload.conversationId : null,
     visitorId: payload.visitorId,
     userId: user?.id ?? null,
     clientHistory: payload.history ?? []
   });
   const classification = classifyAssistantIntent(message, conversation.history);
-  const criticalEscalation = needsHuman(message);
+  const plan = createAssistantPlan({ message, classification, safety, authenticated: Boolean(user?.id) });
+  const criticalEscalation = plan.criticalEscalation;
+
+  if (plan.route === "SAFETY") {
+    const reply = assistantSafetyReply(safety.reason);
+    const safeClassification: AssistantClassification = {
+      ...classification,
+      intent: "fallback",
+      confidence: 1,
+      source: "rule",
+      engine: "FZAC_SAFETY_V1"
+    };
+    const state = deriveAssistantState({ intent: "fallback", message, reply, previous: conversation.state });
+    state.stage = "SECURITY_NOTICE";
+    state.unresolvedAttempts = 0;
+    const options = fourOptions(["Ver medios de pago", "Buscar productos", "Ver mis pedidos", "Política de privacidad"]);
+    const conversationId = await persistConversation({
+      conversationId: conversation.conversationId,
+      visitorId: payload.visitorId,
+      userId: user?.id ?? null,
+      message: safety.persistenceText,
+      reply,
+      intent: "fallback",
+      classification: safeClassification,
+      state,
+      options,
+      safety,
+      waitingAdmin: false,
+      wasWaitingAdmin: conversation.waitingAdmin,
+      skipPersistence: skipAssistantPersistence
+    });
+    return Response.json({
+      intent: "security_notice",
+      message: reply,
+      conversationId,
+      waitingAdmin: false,
+      options,
+      actions: options.map(actionFor),
+      handoff_required: false,
+      security_notice: true,
+      suggested_products: []
+    });
+  }
   const genericTerms = new Set([
     "comprar", "buscar", "quiero", "necesito", "material", "producto", "precio", "cuanto", "sale", "cuesta",
     "stock", "disponible", "disponibilidad", "unidades", "unidad", "tenes", "tienen", "oferta", "valor",
@@ -609,12 +645,7 @@ export async function POST(request: Request) {
     .filter((word) => word.length > 2 && !genericTerms.has(word))
     .slice(0, 3)
     .join(" ");
-  const explicitCatalogRequest = includesAny(normalizedForSearch, [
-    "catalogo", "categoria", "rubro", "producto", "sku", "marca", "equivalente", "alternativa", "reemplazo"
-  ]);
-  const productSearchAllowed = ["product_search", "stock", "price"].includes(classification.intent) || explicitCatalogRequest;
-
-  if (classification.intent === "estimate" && !criticalEscalation) {
+  if (plan.route === "ESTIMATE") {
     const guidance = createEstimateGuidance(message, conversation.state);
     const state = deriveAssistantState({
       intent: classification.intent,
@@ -624,35 +655,95 @@ export async function POST(request: Request) {
     });
     state.stage = guidance.stage;
     state.gathered = guidance.gathered;
-    const options = guidance.actions.map((action) => action.label).slice(0, 4);
+    const recommendation = state.stage === "ESTIMATE_READY" ? await runEstimateRecommendationTool(state) : null;
+    const products = recommendation?.data?.mode === "products"
+      ? recommendation.data.matches.map((match) => match.product).slice(0, 3)
+      : [];
+    const reply = products.length
+      ? `${guidance.message} Encontré ${products.map((product) => product.name).join(", ")} en el catálogo activo para que revises presentación, rendimiento y stock antes de decidir.`
+      : guidance.message;
+    const sources: AssistantSource[] = products.map((product) => ({
+      id: `product-${product.slug}`,
+      label: product.name,
+      href: `/producto/${product.slug}`
+    }));
+    const actions = [
+      ...products.slice(0, 2).map((product) => ({ label: `Ver ${product.name}`, href: `/producto/${product.slug}` })),
+      ...guidance.actions
+    ].filter((action, index, all) => all.findIndex((candidate) => candidate.label === action.label) === index).slice(0, 4);
+    const options = actions.map((action) => action.label).slice(0, 4);
     const conversationId = await persistConversation({
       conversationId: conversation.conversationId,
       visitorId: payload.visitorId,
       userId: user?.id ?? null,
-      message: payload.message,
-      reply: guidance.message,
+      message: safety.persistenceText,
+      reply,
       intent: classification.intent,
       classification,
       state,
       options,
+      sources,
+      toolTrace: recommendation ? [recommendation.trace] : [],
+      safety,
       waitingAdmin: false,
       wasWaitingAdmin: conversation.waitingAdmin,
-      skipPersistence: readOnlyLoadTest
+      skipPersistence: skipAssistantPersistence
     });
     return Response.json({
       intent: classification.intent,
-      message: guidance.message,
+      message: reply,
       conversationId,
       waitingAdmin: false,
       options,
-      actions: guidance.actions.slice(0, 4),
+      actions,
+      sources,
       handoff_required: false,
-      suggested_products: []
+      suggested_products: products.map((product) => ({
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        stock: product.stock,
+        unit: product.unit
+      }))
     });
   }
 
-  if (!criticalEscalation && productSearchAllowed) {
-    const catalog = await searchAssistantCatalog(message, 4);
+  if (plan.route === "CATALOG") {
+    const catalogTool = await runCatalogSearchTool(message, 4);
+    if (!catalogTool.data) {
+      const reply = "No pude consultar el catálogo en este momento. Podés abrir Productos para intentar nuevamente o seguir con una consulta general sobre cantidades, pagos, entregas y políticas FZAC.";
+      const options = fourOptions(["Ver productos", "Calcular cantidad", "Medios de pago", "Cómo comprar"]);
+      const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
+      state.stage = "CATALOG_UNAVAILABLE";
+      state.unresolvedAttempts = 0;
+      const conversationId = await persistConversation({
+        conversationId: conversation.conversationId,
+        visitorId: payload.visitorId,
+        userId: user?.id ?? null,
+        message: safety.persistenceText,
+        reply,
+        intent: classification.intent,
+        classification,
+        state,
+        options,
+        toolTrace: [catalogTool.trace],
+        safety,
+        waitingAdmin: false,
+        wasWaitingAdmin: conversation.waitingAdmin,
+        skipPersistence: skipAssistantPersistence
+      });
+      return Response.json({
+        intent: "catalog_unavailable",
+        message: reply,
+        conversationId,
+        waitingAdmin: false,
+        options,
+        actions: options.map(actionFor),
+        handoff_required: false,
+        suggested_products: []
+      });
+    }
+    const catalog = catalogTool.data;
     if (catalog.mode === "overview") {
       const listedCategories = catalog.categories.slice(0, 6);
       const reply = listedCategories.length
@@ -673,16 +764,18 @@ export async function POST(request: Request) {
         conversationId: conversation.conversationId,
         visitorId: payload.visitorId,
         userId: user?.id ?? null,
-        message: payload.message,
+        message: safety.persistenceText,
         reply,
         intent: classification.intent,
         classification,
         state,
         options,
         sources,
+        toolTrace: [catalogTool.trace],
+        safety,
         waitingAdmin: false,
         wasWaitingAdmin: conversation.waitingAdmin,
-        skipPersistence: readOnlyLoadTest
+        skipPersistence: skipAssistantPersistence
       });
       return Response.json({
         intent: classification.intent,
@@ -709,7 +802,7 @@ export async function POST(request: Request) {
       const marketReference = await marketReferenceReply(normalizedForSearch, products[0]);
       const groundedDraft = `${baseReply}${marketReference}`;
       const language = await refineGroundedAssistantAnswer({
-        question: payload.message,
+        question: safety.safeText,
         draft: groundedDraft,
         facts: products.map((product) => `${product.name}; precio ${currency(product.price)}; stock ${product.stock}; unidad ${product.unit}`)
       });
@@ -736,16 +829,19 @@ export async function POST(request: Request) {
         conversationId: conversation.conversationId,
         visitorId: payload.visitorId,
         userId: user?.id ?? null,
-        message: payload.message,
+        message: safety.persistenceText,
         reply,
         intent: classification.intent,
         classification,
         state,
         options,
         sources,
+        toolTrace: [catalogTool.trace],
+        safety,
+        language,
         waitingAdmin: false,
         wasWaitingAdmin: conversation.waitingAdmin,
-        skipPersistence: readOnlyLoadTest
+        skipPersistence: skipAssistantPersistence
       });
       return Response.json({
         intent: classification.intent,
@@ -765,7 +861,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const reply = `No encontré "${query || payload.message}" en el catálogo activo. Probá con marca, tipo, SKU, medida o una palabra más corta. Si vuelve a faltar, puedo dejar el material solicitado en seguimiento para FZAC.`;
+    const reply = `No encontré "${query || safety.safeText}" en el catálogo activo. Probá con marca, tipo, SKU, medida o una palabra más corta. Si vuelve a faltar, puedo dejar el material solicitado en seguimiento para FZAC.`;
     const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
     state.stage = "PRODUCT_NOT_FOUND";
     state.unresolvedAttempts = conversation.state?.topic === classification.intent
@@ -777,15 +873,17 @@ export async function POST(request: Request) {
       conversationId: conversation.conversationId,
       visitorId: payload.visitorId,
       userId: user?.id ?? null,
-      message: payload.message,
+      message: safety.persistenceText,
       reply,
       intent: classification.intent,
       classification,
       state,
       options,
+      toolTrace: [catalogTool.trace],
+      safety,
       waitingAdmin,
       wasWaitingAdmin: conversation.waitingAdmin,
-      skipPersistence: readOnlyLoadTest
+      skipPersistence: skipAssistantPersistence
     });
     return Response.json({
       intent: "product_not_found",
@@ -799,23 +897,53 @@ export async function POST(request: Request) {
     });
   }
 
-  const knowledgeEligible = ![
-    "greeting",
-    "order_status",
-    "account",
-    "stock",
-    "price",
-    "product_search",
-    "estimate"
-  ].includes(classification.intent);
-  const hasSpecificDeliveryContext = classification.intent === "delivery" && Boolean(deliveryDistance(message));
-  const knowledge = knowledgeEligible && !criticalEscalation && !hasSpecificDeliveryContext
-    ? await retrieveFzacKnowledge(message, classification.intent, conversation.history)
+  if (plan.route === "PRIVATE_ORDER") {
+    const orderTool = await runLatestOwnOrderTool(user?.id);
+    const guided = guidedReply(message, classification.intent, conversation.history);
+    const reply = orderTool.data?.message ?? guided.message;
+    const options = fourOptions(["Ver mis pedidos", "Medios de pago", "Coordinar retiro", "Seguir comprando"]);
+    const sources: AssistantSource[] = [{ id: "own-orders", label: "Mis pedidos", href: "/cuenta/pedidos" }];
+    const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
+    state.stage = orderTool.trace.status === "OK" ? "ORDER_FOUND" : "ORDER_GUIDANCE";
+    const conversationId = await persistConversation({
+      conversationId: conversation.conversationId,
+      visitorId: payload.visitorId,
+      userId: user?.id ?? null,
+      message: safety.persistenceText,
+      reply,
+      intent: classification.intent,
+      classification,
+      state,
+      options,
+      sources,
+      toolTrace: [orderTool.trace],
+      safety,
+      waitingAdmin: false,
+      wasWaitingAdmin: conversation.waitingAdmin,
+      skipPersistence: skipAssistantPersistence
+    });
+    return Response.json({
+      intent: classification.intent,
+      message: reply,
+      conversationId,
+      waitingAdmin: false,
+      options,
+      actions: options.map(actionFor),
+      sources,
+      handoff_required: false,
+      suggested_products: []
+    });
+  }
+
+  const knowledgeTool = plan.route === "KNOWLEDGE"
+    ? await runKnowledgeTool(message, classification.intent, conversation.history)
     : null;
+  const knowledge = knowledgeTool?.data ?? null;
 
   if (knowledge) {
     const traceId = crypto.randomUUID();
     const options = knowledge.actions.map((action) => action.label).slice(0, 4);
+    const sources = knowledge.sources.map((source) => ({ ...source, updatedAt: knowledge.updatedAt }));
     const state = deriveAssistantState({
       intent: classification.intent,
       message,
@@ -828,18 +956,20 @@ export async function POST(request: Request) {
       conversationId: conversation.conversationId,
       visitorId: payload.visitorId,
       userId: user?.id ?? null,
-      message: payload.message,
+      message: safety.persistenceText,
       reply: knowledge.answer,
       intent: classification.intent,
       classification,
       state,
       options,
-      sources: knowledge.sources,
+      toolTrace: knowledgeTool ? [knowledgeTool.trace] : [],
+      safety,
+      sources,
       knowledgeId: knowledge.id,
       traceId,
       waitingAdmin: false,
       wasWaitingAdmin: conversation.waitingAdmin,
-      skipPersistence: readOnlyLoadTest
+      skipPersistence: skipAssistantPersistence
     });
     return Response.json({
       intent: classification.intent,
@@ -848,7 +978,7 @@ export async function POST(request: Request) {
       waitingAdmin: false,
       options,
       actions: knowledge.actions,
-      sources: knowledge.sources,
+      sources,
       trace_id: traceId,
       knowledge_id: knowledge.id,
       handoff_required: false,
@@ -858,9 +988,6 @@ export async function POST(request: Request) {
 
   const guided = guidedReply(message, classification.intent, conversation.history);
   let reply = guided.message || advisoryReply(message, conversation.history);
-  if (classification.intent === "order_status" && user?.id) {
-    reply = (await ownOrderStatus(user.id)) ?? reply;
-  }
   const state = deriveAssistantState({ intent: classification.intent, message, reply, previous: conversation.state });
   const waitingAdmin = criticalEscalation || state.unresolvedAttempts >= 2;
   if (!criticalEscalation && state.unresolvedAttempts >= 2) {
@@ -872,15 +999,16 @@ export async function POST(request: Request) {
     conversationId: conversation.conversationId,
     visitorId: payload.visitorId,
     userId: user?.id ?? null,
-    message: payload.message,
+    message: safety.persistenceText,
     reply,
     intent: classification.intent,
     classification,
     state,
     options,
+    safety,
     waitingAdmin,
     wasWaitingAdmin: conversation.waitingAdmin,
-    skipPersistence: readOnlyLoadTest
+    skipPersistence: skipAssistantPersistence
   });
   return Response.json({
     intent: classification.intent,

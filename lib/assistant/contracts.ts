@@ -40,6 +40,14 @@ export type AssistantSource = {
   id: string;
   label: string;
   href: string;
+  updatedAt?: string;
+};
+
+export type AssistantToolTrace = {
+  name: "catalog.search" | "catalog.recommend" | "knowledge.retrieve" | "orders.latest";
+  status: "OK" | "EMPTY" | "DENIED" | "UNAVAILABLE" | "ERROR";
+  durationMs: number;
+  resultCount: number;
 };
 
 export type AssistantResponse = {
@@ -51,4 +59,5 @@ export type AssistantResponse = {
   trace_id?: string;
   knowledge_id?: string;
   handoff_required?: boolean;
+  security_notice?: boolean;
 };

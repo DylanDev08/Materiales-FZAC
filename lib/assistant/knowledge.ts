@@ -18,6 +18,8 @@ type KnowledgeEntry = {
   phrases: string[];
   answers: string[];
   actions: AssistantAction[];
+  updatedAt?: string;
+  version?: number;
 };
 
 export type FzacKnowledgeMatch = {
@@ -26,6 +28,8 @@ export type FzacKnowledgeMatch = {
   score: number;
   sources: AssistantSource[];
   actions: AssistantAction[];
+  updatedAt?: string;
+  version?: number;
 };
 
 const STOP_WORDS = new Set([
@@ -252,7 +256,9 @@ function mapDatabaseEntry(row: Record<string, unknown>): KnowledgeEntry | null {
     keywords: Array.isArray(row.keywords) ? row.keywords.map(String).slice(0, 30) : [],
     phrases: Array.isArray(row.phrases) ? row.phrases.map(String).slice(0, 20) : [],
     answers: [answer, alternateAnswer].filter((value) => value.length >= 20),
-    actions: normalizeDatabaseActions(row.actions, href)
+    actions: normalizeDatabaseActions(row.actions, href),
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : undefined,
+    version: Number.isInteger(Number(row.version)) ? Number(row.version) : undefined
   };
 }
 
@@ -266,7 +272,7 @@ async function loadDatabaseEntries(): Promise<KnowledgeEntry[] | null> {
   const query = Promise.resolve(
     supabase
       .from("assistant_knowledge")
-      .select("slug,title,topic,intent,keywords,phrases,answer,alternate_answer,source_label,source_href,actions")
+      .select("slug,title,topic,intent,keywords,phrases,answer,alternate_answer,source_label,source_href,actions,version,updated_at")
       .eq("active", true)
       .order("updated_at", { ascending: false })
       .limit(100)
@@ -344,9 +350,15 @@ export async function retrieveFzacKnowledge(
     id: best.entry.id,
     answer: chooseAnswer(best.entry, history),
     score: best.score,
-    sources: [{ id: best.entry.id, label: best.entry.title, href: best.entry.href }],
-    actions: best.entry.actions.slice(0, 4)
+    sources: [{ id: best.entry.id, label: best.entry.title, href: best.entry.href, updatedAt: best.entry.updatedAt }],
+    actions: best.entry.actions.slice(0, 4),
+    updatedAt: best.entry.updatedAt,
+    version: best.entry.version
   };
+}
+
+export function invalidateFzacKnowledgeCache() {
+  databaseCache = null;
 }
 
 export function listFzacKnowledgeEntries() {

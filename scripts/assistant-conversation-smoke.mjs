@@ -126,7 +126,9 @@ assert.equal(secondPayment.body.intent, "payment");
 assert.notEqual(secondPayment.body.message, firstPayment.body.message, "Las respuestas consecutivas no deben repetirse.");
 
 const unsafe = await ask("stock'; DROP TABLE products; --");
-assert.equal(unsafe.response.status, 422);
+assert.equal(unsafe.response.status, 200);
+assert.equal(unsafe.body.intent, "security_notice");
+assert.equal(unsafe.body.security_notice, true);
 
 console.log(
   JSON.stringify({
@@ -155,7 +157,7 @@ console.log(
     incompleteEstimateRequestsData: /necesito el espesor/i.test(incompleteMasonry.body.message),
     criticalHandoff: critical.body.handoff_required,
     repeatedReplyChanged: secondPayment.body.message !== firstPayment.body.message,
-    unsafeInputRejected: unsafe.response.status === 422
+    unsafeInputRejected: unsafe.body.security_notice === true
   })
 );
 
