@@ -3,6 +3,7 @@
 @import "../styles/navigation-state.css";
 @import "../styles/components.css";
 @import "../styles/catalog.css";
+@import "../styles/catalog-mobile-products.css";
 @import "../styles/product.css";
 @import "../styles/checkout.css";
 @import "../styles/receipt.css";
