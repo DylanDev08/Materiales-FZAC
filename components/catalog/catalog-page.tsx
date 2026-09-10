@@ -23,7 +23,7 @@ const projectShortcuts = [
   {
     label: "Construcción en seco",
     helper: "Placas, perfiles, masilla y tornillos",
-    href: "/productos?search=durlock&inStock=true",
+    href: "/categoria/construccion-en-seco",
     icon: Boxes
   },
   {
