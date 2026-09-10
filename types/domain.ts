@@ -19,6 +19,7 @@ export type PaymentProvider = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP" | "MO
 export type PaymentMethod = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
 export type PaymentFlow = "CHECKOUT_PRO" | "CARD" | "TRANSFER" | "WHATSAPP";
 export type ShippingMethod = "PICKUP" | "DELIVERY";
+export type ProductAvailabilityStatus = "IN_STOCK" | "OUT_OF_STOCK" | "CONSULT";
 
 export type Category = {
   id: string;
@@ -45,6 +46,7 @@ export type Product = {
   compare_price?: number | null;
   stock: number;
   stock_minimum: number;
+  availability_status?: ProductAvailabilityStatus;
   unit: string;
   image_url: string;
   gallery: string[];
