@@ -1,0 +1,20 @@
+.category-nav a.is-active,
+.category-nav__button.is-active {
+  border-color: rgba(244, 196, 0, 0.55);
+  background: rgba(244, 196, 0, 0.14);
+  color: var(--color-yellow);
+}
+
+.category-nav a.is-active:hover,
+.category-nav__button.is-active:hover,
+.category-nav__button.is-active[aria-expanded="true"] {
+  background: var(--color-yellow);
+  color: var(--color-black);
+}
+
+.mobile-nav-panel > a.is-active,
+.mobile-nav-panel > button.is-active {
+  border-color: rgba(244, 196, 0, 0.55);
+  background: rgba(244, 196, 0, 0.14);
+  color: var(--color-yellow);
+}
