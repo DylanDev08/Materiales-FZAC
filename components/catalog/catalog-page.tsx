@@ -80,6 +80,7 @@ export async function CatalogPage({
     onSale: value(searchParams, "onSale") === "true",
     featured: value(searchParams, "featured") === "true",
     order: value(searchParams, "order") as ProductFilters["order"],
+    limit: 120,
     ...forcedFilters
   };
 
