@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FzacEntryLoader } from "@/components/layout/fzac-entry-loader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/layout/providers";
@@ -56,6 +57,16 @@ const staticAssetRecoveryScript = `
 
 const indexingEnabled = isSeoIndexingEnabled();
 const googleVerification = getEnv("GOOGLE_SITE_VERIFICATION");
+
+function instagramHref(value: string) {
+  const handle = value
+    .trim()
+    .replace(/^https?:\/\/(?:www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .split(/[/?#]/)[0]
+    .replace(/[^A-Za-z0-9._]/g, "");
+  return `https://www.instagram.com/${handle || "fzaconstrucciones"}/`;
+}
 
 export const metadata: Metadata = {
   applicationName: SITE_NAME,
@@ -122,6 +133,10 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const email = getEnv("FZAC_EMAIL") || "fortalezaconstruccionesrosario@gmail.com";
+  const whatsapp = (getEnv("FZAC_WHATSAPP") || getEnv("NEXT_PUBLIC_FZAC_WHATSAPP") || "5493415847000").replace(/\D/g, "");
+  const instagram = instagramHref(getEnv("FZAC_INSTAGRAM") || getEnv("NEXT_PUBLIC_FZAC_INSTAGRAM") || "@fzaconstrucciones");
+
   return (
     <html lang="es-AR">
       <head>
@@ -129,6 +144,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>
+          <FzacEntryLoader
+            email={email}
+            instagramHref={instagram}
+            whatsappHref={`https://wa.me/${whatsapp}?text=${encodeURIComponent("Hola FZAC, quiero consultar por materiales para mi obra.")}`}
+          />
           <div className="site-shell">
             <SiteHeader />
             <div className="site-main">{children}</div>

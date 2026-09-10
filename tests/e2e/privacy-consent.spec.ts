@@ -3,7 +3,10 @@ import { expect, test } from "@playwright/test";
 test.describe("Privacidad y descubrimiento", () => {
   test.beforeEach(async ({ page, context }) => {
     await context.clearCookies();
-    await page.addInitScript(() => window.localStorage.clear());
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.sessionStorage.setItem("fzac-entry-complete-v1", "true");
+    });
   });
 
   test("consentimiento es informado, configurable y reversible", async ({ page }) => {

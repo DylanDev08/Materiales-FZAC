@@ -21,24 +21,25 @@ function authCallbackUrlForSite(siteUrl: string, next: string) {
   return callback.toString();
 }
 
-async function nativeRecoveryEmail(email: string) {
+async function nativeRecoveryEmail(email: string, siteUrl?: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return false;
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: authCallbackUrl("/restablecer")
+    redirectTo: siteUrl ? authCallbackUrlForSite(siteUrl, "/restablecer") : authCallbackUrl("/restablecer")
   });
   return !error;
 }
 
-export async function requestPasswordRecoveryEmail(input: { email: string; name?: string | null }) {
+export async function requestPasswordRecoveryEmail(input: { email: string; name?: string | null; siteUrl?: string }) {
   const admin = getSupabaseAdminClient();
   if (!admin) return { delivered: false, channel: "unavailable" as const };
+  const redirectTo = input.siteUrl ? authCallbackUrlForSite(input.siteUrl, "/restablecer") : authCallbackUrl("/restablecer");
 
   if (isResendConfigured()) {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: input.email,
-      options: { redirectTo: authCallbackUrl("/restablecer") }
+      options: { redirectTo }
     });
 
     if (!error && data.properties?.action_link) {
@@ -52,7 +53,7 @@ export async function requestPasswordRecoveryEmail(input: { email: string; name?
     }
   }
 
-  return { delivered: await nativeRecoveryEmail(input.email), channel: "supabase" as const };
+  return { delivered: await nativeRecoveryEmail(input.email, input.siteUrl), channel: "supabase" as const };
 }
 
 export async function createSignupWithResend(input: {

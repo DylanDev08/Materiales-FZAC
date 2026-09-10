@@ -9,8 +9,14 @@ import {
 } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import {
+  acquireRequestConcurrency,
+  getRequestKey,
+  rateLimit,
+  rateLimitIdentity,
+  retryAfterHeaders
+} from "@/lib/utils/rate-limit";
+import { readLimitedJson } from "@/lib/utils/request-security";
 import { checkoutCreateSchema } from "@/lib/validations/checkout";
 
 function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
@@ -23,16 +29,36 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "checkout-create"), 12, 60_000);
-  const mutation = validateJsonMutationRequest(request, 64 * 1024);
+  const limit = rateLimit(getRequestKey(request, "checkout-create"), 8, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
-  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
+  const body = await readLimitedJson(request, 64 * 1024);
+  if (!body.ok) return jsonError(body.message, body.status);
 
   try {
-    const payload = checkoutCreateSchema.parse(await request.json());
-    const result = await createCheckout(payload);
-    logCheckoutResult(result);
-    return Response.json(result, { status: 201 });
+    const payload = checkoutCreateSchema.parse(body.data);
+    const identityLimit = rateLimitIdentity("checkout-purchase", payload.customer.email, 8, 10 * 60_000);
+    if (!identityLimit.ok) {
+      return jsonError("Alcanzaste el límite de intentos de compra. Esperá unos minutos.", 429, retryAfterHeaders(identityLimit));
+    }
+    const slot = acquireRequestConcurrency(request, {
+      scope: "checkout-purchase",
+      identity: payload.customer.email,
+      maxGlobal: 8,
+      maxPerIp: 2,
+      maxPerIdentity: 1,
+      leaseMs: 45_000
+    });
+    if (!slot.ok) {
+      return jsonError("Ya estamos procesando esta compra. No vuelvas a enviar el pago.", 429, retryAfterHeaders(slot));
+    }
+
+    try {
+      const result = await createCheckout(payload);
+      logCheckoutResult(result);
+      return Response.json(result, { status: 201 });
+    } finally {
+      slot.release();
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       const issue = error.issues[0]?.message;

@@ -40,6 +40,8 @@ export function getPaymentConfig() {
   const productionPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY");
   const productionCardAccessToken = getEnv("MERCADOPAGO_PRODUCTION_CARD_ACCESS_TOKEN");
   const productionCardPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_CARD_PUBLIC_KEY");
+  const testWebhookSecret = getEnv("MERCADOPAGO_TEST_WEBHOOK_SECRET") || getEnv("MERCADOPAGO_WEBHOOK_SECRET");
+  const productionWebhookSecret = getEnv("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET");
   return {
     accessToken,
     publicKey,
@@ -53,7 +55,9 @@ export function getPaymentConfig() {
     productionCardAccessToken,
     productionCardPublicKey,
     productionConfirmed: getEnv("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() === "true",
-    webhookSecret: getEnv("MERCADOPAGO_WEBHOOK_SECRET"),
+    webhookSecret: paymentsEnv === "production" ? productionWebhookSecret : testWebhookSecret,
+    testWebhookSecret,
+    productionWebhookSecret,
     siteUrl: readSiteUrl(),
     paymentsEnabled: isPaymentsEnabled(),
     paymentsEnv,
@@ -120,7 +124,8 @@ export function getMercadoPagoEnvironmentState() {
     hasProductionAccessToken: hasRealValue(config.productionAccessToken),
     hasProductionPublicKey: hasRealValue(config.productionPublicKey),
     hasProductionCardAccessToken: hasRealValue(config.productionCardAccessToken),
-    hasProductionCardPublicKey: hasRealValue(config.productionCardPublicKey)
+    hasProductionCardPublicKey: hasRealValue(config.productionCardPublicKey),
+    hasProductionWebhookSecret: hasRealValue(config.productionWebhookSecret)
   };
 }
 
@@ -131,6 +136,7 @@ export function getPaymentProductionReadiness() {
     provider: config.provider,
     productionConfirmed: config.productionConfirmed,
     productionAccessToken: config.productionAccessToken,
+    productionPublicKey: config.productionPublicKey,
     webhookSecret: config.webhookSecret,
     siteUrl: config.siteUrl,
     paymentsEnv: config.paymentsEnv

@@ -20,13 +20,11 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const params = paramsSchema.safeParse(await context.params);
   if (!params.success) return jsonError(params.error.issues[0]?.message ?? "Orden invalida.", 422);
 
-  const { data: order, error } = await admin.from("orders").select("*").eq("id", params.data.id).maybeSingle();
+  let orderQuery = admin.from("orders").select("*").eq("id", params.data.id);
+  if (profile.role !== "ADMIN") orderQuery = orderQuery.eq("user_id", profile.id);
+  const { data: order, error } = await orderQuery.maybeSingle();
   if (error) return jsonError("No pudimos cargar la orden.", 400);
   if (!order) return jsonError("Orden no encontrada.", 404);
-
-  const ownsOrder =
-    order.user_id === profile.id || String(order.customer_email).toLowerCase() === profile.email.toLowerCase();
-  if (profile.role !== "ADMIN" && !ownsOrder) return jsonError("No autorizado.", 403);
 
   const [{ data: items }, { data: payment }, { data: ticket }] = await Promise.all([
     admin.from("order_items").select("*").eq("order_id", order.id).order("created_at", { ascending: true }),

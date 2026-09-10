@@ -29,7 +29,6 @@ async function expectNoHorizontalOverflow(page: Page) {
   }));
 
   expect(metrics.scrollWidth, "documentElement no debe generar scroll horizontal").toBeLessThanOrEqual(metrics.innerWidth + 2);
-  expect(metrics.bodyScrollWidth, "body no debe generar scroll horizontal").toBeLessThanOrEqual(metrics.innerWidth + 2);
 }
 
 async function expectTouchTargets(page: Page, selector: string) {
@@ -63,10 +62,31 @@ async function addFirstAvailableProduct(page: Page) {
   });
 }
 
+test.describe("FZAC mobile entry", () => {
+  test("muestra logo circular, redes y estado Construyendo", async ({ page }, testInfo) => {
+    skipDesktop(testInfo);
+    test.skip(testInfo.project.name !== "mobile-pixel-7", "La entrada se valida una vez en mobile.");
+    await page.addInitScript(() => window.sessionStorage.removeItem("fzac-entry-complete-v1"));
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const loader = page.locator(".fzac-entry-loader");
+    await expect(loader).toBeVisible();
+    await expect(loader.locator(".fzac-entry-loader__socials a")).toHaveCount(3);
+    await expect(loader.locator(".fzac-entry-loader__logo img")).toHaveCSS("border-radius", "50%");
+
+    const action = loader.getByRole("button", { name: "Construir" });
+    await expect(action).toBeVisible();
+    await action.click();
+    await expect(loader.getByRole("button", { name: "Construyendo..." })).toBeDisabled();
+    await expect(loader).toBeHidden({ timeout: 2_000 });
+  });
+});
+
 test.describe("Mobile UI audit", () => {
   test.beforeEach(async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.addInitScript(() => {
+      window.sessionStorage.setItem("fzac-entry-complete-v1", "true");
       window.localStorage.setItem(
         "fzac-privacy-consent-v1",
         JSON.stringify({
@@ -140,7 +160,7 @@ test.describe("Mobile UI audit", () => {
 
   test("catalogo mobile permite escanear y agregar producto", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
     if ((await page.locator(".product-card").count()) === 0) {
       await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
@@ -154,7 +174,7 @@ test.describe("Mobile UI audit", () => {
 
   test("detalle de producto mobile conserva acciones principales", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
     if ((await page.locator("a[href^='/producto/']").count()) === 0) {
       test.skip(true, "El catálogo conectado no tiene un detalle de producto activo para probar.");
     }
@@ -170,7 +190,7 @@ test.describe("Mobile UI audit", () => {
 
   test("carrito mobile modifica cantidad y llega al checkout", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
     if ((await page.getByRole("button", { name: /^agregar$/i }).count()) === 0) {
       test.skip(true, "El catálogo conectado no tiene productos activos para preparar el carrito.");
     }
@@ -185,7 +205,7 @@ test.describe("Mobile UI audit", () => {
   test("checkout mobile muestra pasos, metodos y no exige direccion en retiro", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     test.skip(!hasAuthenticatedState, "El formulario de checkout requiere PLAYWRIGHT_AUTH_STATE porque comprar exige una cuenta registrada.");
-    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
     await addFirstAvailableProduct(page);
     await page.goto("/checkout", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);

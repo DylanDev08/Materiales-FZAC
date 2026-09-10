@@ -4,8 +4,14 @@ import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import {
+  acquireRequestConcurrency,
+  getRequestKey,
+  rateLimit,
+  rateLimitIdentity,
+  retryAfterHeaders
+} from "@/lib/utils/rate-limit";
+import { readLimitedJson } from "@/lib/utils/request-security";
 import { loginSchema } from "@/lib/validations/auth";
 
 function loginErrorResponse(error: { message?: string; code?: string } | null | undefined) {
@@ -27,27 +33,41 @@ function loginErrorResponse(error: { message?: string; code?: string } | null | 
 }
 
 export async function POST(request: Request) {
-  const mutation = validateJsonMutationRequest(request, 4 * 1024);
-  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const limit = rateLimit(getRequestKey(request, "auth-login"), 8, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
+  const body = await readLimitedJson(request, 4 * 1024);
+  if (!body.ok) return jsonError(body.message, body.status);
 
   try {
-    const payload = loginSchema.parse(await request.json());
-    const emailLimit = rateLimit(`auth-login-email:${payload.email}`, 6, 5 * 60_000);
+    const payload = loginSchema.parse(body.data);
+    const emailLimit = rateLimitIdentity("auth-login", payload.email, 6, 5 * 60_000);
     if (!emailLimit.ok) return jsonError("Demasiados intentos para esta cuenta. Esperá unos minutos.", 429, retryAfterHeaders(emailLimit));
-    const supabase = await getSupabaseServerClient();
-    if (!supabase) return jsonError("El ingreso no esta disponible en este momento.", 503);
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: payload.email,
-      password: payload.password
+    const slot = acquireRequestConcurrency(request, {
+      scope: "auth-login",
+      identity: payload.email,
+      maxGlobal: 20,
+      maxPerIp: 2,
+      maxPerIdentity: 1,
+      leaseMs: 15_000
     });
+    if (!slot.ok) return jsonError("Ya estamos verificando este ingreso.", 429, retryAfterHeaders(slot));
 
-    if (error || !data.user?.email) return loginErrorResponse(error);
+    try {
+      const supabase = await getSupabaseServerClient();
+      if (!supabase) return jsonError("El ingreso no esta disponible en este momento.", 503);
 
-    await syncUserProfileOnLogin(data.user);
-    return Response.json({ target: isAdminEmail(data.user.email) ? getAdminConsolePath() : "/cuenta" });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: payload.email,
+        password: payload.password
+      });
+
+      if (error || !data.user?.email) return loginErrorResponse(error);
+
+      await syncUserProfileOnLogin(data.user);
+      return Response.json({ target: isAdminEmail(data.user.email) ? getAdminConsolePath() : "/cuenta" });
+    } finally {
+      slot.release();
+    }
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
     if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);

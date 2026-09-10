@@ -26,6 +26,29 @@ type WebhookResult = {
   body: Record<string, unknown>;
 };
 
+const MAX_WEBHOOK_BYTES = 64 * 1024;
+
+async function readWebhookBody(request: Request) {
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BYTES) {
+    return { ok: false as const, status: 413, message: "Notificacion demasiado extensa." };
+  }
+
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_WEBHOOK_BYTES) {
+    return { ok: false as const, status: 413, message: "Notificacion demasiado extensa." };
+  }
+  if (!raw.trim()) return { ok: true as const, body: {} as Record<string, unknown> };
+
+  try {
+    const body = JSON.parse(raw) as unknown;
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("INVALID_BODY");
+    return { ok: true as const, body: body as Record<string, unknown> };
+  } catch {
+    return { ok: false as const, status: 400, message: "Notificacion invalida." };
+  }
+}
+
 function extractPaymentId(url: URL, body: Record<string, unknown>) {
   const data = body.data as Record<string, unknown> | undefined;
   const resource = typeof body.resource === "string" ? body.resource.split("/").pop() : "";
@@ -68,7 +91,9 @@ function isValidWebhookSignature(request: Request, dataId: string) {
 }
 
 function extractEventType(url: URL, body: Record<string, unknown>) {
-  return String(body.type || body.topic || body.action || url.searchParams.get("topic") || "payment");
+  return String(body.type || body.topic || body.action || url.searchParams.get("topic") || "payment")
+    .trim()
+    .slice(0, 80) || "payment";
 }
 
 async function createPaymentEvent(input: {
@@ -141,9 +166,9 @@ async function updatePaymentEvent(
   if (!eventId) return;
 
   const admin = getSupabaseAdminClient();
-  if (!admin) return;
+  if (!admin) throw new Error("PAYMENT_EVENT_BACKEND_UNAVAILABLE");
 
-  await admin
+  const { error } = await admin
     .from("payment_events")
     .update({
       status: input.status,
@@ -152,6 +177,7 @@ async function updatePaymentEvent(
       processed_at: new Date().toISOString()
     })
     .eq("id", eventId);
+  if (error) throw new Error("PAYMENT_EVENT_UPDATE_FAILED");
 }
 
 async function notifyWebhookFailure(orderId?: string) {
@@ -171,7 +197,9 @@ async function notifyWebhookFailure(orderId?: string) {
 
 export async function handleMercadoPagoWebhook(request: Request): Promise<WebhookResult> {
   const url = new URL(request.url);
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const payload = await readWebhookBody(request);
+  if (!payload.ok) return { status: payload.status, body: { ok: false, message: payload.message } };
+  const body = payload.body;
   const paymentId = extractPaymentId(url, body);
   const eventType = extractEventType(url, body);
 
@@ -187,12 +215,24 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     return { status: 401, body: { ok: false, message: "Firma invalida." } };
   }
 
-  const eventReceipt = await createPaymentEvent({
-    eventType,
-    providerEventId: buildMercadoPagoProviderEventId(body, request.headers.get("x-request-id")),
-    providerPaymentId: paymentId,
-    raw: safeWebhookEvent(body)
-  }).catch(() => null);
+  let eventReceipt: Awaited<ReturnType<typeof createPaymentEvent>>;
+  try {
+    eventReceipt = await createPaymentEvent({
+      eventType,
+      providerEventId: buildMercadoPagoProviderEventId(body, request.headers.get("x-request-id")),
+      providerPaymentId: paymentId,
+      raw: safeWebhookEvent(body)
+    });
+  } catch {
+    console.error("[mercadopago.webhook.audit]", {
+      message: "No pudimos registrar el evento antes de procesarlo.",
+      payment_id_present: Boolean(paymentId)
+    });
+    return { status: 503, body: { ok: false, received: false, message: "No pudimos registrar la notificacion." } };
+  }
+  if (!eventReceipt?.id) {
+    return { status: 503, body: { ok: false, received: false, message: "No pudimos registrar la notificacion." } };
+  }
   const eventId = eventReceipt?.id ?? null;
 
   if (eventReceipt?.duplicate) {
@@ -208,7 +248,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     const safePayment = sanitizeMercadoPagoPayment(payment);
 
     if (!orderId) {
-      await updatePaymentEvent(eventId, { status: "IGNORED", errorMessage: "Pago sin external_reference." }).catch(() => undefined);
+      await updatePaymentEvent(eventId, { status: "IGNORED", errorMessage: "Pago sin external_reference." });
       return { status: 200, body: { ok: true, received: true, ignored: true } };
     }
 
@@ -281,7 +321,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         raw: safePayment,
         status: "PAID"
       });
-      await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
+      await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
       return { status: 200, body: { ok: true, received: true, status: "PAID", orderId } };
     }
 
@@ -294,7 +334,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         actorId: null,
         actorEmail: "Mercado Pago webhook"
       });
-      await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
+      await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
       return { status: 200, body: { ok: true, received: true, status: "REFUNDED", orderId } };
     }
 
@@ -324,7 +364,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       link_to: `${getAdminConsolePath()}/pedidos?order=${orderId}`
     });
 
-    await updatePaymentEvent(eventId, { status: "PROCESSED", orderId }).catch(() => undefined);
+    await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
     return { status: 200, body: { ok: true, received: true, status: paymentStatus, orderId } };
   } catch (error) {
     if (error instanceof MercadoPagoNotConfiguredError) {

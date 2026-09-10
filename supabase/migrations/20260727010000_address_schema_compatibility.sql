@@ -3,14 +3,37 @@
 
 begin;
 
-alter table public.addresses
-  alter column id set default gen_random_uuid()::text;
+-- The remote project originally had a Prisma text id, while a clean replay of
+-- the current base migration creates a uuid id. Keep both histories valid.
+do $$
+declare
+  v_id_type text;
+begin
+  select data_type into v_id_type
+  from information_schema.columns
+  where table_schema = 'public' and table_name = 'addresses' and column_name = 'id';
+
+  if v_id_type = 'uuid' then
+    alter table public.addresses alter column id set default gen_random_uuid();
+  else
+    alter table public.addresses alter column id set default gen_random_uuid()::text;
+  end if;
+end
+$$;
 
 alter table public.addresses
   add column if not exists user_id uuid,
   add column if not exists postal_code text,
   add column if not exists created_at timestamptz not null default now(),
-  add column if not exists updated_at timestamptz not null default now();
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists "userId" text,
+  add column if not exists "postalCode" text not null default '',
+  add column if not exists "createdAt" timestamp without time zone not null default (now() at time zone 'UTC'),
+  add column if not exists "updatedAt" timestamp without time zone not null default (now() at time zone 'UTC');
+
+update public.addresses
+set "userId" = user_id::text
+where "userId" is null and user_id is not null;
 
 update public.addresses a
 set user_id = p.id

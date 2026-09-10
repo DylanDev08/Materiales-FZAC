@@ -36,6 +36,14 @@ export function normalizePhoneDigits(value: string | undefined | null) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
+export function normalizeArgentinePhone(value: string | undefined | null) {
+  const digits = normalizePhoneDigits(value);
+  if (digits.length === 10) return `+54${digits}`;
+  if (digits.length === 12 && digits.startsWith("54")) return `+${digits}`;
+  if (digits.length === 13 && digits.startsWith("549")) return `+${digits}`;
+  return String(value ?? "").trim();
+}
+
 export function limitPhoneInput(value: string) {
   let digitCount = 0;
   return value

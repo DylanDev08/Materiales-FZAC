@@ -55,8 +55,13 @@ const checks = [
   },
   {
     area: "Pagos",
-    requirement: "Webhook firmado disponible",
-    ok: configured("MERCADOPAGO_WEBHOOK_SECRET")
+    requirement: "Public Key exclusiva de produccion disponible",
+    ok: configured("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY")
+  },
+  {
+    area: "Pagos",
+    requirement: "Webhook productivo firmado disponible",
+    ok: configured("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET")
   },
   {
     area: "Pagos",

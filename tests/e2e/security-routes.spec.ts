@@ -167,6 +167,8 @@ test.describe("Controles de seguridad no destructivos", () => {
     const addButton = page.getByRole("button", { name: /Agregar/i }).first();
     if ((await addButton.count()) > 0) {
       await expect(addButton).toBeVisible();
+    } else if ((await page.getByRole("link", { name: /^Consultar$/i }).count()) > 0) {
+      await expect(page.getByRole("link", { name: /^Consultar$/i }).first()).toBeVisible();
     } else {
       await expect(page.getByRole("heading", { name: /No encontramos productos/i })).toBeVisible();
     }
@@ -237,6 +239,7 @@ test.describe("Barrera de activacion productiva", () => {
       provider: "mercadopago",
       productionConfirmed: false,
       productionAccessToken: "",
+      productionPublicKey: "",
       webhookSecret: "webhook-placeholder",
       siteUrl: "https://tienda.fzac.example",
       paymentsEnv: "production" as const
@@ -247,7 +250,8 @@ test.describe("Barrera de activacion productiva", () => {
       active: false,
       blockers: expect.arrayContaining([
         "PAYMENTS_PRODUCTION_CONFIRMED",
-        "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN"
+        "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN",
+        "NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY"
       ])
     });
 
@@ -255,7 +259,8 @@ test.describe("Barrera de activacion productiva", () => {
       evaluatePaymentProductionReadiness({
         ...base,
         productionConfirmed: true,
-        productionAccessToken: "production-token-placeholder"
+        productionAccessToken: "production-token-placeholder",
+        productionPublicKey: "production-public-key-placeholder"
       })
     ).toEqual({ ready: true, active: true, blockers: [] });
   });

@@ -15,11 +15,25 @@ alter table public.admin_audit_logs
   add column if not exists ip text,
   add column if not exists user_agent text;
 
-update public.admin_audit_logs audit
-set actor_id = profile.id
-from public.profiles profile
-where audit.actor_id is null
-  and audit.admin_id = profile.id;
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'admin_audit_logs'
+      and column_name = 'admin_id'
+  ) then
+    execute $sql$
+      update public.admin_audit_logs audit
+      set actor_id = profile.id
+      from public.profiles profile
+      where audit.actor_id is null
+        and audit.admin_id = profile.id
+    $sql$;
+  end if;
+end
+$$;
 
 do $$
 begin

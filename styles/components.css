@@ -1701,18 +1701,25 @@
 }
 
 .floating-chat-button {
-  display: inline-flex;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  overflow: hidden;
   background: var(--color-yellow);
   color: var(--color-black);
-  padding: 0 14px;
+  padding: 4px;
   font-weight: 950;
 }
 
-.floating-chat-button span {
-  font-size: 0.78rem;
-  white-space: nowrap;
+.floating-chat-button img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .sr-only {

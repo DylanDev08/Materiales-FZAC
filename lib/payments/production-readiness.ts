@@ -3,6 +3,7 @@ export type PaymentProductionReadinessInput = {
   provider: string;
   productionConfirmed: boolean;
   productionAccessToken: string;
+  productionPublicKey: string;
   webhookSecret: string;
   siteUrl: string;
   paymentsEnv: "test" | "production";
@@ -20,7 +21,8 @@ export function evaluatePaymentProductionReadiness(input: PaymentProductionReadi
   if (input.provider.toLowerCase() !== "mercadopago") blockers.push("PAYMENTS_PROVIDER");
   if (!input.productionConfirmed) blockers.push("PAYMENTS_PRODUCTION_CONFIRMED");
   if (!configured(input.productionAccessToken)) blockers.push("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN");
-  if (!configured(input.webhookSecret)) blockers.push("MERCADOPAGO_WEBHOOK_SECRET");
+  if (!configured(input.productionPublicKey)) blockers.push("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY");
+  if (!configured(input.webhookSecret)) blockers.push("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET");
 
   try {
     const siteUrl = new URL(input.siteUrl);

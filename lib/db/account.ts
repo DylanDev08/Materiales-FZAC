@@ -56,14 +56,6 @@ function shortDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
-function mergeOrders(...groups: Array<OrderRow[] | null | undefined>) {
-  const map = new Map<string, OrderRow>();
-  groups.flatMap((group) => group ?? []).forEach((order) => {
-    if (order?.id) map.set(order.id, order);
-  });
-  return Array.from(map.values()).sort((a, b) => Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? ""));
-}
-
 export type AccountOverview = {
   balance: string;
   totalSpent: string;
@@ -137,22 +129,14 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
 
   const [
     { data: ordersByUser },
-    { data: ordersByEmail },
     { data: addresses },
     { data: conversations },
-    { data: consumerRequestsByUser },
-    { data: consumerRequestsByEmail }
+    { data: consumerRequestsByUser }
   ] = await Promise.all([
     admin
       .from("orders")
       .select("id,status,total,subtotal,shipping_cost,shipping_method,customer_email,customer_name,customer_phone,created_at")
       .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(80),
-    admin
-      .from("orders")
-      .select("id,status,total,subtotal,shipping_cost,shipping_method,customer_email,customer_name,customer_phone,created_at")
-      .eq("customer_email", profile.email)
       .order("created_at", { ascending: false })
       .limit(80),
     admin
@@ -166,22 +150,16 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       .select("id,status,subject,last_message_at")
       .eq("user_id", profile.id)
       .order("last_message_at", { ascending: false })
-      .limit(6),
+      .limit(8),
     admin
       .from("consumer_refund_requests")
       .select("id,request_number,order_number,reason,status,resolution_note,created_at")
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
-      .limit(20),
-    admin
-      .from("consumer_refund_requests")
-      .select("id,request_number,order_number,reason,status,resolution_note,created_at")
-      .eq("email", profile.email)
-      .order("created_at", { ascending: false })
       .limit(20)
   ]);
 
-  const orders = mergeOrders(ordersByUser as OrderRow[] | null, ordersByEmail as OrderRow[] | null);
+  const orders = (ordersByUser ?? []) as OrderRow[];
   const orderIds = orders.map((order) => order.id);
 
   const { data: items } = orderIds.length
@@ -205,11 +183,7 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
   const pendingOrderIds = new Set(orders.filter((order) => pendingStatuses.has(String(order.status))).map((order) => order.id));
   const paidItems = itemRows.filter((item) => paidOrderIds.has(item.order_id));
   const pendingItems = itemRows.filter((item) => pendingOrderIds.has(item.order_id));
-  const consumerRequestMap = new Map<string, ConsumerRequestRow>();
-  [...((consumerRequestsByUser ?? []) as ConsumerRequestRow[]), ...((consumerRequestsByEmail ?? []) as ConsumerRequestRow[])]
-    .forEach((consumerRequest) => consumerRequestMap.set(consumerRequest.id, consumerRequest));
-  const consumerRequests = Array.from(consumerRequestMap.values())
-    .sort((a, b) => Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? ""));
+  const consumerRequests = (consumerRequestsByUser ?? []) as ConsumerRequestRow[];
 
   const totalSpent = orders
     .filter((order) => paidStatuses.has(String(order.status)))

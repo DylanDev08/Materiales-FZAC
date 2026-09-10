@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Grid2X2, Menu, X } from "lucide-react";
 import type { Category } from "@/types/domain";
+import { isHomeRoute, isProductsRoute } from "@/lib/utils/navigation";
 
 const productLinks = [
   { href: "/productos", label: "Todos los productos" },
@@ -28,6 +29,8 @@ const fallbackCategories = [
 
 export function SiteNav({ categories }: { categories: Category[] }) {
   const pathname = usePathname();
+  const homeActive = isHomeRoute(pathname);
+  const productsActive = isProductsRoute(pathname);
   const [openDropdown, setOpenDropdown] = useState<"products" | "categories" | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
@@ -39,8 +42,6 @@ export function SiteNav({ categories }: { categories: Category[] }) {
       ? categories.slice(0, 9).map((category) => ({ href: `/categoria/${category.slug}`, label: category.name }))
       : fallbackCategories;
 
-  const homeActive = pathname === "/";
-  const productsActive = pathname === "/productos" || pathname.startsWith("/producto/");
   const categoriesActive = pathname === "/categorias" || pathname.startsWith("/categoria/");
   const offersActive = pathname === "/ofertas";
   const howToBuyActive = pathname === "/como-comprar";

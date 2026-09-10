@@ -38,8 +38,8 @@ function authEmailLayout(input: { title: string; preheader: string; copy: string
       <tr><td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;border:1px solid rgba(244,196,0,.3);background:#1f1f1f">
           <tr><td style="padding:24px 28px;border-bottom:3px solid #f4c400">
-            <strong style="font-size:24px;color:#f4c400">Fortaleza Construcciones</strong>
-            <div style="margin-top:4px;color:#b8b8b8;font-size:13px">Materiales FZAC para construir</div>
+            <strong style="font-size:24px;color:#f4c400">Materiales FZAC</strong>
+            <div style="margin-top:4px;color:#b8b8b8;font-size:13px">Fortaleza Construcciones - E-Commerce oficial</div>
           </td></tr>
           <tr><td style="padding:28px">
             <h1 style="margin:0 0 14px;font-size:24px">${escapeHtml(input.title)}</h1>

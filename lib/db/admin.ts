@@ -7,6 +7,7 @@ import { isTestPaymentEnv } from "@/lib/payments/config";
 import type { Category, Product } from "@/types/domain";
 
 function normalizeProduct(row: Record<string, unknown>): Product {
+  const supplierRow = row.supplier && typeof row.supplier === "object" ? row.supplier as Record<string, unknown> : null;
   const product = {
     id: String(row.id),
     slug: String(row.slug),
@@ -20,6 +21,11 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     compare_price: row.compare_price ? Number(row.compare_price) : null,
     stock: Number(row.stock ?? 0),
     stock_minimum: Number(row.stock_minimum ?? 0),
+    availability_status: row.availability_status === "CONSULT"
+      ? "CONSULT" as const
+      : row.availability_status === "OUT_OF_STOCK" ? "OUT_OF_STOCK" as const : "IN_STOCK" as const,
+    supplier_id: row.supplier_id ? String(row.supplier_id) : null,
+    supplier: supplierRow ? { id: String(supplierRow.id), name: String(supplierRow.name) } : null,
     unit: String(row.unit ?? "unidad"),
     image_url: String(row.image_url ?? ""),
     gallery: Array.isArray(row.gallery) ? (row.gallery as string[]) : [],
@@ -115,9 +121,17 @@ export async function getAdminProducts() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackProducts;
 
-  const { data, error } = await admin.from("products").select("*").order("created_at", { ascending: false }).limit(300);
+  const { data, error } = await admin.from("products").select("*, supplier:suppliers(id,name)").order("created_at", { ascending: false }).limit(300);
   if (error) return [];
   return (data ?? []).map(normalizeProduct);
+}
+
+export async function getAdminSuppliers() {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+  const { data, error } = await admin.from("suppliers").select("id,name").eq("active", true).order("name");
+  if (error) return [];
+  return (data ?? []).map((supplier) => ({ id: String(supplier.id), name: String(supplier.name) }));
 }
 
 export async function getAdminCategories() {

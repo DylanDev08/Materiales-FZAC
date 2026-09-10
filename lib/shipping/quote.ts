@@ -1,17 +1,14 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { AddressPayload } from "@/types/domain";
 
-type DistanceMatrixResponse = {
-  status?: string;
-  rows?: Array<{
-    elements?: Array<{
-      status?: string;
-      distance?: { value?: number; text?: string };
-      duration?: { text?: string };
-    }>;
-  }>;
+type RouteMatrixElement = {
+  status?: { code?: number; message?: string };
+  condition?: "ROUTE_EXISTS" | "ROUTE_NOT_FOUND";
+  distanceMeters?: number;
+  duration?: string;
 };
 
 export type ShippingQuote =
@@ -22,7 +19,7 @@ export type ShippingQuote =
       durationText: string;
       origin: string;
       destination: string;
-      provider: "GOOGLE_DISTANCE_MATRIX";
+      provider: "GOOGLE_ROUTES";
     }
   | {
       available: false;
@@ -31,12 +28,23 @@ export type ShippingQuote =
       distanceKm?: number;
       origin?: string;
       destination?: string;
-      provider?: "GOOGLE_DISTANCE_MATRIX";
+      provider?: "GOOGLE_ROUTES";
     };
 
 function cleanAddressPart(value: string | undefined, maxLength = 90) {
   return value?.trim().replace(/\s+/g, " ").slice(0, maxLength) || undefined;
 }
+
+type CachedQuote = {
+  quote: ShippingQuote;
+  expiresAt: number;
+};
+
+const quoteCache = new Map<string, CachedQuote>();
+const pendingQuotes = new Map<string, Promise<ShippingQuote>>();
+const MAX_QUOTE_CACHE_ENTRIES = 500;
+const SUCCESS_CACHE_MS = 5 * 60_000;
+const FAILURE_CACHE_MS = 30_000;
 
 function addressLine(address: AddressPayload) {
   return [
@@ -53,12 +61,17 @@ function addressLine(address: AddressPayload) {
 }
 
 function numberEnv(name: string) {
-  const value = Number(getEnv(name));
+  const raw = getEnv(name);
+  if (!hasRealValue(raw)) return null;
+  const value = Number(raw);
   return Number.isFinite(value) ? value : null;
 }
 
 function shippingApiKey() {
-  return getEnv("GOOGLE_MAPS_SERVER_KEY") || getEnv("GOOGLE_MAPS_API_KEY") || getEnv("GOOGLE_DISTANCE_MATRIX_KEY");
+  return getEnv("GOOGLE_MAPS_SERVER_KEY")
+    || getEnv("GOOGLE_MAPS_SERVER_API_KEY")
+    || getEnv("GOOGLE_MAPS_API_KEY")
+    || getEnv("GOOGLE_DISTANCE_MATRIX_KEY");
 }
 
 function shippingTariff() {
@@ -76,11 +89,34 @@ function roundShipping(value: number, roundTo: number) {
   return Math.ceil(value / roundTo) * roundTo;
 }
 
+function durationLabel(value?: string) {
+  const seconds = Number(value?.replace(/s$/, ""));
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
+
 export function canQuoteShipping() {
   return hasRealValue(shippingApiKey()) && Boolean(shippingTariff());
 }
 
-export async function quoteDeliveryForAddress(address: AddressPayload): Promise<ShippingQuote> {
+function quoteCacheKey(address: AddressPayload) {
+  const tariff = shippingTariff();
+  const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
+  return createHash("sha256")
+    .update(JSON.stringify({ origin, destination: addressLine(address).toLowerCase(), tariff }))
+    .digest("hex");
+}
+
+function trimQuoteCache(now: number) {
+  for (const [key, cached] of quoteCache) {
+    if (cached.expiresAt <= now) quoteCache.delete(key);
+  }
+  if (quoteCache.size <= MAX_QUOTE_CACHE_ENTRIES) return;
+  const overflow = quoteCache.size - MAX_QUOTE_CACHE_ENTRIES;
+  [...quoteCache.keys()].slice(0, overflow).forEach((key) => quoteCache.delete(key));
+}
+
+async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuote> {
   const key = shippingApiKey();
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
@@ -106,33 +142,36 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
     };
   }
 
-  const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json");
-  url.searchParams.set("origins", origin);
-  url.searchParams.set("destinations", destination);
-  url.searchParams.set("mode", "driving");
-  url.searchParams.set("language", "es-AR");
-  url.searchParams.set("region", "ar");
-  url.searchParams.set("key", key);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6_000);
-
   let response: Response;
   try {
-    response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    response = await fetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {
+      method: "POST",
+      cache: "no-store",
+      signal: AbortSignal.timeout(7_000),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask": "originIndex,destinationIndex,status,condition,distanceMeters,duration"
+      },
+      body: JSON.stringify({
+        origins: [{ waypoint: { address: origin } }],
+        destinations: [{ waypoint: { address: destination } }],
+        travelMode: "DRIVE",
+        routingPreference: "TRAFFIC_UNAWARE",
+        languageCode: "es-AR",
+        units: "METRIC"
+      })
+    });
   } catch {
     return {
       available: false,
       amount: 0,
-      reason: "No pudimos consultar distancia real del envío. Probá nuevamente o elegí retiro.",
+      reason: "El servicio de distancia no respondió a tiempo. Probá nuevamente.",
       origin,
       destination,
-      provider: "GOOGLE_DISTANCE_MATRIX"
+      provider: "GOOGLE_ROUTES"
     };
-  } finally {
-    clearTimeout(timeout);
   }
-
   if (!response.ok) {
     return {
       available: false,
@@ -140,23 +179,23 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
       reason: "No pudimos consultar distancia real del envío.",
       origin,
       destination,
-      provider: "GOOGLE_DISTANCE_MATRIX"
+      provider: "GOOGLE_ROUTES"
     };
   }
 
-  const data = (await response.json()) as DistanceMatrixResponse;
-  const element = data.rows?.[0]?.elements?.[0];
-  const distanceMeters = Number(element?.distance?.value ?? 0);
+  const data = (await response.json()) as RouteMatrixElement[];
+  const element = data[0];
+  const distanceMeters = Number(element?.distanceMeters ?? 0);
   const distanceKm = distanceMeters / 1000;
 
-  if (data.status !== "OK" || element?.status !== "OK" || !distanceMeters) {
+  if (element?.condition !== "ROUTE_EXISTS" || Number(element?.status?.code ?? 0) !== 0 || !distanceMeters) {
     return {
       available: false,
       amount: 0,
       reason: "La dirección no pudo cotizarse con distancia real.",
       origin,
       destination,
-      provider: "GOOGLE_DISTANCE_MATRIX"
+      provider: "GOOGLE_ROUTES"
     };
   }
 
@@ -168,7 +207,7 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
       distanceKm,
       origin,
       destination,
-      provider: "GOOGLE_DISTANCE_MATRIX"
+      provider: "GOOGLE_ROUTES"
     };
   }
 
@@ -178,9 +217,33 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
     available: true,
     amount: roundShipping(rawAmount, tariff.roundTo),
     distanceKm: Number(distanceKm.toFixed(1)),
-    durationText: element.duration?.text ?? "",
+    durationText: durationLabel(element.duration),
     origin,
     destination,
-    provider: "GOOGLE_DISTANCE_MATRIX"
+    provider: "GOOGLE_ROUTES"
   };
+}
+
+export async function quoteDeliveryForAddress(address: AddressPayload): Promise<ShippingQuote> {
+  const now = Date.now();
+  const key = quoteCacheKey(address);
+  const cached = quoteCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.quote;
+
+  const pending = pendingQuotes.get(key);
+  if (pending) return pending;
+
+  const request = fetchDeliveryQuote(address)
+    .then((quote) => {
+      trimQuoteCache(Date.now());
+      quoteCache.set(key, {
+        quote,
+        expiresAt: Date.now() + (quote.available ? SUCCESS_CACHE_MS : FAILURE_CACHE_MS)
+      });
+      return quote;
+    })
+    .finally(() => pendingQuotes.delete(key));
+
+  pendingQuotes.set(key, request);
+  return request;
 }

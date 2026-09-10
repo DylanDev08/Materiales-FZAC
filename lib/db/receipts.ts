@@ -41,19 +41,16 @@ export async function getOrderReceipt(orderId?: string) {
   const [admin, profile] = [getSupabaseAdminClient(), await getUserProfile()];
   if (!admin || !profile) return null;
 
-  const { data: order, error } = await admin
+  let orderQuery = admin
     .from("orders")
     .select(
       "id,user_id,status,customer_name,customer_email,customer_phone,subtotal,total,shipping_cost,shipping_method,address_snapshot,created_at,paid_at"
     )
-    .eq("id", orderId)
-    .maybeSingle();
+    .eq("id", orderId);
+  if (profile.role !== "ADMIN") orderQuery = orderQuery.eq("user_id", profile.id);
+  const { data: order, error } = await orderQuery.maybeSingle();
 
   if (error || !order) return null;
-
-  const ownsOrder =
-    order.user_id === profile.id || String(order.customer_email).toLowerCase() === String(profile.email).toLowerCase();
-  if (profile.role !== "ADMIN" && !ownsOrder) return null;
 
   const [{ data: ticket }, { data: orderItems }, { data: payment }] = await Promise.all([
     admin.from("purchase_tickets").select("*").eq("order_id", order.id).maybeSingle(),

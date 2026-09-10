@@ -110,11 +110,11 @@ test.describe("Render public smoke", () => {
   });
 
   test("producto se agrega al carrito y checkout carga con productos", async ({ page }) => {
-    await page.goto("/productos", { waitUntil: "domcontentloaded" });
+    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".product-card, .empty-state").first()).toBeVisible();
     const addButton = page.getByRole("button", { name: /agregar/i }).first();
     if ((await addButton.count()) === 0) {
-      await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
-      test.skip(true, "El catálogo conectado no tiene productos activos para probar el carrito.");
+      test.skip(true, "El catálogo conectado no expuso un producto con stock comprable para esta prueba.");
     }
     await expect(addButton).toBeVisible();
     await addButton.click();

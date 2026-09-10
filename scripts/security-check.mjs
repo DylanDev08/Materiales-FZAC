@@ -52,7 +52,7 @@ for (const sourceRoot of sourceRoots) {
 
 for (const file of criticalJsonMutationRoutes) {
   const content = await readFile(path.join(root, file), "utf8").catch(() => "");
-  if (!content.includes("validateJsonMutationRequest")) {
+  if (!content.includes("validateJsonMutationRequest") && !content.includes("readLimitedJson")) {
     failures.push(`${file}: falta validar origen, tipo y tamano del cuerpo JSON.`);
   }
 }

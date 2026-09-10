@@ -16,8 +16,14 @@ import {
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import {
+  acquireRequestConcurrency,
+  getRequestKey,
+  rateLimit,
+  rateLimitIdentity,
+  retryAfterHeaders
+} from "@/lib/utils/rate-limit";
+import { readLimitedJson } from "@/lib/utils/request-security";
 import { checkoutCardCreateSchema } from "@/lib/validations/checkout";
 
 function paymentStatus(status: string) {
@@ -42,12 +48,14 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
   const status = String(payment.status ?? "");
   const mapped = paymentStatus(status);
   const safePayment = sanitizeMercadoPagoPayment(payment);
+  const { data: existing } = await admin.from("payments").select("raw").eq("order_id", orderId).maybeSingle();
+  const existingRaw = existing?.raw && typeof existing.raw === "object" ? existing.raw as Record<string, unknown> : {};
   await admin
     .from("payments")
     .update({
       status: mapped,
       provider_payment_id: payment.id ? String(payment.id) : null,
-      raw: safePayment,
+      raw: { ...existingRaw, provider_status: status, provider_payment: safePayment },
       updated_at: new Date().toISOString()
     })
     .eq("order_id", orderId);
@@ -57,76 +65,131 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
   }
 }
 
+async function existingCardPaymentResponse(paymentId: string, orderId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data } = await admin
+    .from("payments")
+    .select("status,provider_payment_id,raw")
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (!data?.provider_payment_id) return null;
+
+  const raw = data.raw && typeof data.raw === "object" ? data.raw as Record<string, unknown> : {};
+  const providerStatus = String(raw.provider_status ?? data.status ?? "pending").toLowerCase();
+  const status = providerStatus === "paid" ? "approved" : providerStatus === "failed" ? "rejected" : providerStatus;
+
+  return Response.json(
+    {
+      ok: true,
+      orderId,
+      status,
+      redirectUrl: redirectForStatus(status, orderId),
+      resumed: true,
+      message: "Este intento de pago ya fue procesado. Recuperamos su estado sin generar otro cobro."
+    },
+    { status: 200 }
+  );
+}
+
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "checkout-card"), 8, 60_000);
-  const mutation = validateJsonMutationRequest(request, 96 * 1024);
+  const limit = rateLimit(getRequestKey(request, "checkout-card"), 4, 60_000);
   if (!limit.ok) {
     return jsonError("Demasiados intentos de pago. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   }
-  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
+  const body = await readLimitedJson(request, 64 * 1024);
+  if (!body.ok) return jsonError(body.message, body.status);
 
   try {
-    const payload = checkoutCardCreateSchema.parse(await request.json());
-    const checkout = await createCheckout(payload.checkout);
-    const orderId = checkout.orderId;
-    const total = Number(checkout.total ?? 0);
+    const payload = checkoutCardCreateSchema.parse(body.data);
+    const identity = payload.checkout.customer.email;
+    const purchaseLimit = rateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000);
+    const paymentLimit = rateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000);
+    const blocked = !purchaseLimit.ok ? purchaseLimit : !paymentLimit.ok ? paymentLimit : null;
+    if (blocked) {
+      return jsonError("Alcanzaste el límite de intentos de pago. Esperá unos minutos.", 429, retryAfterHeaders(blocked));
+    }
+    const slot = acquireRequestConcurrency(request, {
+      scope: "checkout-purchase",
+      identity,
+      maxGlobal: 8,
+      maxPerIp: 2,
+      maxPerIdentity: 1,
+      leaseMs: 60_000
+    });
+    if (!slot.ok) {
+      return jsonError("Ya estamos procesando este pago. No vuelvas a enviarlo.", 429, retryAfterHeaders(slot));
+    }
 
-    if (!orderId || !total) return jsonError("No pudimos preparar la orden para pagar con tarjeta.", 400);
-    if (checkout.requires_admin_approval) {
+    try {
+      const checkout = await createCheckout(payload.checkout);
+      const orderId = checkout.orderId;
+      const paymentId = checkout.paymentId;
+      const total = Number(checkout.total ?? 0);
+
+      if (!orderId || !paymentId || !total) return jsonError("No pudimos preparar la orden para pagar con tarjeta.", 400);
+      if (checkout.requires_admin_approval) {
+        return Response.json(
+          {
+            ok: true,
+            orderId,
+            status: checkout.order_status,
+            redirectUrl: `/checkout/pending?orderId=${orderId}&approval=1`,
+            message: checkout.message || "La compra requiere aprobación del administrador antes de pagar."
+          },
+          { status: 201 }
+        );
+      }
+
+      const resumed = await existingCardPaymentResponse(paymentId, orderId);
+      if (resumed) return resumed;
+
+      const payment = await createMercadoPagoCardPayment({
+        orderId,
+        amount: total,
+        description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
+        token: payload.card.token,
+        paymentMethodId: payload.card.payment_method_id,
+        issuerId: payload.card.issuer_id,
+        installments: payload.card.installments,
+        payer: {
+          email: payload.card.cardholder_email,
+          identificationType: payload.card.identification_type,
+          identificationNumber: payload.card.identification_number
+        }
+      });
+
+      const status = String(payment.status ?? "pending");
+      const safePayment = sanitizeMercadoPagoPayment(payment);
+      if (status === "approved") {
+        await confirmApprovedPayment({
+          orderId,
+          provider: "MERCADOPAGO",
+          providerPaymentId: payment.id ? String(payment.id) : null,
+          raw: safePayment,
+          status: "PAID"
+        });
+      } else {
+        await persistPaymentStatus(orderId, payment);
+      }
+
       return Response.json(
         {
           ok: true,
           orderId,
-          status: checkout.order_status,
-          redirectUrl: `/checkout/pending?orderId=${orderId}&approval=1`,
-          message: checkout.message || "La compra requiere aprobación del administrador antes de pagar."
+          status,
+          redirectUrl: redirectForStatus(status, orderId),
+          message:
+            status === "approved"
+              ? "Pago aprobado."
+              : "Mercado Pago devolvió el pago pendiente o rechazado. El stock no se descuenta sin aprobación."
         },
         { status: 201 }
       );
+    } finally {
+      slot.release();
     }
-
-    const payment = await createMercadoPagoCardPayment({
-      orderId,
-      amount: total,
-      description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
-      token: payload.card.token,
-      paymentMethodId: payload.card.payment_method_id,
-      issuerId: payload.card.issuer_id,
-      installments: payload.card.installments,
-      payer: {
-        email: payload.card.cardholder_email,
-        identificationType: payload.card.identification_type,
-        identificationNumber: payload.card.identification_number
-      }
-    });
-
-    const status = String(payment.status ?? "pending");
-    const safePayment = sanitizeMercadoPagoPayment(payment);
-    if (status === "approved") {
-      await confirmApprovedPayment({
-        orderId,
-        provider: "MERCADOPAGO",
-        providerPaymentId: payment.id ? String(payment.id) : null,
-        raw: safePayment,
-        status: "PAID"
-      });
-    } else {
-      await persistPaymentStatus(orderId, payment);
-    }
-
-    return Response.json(
-      {
-        ok: true,
-        orderId,
-        status,
-        redirectUrl: redirectForStatus(status, orderId),
-        message:
-          status === "approved"
-            ? "Pago aprobado."
-            : "Mercado Pago devolvió el pago pendiente o rechazado. El stock no se descuenta sin aprobación."
-      },
-      { status: 201 }
-    );
   } catch (error) {
     if (error instanceof ZodError) {
       const issue = error.issues[0]?.message;

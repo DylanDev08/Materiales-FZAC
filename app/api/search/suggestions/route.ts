@@ -2,14 +2,14 @@ import { z } from "zod";
 import { getProductSuggestions } from "@/lib/db/catalog";
 import { hasSqlMeta, sanitizeSearchTerm } from "@/lib/validations/security";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { acquireRequestConcurrency, getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 const schema = z.object({
   q: z.string().optional()
 });
 
 export async function GET(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "search-suggestions"), 90, 60_000);
+  const limit = rateLimit(getRequestKey(request, "search-suggestions"), 36, 60_000);
   if (!limit.ok) return jsonError("Demasiadas búsquedas. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
 
   const params = Object.fromEntries(new URL(request.url).searchParams);
@@ -20,6 +20,20 @@ export async function GET(request: Request) {
   if (hasSqlMeta(parsed.data.q)) return jsonError("La busqueda contiene caracteres no permitidos.", 422);
   if (query.length < 2) return Response.json({ suggestions: [] });
 
-  const suggestions = await getProductSuggestions(query);
-  return Response.json({ suggestions });
+  const slot = acquireRequestConcurrency(request, {
+    scope: "search-suggestions",
+    maxGlobal: 24,
+    maxPerIp: 2,
+    leaseMs: 8_000
+  });
+  if (!slot.ok) {
+    return jsonError("Ya estamos procesando tus búsquedas. Esperá un instante.", 429, retryAfterHeaders(slot));
+  }
+
+  try {
+    const suggestions = await getProductSuggestions(query);
+    return Response.json({ suggestions });
+  } finally {
+    slot.release();
+  }
 }

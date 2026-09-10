@@ -32,11 +32,11 @@ services:
       - key: PAYMENT_ENABLED
         value: "true"
       - key: PAYMENTS_ENV
-        value: test
+        sync: false
       - key: PAYMENTS_PROVIDER
         value: mercadopago
       - key: PAYMENTS_PRODUCTION_CONFIRMED
-        value: "false"
+        sync: false
       - key: MERCADOPAGO_ACCESS_TOKEN
         sync: false
       - key: NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
@@ -46,6 +46,10 @@ services:
       - key: NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY
         sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_TEST_WEBHOOK_SECRET
+        sync: false
+      - key: MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET
         sync: false
       - key: MERCADOPAGO_PRODUCTION_ACCESS_TOKEN
         sync: false

@@ -21,6 +21,7 @@ type ProductForm = {
   stock: string | number;
   stock_minimum: string | number;
   availability_status: ProductAvailabilityStatus;
+  supplier_id: string | null;
   unit: string;
   image_url: string;
   gallery: string[];
@@ -44,6 +45,7 @@ const emptyProduct: ProductForm = {
   stock: 0,
   stock_minimum: 5,
   availability_status: "OUT_OF_STOCK",
+  supplier_id: null,
   unit: "unidad",
   image_url: "",
   gallery: [] as string[],
@@ -78,11 +80,13 @@ function getProductIssues(product: Product, categoryIds: Set<string>) {
 export function AdminProductsManager({
   products,
   categories,
+  suppliers,
   mode = "full",
   initialProductId
 }: {
   products: Product[];
   categories: Category[];
+  suppliers: Array<{ id: string; name: string }>;
   mode?: "full" | "create-only";
   initialProductId?: string;
 }) {
@@ -96,6 +100,7 @@ export function AdminProductsManager({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [query, setQuery] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
+  const [supplierFilter, setSupplierFilter] = useState("ALL");
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
@@ -137,9 +142,10 @@ export function AdminProductsManager({
         (catalogFilter === "CONSULT" && product.active && availability === "CONSULT") ||
         (catalogFilter === "OUT_OF_STOCK" && product.active && availability === "OUT_OF_STOCK") ||
         (catalogFilter === "INACTIVE" && !product.active);
-      return matchesQuery && matchesFilter;
+      const matchesSupplier = supplierFilter === "ALL" || product.supplier_id === supplierFilter;
+      return matchesQuery && matchesFilter && matchesSupplier;
     });
-  }, [catalogFilter, categoryById, categoryIds, query, sortedRows]);
+  }, [catalogFilter, categoryById, categoryIds, query, sortedRows, supplierFilter]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -306,6 +312,13 @@ export function AdminProductsManager({
             <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
           </label>
           <label>
+            Proveedor
+            <select value={form.supplier_id ?? ""} onChange={(event) => setForm({ ...form, supplier_id: event.target.value || null })}>
+              <option value="">Sin proveedor asignado</option>
+              {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+            </select>
+          </label>
+          <label>
             Imagen
             <input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
           </label>
@@ -413,16 +426,23 @@ export function AdminProductsManager({
               <option value="INACTIVE">Inactivos</option>
             </select>
           </label>
+          <label className="admin-catalog-filter">
+            <span>Proveedor</span>
+            <select value={supplierFilter} onChange={(event) => setSupplierFilter(event.target.value)}>
+              <option value="ALL">Todos</option>
+              {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+            </select>
+          </label>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Producto</th>
-                <th>SKU</th>
                 <th>Categoria</th>
-                <th>Precio</th>
+                <th>Precio venta</th>
                 <th>Stock</th>
+                <th>Proveedor</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -434,10 +454,10 @@ export function AdminProductsManager({
                 return (
                 <tr key={product.id}>
                   <td>{product.name}</td>
-                  <td>{product.sku}</td>
                   <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
                   <td>{currency(product.price)}</td>
                   <td>{availability === "CONSULT" ? "A consultar" : product.stock}</td>
+                  <td>{product.supplier?.name ?? suppliers.find((supplier) => supplier.id === product.supplier_id)?.name ?? "Sin asignar"}</td>
                   <td>
                     {!product.active ? (
                       <span className="status-pill">Inactivo</span>
@@ -470,7 +490,7 @@ export function AdminProductsManager({
                     <div className="admin-catalog-empty">
                       <PackageSearch size={24} />
                       <strong>No encontramos productos con estos filtros.</strong>
-                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); }}>
+                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setSupplierFilter("ALL"); }}>
                         Limpiar filtros
                       </button>
                     </div>

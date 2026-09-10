@@ -1,13 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CreditCard, Headphones, RotateCcw, ShieldCheck } from "lucide-react";
+import { CreditCard, Headphones, Instagram, Mail, RotateCcw, ShieldCheck } from "lucide-react";
 import { CookieSettingsButton } from "@/components/privacy/cookie-settings-button";
+import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { getEnv } from "@/lib/utils/env";
 
 export function SiteFooter() {
   const email = getEnv("FZAC_EMAIL") || "fortalezaconstruccionesrosario@gmail.com";
   const whatsapp = getEnv("FZAC_WHATSAPP") || "+5493415847000";
   const instagram = getEnv("FZAC_INSTAGRAM") || "@fzaconstrucciones";
+  const instagramHandle = instagram
+    .replace(/^https?:\/\/(?:www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .split(/[/?#]/)[0]
+    .replace(/[^A-Za-z0-9._]/g, "") || "fzaconstrucciones";
+  const whatsappHref = `https://wa.me/${whatsapp.replace(/\D/g, "")}`;
 
   return (
     <footer className="site-footer">
@@ -66,10 +73,12 @@ export function SiteFooter() {
             <Link href="/envios-y-retiros" prefetch={false}>Envíos y retiros</Link>
             <Link href="/medios-de-pago" prefetch={false}>Medios de pago</Link>
             <CookieSettingsButton />
-            <a href={`mailto:${email}`}>{email}</a>
-            <a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}>WhatsApp {whatsapp}</a>
-            <span>{instagram}</span>
           </nav>
+          <div className="site-footer__socials" aria-label="Redes y contacto FZAC">
+            <a href={`https://www.instagram.com/${instagramHandle}/`} target="_blank" rel="noreferrer" aria-label="Instagram de FZAC"><Instagram size={18} /><span>Instagram</span></a>
+            <a href={whatsappHref} target="_blank" rel="noreferrer" aria-label="WhatsApp de FZAC"><WhatsappIcon width={19} height={19} /><span>WhatsApp</span></a>
+            <a href={`mailto:${email}`} aria-label="Email de FZAC"><Mail size={18} /><span>Email</span></a>
+          </div>
         </div>
       </div>
 

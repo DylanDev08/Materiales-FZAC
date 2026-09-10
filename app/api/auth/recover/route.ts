@@ -2,6 +2,7 @@ import { z, ZodError } from "zod";
 import { requestPasswordRecoveryEmail } from "@/lib/auth/email-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
+import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { normalizeEmail } from "@/lib/validations/auth";
@@ -10,7 +11,7 @@ const recoverSchema = z.object({
   email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail)
 });
 
-const genericMessage = "Si existe una cuenta con ese email, vas a recibir un link de recuperacion.";
+const genericMessage = "Si existe una cuenta con ese email, vas a recibir un link de recuperación de Materiales FZAC.";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-recover"), 5, 60_000);
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     const { data: profile } = await admin.from("profiles").select("id,full_name").eq("email", payload.email).maybeSingle();
     if (!profile) return Response.json({ ok: true, message: genericMessage });
 
-    await requestPasswordRecoveryEmail({ email: payload.email, name: profile.full_name }).catch(() => undefined);
+    await requestPasswordRecoveryEmail({ email: payload.email, name: profile.full_name, siteUrl: getRequestSiteUrl(request) }).catch(() => undefined);
     return Response.json({ ok: true, message: genericMessage });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Email invalido.", 422);

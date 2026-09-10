@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
+    window.sessionStorage.setItem("fzac-entry-complete-v1", "true");
     window.localStorage.setItem(
       "fzac-privacy-consent-v1",
       JSON.stringify({

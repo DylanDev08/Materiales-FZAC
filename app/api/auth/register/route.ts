@@ -9,6 +9,7 @@ import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { registerSchema } from "@/lib/validations/auth";
+import { normalizeArgentinePhone } from "@/lib/validations/security";
 
 function authErrorMessage(message: string) {
   if (/rate limit|too many|over_email_send_rate_limit/i.test(message)) {
@@ -27,6 +28,29 @@ function genericRegistrationResponse() {
   return Response.json({ target: "/login?registered=true", message: genericRegistrationMessage });
 }
 
+async function findRegistrationDuplicate(input: { email: string; name: string; phone?: string | null }) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const checks = [
+    admin.from("profiles").select("id").eq("email", input.email).limit(1).maybeSingle(),
+    admin.from("profiles").select("id").ilike("full_name", input.name.trim()).limit(1).maybeSingle()
+  ];
+  if (input.phone) checks.push(admin.from("profiles").select("id").eq("phone", input.phone).limit(1).maybeSingle());
+
+  const [emailResult, nameResult, phoneResult] = await Promise.all(checks);
+  if (emailResult?.data) return "email" as const;
+  if (nameResult?.data) return "name" as const;
+  if (phoneResult?.data) return "phone" as const;
+  return null;
+}
+
+function duplicateMessage(kind: "email" | "name" | "phone") {
+  if (kind === "email") return "Ya existe una cuenta registrada con ese email. Probá iniciar sesión o recuperar el acceso.";
+  if (kind === "phone") return "Ya existe una cuenta registrada con ese teléfono. Usá otro número o recuperá tu cuenta.";
+  return "Ya existe una cuenta registrada con ese nombre. Revisá tus datos o comunicate con FZAC si necesitás ayuda.";
+}
+
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 8 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
@@ -35,18 +59,21 @@ export async function POST(request: Request) {
 
   try {
     const payload = registerSchema.parse(await request.json());
+    const normalizedPhone = payload.phone ? normalizeArgentinePhone(payload.phone) : "";
     const emailLimit = rateLimit(`auth-register-email:${payload.email}`, 3, 30 * 60_000);
     if (!emailLimit.ok) return jsonError("Ya procesamos una solicitud para este email. Revisá tu casilla o esperá antes de reintentar.", 429, retryAfterHeaders(emailLimit));
     const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
     const legalAcceptance = createLegalAcceptance("REGISTER_EMAIL");
+    const duplicate = await findRegistrationDuplicate({ email: payload.email, name: payload.name, phone: normalizedPhone });
+    if (duplicate) return jsonError(duplicateMessage(duplicate), 409);
 
     let user = null;
     const resendSignup = await createSignupWithResend({
       email: payload.email,
       password: payload.password,
       name: payload.name,
-      phone: payload.phone || null,
+      phone: normalizedPhone || null,
       siteUrl,
       legalAcceptance
     });
@@ -63,7 +90,7 @@ export async function POST(request: Request) {
         options: {
           data: {
             full_name: payload.name,
-            phone: payload.phone || null,
+            phone: normalizedPhone || null,
             ...legalAcceptanceUserMetadata(legalAcceptance)
           },
           emailRedirectTo: `${siteUrl}/auth/callback`
@@ -101,7 +128,7 @@ export async function POST(request: Request) {
           id: user.id,
           email: payload.email,
           full_name: payload.name,
-          phone: payload.phone || null,
+          phone: normalizedPhone || null,
           avatar_url: user.user_metadata?.avatar_url ?? null,
           role: "ADMIN",
           updated_at: new Date().toISOString()

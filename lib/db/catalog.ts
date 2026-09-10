@@ -60,6 +60,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     stock: Number(row.stock ?? 0),
     stock_minimum: Number(row.stock_minimum ?? row.stockMinimum ?? 0),
     availability_status: normalizeAvailabilityStatus(row),
+    supplier_id: row.supplier_id ? String(row.supplier_id) : null,
     unit: String(row.unit ?? "unidad"),
     image_url: String(row.image_url ?? row.image ?? "/placeholder-product.jpg"),
     gallery: Array.isArray(row.gallery) ? (row.gallery as string[]) : [],

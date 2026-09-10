@@ -12,6 +12,8 @@ function percentile(values, ratio) {
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * ratio))] ?? 0;
 }
 
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 async function runSuite({ name, count, allowedStatuses, request }) {
   const results = await Promise.all(
     Array.from({ length: count }, async (_, index) => {
@@ -64,6 +66,9 @@ await runSuite({
   request: (index) => fetch(new URL(`/api/search/suggestions?q=${index % 2 ? "cemento" : "pintura"}`, baseUrl))
 });
 
+// Keep endpoint measurements independent from the shared 10-second API gateway window.
+await wait(10_100);
+
 await runSuite({
   name: "Validacion de carrito",
   count: 80,
@@ -72,6 +77,7 @@ await runSuite({
 });
 
 if (process.env.ASSISTANT_PERSISTENCE_ENABLED === "false") {
+  await wait(10_100);
   await runSuite({
     name: "Asistente sin persistencia",
     count: 50,

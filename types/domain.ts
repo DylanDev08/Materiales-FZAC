@@ -47,6 +47,8 @@ export type Product = {
   stock: number;
   stock_minimum: number;
   availability_status?: ProductAvailabilityStatus;
+  supplier_id?: string | null;
+  supplier?: { id: string; name: string } | null;
   unit: string;
   image_url: string;
   gallery: string[];

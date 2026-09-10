@@ -30,3 +30,21 @@ export function validateJsonMutationRequest(request: Request, maxBytes = 16 * 10
 
   return { ok: true as const };
 }
+
+export async function readLimitedJson(request: Request, maxBytes = 16 * 1024) {
+  const validation = validateJsonMutationRequest(request, maxBytes);
+  if (!validation.ok) return validation;
+
+  try {
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > maxBytes) {
+      return { ok: false as const, status: 413, message: "La solicitud es demasiado grande." };
+    }
+    if (!text.trim()) {
+      return { ok: false as const, status: 400, message: "La solicitud no contiene datos." };
+    }
+    return { ok: true as const, data: JSON.parse(text) as unknown };
+  } catch {
+    return { ok: false as const, status: 400, message: "No pudimos leer los datos de la solicitud." };
+  }
+}

@@ -28,7 +28,14 @@ import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/c
 import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
-import { isSafeUserNote, isValidArgentinePhone, limitPhoneInput, normalizePhoneDigits, normalizeUserNote } from "@/lib/validations/security";
+import {
+  isSafeUserNote,
+  isValidArgentinePhone,
+  limitPhoneInput,
+  normalizeArgentinePhone,
+  normalizePhoneDigits,
+  normalizeUserNote
+} from "@/lib/validations/security";
 import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
@@ -57,6 +64,32 @@ type ShippingQuoteState =
   | { status: "error"; message: string; distanceKm?: number };
 
 type FieldState = { status: "idle" | "valid" | "invalid"; message: string };
+type GoogleMapsWindow = typeof window & {
+  google?: {
+    maps?: {
+      places?: {
+        Autocomplete: new (
+          input: HTMLInputElement,
+          options?: Record<string, unknown>
+        ) => {
+          addListener: (eventName: "place_changed", callback: () => void) => { remove?: () => void };
+          getPlace: () => {
+            address_components?: Array<{
+              long_name: string;
+              short_name: string;
+              types: string[];
+            }>;
+            formatted_address?: string;
+          };
+        };
+      };
+    };
+  };
+};
+
+const GOOGLE_MAPS_BROWSER_KEY =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const GOOGLE_MAPS_SCRIPT_ID = "fzac-google-maps-places";
 
 const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
   { id: "customer", label: "Comprador" },
@@ -131,6 +164,41 @@ function nameIsValid(value: string) {
   return /^[\p{L}\p{M}\s.'-]{2,120}$/u.test(value.trim());
 }
 
+function placePart(
+  components: Array<{ long_name: string; short_name: string; types: string[] }> | undefined,
+  type: string,
+  short = false
+) {
+  const component = components?.find((item) => item.types.includes(type));
+  return short ? component?.short_name ?? "" : component?.long_name ?? "";
+}
+
+function loadGoogleMapsPlaces() {
+  if (!GOOGLE_MAPS_BROWSER_KEY || typeof window === "undefined") return Promise.resolve(false);
+  const mapsWindow = window as GoogleMapsWindow;
+  if (mapsWindow.google?.maps?.places?.Autocomplete) return Promise.resolve(true);
+
+  return new Promise<boolean>((resolve) => {
+    const existing = document.getElementById(GOOGLE_MAPS_SCRIPT_ID) as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener("load", () => resolve(Boolean(mapsWindow.google?.maps?.places?.Autocomplete)), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = GOOGLE_MAPS_SCRIPT_ID;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
+      GOOGLE_MAPS_BROWSER_KEY
+    )}&libraries=places&language=es&region=AR`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(Boolean(mapsWindow.google?.maps?.places?.Autocomplete));
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
 function fieldState(value: string, isValid: (value: string) => boolean, messages: { valid: string; invalid: string }): FieldState {
   if (!value.trim()) return { status: "idle", message: "" };
   return isValid(value) ? { status: "valid", message: messages.valid } : { status: "invalid", message: messages.invalid };
@@ -180,6 +248,7 @@ export function CheckoutForm({
   const router = useRouter();
   const { hydrated, items, subtotal, updateQuantity, removeItem } = useCart();
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
+  const streetInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState<CheckoutStep>("customer");
   const [customer, setCustomer] = useState({
     name: profile?.full_name ?? "",
@@ -202,6 +271,7 @@ export function CheckoutForm({
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
+  const [placesReady, setPlacesReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
@@ -288,6 +358,11 @@ export function CheckoutForm({
       ...address,
       notes: normalizeUserNote(address.notes, 240)
     };
+  }
+
+  function updateAddressField(field: keyof typeof address, value: string) {
+    setAddress((current) => ({ ...current, [field]: value }));
+    setShippingQuote({ status: "idle" });
   }
 
   function validationMessage(state: FieldState) {
@@ -459,6 +534,50 @@ export function CheckoutForm({
     };
   }, [termsOpen]);
 
+  useEffect(() => {
+    if (shippingMethod !== "DELIVERY" || !streetInputRef.current) return;
+    let cancelled = false;
+    let listener: { remove?: () => void } | null = null;
+
+    loadGoogleMapsPlaces().then((ready) => {
+      if (cancelled || !ready || !streetInputRef.current) return;
+      setPlacesReady(true);
+      const mapsWindow = window as GoogleMapsWindow;
+      const Autocomplete = mapsWindow.google?.maps?.places?.Autocomplete;
+      if (!Autocomplete) return;
+      const autocomplete = new Autocomplete(streetInputRef.current, {
+        componentRestrictions: { country: "ar" },
+        fields: ["address_components", "formatted_address"],
+        types: ["address"]
+      });
+      listener = autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        const components = place.address_components;
+        const street = placePart(components, "route");
+        const number = placePart(components, "street_number");
+        const city =
+          placePart(components, "locality") ||
+          placePart(components, "administrative_area_level_2");
+        const province = placePart(components, "administrative_area_level_1");
+        const postalCode = placePart(components, "postal_code");
+        setAddress((current) => ({
+          ...current,
+          street: street || current.street,
+          number: number || current.number,
+          city: city || current.city || "Rosario",
+          province: province || current.province || "Santa Fe",
+          postalCode: postalCode || current.postalCode
+        }));
+        setShippingQuote({ status: "idle" });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      listener?.remove?.();
+    };
+  }, [shippingMethod]);
+
   const canSubmit = useMemo(() => {
     if (step !== "payment") return false;
     if (!items.length || !accepted || !customerComplete) return false;
@@ -587,7 +706,7 @@ export function CheckoutForm({
           items: checkoutItems(items),
           customer_name: customer.name,
           customer_email: customer.email,
-          customer_phone: customer.phone,
+          customer_phone: normalizeArgentinePhone(customer.phone),
           shipping_method: shippingMethod,
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
@@ -715,7 +834,7 @@ export function CheckoutForm({
           items: checkoutItems(items),
           customer_name: customer.name,
           customer_email: customer.email,
-          customer_phone: customer.phone,
+          customer_phone: normalizeArgentinePhone(customer.phone),
           shipping_method: shippingMethod,
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
@@ -811,7 +930,7 @@ export function CheckoutForm({
           items: checkoutItems(items),
           customer_name: customer.name,
           customer_email: customer.email,
-          customer_phone: customer.phone,
+          customer_phone: normalizeArgentinePhone(customer.phone),
           shipping_method: shippingMethod,
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
@@ -965,7 +1084,7 @@ export function CheckoutForm({
                       Teléfono
                       <input
                         value={customer.phone}
-                        onChange={(event) => setCustomer({ ...customer, phone: limitPhoneInput(event.target.value) })}
+                        onChange={(event) => setCustomer({ ...customer, phone: normalizeArgentinePhone(limitPhoneInput(event.target.value)) })}
                         autoComplete="tel"
                         inputMode="tel"
                         maxLength={18}
@@ -1038,18 +1157,24 @@ export function CheckoutForm({
                         <label>
                           Calle
                           <input
+                            ref={streetInputRef}
                             value={address.street}
-                            onChange={(event) => setAddress({ ...address, street: event.target.value })}
+                            onChange={(event) => updateAddressField("street", event.target.value)}
                             autoComplete="address-line1"
                             aria-invalid={addressFieldStates.street.status === "invalid"}
                           />
                           {validationMessage(addressFieldStates.street)}
+                          {GOOGLE_MAPS_BROWSER_KEY ? (
+                            <small className="checkout-field-help">
+                              {placesReady ? "Podés seleccionar una dirección sugerida por Google Maps." : "Cargando sugerencias de ubicación..."}
+                            </small>
+                          ) : null}
                         </label>
                         <label>
                           Número
                           <input
                             value={address.number}
-                            onChange={(event) => setAddress({ ...address, number: event.target.value })}
+                            onChange={(event) => updateAddressField("number", event.target.value)}
                             inputMode="numeric"
                             maxLength={30}
                             aria-invalid={addressFieldStates.number.status === "invalid"}
@@ -1060,7 +1185,7 @@ export function CheckoutForm({
                           Departamento (opcional)
                           <input
                             value={address.apartment}
-                            onChange={(event) => setAddress({ ...address, apartment: event.target.value })}
+                            onChange={(event) => updateAddressField("apartment", event.target.value)}
                             autoComplete="address-line2"
                           />
                         </label>
@@ -1068,7 +1193,7 @@ export function CheckoutForm({
                           Ciudad
                           <input
                             value={address.city}
-                            onChange={(event) => setAddress({ ...address, city: event.target.value })}
+                            onChange={(event) => updateAddressField("city", event.target.value)}
                             autoComplete="address-level2"
                             aria-invalid={addressFieldStates.city.status === "invalid"}
                           />
@@ -1078,7 +1203,7 @@ export function CheckoutForm({
                           Provincia
                           <input
                             value={address.province}
-                            onChange={(event) => setAddress({ ...address, province: event.target.value })}
+                            onChange={(event) => updateAddressField("province", event.target.value)}
                             autoComplete="address-level1"
                             aria-invalid={addressFieldStates.province.status === "invalid"}
                           />
@@ -1088,7 +1213,7 @@ export function CheckoutForm({
                           Código postal (opcional)
                           <input
                             value={address.postalCode}
-                            onChange={(event) => setAddress({ ...address, postalCode: event.target.value })}
+                            onChange={(event) => updateAddressField("postalCode", event.target.value)}
                             autoComplete="postal-code"
                           />
                         </label>

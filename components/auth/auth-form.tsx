@@ -7,7 +7,7 @@ import { CheckCircle, Eye, EyeOff, Loader2, LogIn, MailCheck, ShieldCheck } from
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeInternalPath } from "@/lib/utils/navigation";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
-import { isValidArgentinePhone, limitPhoneInput, normalizePhoneDigits } from "@/lib/validations/security";
+import { isValidArgentinePhone, limitPhoneInput, normalizeArgentinePhone, normalizePhoneDigits } from "@/lib/validations/security";
 
 type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | "confirmPassword" | "acceptedTerms", string>>;
 
@@ -123,7 +123,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         body: JSON.stringify(
           mode === "login"
             ? { email: normalizedEmail, password, hp }
-            : { name, phone, email: normalizedEmail, password, confirmPassword, acceptedTerms, hp }
+            : { name, phone: phone.trim() ? normalizeArgentinePhone(phone) : "", email: normalizedEmail, password, confirmPassword, acceptedTerms, hp }
         )
       });
       const data = (await response.json()) as { target?: string; message?: string; code?: string };

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { isTrustedMutationRequest } from "@/lib/utils/request-security";
 
 type CookieOptions = {
@@ -91,9 +92,26 @@ export async function proxy(request: NextRequest) {
     );
   const isApiMutation =
     request.nextUrl.pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
+  const isApiRequest = request.nextUrl.pathname.startsWith("/api/");
   const isExternalWebhook =
     request.nextUrl.pathname === "/api/webhooks/mercadopago" ||
     request.nextUrl.pathname === "/api/payments/mercadopago/webhook";
+
+  if (isApiRequest && !isExternalWebhook && request.method.toUpperCase() !== "OPTIONS") {
+    const burstLimit = rateLimit(getRequestKey(request, "api-gateway-burst"), 30, 10_000);
+    const minuteLimit = rateLimit(getRequestKey(request, "api-gateway-minute"), 180, 60_000);
+    const blocked = !burstLimit.ok ? burstLimit : !minuteLimit.ok ? minuteLimit : null;
+    if (blocked) {
+      return applySecurityHeaders(
+        NextResponse.json(
+          { ok: false, code: "RATE_LIMITED", message: "Hiciste demasiadas solicitudes. EsperÃ¡ un momento y volvÃ© a intentar." },
+          { status: 429, headers: retryAfterHeaders(blocked) }
+        ),
+        false,
+        true
+      );
+    }
+  }
 
   if (isApiMutation && !isExternalWebhook && !isTrustedMutationRequest(request)) {
     return applySecurityHeaders(

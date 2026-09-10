@@ -35,8 +35,14 @@ import { preferenceConsentCookieEnabled } from "@/lib/privacy/consent";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
-import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import {
+  acquireRequestConcurrency,
+  getRequestKey,
+  rateLimit,
+  rateLimitIdentity,
+  retryAfterHeaders
+} from "@/lib/utils/rate-limit";
+import { readLimitedJson } from "@/lib/utils/request-security";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Product } from "@/types/domain";
 
@@ -57,6 +63,9 @@ const schema = z.object({
     .max(12)
     .optional()
 });
+
+type AssistantPayload = z.infer<typeof schema>;
+type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 
 function includesAny(message: string, terms: string[]) {
   return terms.some((term) => message.includes(term));
@@ -412,7 +421,13 @@ function productTechnicalReply(product: Product) {
     .filter((value): value is string => Boolean(value))
     .join(", ");
   const details = [description, specifications ? `Ficha visible: ${specifications}.` : ""].filter(Boolean).join(" ");
-  return `${product.name}: ${details || "No tiene una ficha técnica publicada todavía."} Precio visible ${currency(product.price)} y stock visible ${product.stock} ${product.unit}. Confirmá envase, unidad de venta y uso indicado por el fabricante antes de comprar.`;
+  return `${product.name}: ${details || "No tiene una ficha técnica publicada todavía."} Precio visible ${currency(product.price)} y ${productAvailabilityText(product)}. Confirmá envase, unidad de venta y uso indicado por el fabricante antes de comprar.`;
+}
+
+function productAvailabilityText(product: Product) {
+  return product.availability_status === "CONSULT"
+    ? "disponibilidad a consultar con FZAC"
+    : `stock visible ${product.stock} ${product.unit}`;
 }
 
 async function marketReferenceReply(message: string, product: Product) {
@@ -562,21 +577,47 @@ async function persistConversation(input: {
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "assistant"), 30, 60_000);
-  const mutation = validateJsonMutationRequest(request, 16 * 1024);
+  const limit = rateLimit(getRequestKey(request, "assistant"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas al asistente.", 429, retryAfterHeaders(limit));
-  if (!mutation.ok) return jsonError(mutation.message, mutation.status);
+  const body = await readLimitedJson(request, 16 * 1024);
+  if (!body.ok) return jsonError(body.message, body.status);
 
-  let payload: z.infer<typeof schema>;
+  let payload: AssistantPayload;
   try {
-    payload = schema.parse(await request.json());
+    payload = schema.parse(body.data);
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Consulta invalida.", 422);
     return jsonError("No pudimos leer la consulta.", 400);
   }
+
+  const user = await getCurrentUser();
+  const identity = user?.id ?? `visitor:${payload.visitorId ?? getRequestKey(request, "anonymous")}`;
+  const identityLimit = rateLimitIdentity("assistant", identity, user?.id ? 30 : 15, 10 * 60_000);
+  if (!identityLimit.ok) {
+    return jsonError("Alcanzaste el límite de consultas del asistente. Esperá unos minutos.", 429, retryAfterHeaders(identityLimit));
+  }
+  const slot = acquireRequestConcurrency(request, {
+    scope: "assistant",
+    identity,
+    maxGlobal: 12,
+    maxPerIp: 1,
+    maxPerIdentity: 1,
+    leaseMs: 30_000
+  });
+  if (!slot.ok) {
+    return jsonError("El asistente ya está respondiendo tu consulta.", 429, retryAfterHeaders(slot));
+  }
+
+  try {
+    return await handleAssistantRequest(request, payload, user);
+  } finally {
+    slot.release();
+  }
+}
+
+async function handleAssistantRequest(request: Request, payload: AssistantPayload, user: CurrentUser) {
   const safety = assessAssistantInput(payload.message);
   const message = sanitizeSearchTerm(safety.safeText, 500).toLowerCase();
-  const user = await getCurrentUser();
   const readOnlyLoadTest = process.env.NODE_ENV !== "production" && request.headers.get("x-fzac-load-test") === "readonly";
   const persistenceConsent = payload.persistenceConsent === true
     && preferenceConsentCookieEnabled(request.headers.get("cookie"));
@@ -797,14 +838,14 @@ export async function POST(request: Request) {
       const baseReply = wantsTechnicalDetails && products.length === 1
         ? productTechnicalReply(products[0])
         : `${catalog.equivalentRequest ? "Tomando el primer resultado como referencia, estas son alternativas del mismo rubro o unidad de venta: " : "Encontré estas opciones del catálogo: "}${products
-            .map((product) => `${product.name} a ${currency(product.price)}, con ${product.stock} ${product.unit} visibles`)
+            .map((product) => `${product.name} a ${currency(product.price)}, con ${productAvailabilityText(product)}`)
             .join("; ")}. ${catalog.equivalentRequest ? "Confirmá medidas, rendimiento y ficha técnica antes de reemplazar un material." : "Revisá la unidad de venta y sumá margen si es para una obra."}`;
       const marketReference = await marketReferenceReply(normalizedForSearch, products[0]);
       const groundedDraft = `${baseReply}${marketReference}`;
       const language = await refineGroundedAssistantAnswer({
         question: safety.safeText,
         draft: groundedDraft,
-        facts: products.map((product) => `${product.name}; precio ${currency(product.price)}; stock ${product.stock}; unidad ${product.unit}`)
+        facts: products.map((product) => `${product.name}; precio ${currency(product.price)}; ${productAvailabilityText(product)}; unidad ${product.unit}`)
       });
       const reply = language.text;
       const sources: AssistantSource[] = products.slice(0, 3).map((product) => ({
@@ -856,6 +897,7 @@ export async function POST(request: Request) {
           slug: product.slug,
           price: product.price,
           stock: product.stock,
+          availability_status: product.availability_status,
           unit: product.unit
         }))
       });

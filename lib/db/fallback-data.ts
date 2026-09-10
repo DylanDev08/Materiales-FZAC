@@ -58,7 +58,7 @@ export const fallbackCategories: Category[] = [
   }
 ];
 
-const fallbackProductRows: Array<Omit<Product, "category">> = [
+const fallbackProductRows: Array<Omit<Product, "category" | "availability_status">> = [
   {
     id: "prod-placa-durlock-12-5",
     slug: "placa-durlock-12-5-mm",
@@ -189,6 +189,7 @@ const fallbackProductRows: Array<Omit<Product, "category">> = [
 
 export const fallbackProducts: Product[] = fallbackProductRows.map((product) => ({
   ...product,
+  availability_status: product.stock > 0 ? "IN_STOCK" as const : "OUT_OF_STOCK" as const,
   image_url: resolveProductImageUrl(product),
   category: fallbackCategories.find((category) => category.id === product.category_id) ?? null
 }));

@@ -9,8 +9,9 @@
 @import "../styles/receipt.css";
 @import "../styles/auth.css";
 @import "../styles/admin.css";
-@import "../styles/mobile.css";
 @import "../styles/storefront.css";
+@import "../styles/entry-loader.css";
+@import "../styles/mobile.css";
 
 * {
   box-sizing: border-box;

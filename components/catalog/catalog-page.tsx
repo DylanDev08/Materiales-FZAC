@@ -7,7 +7,7 @@ import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/
 import { CatalogViewToggle } from "@/components/catalog/catalog-view-toggle";
 import { AdminProductsManager } from "@/components/admin/admin-products-manager";
 import { getUserProfile } from "@/lib/auth/get-user";
-import { getAdminCategories, getAdminProducts } from "@/lib/db/admin";
+import { getAdminCategories, getAdminProducts, getAdminSuppliers } from "@/lib/db/admin";
 import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
 
@@ -91,7 +91,9 @@ export async function CatalogPage({
     getUserProfile()
   ]);
   const isAdmin = profile?.role === "ADMIN";
-  const adminProductData = isAdmin && showAdminProductLoader ? await Promise.all([getAdminProducts(), getAdminCategories()]) : null;
+  const adminProductData = isAdmin && showAdminProductLoader
+    ? await Promise.all([getAdminProducts(), getAdminCategories(), getAdminSuppliers()])
+    : null;
   const filterValues = {
     search: value(searchParams, "search"),
     category: forcedFilters.category ?? value(searchParams, "category"),
@@ -134,7 +136,7 @@ export async function CatalogPage({
       {adminProductData ? (
         <section className="catalog-admin-entry">
           <div className="container">
-            <AdminProductsManager products={adminProductData[0]} categories={adminProductData[1]} mode="create-only" />
+            <AdminProductsManager products={adminProductData[0]} categories={adminProductData[1]} suppliers={adminProductData[2]} mode="create-only" />
           </div>
         </section>
       ) : null}

@@ -17,3 +17,16 @@ export function safeInternalPath(value: string | null | undefined, fallback = "/
     return fallback;
   }
 }
+
+export function isHomeRoute(pathname: string) {
+  return pathname === "/";
+}
+
+export function isProductsRoute(pathname: string) {
+  return pathname === "/productos"
+    || pathname.startsWith("/producto/")
+    || pathname === "/categorias"
+    || pathname.startsWith("/categorias/")
+    || pathname.startsWith("/categoria/")
+    || pathname === "/catalogo";
+}

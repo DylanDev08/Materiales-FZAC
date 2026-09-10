@@ -1384,6 +1384,7 @@ export type Database = {
       products: {
         Row: {
           active: boolean
+          availability_status: string
           brand: string | null
           category_id: string | null
           compare_price: number | null
@@ -1402,11 +1403,13 @@ export type Database = {
           stock: number
           stock_minimum: number
           subcategory: string | null
+          supplier_id: string | null
           unit: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          availability_status?: string
           brand?: string | null
           category_id?: string | null
           compare_price?: number | null
@@ -1425,11 +1428,13 @@ export type Database = {
           stock?: number
           stock_minimum?: number
           subcategory?: string | null
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          availability_status?: string
           brand?: string | null
           category_id?: string | null
           compare_price?: number | null
@@ -1448,6 +1453,7 @@ export type Database = {
           stock?: number
           stock_minimum?: number
           subcategory?: string | null
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
         }
@@ -1457,6 +1463,76 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_supplier_sources: {
+        Row: {
+          checked_at: string
+          id: string
+          imported_at: string
+          margin_percent: number
+          original_name: string
+          original_price: number
+          product_id: string
+          source: string
+          source_image_url: string | null
+          source_product_id: string
+          source_sku: string | null
+          source_url: string
+          supplier_id: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: string
+          imported_at?: string
+          margin_percent?: number
+          original_name: string
+          original_price: number
+          product_id: string
+          source: string
+          source_image_url?: string | null
+          source_product_id: string
+          source_sku?: string | null
+          source_url: string
+          supplier_id: string
+        }
+        Update: {
+          checked_at?: string
+          id?: string
+          imported_at?: string
+          margin_percent?: number
+          original_name?: string
+          original_price?: number
+          product_id?: string
+          source?: string
+          source_image_url?: string | null
+          source_product_id?: string
+          source_sku?: string | null
+          source_url?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_supplier_sources_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_supplier_sources_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]

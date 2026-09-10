@@ -142,6 +142,10 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     compare_price: row.compare_price ? Number(row.compare_price) : null,
     stock: Number(row.stock ?? 0),
     stock_minimum: Number(row.stock_minimum ?? 0),
+    availability_status: row.availability_status === "CONSULT"
+      ? "CONSULT" as const
+      : row.availability_status === "OUT_OF_STOCK" ? "OUT_OF_STOCK" as const : "IN_STOCK" as const,
+    supplier_id: row.supplier_id ? String(row.supplier_id) : null,
     unit: String(row.unit ?? "unidad"),
     image_url: String(row.image_url ?? ""),
     gallery: Array.isArray(row.gallery) ? (row.gallery as string[]) : [],

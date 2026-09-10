@@ -295,7 +295,7 @@ async function readLimitedBody(response: Response, maximumBytes = 1_000_000) {
   return body + decoder.decode();
 }
 
-export async function syncMarketPriceFeeds() {
+async function performMarketPriceFeedSync() {
   const admin = getSupabaseAdminClient();
   if (!admin) throw new Error("Backend administrativo no disponible.");
   const hosts = allowedMarketHosts();
@@ -403,6 +403,16 @@ export async function syncMarketPriceFeeds() {
     }
   }
   return summary;
+}
+
+let marketPriceSyncInFlight: ReturnType<typeof performMarketPriceFeedSync> | null = null;
+
+export function syncMarketPriceFeeds() {
+  if (marketPriceSyncInFlight) return marketPriceSyncInFlight;
+  marketPriceSyncInFlight = performMarketPriceFeedSync().finally(() => {
+    marketPriceSyncInFlight = null;
+  });
+  return marketPriceSyncInFlight;
 }
 
 export async function applyMarketPriceSuggestion(input: {
