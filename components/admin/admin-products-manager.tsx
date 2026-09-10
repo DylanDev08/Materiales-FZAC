@@ -3,8 +3,9 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, ImageOff, PackageSearch, Save, Search, Trash2, UploadCloud } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
+import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
-import type { Category, Product } from "@/types/domain";
+import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
 
 type ProductForm = {
   id: string;
@@ -19,6 +20,7 @@ type ProductForm = {
   compare_price: string | number | null;
   stock: string | number;
   stock_minimum: string | number;
+  availability_status: ProductAvailabilityStatus;
   unit: string;
   image_url: string;
   gallery: string[];
@@ -41,6 +43,7 @@ const emptyProduct: ProductForm = {
   compare_price: null as number | null,
   stock: 0,
   stock_minimum: 5,
+  availability_status: "OUT_OF_STOCK",
   unit: "unidad",
   image_url: "",
   gallery: [] as string[],
@@ -50,15 +53,25 @@ const emptyProduct: ProductForm = {
   active: true
 };
 
-type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "OUT_OF_STOCK" | "INACTIVE";
+type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK" | "INACTIVE";
+
+function productForm(product: Product): ProductForm {
+  return {
+    ...emptyProduct,
+    ...product,
+    availability_status: getProductAvailabilityStatus(product)
+  };
+}
 
 function getProductIssues(product: Product, categoryIds: Set<string>) {
   const issues: string[] = [];
+  const availability = getProductAvailabilityStatus(product);
   if (!product.image_url.trim()) issues.push("Sin foto");
   if (!product.description.trim()) issues.push("Sin descripcion");
   if (!categoryIds.has(product.category_id)) issues.push("Sin categoria");
   if (Number(product.price) <= 0) issues.push("Sin precio");
-  if (Number(product.stock) <= 0) issues.push("Sin stock");
+  if (availability === "OUT_OF_STOCK") issues.push("Sin stock");
+  if (availability === "IN_STOCK" && Number(product.stock) <= 0) issues.push("Stock inconsistente");
   return issues;
 }
 
@@ -74,9 +87,9 @@ export function AdminProductsManager({
   initialProductId?: string;
 }) {
   const [rows, setRows] = useState(products);
-  const [form, setForm] = useState(() => {
+  const [form, setForm] = useState<ProductForm>(() => {
     const selected = products.find((product) => product.id === initialProductId);
-    return selected ? { ...emptyProduct, ...selected } : { ...emptyProduct, category_id: categories[0]?.id ?? "" };
+    return selected ? productForm(selected) : { ...emptyProduct, category_id: categories[0]?.id ?? "" };
   });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -92,7 +105,8 @@ export function AdminProductsManager({
     const active = rows.filter((product) => product.active);
     const ready = active.filter((product) => getProductIssues(product, categoryIds).length === 0);
     const missingImages = active.filter((product) => !product.image_url.trim()).length;
-    const outOfStock = active.filter((product) => Number(product.stock) <= 0).length;
+    const outOfStock = active.filter((product) => getProductAvailabilityStatus(product) === "OUT_OF_STOCK").length;
+    const consult = active.filter((product) => getProductAvailabilityStatus(product) === "CONSULT").length;
     const attention = active.length - ready.length;
 
     return {
@@ -101,6 +115,7 @@ export function AdminProductsManager({
       attention,
       missingImages,
       outOfStock,
+      consult,
       readiness: active.length ? Math.round((ready.length / active.length) * 100) : 0
     };
   }, [categoryIds, rows]);
@@ -108,6 +123,7 @@ export function AdminProductsManager({
     const normalizedQuery = query.trim().toLocaleLowerCase("es-AR");
     return sortedRows.filter((product) => {
       const issues = getProductIssues(product, categoryIds);
+      const availability = getProductAvailabilityStatus(product);
       const matchesQuery =
         !normalizedQuery ||
         [product.name, product.sku, product.brand, categoryById.get(product.category_id) ?? ""]
@@ -118,7 +134,8 @@ export function AdminProductsManager({
         catalogFilter === "ALL" ||
         (catalogFilter === "READY" && product.active && issues.length === 0) ||
         (catalogFilter === "ATTENTION" && product.active && issues.length > 0) ||
-        (catalogFilter === "OUT_OF_STOCK" && product.active && Number(product.stock) <= 0) ||
+        (catalogFilter === "CONSULT" && product.active && availability === "CONSULT") ||
+        (catalogFilter === "OUT_OF_STOCK" && product.active && availability === "OUT_OF_STOCK") ||
         (catalogFilter === "INACTIVE" && !product.active);
       return matchesQuery && matchesFilter;
     });
@@ -270,6 +287,17 @@ export function AdminProductsManager({
             <input inputMode="numeric" value={String(form.stock)} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
           </label>
           <label>
+            Disponibilidad
+            <select
+              value={form.availability_status}
+              onChange={(event) => setForm({ ...form, availability_status: event.target.value as ProductAvailabilityStatus })}
+            >
+              <option value="IN_STOCK">En stock</option>
+              <option value="CONSULT">Consultar disponibilidad</option>
+              <option value="OUT_OF_STOCK">Sin stock</option>
+            </select>
+          </label>
+          <label>
             Stock minimo
             <input inputMode="numeric" value={String(form.stock_minimum)} onChange={(event) => setForm({ ...form, stock_minimum: event.target.value })} />
           </label>
@@ -299,8 +327,8 @@ export function AdminProductsManager({
             )}
           </div>
           <label>
-            Descripcion
-            <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required />
+            Descripcion (opcional si la fuente no publica una descripcion verificable)
+            <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           </label>
           <div className="field admin-product-flags-field">
             <span>Flags</span>
@@ -333,7 +361,7 @@ export function AdminProductsManager({
             <p>
               {catalogSummary.active === 0
                 ? "Todavia no hay productos activos. Carga el primer producto para publicar el catalogo."
-                : `${catalogSummary.ready} de ${catalogSummary.active} productos activos tienen precio, foto, categoria, descripcion y stock.`}
+                : `${catalogSummary.ready} de ${catalogSummary.active} productos activos tienen precio, foto, categoria, descripcion y estado comercial coherente.`}
             </p>
             <div className="admin-catalog-progress" aria-label={`Preparacion del catalogo: ${catalogSummary.readiness}%`}>
               <span style={{ width: `${catalogSummary.readiness}%` }} />
@@ -357,8 +385,8 @@ export function AdminProductsManager({
             </div>
             <div>
               <PackageSearch size={18} />
-              <dt>Sin stock</dt>
-              <dd>{catalogSummary.outOfStock}</dd>
+              <dt>A consultar</dt>
+              <dd>{catalogSummary.consult}</dd>
             </div>
           </dl>
         </div>
@@ -380,6 +408,7 @@ export function AdminProductsManager({
               <option value="ALL">Todos</option>
               <option value="READY">Listos para vender</option>
               <option value="ATTENTION">Requieren revision</option>
+              <option value="CONSULT">Consultar disponibilidad</option>
               <option value="OUT_OF_STOCK">Sin stock</option>
               <option value="INACTIVE">Inactivos</option>
             </select>
@@ -401,16 +430,19 @@ export function AdminProductsManager({
             <tbody>
               {visibleRows.map((product) => {
                 const issues = getProductIssues(product, categoryIds);
+                const availability = getProductAvailabilityStatus(product);
                 return (
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{product.sku}</td>
                   <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
                   <td>{currency(product.price)}</td>
-                  <td>{product.stock}</td>
+                  <td>{availability === "CONSULT" ? "A consultar" : product.stock}</td>
                   <td>
                     {!product.active ? (
                       <span className="status-pill">Inactivo</span>
+                    ) : availability === "CONSULT" ? (
+                      <span className="status-pill status-pill--warning">Consultar disponibilidad</span>
                     ) : issues.length === 0 ? (
                       <span className="status-pill status-pill--success">Listo</span>
                     ) : (
@@ -421,7 +453,7 @@ export function AdminProductsManager({
                   </td>
                   <td>
                     <div className="admin-actions">
-                      <button className="btn btn--ghost" type="button" onClick={() => setForm({ ...emptyProduct, ...product })}>
+                      <button className="btn btn--ghost" type="button" onClick={() => setForm(productForm(product))}>
                         Editar
                       </button>
                       <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>

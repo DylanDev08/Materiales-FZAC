@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Grid2X2, Menu, X } from "lucide-react";
 import type { Category } from "@/types/domain";
 
@@ -26,6 +27,7 @@ const fallbackCategories = [
 ];
 
 export function SiteNav({ categories }: { categories: Category[] }) {
+  const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<"products" | "categories" | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
@@ -36,6 +38,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
     categories.length > 0
       ? categories.slice(0, 9).map((category) => ({ href: `/categoria/${category.slug}`, label: category.name }))
       : fallbackCategories;
+
+  const homeActive = pathname === "/";
+  const productsActive = pathname === "/productos" || pathname.startsWith("/producto/");
+  const categoriesActive = pathname === "/categorias" || pathname.startsWith("/categoria/");
+  const offersActive = pathname === "/ofertas";
+  const howToBuyActive = pathname === "/como-comprar";
+  const contactActive = pathname === "/contacto";
 
   useEffect(() => {
     const readyTimer = window.setTimeout(() => setReady(true), 0);
@@ -63,14 +72,15 @@ export function SiteNav({ categories }: { categories: Category[] }) {
     <div className="site-nav-wrap" ref={navRef}>
       <nav className="category-nav" aria-label="Navegación principal">
         <div className="container category-nav__inner">
-          <Link href="/" onClick={closeAll} prefetch={false}>
+          <Link href="/" className={homeActive ? "is-active" : undefined} aria-current={homeActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Inicio
           </Link>
           <div className="nav-dropdown-wrap">
             <button
               type="button"
-              className="category-nav__button category-nav__button--primary"
+              className={`category-nav__button category-nav__button--primary${productsActive ? " is-active" : ""}`}
               aria-expanded={openDropdown === "products"}
+              aria-current={productsActive ? "page" : undefined}
               onClick={() => setOpenDropdown(openDropdown === "products" ? null : "products")}
             >
               Productos <ChevronDown size={16} />
@@ -88,8 +98,9 @@ export function SiteNav({ categories }: { categories: Category[] }) {
           <div className="nav-dropdown-wrap">
             <button
               type="button"
-              className="category-nav__button"
+              className={`category-nav__button${categoriesActive ? " is-active" : ""}`}
               aria-expanded={openDropdown === "categories"}
+              aria-current={categoriesActive ? "page" : undefined}
               onClick={() => setOpenDropdown(openDropdown === "categories" ? null : "categories")}
             >
               <Grid2X2 size={16} /> Categorías <ChevronDown size={16} />
@@ -104,13 +115,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
               </div>
             ) : null}
           </div>
-          <Link href="/ofertas" onClick={closeAll} prefetch={false}>
+          <Link href="/ofertas" className={offersActive ? "is-active" : undefined} aria-current={offersActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Ofertas
           </Link>
-          <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
+          <Link href="/como-comprar" className={howToBuyActive ? "is-active" : undefined} aria-current={howToBuyActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Cómo comprar
           </Link>
-          <Link href="/contacto" onClick={closeAll} prefetch={false}>
+          <Link href="/contacto" className={contactActive ? "is-active" : undefined} aria-current={contactActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Contacto
           </Link>
         </div>
@@ -122,13 +133,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
       </button>
       {mobileOpen ? (
         <div className="mobile-nav-panel">
-          <Link href="/" onClick={closeAll} prefetch={false}>
+          <Link href="/" className={homeActive ? "is-active" : undefined} aria-current={homeActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Inicio
           </Link>
-          <Link href="/productos" onClick={closeAll} prefetch={false}>
+          <Link href="/productos" className={productsActive ? "is-active" : undefined} aria-current={productsActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Productos
           </Link>
-          <button type="button" onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}>
+          <button type="button" className={categoriesActive ? "is-active" : undefined} aria-current={categoriesActive ? "page" : undefined} onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}>
             Categorías <ChevronDown size={16} />
           </button>
           {mobileCategoriesOpen ? (
@@ -140,13 +151,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
               ))}
             </div>
           ) : null}
-          <Link href="/ofertas" onClick={closeAll} prefetch={false}>
+          <Link href="/ofertas" className={offersActive ? "is-active" : undefined} aria-current={offersActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Ofertas
           </Link>
-          <Link href="/como-comprar" onClick={closeAll} prefetch={false}>
+          <Link href="/como-comprar" className={howToBuyActive ? "is-active" : undefined} aria-current={howToBuyActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Cómo comprar
           </Link>
-          <Link href="/contacto" onClick={closeAll} prefetch={false}>
+          <Link href="/contacto" className={contactActive ? "is-active" : undefined} aria-current={contactActive ? "page" : undefined} onClick={closeAll} prefetch={false}>
             Contacto
           </Link>
         </div>

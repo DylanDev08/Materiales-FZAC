@@ -22,6 +22,7 @@ export const adminProductSchema = z.object({
   compare_price: z.coerce.number().min(0).nullable().optional(),
   stock: z.coerce.number().int().min(0),
   stock_minimum: z.coerce.number().int().min(0).default(5),
+  availability_status: z.enum(["IN_STOCK", "OUT_OF_STOCK", "CONSULT"]).optional(),
   unit: safeText("Unidad", 1, 40).default("unidad"),
   image_url: z.string().trim().url().or(z.literal("")),
   gallery: z.array(z.string().url()).default([]),

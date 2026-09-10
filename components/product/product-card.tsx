@@ -3,9 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, CheckCircle, ShieldCheck, ShoppingCart } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
+import {
+  canPurchaseProduct,
+  getProductAvailabilityStatus,
+  productAvailabilityLabel
+} from "@/lib/products/availability";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -14,9 +19,12 @@ export function ProductCard({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
+  const availabilityStatus = getProductAvailabilityStatus(product);
+  const purchasable = canPurchaseProduct(product);
+  const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
 
   function addToCart() {
-    if (!hydrated || isAdding || product.stock <= 0) return;
+    if (!hydrated || isAdding || !purchasable) return;
     setIsAdding(true);
     addItem(product, 1);
     setAdded(true);
@@ -40,10 +48,15 @@ export function ProductCard({ product }: { product: Product }) {
         />
         <div className="product-card__badges">
           {discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
-          {product.stock > 0 && product.stock <= product.stock_minimum ? (
+          {purchasable && product.stock <= product.stock_minimum ? (
             <span className="status-pill status-pill--danger">Stock bajo</span>
           ) : null}
-          {product.stock <= 0 ? <span className="status-pill status-pill--danger">Sin stock</span> : null}
+          {availabilityStatus === "CONSULT" ? (
+            <span className="status-pill status-pill--warning">Consultar disponibilidad</span>
+          ) : null}
+          {availabilityStatus === "OUT_OF_STOCK" ? (
+            <span className="status-pill status-pill--danger">Sin stock</span>
+          ) : null}
         </div>
       </Link>
 
@@ -60,16 +73,29 @@ export function ProductCard({ product }: { product: Product }) {
           <strong>{currency(product.price)}</strong>
           {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
         </div>
-        <span className={`product-card__stock ${product.stock > 0 ? "" : "product-card__stock--empty"}`}>
-          {product.stock > 0 ? `En stock · ${product.stock} ${product.unit}` : "Sin stock"}
+        <span className={`product-card__stock ${availabilityStatus === "OUT_OF_STOCK" ? "product-card__stock--empty" : ""}`}>
+          {availabilityLabel}
         </span>
-        <span className="product-card__finance"><ShieldCheck size={14} /> Pago seguro y stock validado</span>
+        <span className="product-card__finance">
+          {purchasable ? (
+            <><ShieldCheck size={14} /> Pago seguro y stock validado</>
+          ) : (
+            <><MessageCircle size={14} /> Disponibilidad a confirmar antes de comprar</>
+          )}
+        </span>
 
         <div className="product-card__actions">
-          <button className="btn" type="button" disabled={!hydrated || product.stock <= 0 || isAdding} onClick={addToCart}>
-            <ShoppingCart size={18} />
-            {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar"}
-          </button>
+          {purchasable ? (
+            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
+              <ShoppingCart size={18} />
+              {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar"}
+            </button>
+          ) : (
+            <Link className="btn" href={`/producto/${product.slug}`} prefetch={false}>
+              <MessageCircle size={18} />
+              {availabilityStatus === "CONSULT" ? "Consultar" : "Ver alternativas"}
+            </Link>
+          )}
           <Link
             className="btn btn--ghost product-card__detail"
             href={`/producto/${product.slug}`}

@@ -5,7 +5,7 @@ import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
-import type { Category, Product } from "@/types/domain";
+import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
 
 export type ProductFilters = {
   search?: string;
@@ -37,6 +37,12 @@ function normalizeCategory(row: Record<string, unknown>): Category {
   };
 }
 
+function normalizeAvailabilityStatus(row: Record<string, unknown>): ProductAvailabilityStatus {
+  const status = String(row.availability_status ?? "").toUpperCase();
+  if (status === "CONSULT" || status === "OUT_OF_STOCK" || status === "IN_STOCK") return status;
+  return Number(row.stock ?? 0) > 0 ? "IN_STOCK" : "OUT_OF_STOCK";
+}
+
 function normalizeProduct(row: Record<string, unknown>): Product {
   const categoryRow = (row.category ?? row.categories ?? null) as Record<string, unknown> | null;
   const product = {
@@ -53,6 +59,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     compare_price: row.compare_price || row.comparePrice ? Number(row.compare_price ?? row.comparePrice) : null,
     stock: Number(row.stock ?? 0),
     stock_minimum: Number(row.stock_minimum ?? row.stockMinimum ?? 0),
+    availability_status: normalizeAvailabilityStatus(row),
     unit: String(row.unit ?? "unidad"),
     image_url: String(row.image_url ?? row.image ?? "/placeholder-product.jpg"),
     gallery: Array.isArray(row.gallery) ? (row.gallery as string[]) : [],
@@ -88,7 +95,7 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
 
   if (filters.minPrice) result = result.filter((product) => product.price >= Number(filters.minPrice));
   if (filters.maxPrice) result = result.filter((product) => product.price <= Number(filters.maxPrice));
-  if (filters.inStock) result = result.filter((product) => product.stock > 0);
+  if (filters.inStock) result = result.filter((product) => product.availability_status === "IN_STOCK" && product.stock > 0);
   if (filters.onSale) result = result.filter((product) => product.on_sale);
   if (filters.featured) result = result.filter((product) => product.featured);
 
@@ -175,7 +182,7 @@ export async function getProducts(filters: ProductFilters = {}) {
   if (filters.brand) query = query.ilike("brand", sanitizeSearchTerm(filters.brand));
   if (filters.minPrice) query = query.gte("price", filters.minPrice);
   if (filters.maxPrice) query = query.lte("price", filters.maxPrice);
-  if (filters.inStock) query = query.gt("stock", 0);
+  if (filters.inStock) query = query.eq("availability_status", "IN_STOCK").gt("stock", 0);
   if (filters.onSale) query = query.eq("on_sale", true);
   if (filters.featured) query = query.eq("featured", true);
 
