@@ -34,14 +34,18 @@ export type ShippingQuote =
       provider?: "GOOGLE_DISTANCE_MATRIX";
     };
 
+function cleanAddressPart(value: string | undefined, maxLength = 90) {
+  return value?.trim().replace(/\s+/g, " ").slice(0, maxLength) || undefined;
+}
+
 function addressLine(address: AddressPayload) {
   return [
-    address.street,
-    address.number,
-    address.apartment,
-    address.city || "Rosario",
-    address.province || "Santa Fe",
-    address.postalCode,
+    cleanAddressPart(address.street, 120),
+    cleanAddressPart(address.number, 20),
+    cleanAddressPart(address.apartment, 50),
+    cleanAddressPart(address.city, 80) || "Rosario",
+    cleanAddressPart(address.province, 80) || "Santa Fe",
+    cleanAddressPart(address.postalCode, 20),
     "Argentina"
   ]
     .filter(Boolean)
@@ -96,7 +100,7 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
     return {
       available: false,
       amount: 0,
-      reason: "Falta configurar la tarifa vigente de envio FZAC.",
+      reason: "Falta configurar la tarifa vigente de envío FZAC.",
       origin,
       destination
     };
@@ -110,12 +114,30 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
   url.searchParams.set("region", "ar");
   url.searchParams.set("key", key);
 
-  const response = await fetch(url, { cache: "no-store" });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6_000);
+
+  let response: Response;
+  try {
+    response = await fetch(url, { cache: "no-store", signal: controller.signal });
+  } catch {
+    return {
+      available: false,
+      amount: 0,
+      reason: "No pudimos consultar distancia real del envío. Probá nuevamente o elegí retiro.",
+      origin,
+      destination,
+      provider: "GOOGLE_DISTANCE_MATRIX"
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+
   if (!response.ok) {
     return {
       available: false,
       amount: 0,
-      reason: "No pudimos consultar distancia real del envio.",
+      reason: "No pudimos consultar distancia real del envío.",
       origin,
       destination,
       provider: "GOOGLE_DISTANCE_MATRIX"
@@ -131,7 +153,7 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
     return {
       available: false,
       amount: 0,
-      reason: "La direccion no pudo cotizarse con distancia real.",
+      reason: "La dirección no pudo cotizarse con distancia real.",
       origin,
       destination,
       provider: "GOOGLE_DISTANCE_MATRIX"
@@ -142,7 +164,7 @@ export async function quoteDeliveryForAddress(address: AddressPayload): Promise<
     return {
       available: false,
       amount: 0,
-      reason: `La direccion supera el radio automatico de ${tariff.maxKm} km desde Rosario.`,
+      reason: `La dirección supera el radio automático de ${tariff.maxKm} km desde Rosario.`,
       distanceKm,
       origin,
       destination,
