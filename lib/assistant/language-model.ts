@@ -49,6 +49,13 @@ function outputIsGrounded(output: string, source: string) {
     && [...urlTokens(output)].every((url) => allowedUrls.has(url));
 }
 
+function normalizeCatalogAvailabilityText(value: string) {
+  return value
+    .replace(/stock visible 0\s+([^.;]+)\./gi, "disponibilidad a consultar.")
+    .replace(/con 0\s+([^;.,]+)\s+visibles/gi, "con disponibilidad a consultar")
+    .replace(/stock 0;\s*unidad\s+([^;\n]+)/gi, "disponibilidad a consultar; unidad $1");
+}
+
 function registerFailure() {
   consecutiveFailures += 1;
   if (consecutiveFailures >= 3) circuitOpenUntil = Date.now() + 60_000;
@@ -72,32 +79,33 @@ function extractText(payload: unknown) {
 }
 
 export async function refineGroundedAssistantAnswer(input: GroundedLanguageInput): Promise<LanguageModelResult> {
-  if (!enabled()) return { text: input.draft, used: false, reason: "DISABLED" };
-  if (circuitOpenUntil > Date.now()) return { text: input.draft, used: false, reason: "CIRCUIT_OPEN" };
+  const groundedDraft = normalizeCatalogAvailabilityText(input.draft);
+  if (!enabled()) return { text: groundedDraft, used: false, reason: "DISABLED" };
+  if (circuitOpenUntil > Date.now()) return { text: groundedDraft, used: false, reason: "CIRCUIT_OPEN" };
 
   const endpointValue = process.env.ASSISTANT_LLM_ENDPOINT?.trim() ?? "";
   const apiKey = process.env.ASSISTANT_LLM_API_KEY?.trim() ?? "";
   const model = process.env.ASSISTANT_LLM_MODEL?.trim() ?? "";
-  if (!endpointValue || !apiKey || !model) return { text: input.draft, used: false, reason: "NOT_CONFIGURED" };
+  if (!endpointValue || !apiKey || !model) return { text: groundedDraft, used: false, reason: "NOT_CONFIGURED" };
 
   let endpoint: URL;
   try {
     endpoint = new URL(endpointValue);
   } catch {
-    return { text: input.draft, used: false, reason: "NOT_CONFIGURED" };
+    return { text: groundedDraft, used: false, reason: "NOT_CONFIGURED" };
   }
   if (endpoint.protocol !== "https:" || !allowedHosts().has(endpoint.hostname.toLowerCase())) {
-    return { text: input.draft, used: false, reason: "NOT_CONFIGURED" };
+    return { text: groundedDraft, used: false, reason: "NOT_CONFIGURED" };
   }
 
-  const safeDraft = redactAssistantSensitiveText(input.draft, 2_000);
+  const safeDraft = redactAssistantSensitiveText(groundedDraft, 2_000);
   const facts = (input.facts ?? [])
-    .map((fact) => redactAssistantSensitiveText(fact, 500))
+    .map((fact) => normalizeCatalogAvailabilityText(redactAssistantSensitiveText(fact, 500)))
     .filter(Boolean)
     .slice(0, 8);
   const groundedSource = [safeDraft, ...facts].join("\n");
   if (!safeDraft || assessAssistantInput(groundedSource).decision === "BLOCK") {
-    return { text: input.draft, used: false, reason: "REJECTED" };
+    return { text: groundedDraft, used: false, reason: "REJECTED" };
   }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4_000);
@@ -129,35 +137,35 @@ export async function refineGroundedAssistantAnswer(input: GroundedLanguageInput
     });
     if (!response.ok) {
       registerFailure();
-      return { text: input.draft, used: false, reason: "FAILED" };
+      return { text: groundedDraft, used: false, reason: "FAILED" };
     }
     const declaredLength = Number(response.headers.get("content-length") ?? 0);
     if (declaredLength > MAX_RESPONSE_BYTES) {
       registerFailure();
-      return { text: input.draft, used: false, reason: "TOO_LARGE" };
+      return { text: groundedDraft, used: false, reason: "TOO_LARGE" };
     }
     const raw = await response.text();
     if (new TextEncoder().encode(raw).length > MAX_RESPONSE_BYTES) {
       registerFailure();
-      return { text: input.draft, used: false, reason: "TOO_LARGE" };
+      return { text: groundedDraft, used: false, reason: "TOO_LARGE" };
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
       registerFailure();
-      return { text: input.draft, used: false, reason: "FAILED" };
+      return { text: groundedDraft, used: false, reason: "FAILED" };
     }
     const text = extractText(parsed);
     if (!text || !outputIsGrounded(text, groundedSource)) {
       registerFailure();
-      return { text: input.draft, used: false, reason: "REJECTED" };
+      return { text: groundedDraft, used: false, reason: "REJECTED" };
     }
     registerSuccess();
     return { text, used: true, reason: "APPLIED" };
   } catch {
     registerFailure();
-    return { text: input.draft, used: false, reason: "FAILED" };
+    return { text: groundedDraft, used: false, reason: "FAILED" };
   } finally {
     clearTimeout(timeout);
   }
