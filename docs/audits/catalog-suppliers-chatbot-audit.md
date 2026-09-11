@@ -1,0 +1,144 @@
+# Auditoría de catálogo, proveedores, envíos y chatbot
+
+Fecha de ejecución: 10/11 de septiembre de 2026 (America/Buenos_Aires).
+
+## 1. Productos encontrados en La Yesera Rosarina
+
+- Fuente limitada a `Construcción en Seco`: <https://tienda.layeserarosarina.com.ar/construccion-en-seco/>.
+- Vista previa inicial: 96 filas públicas, revisadas antes de la primera inserción.
+- Estado productivo consolidado tras integrar la rama remota preexistente: 109 productos con procedencia verificable de La Yesera Rosarina.
+- Dataset inicial: [`data/imports/la-yesera-construccion-en-seco.preview.json`](../../data/imports/la-yesera-construccion-en-seco.preview.json).
+- Dataset productivo completo: [`data/imports/la-yesera-production-audit.json`](../../data/imports/la-yesera-production-audit.json).
+
+## 2. Productos importados
+
+- 109 productos activos vinculados al proveedor `LA-YESERA-ROSARINA`.
+- Catálogo público: 85 en Construcción en seco, 11 en Steel Framing y 13 en Ferretería.
+- No se borraron ni sobrescribieron productos históricos de otros proveedores; se ocultan solamente en la consulta pública y continúan disponibles en Admin.
+
+## 3. Duplicados
+
+- Control final por `source_product_id`, SKU, slug y nombre normalizado: 0 duplicados exactos.
+- La importación usa procedencia única por proveedor/producto externo e impide aplicar el margen dos veces.
+- La vista previa y clasificación aplicada están en [`data/imports/fzac-storefront-taxonomy.preview.json`](../../data/imports/fzac-storefront-taxonomy.preview.json).
+
+## 4. Precios originales
+
+- Los 109 valores originales se conservan en `product_supplier_sources.original_price`, fuera de las consultas públicas.
+- Rango observado en la fuente: ARS 750 a ARS 653.000.
+- El detalle producto por producto está en el dataset productivo; no se expone costo ni procedencia al cliente.
+
+## 5. Precios FZAC (+20%)
+
+- Fórmula verificada: `Math.round(original_price * 1.20)`.
+- Rango FZAC: ARS 900 a ARS 783.600.
+- Auditoría final: 0 diferencias de margen sobre 109 filas y 0 doble incremento.
+
+## 6. Imágenes
+
+- 109/109 productos tienen URL propia en el bucket público `product-images`, bajo `la-yesera-rosarina/*.webp`.
+- 108 imágenes se descargaron de assets públicos autorizados, se rotaron/limitaron a 1200 px y se convirtieron a WebP.
+- Un detalle fuente devolvía 404 (`BASE COAT BICOMPONENTE DURLOCK EXTERIORES`); se generó un asset neutro propio, sin marca ni texto inventado, y se subió al mismo Storage.
+- No hay hotlink permanente y no se eliminaron imágenes existentes.
+- Vista previa y resultado: [`data/imports/la-yesera-images.preview.json`](../../data/imports/la-yesera-images.preview.json).
+
+## 7. Proveedores
+
+El panel Admin muestra exactamente los tres proveedores solicitados:
+
+- Yesera Rosarina (`LA-YESERA-ROSARINA`).
+- Urbe SRL (`URBE-SRL`).
+- Maquinaria Sorrentos (`MAQUINARIA-SORRENTOS`).
+
+No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. La fila anterior de Universo Pinturas se renombró de forma no destructiva, conservando su UUID y relaciones.
+
+## 8. Google Maps y tarifa de envío
+
+- La integración backend usa Routes API `computeRouteMatrix`, clave exclusivamente server-side, field mask mínimo, timeout de 7 s, caché, deduplicación, límite de concurrencia y rate limit.
+- Autocomplete usa clave browser separada y carga controlada; no cotiza por cada tecla.
+- Retiro mantiene envío ARS 0.
+- La Yesera muestra la etiqueta pública `Envío gratis` en estos productos, pero no expone un tarifario por km, base comercial ni un cotizador postal en las páginas auditadas. Esa etiqueta no se transformó en una tarifa universal para FZAC.
+- Sin `FZAC_SHIPPING_BASE_PRICE` y `FZAC_SHIPPING_PRICE_PER_KM`, el backend falla cerrado con importe 0 y mensaje explícito; nunca inventa flete.
+- `render.yaml` declara claves browser/server por separado y las variables comerciales como secretos/valores operativos externos.
+
+## 9. Bugs UI/UX encontrados
+
+- Home genérica y con rubros fuera del catálogo fuente: reemplazada por una tienda enfocada en construcción en seco, Steel Framing y Ferretería.
+- Home ahora incluye hero comercial, carril real de productos, tres categorías y compra por necesidad.
+- Catálogo con filtros redundantes: se simplificó y se agregó disponibilidad (`Disponible`, `Consultar disponibilidad`, `Sin stock`).
+- Mensajes genéricos de Zod en dirección: reemplazados por errores claros en español.
+- PWA con logo pequeño dentro de un cuadrado negro: iconos 192/512, Apple y maskable regenerados con mayor ocupación visual.
+- Botón del asistente: logo WebP propio, centrado con flex, `object-fit: contain`, 56 px desktop y 48 px mobile.
+
+## 10. Bug Home/Productos
+
+- `/` activa exclusivamente Inicio.
+- `/productos`, `/producto/*`, `/categorias/*` y `/categoria/*` activan Productos.
+- Corregido en navegación desktop y mobile con `aria-current`; el test ya no depende de un producto histórico oculto.
+
+## 11. Seguridad Admin
+
+- `/admin` anónimo bloqueado/redirigido y sin datos sensibles.
+- Los handlers `/api/admin/*` calculan el rol server-side; no aceptan rol del frontend.
+- La service role sigue limitada a módulos `server-only` y scripts operativos locales; no se incluyó en bundles cliente.
+- Productos, proveedores, pagos, eventos, auditoría y uploads conservan autorización Admin.
+
+## 12. Estado RLS
+
+- Chequeo automático: 37 tablas públicas con `FORCE ROW LEVEL SECURITY` requerido.
+- `product_supplier_sources` y proveedores no exponen costo/procedencia al catálogo anónimo.
+- No se añadió ninguna policy sensible con `USING (true)`.
+- La lectura pública de productos continúa limitada a activos; la aplicación agrega el filtro server-side de proveedor/categorías.
+
+## 13. Cambios del chatbot
+
+- Consulta el mismo catálogo público real: solo productos Yesera en las tres categorías habilitadas.
+- Responde precio FZAC; no devuelve costo, proveedor, margen ni IDs internos.
+- Stock 0 se comunica como `Consultar disponibilidad`, no como cantidad inventada.
+- Mantiene historial acotado, saneamiento, longitud máxima, rate limiting, detección de prompt injection, fuentes internas y opciones rápidas.
+- Se conservan estimación de placas, pagos, retiro/envío, devoluciones y handoff para casos críticos.
+
+## 14. Pruebas del chatbot
+
+- Clasificador: 140 documentos, 13 intents, 32 evaluaciones y 283 términos; check correcto.
+- Smoke HTTP: saludo, cambio de tema a pago, cuenta, devolución, privacidad, compra, categorías, arrepentimiento, cálculo Durlock, cobro duplicado y prompt injection.
+- Suite Playwright cubre orquestación, privacidad, fuentes, desktop y mobile.
+
+## 15. Archivos modificados
+
+- Datos/scripts: `scripts/catalog/*`, `data/imports/*`, `package.json`, `pnpm-lock.yaml`.
+- Catálogo/Home: `lib/db/catalog.ts`, `components/catalog/*`, `components/home/home-page.tsx`, metadata públicas.
+- PWA/chatbot: `public/icons/*`, `public/products/fzac/*`, `app/manifest.ts`, `app/icon.tsx`, `components/chatbot/floating-assistant.tsx`, estilos.
+- Envío/deploy: `app/api/shipping/quote/route.ts`, `render.yaml`.
+- QA: unitarias de importación y specs Playwright de navegación, catálogo, PWA y envío.
+
+## 16. Migraciones realizadas
+
+- `20260910131011_catalog_supplier_import_support.sql`: `supplier_id`, disponibilidad y tabla privada de procedencia/precio original.
+- No se ejecutó SQL destructivo, no se borraron tablas y no se alteró Mercado Pago, Auth ni el contrato de RLS.
+- La clasificación en las tres categorías y el renombre de proveedores se hicieron por script idempotente sobre filas existentes.
+
+## 17. Resultado typecheck
+
+- `pnpm typecheck`: correcto.
+- Entorno local: Node 22.17.0 genera advertencia porque el repo declara mínimo 22.22.0; Render está fijado en 22.22.0.
+
+## 18. Resultado build y seguridad
+
+- `pnpm build`: correcto, 74 rutas.
+- `pnpm lint`: correcto.
+- `pnpm security:check`: correcto.
+- `pnpm audit --prod`: 0 vulnerabilidades conocidas.
+
+## 19. Resultado Playwright
+
+- Corrida completa local sobre build productivo: 136 correctas, 49 omitidas y 0 fallos.
+- Incluye las pruebas agregadas de catálogo/PWA (3) y cotización segura de envío (2).
+- Los skips son escenarios condicionados por credenciales QA o productos con stock comprable; los 109 nuevos quedan intencionalmente en consulta.
+
+## 20. Pendientes y despliegue
+
+- Pendiente comercial: FZAC debe definir una tarifa propia (`base`, `por km`, mínimo y radio) si desea cobrar delivery automático. La fuente no publica esos importes.
+- Pendiente externo: confirmar en Google Cloud las restricciones HTTP referrer de la clave browser y API/IP de la clave server.
+- Pendiente QA autenticado: USER/ADMIN y checkout con escritura requieren credenciales controladas no incluidas en el repositorio.
+- El commit, push y smoke del despliegue se registrarán en esta sección después de que Render informe el SHA activo.

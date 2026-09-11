@@ -27,6 +27,22 @@ services:
         sync: false
       - key: SUPABASE_PRODUCT_IMAGES_BUCKET
         value: product-images
+      - key: NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY
+        sync: false
+      - key: GOOGLE_MAPS_SERVER_KEY
+        sync: false
+      - key: FZAC_STORE_ADDRESS
+        value: Hermana Paula 3164, Rosario, Santa Fe, Argentina
+      - key: FZAC_SHIPPING_BASE_PRICE
+        sync: false
+      - key: FZAC_SHIPPING_PRICE_PER_KM
+        sync: false
+      - key: FZAC_SHIPPING_MIN_PRICE
+        sync: false
+      - key: FZAC_SHIPPING_ROUND_TO
+        value: "10"
+      - key: FZAC_SHIPPING_MAX_KM
+        value: "30"
       - key: PAYMENTS_ENABLED
         value: "true"
       - key: PAYMENT_ENABLED

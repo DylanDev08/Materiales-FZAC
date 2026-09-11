@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
+import { RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import type { Category } from "@/types/domain";
 
 export function CatalogFilters({
@@ -53,7 +53,10 @@ export function CatalogFilters({
     if (searchParams.get("minPrice")) rows.push({ key: "minPrice", label: `Desde $${searchParams.get("minPrice")}` });
     if (searchParams.get("maxPrice")) rows.push({ key: "maxPrice", label: `Hasta $${searchParams.get("maxPrice")}` });
     if (searchParams.get("inStock") === "true") rows.push({ key: "inStock", label: "Con stock" });
-    if (searchParams.get("onSale") === "true") rows.push({ key: "onSale", label: "Ofertas" });
+    const availability = searchParams.get("availability");
+    if (availability === "IN_STOCK") rows.push({ key: "availability", label: "Disponible" });
+    if (availability === "CONSULT") rows.push({ key: "availability", label: "Consultar disponibilidad" });
+    if (availability === "OUT_OF_STOCK") rows.push({ key: "availability", label: "Sin stock" });
     if (searchParams.get("featured") === "true") rows.push({ key: "featured", label: "Destacados" });
     return rows;
   }, [categories, lockedCategory, searchParams]);
@@ -117,28 +120,22 @@ export function CatalogFilters({
             <option value="newest">Más recientes</option>
             <option value="price_asc">Menor precio</option>
             <option value="price_desc">Mayor precio</option>
-            <option value="stock_desc">Más stock</option>
-            <option value="offers">Ofertas primero</option>
             <option value="name_asc">Nombre A-Z</option>
           </select>
         </label>
 
-        <button
-          className={`catalog-filter__toggle ${searchParams.get("inStock") === "true" ? "is-active" : ""}`}
-          type="button"
-          aria-pressed={searchParams.get("inStock") === "true"}
-          onClick={() => replaceParams({ inStock: searchParams.get("inStock") === "true" ? null : "true" })}
-        >
-          <Check size={16} /> Con stock
-        </button>
-        <button
-          className={`catalog-filter__toggle ${searchParams.get("onSale") === "true" ? "is-active" : ""}`}
-          type="button"
-          aria-pressed={searchParams.get("onSale") === "true"}
-          onClick={() => replaceParams({ onSale: searchParams.get("onSale") === "true" ? null : "true" })}
-        >
-          Ofertas
-        </button>
+        <label className="catalog-compact-field">
+          <span>Disponibilidad</span>
+          <select
+            value={searchParams.get("availability") ?? ""}
+            onChange={(event) => replaceParams({ availability: event.target.value || null, inStock: null })}
+          >
+            <option value="">Todas</option>
+            <option value="IN_STOCK">Disponible</option>
+            <option value="CONSULT">Consultar disponibilidad</option>
+            <option value="OUT_OF_STOCK">Sin stock</option>
+          </select>
+        </label>
         <button className="catalog-filter__advanced-button" type="button" onClick={() => setAdvancedOpen(true)}>
           <SlidersHorizontal size={17} /> Más filtros
         </button>

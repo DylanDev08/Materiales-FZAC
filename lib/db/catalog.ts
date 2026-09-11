@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
@@ -14,11 +15,27 @@ export type ProductFilters = {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  availability?: ProductAvailabilityStatus;
   onSale?: boolean;
   featured?: boolean;
   order?: "price_asc" | "price_desc" | "stock_desc" | "offers" | "newest" | "name_asc";
   limit?: number;
 };
+
+export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria"] as const;
+const PUBLIC_SUPPLIER_CODE = "LA-YESERA-ROSARINA";
+
+const getPublicSupplierId = cache(async () => {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+  const { data, error } = await admin
+    .from("suppliers")
+    .select("id")
+    .eq("code", PUBLIC_SUPPLIER_CODE)
+    .eq("active", true)
+    .maybeSingle();
+  return error || !data ? null : String(data.id);
+});
 
 export type CatalogFacets = {
   brands: string[];
@@ -74,7 +91,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
 }
 
 function applyFallbackFilters(products: Product[], filters: ProductFilters) {
-  let result = products.filter((product) => product.active);
+  let result = products.filter((product) => product.active && PUBLIC_CATEGORY_SLUGS.includes(product.category?.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
   if (filters.search) {
     const search = sanitizeSearchTerm(filters.search).toLowerCase();
@@ -97,6 +114,7 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
   if (filters.minPrice) result = result.filter((product) => product.price >= Number(filters.minPrice));
   if (filters.maxPrice) result = result.filter((product) => product.price <= Number(filters.maxPrice));
   if (filters.inStock) result = result.filter((product) => product.availability_status === "IN_STOCK" && product.stock > 0);
+  if (filters.availability) result = result.filter((product) => product.availability_status === filters.availability);
   if (filters.onSale) result = result.filter((product) => product.on_sale);
   if (filters.featured) result = result.filter((product) => product.featured);
 
@@ -125,12 +143,13 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
 
 export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return fallbackCategories;
+  if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
   const { data, error } = await supabase
     .from("categories")
     .select("*")
     .eq("active", true)
+    .in("slug", [...PUBLIC_CATEGORY_SLUGS])
     .order("sort_order", { ascending: true });
 
   if (error) return [];
@@ -140,14 +159,25 @@ export const getCategories = cache(async function getCategories() {
 export async function getCatalogFacets(): Promise<CatalogFacets> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
+    const publicProducts = applyFallbackFilters(fallbackProducts, { limit: 500 });
     return {
-      brands: Array.from(new Set(fallbackProducts.map((product) => product.brand).filter(Boolean))).sort((a, b) =>
+      brands: Array.from(new Set(publicProducts.map((product) => product.brand).filter(Boolean))).sort((a, b) =>
         a.localeCompare(b, "es")
       )
     };
   }
 
-  const { data, error } = await supabase.from("products").select("brand").eq("active", true).limit(1000);
+  const supplierId = await getPublicSupplierId();
+  if (!supplierId) return { brands: [] };
+
+  const categories = await getCategories();
+  const { data, error } = await supabase
+    .from("products")
+    .select("brand")
+    .eq("active", true)
+    .eq("supplier_id", supplierId)
+    .in("category_id", categories.map((category) => category.id))
+    .limit(1000);
   if (error) return { brands: [] };
 
   return {
@@ -161,10 +191,15 @@ export async function getProducts(filters: ProductFilters = {}) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return applyFallbackFilters(fallbackProducts, filters);
 
+  const [supplierId, categories] = await Promise.all([getPublicSupplierId(), getCategories()]);
+  if (!supplierId || !categories.length) return [];
+
   let query = supabase
     .from("products")
     .select("*, category:categories(*)")
     .eq("active", true)
+    .eq("supplier_id", supplierId)
+    .in("category_id", categories.map((category) => category.id))
     .limit(filters.limit ?? 48);
 
   if (filters.search) {
@@ -184,6 +219,7 @@ export async function getProducts(filters: ProductFilters = {}) {
   if (filters.minPrice) query = query.gte("price", filters.minPrice);
   if (filters.maxPrice) query = query.lte("price", filters.maxPrice);
   if (filters.inStock) query = query.eq("availability_status", "IN_STOCK").gt("stock", 0);
+  if (filters.availability) query = query.eq("availability_status", filters.availability);
   if (filters.onSale) query = query.eq("on_sale", true);
   if (filters.featured) query = query.eq("featured", true);
 
@@ -201,13 +237,20 @@ export async function getProducts(filters: ProductFilters = {}) {
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string) {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return fallbackProducts.find((product) => product.slug === slug) ?? null;
+  if (!supabase) {
+    return applyFallbackFilters(fallbackProducts, { limit: 500 }).find((product) => product.slug === slug) ?? null;
+  }
+
+  const [supplierId, categories] = await Promise.all([getPublicSupplierId(), getCategories()]);
+  if (!supplierId || !categories.length) return null;
 
   const { data, error } = await supabase
     .from("products")
     .select("*, category:categories(*)")
     .eq("slug", slug)
     .eq("active", true)
+    .eq("supplier_id", supplierId)
+    .in("category_id", categories.map((category) => category.id))
     .maybeSingle();
 
   if (error || !data) return null;
@@ -281,10 +324,10 @@ async function loadProductSuggestions(search: string): Promise<ProductSuggestion
     }));
 
   const termSuggestions = [
-    { match: "cemento", name: "Cemento, cal, arena e hidrofugos" },
-    { match: "drywall", name: "Placas, perfiles, masilla y cinta" },
-    { match: "pintura", name: "Pinturas, impermeabilizantes y rodillos" },
-    { match: "electricidad", name: "Cables, cajas, canos y termicas" }
+    { match: "durlock", name: "Placas, perfiles, masilla y cinta" },
+    { match: "steel framing", name: "Perfiles estructurales y placas exteriores" },
+    { match: "cielorraso", name: "Placas, PVC y perfilería para cielorrasos" },
+    { match: "ferreteria", name: "Tornillos, tarugos y fijaciones" }
   ]
     .filter((term) => term.match.includes(normalized) || term.name.toLowerCase().includes(normalized))
     .slice(0, 2)

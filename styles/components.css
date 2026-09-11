@@ -1708,9 +1708,9 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--color-yellow);
+  background: var(--color-black);
   color: var(--color-black);
-  padding: 4px;
+  padding: 0;
   font-weight: 950;
 }
 

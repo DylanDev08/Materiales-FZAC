@@ -24,7 +24,10 @@ test("marca Inicio solamente en la raíz", async ({ page }) => {
 });
 
 test("detalle y categoría mantienen Productos activo", async ({ page }) => {
-  await page.goto("/producto/placa-drywall-12-5mm", { waitUntil: "domcontentloaded" });
+  await page.goto("/productos", { waitUntil: "domcontentloaded" });
+  const productHref = await page.locator("a[href^='/producto/']").first().getAttribute("href");
+  expect(productHref).toBeTruthy();
+  await page.goto(productHref!, { waitUntil: "domcontentloaded" });
   await expect(page.locator(".category-nav").getByRole("button", { name: /Productos/ })).toHaveAttribute("aria-current", "page");
 
   await page.goto("/categoria/construccion-en-seco", { waitUntil: "domcontentloaded" });

@@ -27,6 +27,11 @@
     "audit:catalog": "node --env-file-if-exists=.env scripts/catalog-content-audit.mjs",
     "catalog:la-yesera:preview": "node --env-file-if-exists=.env scripts/catalog/import-la-yesera.mjs --preview",
     "catalog:la-yesera:apply": "node --env-file-if-exists=.env scripts/catalog/import-la-yesera.mjs --apply",
+    "catalog:la-yesera:images:preview": "node --env-file-if-exists=.env scripts/catalog/sync-la-yesera-images.mjs",
+    "catalog:la-yesera:images:apply": "node --env-file-if-exists=.env scripts/catalog/sync-la-yesera-images.mjs --apply",
+    "catalog:storefront:preview": "node --env-file-if-exists=.env scripts/catalog/sync-storefront-taxonomy.mjs",
+    "catalog:storefront:apply": "node --env-file-if-exists=.env scripts/catalog/sync-storefront-taxonomy.mjs --apply",
+    "catalog:la-yesera:audit": "node --env-file-if-exists=.env scripts/catalog/audit-la-yesera-production.mjs",
     "test:auth-roles": "node --env-file-if-exists=.env scripts/auth-role-smoke.mjs",
     "test:account-flow": "node --env-file-if-exists=.env scripts/account-flow-smoke.mjs",
     "test:checkout-flow": "node --env-file-if-exists=.env scripts/checkout-flow-smoke.mjs",
@@ -61,6 +66,7 @@
     "@types/react-dom": "^18.3.1",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.3.4",
+    "sharp": "0.35.4",
     "typescript": "^5.7.2"
   }
 }

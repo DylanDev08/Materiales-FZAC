@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, Brush, ChevronRight, Droplets, Hammer, PackageSearch, Plug, Ruler, Wrench } from "lucide-react";
+import { ArrowRight, Boxes, ChevronRight, Hammer, Layers3, PackageSearch, PanelsTopLeft, Ruler, Wrench } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
@@ -15,9 +15,9 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 const projectShortcuts = [
   {
-    label: "Levantar pared",
-    helper: "Cemento, cal, arena y ladrillos",
-    href: "/productos?search=cemento&inStock=true",
+    label: "Hacer una pared",
+    helper: "Placas, perfiles y terminación",
+    href: "/productos?search=pared",
     icon: Ruler
   },
   {
@@ -27,27 +27,21 @@ const projectShortcuts = [
     icon: Boxes
   },
   {
-    label: "Pintar o renovar",
-    helper: "Látex, esmaltes, rodillos y pinceles",
-    href: "/productos?search=pintura&inStock=true",
-    icon: Brush
+    label: "Steel Framing",
+    helper: "Perfiles estructurales y placas exteriores",
+    href: "/categoria/steel-framing",
+    icon: Layers3
   },
   {
-    label: "Impermeabilizar",
-    helper: "Membranas, selladores y protectores",
-    href: "/productos?search=impermeabilizante&inStock=true",
-    icon: Droplets
+    label: "Colocar cielorraso",
+    helper: "Placas, PVC y perfilería",
+    href: "/productos?search=cielorraso",
+    icon: PanelsTopLeft
   },
   {
-    label: "Instalar electricidad",
-    helper: "Cables, cajas, fichas y térmicas",
-    href: "/productos?search=electricidad&inStock=true",
-    icon: Plug
-  },
-  {
-    label: "Ferretería y herramientas",
-    helper: "Herramientas, fijaciones y accesorios",
-    href: "/productos?search=herramientas&inStock=true",
+    label: "Ferretería",
+    helper: "Tornillos, tarugos y fijaciones",
+    href: "/categoria/ferreteria",
     icon: Hammer
   }
 ];
@@ -77,6 +71,9 @@ export async function CatalogPage({
     minPrice: value(searchParams, "minPrice") ? Number(value(searchParams, "minPrice")) : undefined,
     maxPrice: value(searchParams, "maxPrice") ? Number(value(searchParams, "maxPrice")) : undefined,
     inStock: value(searchParams, "inStock") === "true",
+    availability: ["IN_STOCK", "CONSULT", "OUT_OF_STOCK"].includes(value(searchParams, "availability") ?? "")
+      ? value(searchParams, "availability") as ProductFilters["availability"]
+      : undefined,
     onSale: value(searchParams, "onSale") === "true",
     featured: value(searchParams, "featured") === "true",
     order: value(searchParams, "order") as ProductFilters["order"],
@@ -102,6 +99,7 @@ export async function CatalogPage({
     maxPrice: value(searchParams, "maxPrice"),
     order: value(searchParams, "order"),
     inStock: value(searchParams, "inStock"),
+    availability: value(searchParams, "availability"),
     onSale: forcedFilters.onSale ? "true" : value(searchParams, "onSale"),
     featured: forcedFilters.featured ? "true" : value(searchParams, "featured")
   };

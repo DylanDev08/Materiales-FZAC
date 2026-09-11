@@ -1,0 +1,158 @@
+{
+  "generated_at": "2026-09-11T02:27:28.178Z",
+  "apply": true,
+  "rules": {
+    "public_supplier_code": "LA-YESERA-ROSARINA",
+    "public_categories": [
+      "construccion-en-seco",
+      "steel-framing",
+      "ferreteria"
+    ],
+    "ferreteria": "nombres con tornillo/tarugo",
+    "steel_framing": "nombres con PGC/PGU/Superboard/Siding/Base Coat",
+    "default": "construccion-en-seco"
+  },
+  "supplier_plan": [
+    {
+      "code": "LA-YESERA-ROSARINA",
+      "name": "Yesera Rosarina"
+    },
+    {
+      "code": "URBE-SRL",
+      "name": "Urbe SRL"
+    },
+    {
+      "code": "MAQUINARIA-SORRENTOS",
+      "name": "Maquinaria Sorrentos",
+      "rename_from": "UNIVERSO-PINTURAS"
+    }
+  ],
+  "summary": {
+    "supplier_products": 109,
+    "category_changes": 15,
+    "stock_not_modified": true,
+    "prices_not_modified": true
+  },
+  "changes": [
+    {
+      "product_id": "9db0e2e7-282e-44d2-826e-21c272489865",
+      "name": "TARUGO FISCHER CON TOPE 8MM X 100",
+      "sku": "LYR-50254800",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "c7bb8b60-bcae-4f93-8b9f-dd6a821a1fb2",
+      "name": "TORNILLOS T2 - 6X1 X 100",
+      "sku": "LYR-50254805",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "78288642-b063-47a8-afa4-0cf95c4fa9d7",
+      "name": "TARUGOS FISCHER 6mm X 100",
+      "sku": "LYR-50254806",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "9bad44ab-bd48-43cf-a52b-fdd9c9ba3289",
+      "name": "TORNILLOS T8 (FIX NEGRO 10X2) X 50",
+      "sku": "LYR-50316869",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "165e9a9c-f051-46a4-bdd9-09f33a804f66",
+      "name": "TORNILLOS T2 - 6X1 X 50",
+      "sku": "LYR-50316365",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "39e91ad5-edfd-4127-a1b8-2930e10ccad1",
+      "name": "TORNILLOS T1 - 8X9/16 X 50",
+      "sku": "LYR-120067250",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "0d9a8768-60fa-4362-9263-c63883246f31",
+      "name": "TORNILLOS 8X32 PLACA EXTERIOR CON ALETA",
+      "sku": "LYR-120352767",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "e5541666-706c-4c5f-93d3-0a1c37735ad8",
+      "name": "BANDA ACÚSTICA E HIDRÁULICA 10 cm x 25 cm",
+      "sku": "LYR-E4E86ABAEB96",
+      "from_category_id": "49be4cee-3930-461d-90a0-84ef41f81682",
+      "to_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_slug": "construccion-en-seco"
+    },
+    {
+      "product_id": "f62d1a2b-b0d7-4085-9389-90ec162c6904",
+      "name": "BANDA ACÚSTICA E HIDRÁULICA 5 cm x 25 cm",
+      "sku": "LYR-B82CCC2BE534",
+      "from_category_id": "49be4cee-3930-461d-90a0-84ef41f81682",
+      "to_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_slug": "construccion-en-seco"
+    },
+    {
+      "product_id": "b8ef6d6d-d4fd-4e1f-9e27-2a1002fddb8b",
+      "name": "TORNILLOS T8 (FIX NEGRO 10X2) X 100",
+      "sku": "LYR-50254798",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "d0b1e58c-3b77-4c5a-9ec1-9e733e8602a1",
+      "name": "TORNILLOS T1 - 8X9/16 X 100",
+      "sku": "LYR-50254803",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "cc38b4fa-1428-46de-b472-fd89c195d753",
+      "name": "TARUGO FISCHER 6MM CON TOPE C/U X 100",
+      "sku": "LYR-50254802",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "7f4eb18e-cebb-470c-8aea-da3f2d765c4f",
+      "name": "TARUGOS FISCHER 6mm X 50",
+      "sku": "LYR-50316813",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "df7dd95b-399b-471d-b781-246633b4f671",
+      "name": "TORNILLOS T1 PUNTA MECHA X 100",
+      "sku": "LYR-120352397",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    },
+    {
+      "product_id": "cd2df241-4ec6-4fdb-91db-460c8b33a603",
+      "name": "TORNILLOS 8X32 PLACA EXTERIOR CON ALETA x 50 u",
+      "sku": "LYR-120511605",
+      "from_category_id": "81431c58-65e0-4ffb-8605-0eab570cf19f",
+      "to_category_id": "21a6f988-1020-4a38-af88-a68ff757e862",
+      "to_category_slug": "ferreteria"
+    }
+  ]
+}

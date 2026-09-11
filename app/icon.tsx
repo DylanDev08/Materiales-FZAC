@@ -6,8 +6,8 @@ export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
 export default async function Icon() {
-  const logo = await readFile(join(process.cwd(), "public", "logoFZAC.jpg"));
-  const source = `data:image/jpeg;base64,${logo.toString("base64")}`;
+  const logo = await readFile(join(process.cwd(), "public", "icons", "icon-192.png"));
+  const source = `data:image/png;base64,${logo.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -17,11 +17,11 @@ export default async function Icon() {
           height: "64px",
           display: "flex",
           overflow: "hidden",
-          borderRadius: "999px"
+          borderRadius: "14px"
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={source} alt="" width={64} height={64} style={{ objectFit: "cover" }} />
+        <img src={source} alt="" width={64} height={64} style={{ objectFit: "contain" }} />
       </div>
     ),
     size

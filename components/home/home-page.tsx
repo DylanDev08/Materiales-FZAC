@@ -2,54 +2,50 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  Building2,
   ChevronRight,
   CreditCard,
-  Droplets,
   Hammer,
   Headphones,
   Layers3,
   MessageCircle,
-  PaintRoller,
   PanelsTopLeft,
+  Ruler,
   RotateCcw,
   ShieldCheck,
   Truck,
-  Wrench,
-  Zap
+  Wrench
 } from "lucide-react";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getProducts } from "@/lib/db/catalog";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
+const primaryCategories = [
+  { label: "Construcción en Seco", helper: "Placas, perfiles, masillas y terminaciones", href: "/categoria/construccion-en-seco", icon: PanelsTopLeft },
+  { label: "Steel Framing", helper: "Estructuras y soluciones para sistemas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
+  { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench }
+];
+
 const buyingNeeds = [
-  { label: "Materiales de obra", helper: "Cemento, cal y áridos", href: "/productos?search=cemento", icon: Building2 },
-  { label: "Construcción en seco", helper: "Placas y perfiles", href: "/productos?search=durlock", icon: PanelsTopLeft },
-  { label: "Ferretería", helper: "Fijaciones y adhesivos", href: "/productos?search=ferreteria", icon: Wrench },
-  { label: "Herramientas", helper: "Manuales y eléctricas", href: "/productos?search=herramientas", icon: Hammer },
-  { label: "Electricidad", helper: "Cables y canalización", href: "/productos?search=electricidad", icon: Zap },
-  { label: "Plomería", helper: "Caños y conexiones", href: "/productos?search=plomeria", icon: Droplets },
-  { label: "Pintura", helper: "Látex e impermeabilización", href: "/productos?search=pintura", icon: PaintRoller },
-  { label: "Revestimientos", helper: "Pegamentos y terminaciones", href: "/productos?search=revestimientos", icon: Layers3 }
+  { label: "Hacer una pared de Durlock", helper: "Placas, perfiles, masilla y cinta", href: "/productos?search=durlock", icon: Ruler },
+  { label: "Construir con Steel Framing", helper: "Perfiles PGC/PGU y placas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
+  { label: "Colocar cielorraso", helper: "Placas, PVC y perfilería", href: "/productos?search=cielorraso", icon: PanelsTopLeft },
+  { label: "Comprar placas", helper: "Compará medidas y prestaciones", href: "/productos?search=placa", icon: PanelsTopLeft },
+  { label: "Buscar perfiles", helper: "Montantes, soleras y perfiles", href: "/productos?search=perfil", icon: Hammer }
 ];
 
 export async function HomePage() {
-  const [featured, offers] = await Promise.all([
-    getProducts({ featured: true, limit: 8 }),
-    getProducts({ onSale: true, limit: 8 })
-  ]);
+  const products = await getProducts({ limit: 12, order: "newest" });
   const materialHelpHref = getWhatsAppHref("Hola FZAC, no encuentro un material en la tienda y necesito asesoramiento.");
-  const offerShelf = (offers.length ? offers : featured).slice(0, 8);
-  const featuredShelf = featured.filter((product) => !offerShelf.some((item) => item.id === product.id)).slice(0, 8);
+  const productShelf = products.slice(0, 10);
 
   return (
     <>
       <section className="home-promo storefront-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
-          <span><Truck size={18} /> Envíos coordinados</span>
+          <span><Truck size={18} /> Envíos y retiro coordinados</span>
           <span><ShieldCheck size={18} /> Compra protegida</span>
-          <span><BadgeCheck size={18} /> Stock validado</span>
+          <span><BadgeCheck size={18} /> Disponibilidad confirmada</span>
           <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={18} /> Botón de arrepentimiento</Link>
         </div>
       </section>
@@ -57,17 +53,19 @@ export async function HomePage() {
       <section className="storefront-hero">
         <div className="container storefront-hero__inner">
           <div className="storefront-hero__content">
-            <span className="storefront-hero__eyebrow">Fortaleza Construcciones</span>
-            <h1>Todo para tu obra, en un solo lugar.</h1>
-            <p>Materiales, herramientas y soluciones con precios claros, stock visible y atención de FZAC.</p>
+            <span className="storefront-hero__eyebrow">Materiales FZAC · Rosario</span>
+            <h1>Todo para construir en seco, en un solo lugar.</h1>
+            <p>Materiales para construcción en seco, steel framing y ferretería, con precios online, carrito y asesoramiento.</p>
             <div className="storefront-hero__actions">
               <Link className="btn" href="/productos" prefetch={false}>
-                Comprar ahora <ArrowRight size={18} />
+                Ver productos <ArrowRight size={18} />
               </Link>
-              <Link className="btn btn--ghost" href="/ofertas" prefetch={false}>Ver ofertas</Link>
+              <a className="btn btn--ghost" href={materialHelpHref} target="_blank" rel="noreferrer">
+                <MessageCircle size={18} /> Consultar por WhatsApp
+              </a>
             </div>
             <div className="storefront-hero__facts" aria-label="Condiciones de compra">
-              <span><BadgeCheck size={17} /> Stock validado</span>
+              <span><BadgeCheck size={17} /> Disponibilidad real</span>
               <span><CreditCard size={17} /> Pago seguro</span>
               <span><Truck size={17} /> Entrega coordinada</span>
             </div>
@@ -75,13 +73,43 @@ export async function HomePage() {
         </div>
       </section>
 
+      <section className="storefront-section storefront-shelf">
+        <div className="container">
+          <SectionHeader
+            eyebrow="Catálogo FZAC"
+            title="Productos para avanzar con tu obra"
+            text="Precios finales FZAC y disponibilidad indicada en cada producto."
+            action={<Link className="storefront-section-link" href="/productos" prefetch={false}>Ver todos <ChevronRight size={17} /></Link>}
+          />
+          <ProductGrid products={productShelf} variant="rail" />
+        </div>
+      </section>
+
       <section className="storefront-section storefront-categories">
         <div className="container">
           <SectionHeader
-            eyebrow="Categorías"
-            title="Encontrá lo que necesitás"
-            text="Accesos directos a los rubros principales de la tienda."
-            action={<Link className="btn btn--ghost" href="/categorias" prefetch={false}>Ver todas <ArrowRight size={16} /></Link>}
+            eyebrow="Categorías principales"
+            title="Comprá por rubro"
+            text="Un catálogo enfocado en sistemas en seco y sus fijaciones."
+          />
+          <div className="storefront-category-rail">
+            {primaryCategories.map(({ href, icon: Icon, label, helper }) => (
+              <Link className="storefront-category" href={href} key={label} prefetch={false}>
+                <span className="storefront-category__icon"><Icon size={22} /></span>
+                <strong>{label}</strong>
+                <small>{helper}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="storefront-section storefront-categories">
+        <div className="container">
+          <SectionHeader
+            eyebrow="Comprar según tu necesidad"
+            title="Empezá por el trabajo que querés hacer"
+            text="Accesos rápidos a productos reales del catálogo."
           />
           <div className="storefront-category-rail">
             {buyingNeeds.map(({ href, icon: Icon, label, helper }) => (
@@ -95,40 +123,14 @@ export async function HomePage() {
         </div>
       </section>
 
-      <section className="storefront-section storefront-shelf">
-        <div className="container">
-          <SectionHeader
-            eyebrow="Precios destacados"
-            title={offers.length ? "Ofertas para aprovechar" : "Productos destacados"}
-            text="Sumá materiales al carrito sin perder de vista precio y disponibilidad."
-            action={<Link className="storefront-section-link" href={offers.length ? "/ofertas" : "/productos"} prefetch={false}>Ver más <ChevronRight size={17} /></Link>}
-          />
-          <ProductGrid products={offerShelf} variant="rail" />
-        </div>
-      </section>
-
       <section className="storefront-benefits" aria-label="Servicios FZAC">
         <div className="container storefront-benefits__grid">
-          <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y stock.</small></span></div>
+          <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y disponibilidad.</small></span></div>
           <div><Truck size={22} /><span><strong>Entrega o retiro</strong><small>Coordinación según tu pedido.</small></span></div>
           <div><CreditCard size={22} /><span><strong>Medios de pago</strong><small>Online, transferencia o coordinación.</small></span></div>
           <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Ayuda antes y después de comprar.</small></span></div>
         </div>
       </section>
-
-      {featuredShelf.length ? (
-        <section className="storefront-section storefront-shelf">
-          <div className="container">
-            <SectionHeader
-              eyebrow="Selección FZAC"
-              title="Recomendados para tu obra"
-              text="Productos elegidos por disponibilidad y utilidad en proyectos frecuentes."
-              action={<Link className="storefront-section-link" href="/productos?featured=true" prefetch={false}>Ver más <ChevronRight size={17} /></Link>}
-            />
-            <ProductGrid products={featuredShelf} variant="rail" />
-          </div>
-        </section>
-      ) : null}
 
       <section className="storefront-section storefront-projects">
         <div className="container storefront-projects__layout">

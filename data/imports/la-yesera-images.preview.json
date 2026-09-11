@@ -1,0 +1,1987 @@
+{
+  "generated_at": "2026-09-11T02:21:28.656Z",
+  "apply": true,
+  "authorization_basis": "El propietario de Materiales FZAC confirmó autorización comercial para reutilizar las imágenes el 2026-09-10.",
+  "bucket": "product-images",
+  "summary": {
+    "products": 109,
+    "source_images_known": 108,
+    "source_images_to_discover": 1,
+    "existing_product_images_preserved": 108
+  },
+  "products": [
+    {
+      "source_row_id": "6cdb50ac-fe50-4afa-aba3-b0c2ceed36e5",
+      "product_id": "cd945114-e233-4325-a3ce-e55334213c92",
+      "source_product_id": "50254834",
+      "product_name": "PLACAS DURLOCK 12,5mm 1,2x2,40 m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-12x240-m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/2-a-611-fde51b35e3f064799515886423088692-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/cd945114-e233-4325-a3ce-e55334213c92.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/cd945114-e233-4325-a3ce-e55334213c92.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "f7f14f78-df52-493b-8458-6e01b2a4b598",
+      "product_id": "aa88687b-318f-45ff-871e-d56ffaa4356c",
+      "source_product_id": "365636252",
+      "product_name": "PERFIL UNIÓN H PVC x 3 ml (ROBLE, CIPRÉS O ARRAYÁN)",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-union-h-pvc-x-3-ml-roble-cipres-o-arrayan-1r5tk/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11080118-b945fd460c08b8438717886145535848-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/aa88687b-318f-45ff-871e-d56ffaa4356c.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/aa88687b-318f-45ff-871e-d56ffaa4356c.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a7a3b9f7-f741-4e7c-bb35-a497b7dd0ffe",
+      "product_id": "c9b24f7e-9dbe-4108-91ff-5bca2f90184e",
+      "source_product_id": "365636244",
+      "product_name": "PERFIL PERIMETRAL PVC x 3 ml (ROBLE, CIPRÉS O ARRAYÁN)",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-perimetral-pvc-x-3-ml-roble-cipres-o-arrayan-444l6/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11080116-f75ecc82a3271c90ba17886145079744-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/c9b24f7e-9dbe-4108-91ff-5bca2f90184e.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/c9b24f7e-9dbe-4108-91ff-5bca2f90184e.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "15ca320f-69ee-4ab3-ae32-b31b4bceb138",
+      "product_id": "a23fd2f5-9708-4455-9387-573ef8fafa24",
+      "source_product_id": "365636221",
+      "product_name": "CIELORRASO PVC x 4M (ROBLE, CIPRÉS O ARRAYÁN)",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-4m-roble-cipres-o-arrayan-r5dv8/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11080113-f266d0c4ab5bce8be317886143821306-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/a23fd2f5-9708-4455-9387-573ef8fafa24.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/a23fd2f5-9708-4455-9387-573ef8fafa24.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "b83dca70-ae11-4874-993c-36f2263f766a",
+      "product_id": "3d547331-0753-4d8f-afad-c77e0e07311a",
+      "source_product_id": "50254833",
+      "product_name": "PLACAS DURLOCK 9,5mm -1,20X2,4 mts",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-95mm-120x24-mts/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/2-a-61-fde51b35e3f064799515886422591431-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/3d547331-0753-4d8f-afad-c77e0e07311a.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/3d547331-0753-4d8f-afad-c77e0e07311a.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "6e16d1e7-9bb8-48bf-b555-188813a3b88c",
+      "product_id": "de36f758-f0ac-47ab-a1bd-4d34372fdf85",
+      "source_product_id": "50254835",
+      "product_name": "PLACAS DURLOCK 12,5mm -1,20x2,60 m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-120x260-m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/2-a-621-fde51b35e3f064799515886422869141-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/de36f758-f0ac-47ab-a1bd-4d34372fdf85.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/de36f758-f0ac-47ab-a1bd-4d34372fdf85.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "95596ba2-b034-4414-bf67-21c2ea09fa0b",
+      "product_id": "cb3b5159-e23d-4733-9624-501522f9cd61",
+      "source_product_id": "50254816",
+      "product_name": "PLACAS DURLOCK 4 D 12,5mm 1,20 m x 2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-4-d-125mm-120-m-x-2/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/171-ab98dca32b0d9ce37915886425282863-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/cb3b5159-e23d-4733-9624-501522f9cd61.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/cb3b5159-e23d-4733-9624-501522f9cd61.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "bcc0faff-e7f8-4098-8414-e8a40a92dadc",
+      "product_id": "ff8988aa-a1c7-4d50-92a7-3868bb8c54e0",
+      "source_product_id": "50254815",
+      "product_name": "PLACAS DURLOCK EXTRA RESIST 1.2 2.40m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-extra-resist-1-2-2-40m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/161-7cc994f181c87d12fb15886425278919-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/ff8988aa-a1c7-4d50-92a7-3868bb8c54e0.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/ff8988aa-a1c7-4d50-92a7-3868bb8c54e0.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "4e66a6de-fe1a-49c4-a41a-3162ed29ea44",
+      "product_id": "7ed3d8df-3a01-4548-af74-07cba56cc7a1",
+      "source_product_id": "50254819",
+      "product_name": "PLACAS DURLOCK CIEL 7 mm 1,20 X 2,40 mt",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-ciel-7-mm-120-x-240-mt/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/151-d55ecfc5ae0a3b018e15886425227731-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/7ed3d8df-3a01-4548-af74-07cba56cc7a1.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/7ed3d8df-3a01-4548-af74-07cba56cc7a1.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "427eb56c-91d4-4825-ae43-8e3c0f83f1c9",
+      "product_id": "9798fb94-5223-4916-9ef0-3148940771af",
+      "source_product_id": "50254821",
+      "product_name": "PLACAS DURLOCK SC 1,20 M X 2,40 M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-sc-120-m-x-240-m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/101-cb2f542a9769f70fd815886425236800-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/9798fb94-5223-4916-9ef0-3148940771af.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/9798fb94-5223-4916-9ef0-3148940771af.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "b9159eea-c95b-41ac-9077-1016d86bcf6d",
+      "product_id": "8586088f-1424-413e-a6cd-c107f873a2af",
+      "source_product_id": "50254829",
+      "product_name": "PLACAS DURLOCK  R.S. 12,50mm 1,20 x 2,60",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-r-s-1250mm-120-x-260/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/91-a2b7c79406c05d53db15886423132527-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/8586088f-1424-413e-a6cd-c107f873a2af.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/8586088f-1424-413e-a6cd-c107f873a2af.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "01283942-ee10-4b2b-94c7-8d13e74bd477",
+      "product_id": "023ee48c-66b0-4e69-88c9-d7e8bba28591",
+      "source_product_id": "50254825",
+      "product_name": "PLACAS DURLOCK 12,5mm ROJA 1,20mX2,4",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-roja-120mx24/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/71-b5e57a19e4a2be38c515886423769471-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/023ee48c-66b0-4e69-88c9-d7e8bba28591.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/023ee48c-66b0-4e69-88c9-d7e8bba28591.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "e84a7bf1-b016-4109-a3f2-c44c7dc9544a",
+      "product_id": "07ad2ca5-a2f4-4c98-9b1a-c151b85d0638",
+      "source_product_id": "50254827",
+      "product_name": "PLACAS DURLOCK 12,5mm VERDE 1,20mX2,",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-verde-120mx2/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/81-d49e75803556bdb5c815886425192048-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/07ad2ca5-a2f4-4c98-9b1a-c151b85d0638.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/07ad2ca5-a2f4-4c98-9b1a-c151b85d0638.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "bd3d429c-2f1c-4617-9063-1b5d375a5031",
+      "product_id": "28eb7782-0586-48ea-b5cb-1c39a18dec47",
+      "source_product_id": "50254794",
+      "product_name": "MONTANTE 34mmX30mmX2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/montante-34mmx30mmx260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/281-46323abf5ddb0abb8415886434850018-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/28eb7782-0586-48ea-b5cb-1c39a18dec47.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/28eb7782-0586-48ea-b5cb-1c39a18dec47.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "7c618b43-2650-47de-87c3-a6ce6946bbbd",
+      "product_id": "bc37a327-bbf7-4a6d-9103-aef38fd49304",
+      "source_product_id": "50254791",
+      "product_name": "SOLERA 70mmX30mmX2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/solera-70mmx30mmx260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/301-1d03f2c1c8a641f82315886434819906-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/bc37a327-bbf7-4a6d-9103-aef38fd49304.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/bc37a327-bbf7-4a6d-9103-aef38fd49304.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "99c25050-2bf8-424b-9d04-824404e8aaa1",
+      "product_id": "86243629-50ac-4e41-aa05-f09ead64968a",
+      "source_product_id": "50254796",
+      "product_name": "SOLERA 35mmX30mmX2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/solera-35mmx30mmx260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/271-97f4d2581b0d0741a015886434899884-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/86243629-50ac-4e41-aa05-f09ead64968a.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/86243629-50ac-4e41-aa05-f09ead64968a.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "ea7eb835-ca6d-4cdb-ac14-57c20de20f05",
+      "product_id": "a1e1816c-93c8-43dc-a276-7066efdafa0b",
+      "source_product_id": "50254795",
+      "product_name": "MONTANTE 69mmX30mmX2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/montante-69mmx30mmx260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/291-7fded466bfe8ccac0615886434844743-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/a1e1816c-93c8-43dc-a276-7066efdafa0b.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/a1e1816c-93c8-43dc-a276-7066efdafa0b.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8b5af6ba-0c66-4f9c-b543-b648314261b3",
+      "product_id": "6a570de9-a10c-4d62-bee1-5dcb2ce0e520",
+      "source_product_id": "50254787",
+      "product_name": "PERFIL OMEGA X 2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-omega-x-260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/331-02e0d344b932959b8a15886434796918-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6a570de9-a10c-4d62-bee1-5dcb2ce0e520.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6a570de9-a10c-4d62-bee1-5dcb2ce0e520.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "e5bb7fd0-6a6c-4608-acee-1ee9833d216c",
+      "product_id": "f6cf321b-576b-4d84-8e3a-87ca0d585ecf",
+      "source_product_id": "50254788",
+      "product_name": "ANGULO DE AJUSTE X 2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/angulo-de-ajuste-x-260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/341-a80c39b880c763ef7f15886434821048-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/f6cf321b-576b-4d84-8e3a-87ca0d585ecf.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/f6cf321b-576b-4d84-8e3a-87ca0d585ecf.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "ee8e9b35-2bc6-4f45-951a-28d5faeb3153",
+      "product_id": "1fe20e7c-9be3-47dd-b4d2-2f3c78f2d141",
+      "source_product_id": "50254793",
+      "product_name": "PERFIL O BUÑA \"Z\" PERIMETRAL 2,60m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-o-buna-z-perimetral-260m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/321-91412999d0abe2c7de15886434866222-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/1fe20e7c-9be3-47dd-b4d2-2f3c78f2d141.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/1fe20e7c-9be3-47dd-b4d2-2f3c78f2d141.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a767dfc5-9997-4990-9432-4b5d292b5dc8",
+      "product_id": "795eda27-b8e1-4ec1-9da1-67c47d59ae80",
+      "source_product_id": "urlhash:46b7127eca979890e80af011c4e94d97",
+      "product_name": "BASE COAT BICOMPONENTE DURLOCK EXTERIORES",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/base-coat-bicomponente-durlock-exteriores/",
+      "source_image_url": null,
+      "current_image_url": null,
+      "generated_fallback": "public/products/fzac/base-coat-bicomponente.webp",
+      "storage_path": "la-yesera-rosarina/795eda27-b8e1-4ec1-9da1-67c47d59ae80.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8bd24cf2-1edc-440d-a5f3-dec07a34b465",
+      "product_id": "acd3d5ca-532e-4d22-9f84-da1f2a572b40",
+      "source_product_id": "50254792",
+      "product_name": "GUARDACANTO DURLOCK X 2,60 m. (CANTONERA P/DURLOCK)",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/guardacanto-durlock-x-260-m-cantonera-p-durlock/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/282682-800-800-1e15638a4367c61eaf17437745047027-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/acd3d5ca-532e-4d22-9f84-da1f2a572b40.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/acd3d5ca-532e-4d22-9f84-da1f2a572b40.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a4e11d2e-7f97-43fb-b930-bbe21c4258cd",
+      "product_id": "d5e0b7bb-2030-49de-9303-a33dde239d5e",
+      "source_product_id": "50254817",
+      "product_name": "MASILLA DURLOCK X 1,80 KGS",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-x-180-kgs/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11-a-1431-1b4dc135c07867bb7315886425289331-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/d5e0b7bb-2030-49de-9303-a33dde239d5e.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/d5e0b7bb-2030-49de-9303-a33dde239d5e.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "bfe29d1b-dbc5-409a-b9c2-43cda102eba7",
+      "product_id": "5cf41d8f-8e95-4724-a22c-e8182d2db497",
+      "source_product_id": "50254818",
+      "product_name": "MASILLA DURLOCK X 18 KGS.",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-x-18-kgs/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11-a-1421-1b4dc135c07867bb7315886425213801-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/5cf41d8f-8e95-4724-a22c-e8182d2db497.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/5cf41d8f-8e95-4724-a22c-e8182d2db497.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "9853cbd6-b4ee-4dd0-aa04-7ece2bb6fca2",
+      "product_id": "5368f464-a9a1-4cc9-bd0e-58879ba759fc",
+      "source_product_id": "50254823",
+      "product_name": "MASILLA DURLOCK CAJA X 22 K",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-caja-x-22-k/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11-a-1411-1b4dc135c07867bb7315886423885603-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/5368f464-a9a1-4cc9-bd0e-58879ba759fc.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/5368f464-a9a1-4cc9-bd0e-58879ba759fc.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "09465fa1-1b3d-4661-b9ae-d978635c5a37",
+      "product_id": "bbfb2304-bf12-4f78-90c7-24825499ae0a",
+      "source_product_id": "50254822",
+      "product_name": "MASILLA DURLOCK X 32 KGS.",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-x-32-kgs/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11-a-141-1b4dc135c07867bb7315886423507837-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/bbfb2304-bf12-4f78-90c7-24825499ae0a.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/bbfb2304-bf12-4f78-90c7-24825499ae0a.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8f1d4c7b-a8dd-491d-b0e7-7433e2e164b4",
+      "product_id": "b8ef6d6d-d4fd-4e1f-9e27-2a1002fddb8b",
+      "source_product_id": "50254798",
+      "product_name": "TORNILLOS T8 (FIX NEGRO 10X2) X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t8-fix-negro-10x2-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/d_815055-mlu79385387629_092024-c-149694e45cbde1311f17302311147654-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/b8ef6d6d-d4fd-4e1f-9e27-2a1002fddb8b.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/b8ef6d6d-d4fd-4e1f-9e27-2a1002fddb8b.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "986da9af-8c3a-4149-b2cb-d09b57a7ae97",
+      "product_id": "9db0e2e7-282e-44d2-826e-21c272489865",
+      "source_product_id": "50254800",
+      "product_name": "TARUGO FISCHER CON TOPE 8MM X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tarugo-fischer-con-tope-8mm-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/251-142623a907d0360ab315886433325424-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/9db0e2e7-282e-44d2-826e-21c272489865.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/9db0e2e7-282e-44d2-826e-21c272489865.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "abacba4d-67a1-4730-9332-69aa9af621e3",
+      "product_id": "cc38b4fa-1428-46de-b472-fd89c195d753",
+      "source_product_id": "50254802",
+      "product_name": "TARUGO FISCHER 6MM CON TOPE C/U X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tarugo-fischer-6mm-con-tope-c-u-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/261-7fecae407dcae7595b15886433489332-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/cc38b4fa-1428-46de-b472-fd89c195d753.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/cc38b4fa-1428-46de-b472-fd89c195d753.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "d478a608-f58a-4440-95dc-8819a5480d5d",
+      "product_id": "d0b1e58c-3b77-4c5a-9ec1-9e733e8602a1",
+      "source_product_id": "50254803",
+      "product_name": "TORNILLOS T1 - 8X9/16 X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t1-8x9-16-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/0032-tornillo-t1-aguja-8-x-12-1-1000x7901-9ad00e94b0abead99f16439160932554-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/d0b1e58c-3b77-4c5a-9ec1-9e733e8602a1.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/d0b1e58c-3b77-4c5a-9ec1-9e733e8602a1.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "ccc7d580-18d3-4621-8c46-b4642704d0c4",
+      "product_id": "c7bb8b60-bcae-4f93-8b9f-dd6a821a1fb2",
+      "source_product_id": "50254805",
+      "product_name": "TORNILLOS T2 - 6X1 X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t2-6x1-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/221-4ac2724bd3ee1b1fc415886434749047-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/c7bb8b60-bcae-4f93-8b9f-dd6a821a1fb2.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/c7bb8b60-bcae-4f93-8b9f-dd6a821a1fb2.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "53991513-dd4a-4e04-971c-bb1f148ae9cf",
+      "product_id": "78288642-b063-47a8-afa4-0cf95c4fa9d7",
+      "source_product_id": "50254806",
+      "product_name": "TARUGOS FISCHER 6mm X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tarugos-fischer-6mm-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/tarugo-de-nylon-sx-16x80-para-ladrillo-hueco-fischer-x-10u-d_nq_np_879799-mla31633784377_072019-f-220fff6eb61ae7b4fb17369620597137-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/78288642-b063-47a8-afa4-0cf95c4fa9d7.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/78288642-b063-47a8-afa4-0cf95c4fa9d7.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "3a92601d-e16e-465e-a84b-9e1d4bf18bc5",
+      "product_id": "84de96a4-b576-4cb5-a550-c3c157ba79a3",
+      "source_product_id": "50254808",
+      "product_name": "CINTA TRAMADA AUTOADHES 300FT",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cinta-tramada-autoadhes-300ft/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/201-5f1170745e6067969a15886428847535-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/84de96a4-b576-4cb5-a550-c3c157ba79a3.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/84de96a4-b576-4cb5-a550-c3c157ba79a3.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "167e9614-db03-40f0-b655-559b16a47091",
+      "product_id": "33f88a5a-74f3-4823-9d0b-6b43efa32951",
+      "source_product_id": "50254813",
+      "product_name": "CINTA PAPEL MICROPERFORADA 500 FT",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cinta-papel-microperforada-500-ft/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/18-y-1911-82de04a1cf5740752315886425313458-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/33f88a5a-74f3-4823-9d0b-6b43efa32951.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/33f88a5a-74f3-4823-9d0b-6b43efa32951.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "6f21ae36-278f-4ade-8fb9-da84c9449371",
+      "product_id": "6b8e1f7b-ac39-4919-b94e-787490c5f912",
+      "source_product_id": "50254814",
+      "product_name": "CINTA PAPEL MICRO X 250FT.76M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cinta-papel-micro-x-250ft-76m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/18-y-191-82de04a1cf5740752315886425265205-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6b8e1f7b-ac39-4919-b94e-787490c5f912.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6b8e1f7b-ac39-4919-b94e-787490c5f912.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "99b2e1d4-fb68-4208-bba6-771bd6f38e59",
+      "product_id": "165e9a9c-f051-46a4-bdd9-09f33a804f66",
+      "source_product_id": "50316365",
+      "product_name": "TORNILLOS T2 - 6X1 X 50",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t2-6x1-x-50/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/221-739ae71b5fc6832f7d15887054735747-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/165e9a9c-f051-46a4-bdd9-09f33a804f66.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/165e9a9c-f051-46a4-bdd9-09f33a804f66.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "42d2c96d-7ec3-488e-b725-2d94bd6be89a",
+      "product_id": "7f4eb18e-cebb-470c-8aea-da3f2d765c4f",
+      "source_product_id": "50316813",
+      "product_name": "TARUGOS FISCHER 6mm X 50",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tarugos-fischer-6mm-x-50/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/tarugo-de-nylon-sx-16x80-para-ladrillo-hueco-fischer-x-10u-d_nq_np_879799-mla31633784377_072019-f-78d6a894d2ecff09fb17369620447308-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/7f4eb18e-cebb-470c-8aea-da3f2d765c4f.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/7f4eb18e-cebb-470c-8aea-da3f2d765c4f.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "38901a89-5328-4904-bdc8-dfcf2530a6c2",
+      "product_id": "9bad44ab-bd48-43cf-a52b-fdd9c9ba3289",
+      "source_product_id": "50316869",
+      "product_name": "TORNILLOS T8 (FIX NEGRO 10X2) X 50",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t8-fix-negro-10x2-x-50/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/d_815055-mlu79385387629_092024-c-70bb3420e9182fd97517302311449229-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/9bad44ab-bd48-43cf-a52b-fdd9c9ba3289.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/9bad44ab-bd48-43cf-a52b-fdd9c9ba3289.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "71e909b5-589d-451b-a961-87ddbd07a2a8",
+      "product_id": "31e3f7cc-b34c-432a-9b92-e0edbefb9d07",
+      "source_product_id": "50325485",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-04 GUARDA",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-04-guarda/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-041-c1eaa87d28fd628e0d15887081135791-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/31e3f7cc-b34c-432a-9b92-e0edbefb9d07.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/31e3f7cc-b34c-432a-9b92-e0edbefb9d07.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "7b31ebea-3f2b-479c-b8fa-786fcbe9d2c3",
+      "product_id": "ee59c09c-74d8-447a-9893-b000a9582d2e",
+      "source_product_id": "50325709",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-31R",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-31r/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-31-r1-7a4502b2d19c70a6d115887082447367-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/ee59c09c-74d8-447a-9893-b000a9582d2e.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/ee59c09c-74d8-447a-9893-b000a9582d2e.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "daefc492-515a-44af-8ec4-078efd75831d",
+      "product_id": "d6fab924-bab3-4bef-899b-0955996fa8d8",
+      "source_product_id": "50325948",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-35",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-35/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-351-7e9ec2daae2191eed415887083779166-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/d6fab924-bab3-4bef-899b-0955996fa8d8.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/d6fab924-bab3-4bef-899b-0955996fa8d8.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "60ee95fa-9911-4736-92aa-35fcf5078a27",
+      "product_id": "2d407387-b5d2-4b5b-80dd-ae70690100d6",
+      "source_product_id": "50326087",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-40",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-40/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-401-50be431d5d8cd8cdee15887084342038-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/2d407387-b5d2-4b5b-80dd-ae70690100d6.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/2d407387-b5d2-4b5b-80dd-ae70690100d6.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "5b774155-06c4-41cb-80b6-d5183a4e31c0",
+      "product_id": "1e1c86db-9ac1-430a-8b10-51986e55df9e",
+      "source_product_id": "50351730",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-46",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-46/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-461-8b71529df2db7bb49d15887206795075-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/1e1c86db-9ac1-430a-8b10-51986e55df9e.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/1e1c86db-9ac1-430a-8b10-51986e55df9e.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "59f2e7d7-eb84-4b2e-a62e-e53390936f11",
+      "product_id": "d714b174-3b7d-4650-b554-c75cc2281522",
+      "source_product_id": "50351808",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-49",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-49/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-491-a475cb2da32cfe438a15887207154327-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/d714b174-3b7d-4650-b554-c75cc2281522.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/d714b174-3b7d-4650-b554-c75cc2281522.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a7a2ae83-b52e-4e8d-9b81-cc9b1bebe09c",
+      "product_id": "e755d8ca-3bb7-450d-a055-31e0d4769db0",
+      "source_product_id": "50351864",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-52",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-52/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-521-73d32aacb01f0e3cbb15887207555108-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/e755d8ca-3bb7-450d-a055-31e0d4769db0.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/e755d8ca-3bb7-450d-a055-31e0d4769db0.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a565951c-8d0b-4a2e-a602-8ef6a594b0a8",
+      "product_id": "e64648a8-56e9-4a24-9435-95e42eb4d1c1",
+      "source_product_id": "50351914",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-58",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-58/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-581-8affab1a7dbf9b8a2915887208000457-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/e64648a8-56e9-4a24-9435-95e42eb4d1c1.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/e64648a8-56e9-4a24-9435-95e42eb4d1c1.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "37782658-e863-4787-8fee-d5c53a9cd34f",
+      "product_id": "f8143380-77d3-4ad6-b996-e558e1740632",
+      "source_product_id": "50352090",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-61R",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-61r/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-61-r11-eeaf0f551cfd70f81c15887208397213-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/f8143380-77d3-4ad6-b996-e558e1740632.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/f8143380-77d3-4ad6-b996-e558e1740632.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "46c9191a-6e0c-4c94-9902-8fb248093266",
+      "product_id": "6153f5e5-8829-44a8-9614-23f70823dabc",
+      "source_product_id": "50352211",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-70",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-70/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-701-753c795d59177e863515887208781238-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6153f5e5-8829-44a8-9614-23f70823dabc.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6153f5e5-8829-44a8-9614-23f70823dabc.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "38011728-dd7e-4d69-ba3b-db5da2d0c4b0",
+      "product_id": "25e611a8-d480-4de8-b8cf-e7142817c492",
+      "source_product_id": "50352352",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-76",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-76/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-761-9b580dfd6c773a499215887209169186-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/25e611a8-d480-4de8-b8cf-e7142817c492.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/25e611a8-d480-4de8-b8cf-e7142817c492.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "e4dcdb62-133c-4a9b-89b1-ad8a4144f753",
+      "product_id": "e48b6c11-9f6c-4f0f-ba8d-c0aeae7747d6",
+      "source_product_id": "50352489",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-85",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-85/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-851-f59d88da90788d91eb15887209521690-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/e48b6c11-9f6c-4f0f-ba8d-c0aeae7747d6.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/e48b6c11-9f6c-4f0f-ba8d-c0aeae7747d6.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "3c3d1760-87e3-4ce6-b83e-4d7734964cea",
+      "product_id": "62075563-a119-44f3-9b17-e5f2f6512e65",
+      "source_product_id": "50352705",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-90",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-90/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-901-97c212614399d6d21015887209888659-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/62075563-a119-44f3-9b17-e5f2f6512e65.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/62075563-a119-44f3-9b17-e5f2f6512e65.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8a6e7e5a-6db4-4098-9289-40b90b988013",
+      "product_id": "420ddbe7-4e0d-4960-884c-f22773cc82b9",
+      "source_product_id": "50352949",
+      "product_name": "MOLDURA ARQUITECTÓNICA AT-105",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/moldura-arquitectonica-at-105/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/at-1051-7a91d693cd3573bf9b15887210741366-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/420ddbe7-4e0d-4960-884c-f22773cc82b9.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/420ddbe7-4e0d-4960-884c-f22773cc82b9.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "54d48c4a-36cf-4a2f-b405-24aa058b9359",
+      "product_id": "32e218f7-abb3-488d-a9dd-9d234c734ace",
+      "source_product_id": "50356518",
+      "product_name": "BARRIER ROLLO (1O ML x 1,22 ML) 12,20 mt2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/barrier-rollo-1o-ml-x-122-ml-1220-mt2/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/barrier-rollo1-797c8d640c4014bcc615887231443059-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/32e218f7-abb3-488d-a9dd-9d234c734ace.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/32e218f7-abb3-488d-a9dd-9d234c734ace.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "0436e229-8ab6-48eb-8153-e23cbb6069bd",
+      "product_id": "64bc248d-dd9f-483e-91d1-513e9c5efb4c",
+      "source_product_id": "50356552",
+      "product_name": "BARRIER ROLLO (2,5 ML x 1,22 ML) 3,05 mt2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/barrier-rollo-25-ml-x-122-ml-305-mt2/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/barrier-rollo11-797c8d640c4014bcc615887232003461-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/64bc248d-dd9f-483e-91d1-513e9c5efb4c.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/64bc248d-dd9f-483e-91d1-513e9c5efb4c.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a3475a9d-0207-4ed1-9b98-aef89696e868",
+      "product_id": "08fd7ac9-64ef-4454-b487-e2696e40eea0",
+      "source_product_id": "50356607",
+      "product_name": "FONAC PROFESIONAL 50 mm 1,22 x 0,61 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/fonac-profesional-50-mm-122-x-061-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/fonac1-0a8fa4a6883c547dda15887232785883-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/08fd7ac9-64ef-4454-b487-e2696e40eea0.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/08fd7ac9-64ef-4454-b487-e2696e40eea0.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a9522a18-0fd3-4ea1-8aab-cbe0a6b28083",
+      "product_id": "cf7ee8e4-4820-4c09-bafc-89fc40d9509c",
+      "source_product_id": "52371152",
+      "product_name": "PUERTA PLACA MDF 70 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-mdf-70-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-mdf21-2e2dfd673bc0419b3a15906816327291-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/cf7ee8e4-4820-4c09-bafc-89fc40d9509c.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/cf7ee8e4-4820-4c09-bafc-89fc40d9509c.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "108bffd6-7dc6-4a47-bf36-45b3362e0e4a",
+      "product_id": "b1a88828-1118-4780-88e5-1fd4f8553759",
+      "source_product_id": "52371182",
+      "product_name": "PUERTA PLACA MDF 80 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-mdf-80-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-mdf11-2e2dfd673bc0419b3a15906816322605-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/b1a88828-1118-4780-88e5-1fd4f8553759.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/b1a88828-1118-4780-88e5-1fd4f8553759.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "687a24b1-e286-440b-8d59-b3545b28af3b",
+      "product_id": "1f83f5df-f010-48aa-920f-2d9be6ba5414",
+      "source_product_id": "52371254",
+      "product_name": "PUERTA PLACA MDF 90 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-mdf-90-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-mdf2-2e2dfd673bc0419b3a15906816317581-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/1f83f5df-f010-48aa-920f-2d9be6ba5414.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/1f83f5df-f010-48aa-920f-2d9be6ba5414.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "4fc57453-6888-45a1-8fe8-7131e8874d0c",
+      "product_id": "a8a4e988-bdab-4c08-b5ac-cc996021b2ff",
+      "source_product_id": "52371448",
+      "product_name": "PUERTA CORREDIZA EMBUTIR MDF 60 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-corrediza-embutir-mdf-60-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-corrediza-embutir-mdf31-25f0aa73afa95a35c315906816300568-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/a8a4e988-bdab-4c08-b5ac-cc996021b2ff.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/a8a4e988-bdab-4c08-b5ac-cc996021b2ff.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8121100f-d29d-40be-95c9-a496d606c942",
+      "product_id": "6dfa5bc0-52a5-45f8-bf03-ec9baf7b8a3a",
+      "source_product_id": "52371619",
+      "product_name": "PUERTA CORREDIZA EMBUTIR MDF 70 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-corrediza-embutir-mdf-70-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-corrediza-embutir-mdf21-25f0aa73afa95a35c315906816256605-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6dfa5bc0-52a5-45f8-bf03-ec9baf7b8a3a.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6dfa5bc0-52a5-45f8-bf03-ec9baf7b8a3a.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "f320015a-56aa-4c32-9e14-d610e13df1f0",
+      "product_id": "7aba6666-b75a-419a-9033-b830d02af1ab",
+      "source_product_id": "52371672",
+      "product_name": "PUERTA CORREDIZA EMBUTIR MDF 80 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-corrediza-embutir-mdf-80-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-corrediza-embutir-mdf11-25f0aa73afa95a35c315906816423992-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/7aba6666-b75a-419a-9033-b830d02af1ab.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/7aba6666-b75a-419a-9033-b830d02af1ab.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "84bd199c-0b42-46d7-aa02-453e5d27ab60",
+      "product_id": "5e04d814-a505-45da-988c-30a1f2bc68b9",
+      "source_product_id": "52371761",
+      "product_name": "PUERTA CORREDIZA EMBUTIR MDF 90 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-corrediza-embutir-mdf-90-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-corrediza-embutir-mdf1-25f0aa73afa95a35c315906816241771-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/5e04d814-a505-45da-988c-30a1f2bc68b9.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/5e04d814-a505-45da-988c-30a1f2bc68b9.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "5c004542-7fd8-4f93-afa5-1252e8a88b57",
+      "product_id": "f809ba54-f9b0-4f66-832e-5a2def25029d",
+      "source_product_id": "52372072",
+      "product_name": "PUERTA PLACA CEDRO 70 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-cedro-70-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-cedro21-1de7febff1deeb0c0a15906815759017-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/f809ba54-f9b0-4f66-832e-5a2def25029d.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/f809ba54-f9b0-4f66-832e-5a2def25029d.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "2cd6cee3-6a6c-4c0e-b3b4-6087d65211d9",
+      "product_id": "3ea9a684-f175-4795-8c0a-0e42413ed898",
+      "source_product_id": "52372200",
+      "product_name": "PUERTA PLACA CEDRO 80 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-cedro-80-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-cedro11-1de7febff1deeb0c0a15906815744008-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/3ea9a684-f175-4795-8c0a-0e42413ed898.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/3ea9a684-f175-4795-8c0a-0e42413ed898.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "1410ad13-e833-4c90-8bad-95598affa91d",
+      "product_id": "958312af-70ff-49bb-a834-be7014539ef6",
+      "source_product_id": "52372226",
+      "product_name": "PUERTA PLACA CEDRO 90 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/puerta-placa-cedro-90-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/puerta-cedro1-1de7febff1deeb0c0a15906814954306-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/958312af-70ff-49bb-a834-be7014539ef6.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/958312af-70ff-49bb-a834-be7014539ef6.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "622999e4-254e-4cc7-b9ab-6e6e4b0fb580",
+      "product_id": "254add68-9fef-483c-8401-f08787c36645",
+      "source_product_id": "53819069",
+      "product_name": "MASILLA DURLOCK x 7 KG",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-x-7-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/11-a-1411-331345878a0353da7115919871052455-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/254add68-9fef-483c-8401-f08787c36645.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/254add68-9fef-483c-8401-f08787c36645.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "49d1a57d-4e3e-4203-98fd-ffde7d2d8678",
+      "product_id": "ff1ad233-9fbf-48a5-bb49-4ed6f32eb309",
+      "source_product_id": "55695098",
+      "product_name": "ADHESIVO MOLDURAS ATENNEAS x 1.5 kg",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/adhesivo-molduras-atenneas-x-1-5-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/moldura1-86a73d379805228a1b16439728591885-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/ff1ad233-9fbf-48a5-bb49-4ed6f32eb309.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/ff1ad233-9fbf-48a5-bb49-4ed6f32eb309.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "92cfa6fb-0bec-4ee5-ae78-31fe5946d908",
+      "product_id": "b3f255ef-3978-4a28-82f0-643cb99686ff",
+      "source_product_id": "57241357",
+      "product_name": "PLACAS DURLOCK AH ANTIHUMEDAD 1,20m x 2,60",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-ah-antihumedad-120m-x-260/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/22221-ff94f28320d391acd115954455825874-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/b3f255ef-3978-4a28-82f0-643cb99686ff.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/b3f255ef-3978-4a28-82f0-643cb99686ff.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "848bdf01-1574-4c8b-b1f7-d8013388e350",
+      "product_id": "82b8a78f-bbe2-4adc-9be9-d0bd76829c42",
+      "source_product_id": "57241474",
+      "product_name": "MASILLA DURLOCK AH ANTIHUMEDAD 13 kg",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-ah-antihumedad-13-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/33331-5dd65bf2dd8a591b1115954456510606-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/82b8a78f-bbe2-4adc-9be9-d0bd76829c42.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/82b8a78f-bbe2-4adc-9be9-d0bd76829c42.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "eacfb352-ed8c-4f80-94a8-2faccf22ef94",
+      "product_id": "3e093b95-b322-4dec-9c0f-dd68fd90805d",
+      "source_product_id": "58199493",
+      "product_name": "ROLAC PLATA CUBIERTA 100 mm 1.2x6 7.20m2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/rolac-plata-cubierta-100-mm-13-20-mt21/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/721-56d10be7fe67f5fb2015962138179499-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/3e093b95-b322-4dec-9c0f-dd68fd90805d.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/3e093b95-b322-4dec-9c0f-dd68fd90805d.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a1397a06-ec2b-412c-8142-5c75605ea8fa",
+      "product_id": "f096ca09-f51f-465b-a1a2-36431b0065f9",
+      "source_product_id": "58199517",
+      "product_name": "ROLAC PLATA CUBIERTA 80 mm 1,20 x 8 m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/rolac-plata-cubierta-80-mm-120-x-8-m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/721-4d12b2b2ac031548e215962138456687-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/f096ca09-f51f-465b-a1a2-36431b0065f9.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/f096ca09-f51f-465b-a1a2-36431b0065f9.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "5b225368-1278-4a9e-a136-40b88d06efb9",
+      "product_id": "fd741968-d9fc-4f51-abbb-6b19d7399f6b",
+      "source_product_id": "82270997",
+      "product_name": "MASILLA DURLOCK SC x 18 KG",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-sc-x-18-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/masilla-sc1-d18bb4124432ac2a5116177205574509-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/fd741968-d9fc-4f51-abbb-6b19d7399f6b.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/fd741968-d9fc-4f51-abbb-6b19d7399f6b.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "fcc0667a-c33e-4806-a6bb-52bc1c4c8b00",
+      "product_id": "13f992c1-4843-4faa-b000-3a8e025dda2d",
+      "source_product_id": "82271232",
+      "product_name": "MASILLA DURLOCK SC x 32 KG",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-durlock-sc-x-32-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/masilla-sc1-d18bb4124432ac2a5116177205626688-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/13f992c1-4843-4faa-b000-3a8e025dda2d.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/13f992c1-4843-4faa-b000-3a8e025dda2d.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "119b85a0-2aa7-47de-b304-795e152795eb",
+      "product_id": "b6674e26-eec1-44da-868e-28d365e8fcd2",
+      "source_product_id": "54970851",
+      "product_name": "CIELORRASO PVC x 5M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-m2/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/cielorraso-pvc1-6e5f93250f160f566415931806603035-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/b6674e26-eec1-44da-868e-28d365e8fcd2.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/b6674e26-eec1-44da-868e-28d365e8fcd2.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "2cf58c52-97c2-4aba-9f23-5820576a3c8a",
+      "product_id": "46737a99-4fdf-4262-828f-747813376cb3",
+      "source_product_id": "54970979",
+      "product_name": "PERFIL PERIMETRAL PVC x 3 ml",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-perimetral-pvc-x-3-ml/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/perimetral1-ed8cb62525d8c7d20e15931806549032-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/46737a99-4fdf-4262-828f-747813376cb3.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/46737a99-4fdf-4262-828f-747813376cb3.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "aaa993e1-1f27-4bca-bd55-382596620397",
+      "product_id": "1de2fe6e-781e-4aa7-b7d3-6b275dcc2d2c",
+      "source_product_id": "54971046",
+      "product_name": "PERFIL UNIÓN H PVC x 3 ml",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perfil-union-h-pvc-x-3-ml/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/union-h1-c57f91ce685e64635115931806577513-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/1de2fe6e-781e-4aa7-b7d3-6b275dcc2d2c.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/1de2fe6e-781e-4aa7-b7d3-6b275dcc2d2c.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "f225ece6-454c-4fc5-942a-afda1834f0eb",
+      "product_id": "79da1b01-2339-4441-815f-d7aa29cc9f0d",
+      "source_product_id": "54971098",
+      "product_name": "ZÓCALO SANITARIO FLEX PVC x 3 ml",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/zocalo-sanitario-flex-pvc-x-3-ml/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/zocalo-sanitario1-1769abfc7756b3a4ef15931806577498-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/79da1b01-2339-4441-815f-d7aa29cc9f0d.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/79da1b01-2339-4441-815f-d7aa29cc9f0d.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "9daaddb2-c715-4bc5-9d85-581ed9faa2d2",
+      "product_id": "00099735-c25e-47a3-acb1-4c96b338c6ae",
+      "source_product_id": "50875532",
+      "product_name": "PERIMETRAL GX 15/16 x 3050 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/perimetral-gx-15-16-x-3050-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/perimetral-gx-15-16-x-3050-mm1-af2aa8a1fe417dd7e515892251148475-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/00099735-c25e-47a3-acb1-4c96b338c6ae.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/00099735-c25e-47a3-acb1-4c96b338c6ae.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "7dbca1b9-03ca-4322-941c-f26b066c18e9",
+      "product_id": "6531d55f-a121-4bc8-a5a1-61c7cc44e1c8",
+      "source_product_id": "50875574",
+      "product_name": "LARGUERO TX 15/16 x 3660 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/larguero-tx-15-16-x-3660-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/larguero1-1b5b560190648601be15892251630352-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6531d55f-a121-4bc8-a5a1-61c7cc44e1c8.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6531d55f-a121-4bc8-a5a1-61c7cc44e1c8.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "d4418e18-dbd6-480d-afc1-7023daca5e25",
+      "product_id": "d374c420-e368-4f0f-b018-facaec736a36",
+      "source_product_id": "50875658",
+      "product_name": "TRAVESAÑO GX 15/16 x 1200 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/travesano-gx-15-16-x-1200-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/travesano1-3b60165ba1a11c341515892252176730-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/d374c420-e368-4f0f-b018-facaec736a36.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/d374c420-e368-4f0f-b018-facaec736a36.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "644ebe1c-7251-4583-af45-b7cc529c22d8",
+      "product_id": "aa6892a3-5c7e-4ca9-bb89-1e9133f2bc23",
+      "source_product_id": "50875720",
+      "product_name": "TRAVESAÑO GX 15/16 x 610 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/travesano-gx-15-16-x-610-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/travesano1-4b9142f913e00a83aa15892252359579-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/aa6892a3-5c7e-4ca9-bb89-1e9133f2bc23.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/aa6892a3-5c7e-4ca9-bb89-1e9133f2bc23.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "c5a17741-d785-4ec4-ac19-3c735fb242a0",
+      "product_id": "21fdb585-b245-44b5-b797-8fdda46a49ac",
+      "source_product_id": "50876067",
+      "product_name": "PLACA EKO HORN 1220 mm x 610 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-eko-horn-1220-mm-x-610-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/placa-eko-horn1-0d01ef7321230243f615892254600402-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/21fdb585-b245-44b5-b797-8fdda46a49ac.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/21fdb585-b245-44b5-b797-8fdda46a49ac.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "eab2e43b-2475-4ad7-841c-d957ca819d8a",
+      "product_id": "02a22c90-d4ef-499b-a29e-833e78dc972b",
+      "source_product_id": "50875983",
+      "product_name": "PLACA EKO HORN 610 mm x 610 mm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-eko-horn-610-mm-x-610-mm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/placa-eko-horn1-0d01ef7321230243f615892254602773-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/02a22c90-d4ef-499b-a29e-833e78dc972b.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/02a22c90-d4ef-499b-a29e-833e78dc972b.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "34ebab97-e6b4-49f3-b8a1-73d35d809fe7",
+      "product_id": "4c453c20-0216-409c-b3fb-d57c070753a6",
+      "source_product_id": "50876617",
+      "product_name": "PLACA COMET DURLOCK",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-comet-durlock/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/comet1-fc49eded08d0e426ce15892258971682-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/4c453c20-0216-409c-b3fb-d57c070753a6.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/4c453c20-0216-409c-b3fb-d57c070753a6.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "59c87829-31ad-4542-b112-e5a5b0c476fd",
+      "product_id": "21a9ba9c-ef22-4826-a1e5-fef27ae0c1ea",
+      "source_product_id": "114080638",
+      "product_name": "MONTANTE 69mmX30mmX3m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/montante-69mmx30mmx3m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/291-86713503ec2ca082ed16473493675340-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/21a9ba9c-ef22-4826-a1e5-fef27ae0c1ea.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/21a9ba9c-ef22-4826-a1e5-fef27ae0c1ea.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "70aaad17-e838-4cb5-8915-43d5c415e795",
+      "product_id": "39e91ad5-edfd-4127-a1b8-2930e10ccad1",
+      "source_product_id": "120067250",
+      "product_name": "TORNILLOS T1 - 8X9/16 X 50",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t1-8x9-16-x-502/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/0032-tornillo-t1-aguja-8-x-12-1-1000x7901-72f8ccd521ba8f715e16524393904517-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/39e91ad5-edfd-4127-a1b8-2930e10ccad1.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/39e91ad5-edfd-4127-a1b8-2930e10ccad1.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "afb6dc29-9567-461b-85ec-51310ffe99bd",
+      "product_id": "df7dd95b-399b-471d-b781-246633b4f671",
+      "source_product_id": "120352397",
+      "product_name": "TORNILLOS T1 PUNTA MECHA X 100",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-t1-punta-mecha-x-100/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/t1-mecha1-a5c76435a4c3822cf316527063451266-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/df7dd95b-399b-471d-b781-246633b4f671.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/df7dd95b-399b-471d-b781-246633b4f671.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "c022ca31-cba2-4e87-9038-c6420499830b",
+      "product_id": "0d9a8768-60fa-4362-9263-c63883246f31",
+      "source_product_id": "120352767",
+      "product_name": "TORNILLOS 8X32 PLACA EXTERIOR CON ALETA",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-8x32-placa-exterior-con-aleta/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/d_nq_np_625670-mla46739819758_072021-v1-a712e66468849c241d16527066276070-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/0d9a8768-60fa-4362-9263-c63883246f31.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/0d9a8768-60fa-4362-9263-c63883246f31.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "7b4efde7-3cd0-4a11-a57a-69cf47551658",
+      "product_id": "cd2df241-4ec6-4fdb-91db-460c8b33a603",
+      "source_product_id": "120511605",
+      "product_name": "TORNILLOS 8X32 PLACA EXTERIOR CON ALETA x 50 u",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/tornillos-8x32-placa-exterior-con-aleta-x-50-u/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/d_nq_np_625670-mla46739819758_072021-v1-99fc33121c441826b116527966910234-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/cd2df241-4ec6-4fdb-91db-460c8b33a603.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/cd2df241-4ec6-4fdb-91db-460c8b33a603.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "6ffd9cf0-2cc4-4394-9fd0-ea92f5e1f87d",
+      "product_id": "398416e3-082d-4323-b15b-7e0c20961812",
+      "source_product_id": "129226519",
+      "product_name": "ADHESIVO REVOQUE SECO x 25 kg",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/adhesivo-revoque-seco-x-25-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/rs31-7bc9f7f34798e7ff7716602242246201-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/398416e3-082d-4323-b15b-7e0c20961812.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/398416e3-082d-4323-b15b-7e0c20961812.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "56da57d3-4624-48cd-a47d-2ae5a4f6c192",
+      "product_id": "35f2141d-13c3-440c-9e59-3102c9bd79b0",
+      "source_product_id": "141617811",
+      "product_name": "PLACA ACÚSTICA DURLOCK ACU60",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-acustica-durlock-acu60/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/acu1-88492d5323fe978e0116680923650246-1024-1024.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/35f2141d-13c3-440c-9e59-3102c9bd79b0.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/35f2141d-13c3-440c-9e59-3102c9bd79b0.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "ff4eb4e4-6621-4b3b-8856-91483bd7c657",
+      "product_id": "3fcdf2b6-0edd-45ad-8d12-5926b41f480a",
+      "source_product_id": "337336894",
+      "product_name": "CIELORRASO PVC x 3M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-m2-mympz/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/cielorraso-pvc1-5c0109f24484748e4b17759135508455-1024-1024.jpg",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/3fcdf2b6-0edd-45ad-8d12-5926b41f480a.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/3fcdf2b6-0edd-45ad-8d12-5926b41f480a.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "a9765404-488c-4ece-9449-10773442ed28",
+      "product_id": "c7ca38f2-e7b8-481f-be0c-580a360ffa88",
+      "source_product_id": "337337339",
+      "product_name": "CIELORRASO PVC x 4M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-4m-17m2e/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/cielorraso-pvc1-aee3c285b29882062b17759137613730-1024-1024.jpg",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/c7ca38f2-e7b8-481f-be0c-580a360ffa88.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/c7ca38f2-e7b8-481f-be0c-580a360ffa88.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "b936456c-8485-45fd-803d-b03bf43e24e8",
+      "product_id": "b359d10c-7c33-4032-889f-0d340f927a1b",
+      "source_product_id": "337337419",
+      "product_name": "CIELORRASO PVC x 6M",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-6m-87nkx/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/cielorraso-pvc1-2a9892dd2fb5daf83417759138092423-1024-1024.jpg",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/b359d10c-7c33-4032-889f-0d340f927a1b.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/b359d10c-7c33-4032-889f-0d340f927a1b.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "986dae94-30c8-4bd6-adf9-2f8aaa6fd8c4",
+      "product_id": "2eb5b43d-0295-419f-8879-3863da7b9544",
+      "source_product_id": "urlhash:82f59800c745f94344304e5bdae0cb35",
+      "product_name": "PLACA SUPERBOARD 6mm BORDES RECTOS",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-superboard-6mm-bordes-rectos/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/35-36-39-4031-a8f7303f9e52518a2015886430002401-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/2eb5b43d-0295-419f-8879-3863da7b9544.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/2eb5b43d-0295-419f-8879-3863da7b9544.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8f82ff08-9271-49f1-b731-507516e0fb85",
+      "product_id": "440f63c6-e842-4148-89dc-a788e6ac40da",
+      "source_product_id": "urlhash:2fc76a4b722b2daeba16158927d94b8f",
+      "product_name": "PLACAS DURLOCK 12,5mm 1,2 x 3m",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-12-x-3m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/2-a-631-fde51b35e3f064799515886423421369-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/440f63c6-e842-4148-89dc-a788e6ac40da.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/440f63c6-e842-4148-89dc-a788e6ac40da.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "f9df36e6-b5a2-4393-9a12-452aa241f327",
+      "product_id": "6846bd76-cfb8-42d2-8986-eec2dad2dc3f",
+      "source_product_id": "urlhash:7bd4176b38fe8853aa104ddb8b01e095",
+      "product_name": "PLACA SUPERBOARD 10mm BORDE RECTO",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-superboard-10mm-borde-recto/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/35-36-39-4021-a8f7303f9e52518a2015886429309366-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6846bd76-cfb8-42d2-8986-eec2dad2dc3f.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6846bd76-cfb8-42d2-8986-eec2dad2dc3f.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "beaa8a59-20b5-44b0-b69d-ca275eceb3db",
+      "product_id": "2a2c92b1-1f13-4c6d-b99e-6c09ca6029a7",
+      "source_product_id": "urlhash:eb11cf0b8afceb5b4325b4c5f9be67ef",
+      "product_name": "PLACA SUPERBOARD 15mm BORDES RECTO",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-superboard-15mm-bordes-recto/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/35-36-39-4011-a8f7303f9e52518a2015886429190089-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/2a2c92b1-1f13-4c6d-b99e-6c09ca6029a7.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/2a2c92b1-1f13-4c6d-b99e-6c09ca6029a7.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "1351cb3a-0e2e-450d-917e-7623b634d508",
+      "product_id": "460e48e3-394c-462b-9354-1c6373c84511",
+      "source_product_id": "urlhash:b9c8b7404e02348cf999168acc07b12e",
+      "product_name": "PGU 70mm-35mm E 0,93mm X 3 mts",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/pgu-70mm-35mm-e-093mm-x-3-mts/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/481-890576675b6bea5e2c15886439742874-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/460e48e3-394c-462b-9354-1c6373c84511.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/460e48e3-394c-462b-9354-1c6373c84511.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "48adfffc-877e-403b-a97a-70d055880044",
+      "product_id": "078bdea2-40e2-4dd5-afcf-33144cca94f9",
+      "source_product_id": "urlhash:e0c0e103f5818138b95e382a96af8d22",
+      "product_name": "SIDING CEDAR SUPERBOARD 8 mm 3,60 X 0,2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/siding-cedar-superboard-8-mm-360-x-02/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/4611-9640c0623ce828539515886439801059-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/078bdea2-40e2-4dd5-afcf-33144cca94f9.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/078bdea2-40e2-4dd5-afcf-33144cca94f9.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "8e565f70-abfd-4343-980f-f74b1165ba88",
+      "product_id": "2ba4f39a-110f-478d-b0f7-20f613667aaf",
+      "source_product_id": "urlhash:9400ed4f16f7ecf6d71a40ebb51d2e8d",
+      "product_name": "MASILLA SUPERBOARD 5 KG",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/masilla-superboard-5-kg/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/41-a-4311-eef43e800426232d6c15886439864376-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/2ba4f39a-110f-478d-b0f7-20f613667aaf.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/2ba4f39a-110f-478d-b0f7-20f613667aaf.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "f8ae50da-5225-4aff-bcc4-a6f6802a4e3a",
+      "product_id": "e5541666-706c-4c5f-93d3-0a1c37735ad8",
+      "source_product_id": "urlhash:e4e86abaeb96d8fb16096e5395df9af4",
+      "product_name": "BANDA ACÚSTICA E HIDRÁULICA 10 cm x 25 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/banda-acustica-e-hidraulica-10-cm-x-25-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/431-40963fa283a2f821c416514983804279-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/e5541666-706c-4c5f-93d3-0a1c37735ad8.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/e5541666-706c-4c5f-93d3-0a1c37735ad8.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "0497b61f-1fa8-4bd8-b2fd-1ebf011c6ff7",
+      "product_id": "f62d1a2b-b0d7-4085-9389-90ec162c6904",
+      "source_product_id": "urlhash:b82ccc2be534647ebec0fc1a4acd682c",
+      "product_name": "BANDA ACÚSTICA E HIDRÁULICA 5 cm x 25 cm",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/banda-acustica-e-hidraulica-5-cm-x-25-cm/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/431-2c710e18a62e6a3ff416514984342266-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/f62d1a2b-b0d7-4085-9389-90ec162c6904.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/f62d1a2b-b0d7-4085-9389-90ec162c6904.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "b8fd2733-c9c0-4b90-a9b0-f69b9cffbc5f",
+      "product_id": "6b27f582-67b6-4aeb-8ea7-e3d7d7374a7f",
+      "source_product_id": "365637551",
+      "product_name": "CIELORRASO PVC x 6M (ROBLE, CIPRÉS O ARRAYÁN)",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/cielorraso-pvc-x-6m-roble-cipres-o-arrayan-zwmg8/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/assets/stores/img/no-photo-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/6b27f582-67b6-4aeb-8ea7-e3d7d7374a7f.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/6b27f582-67b6-4aeb-8ea7-e3d7d7374a7f.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "b85e29cb-3690-424f-bf26-720f84670a84",
+      "product_id": "99e35527-ebe6-4efe-9977-540c74f0ea2c",
+      "source_product_id": "urlhash:10b1b3de75986ef425c8fdc5624b3c97",
+      "product_name": "PLACAS DURLOCK 12,5mm -1,20m x 2,00m-",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placas-durlock-125mm-120m-x-200m/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/2-a-641-fde51b35e3f064799515886423435428-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/99e35527-ebe6-4efe-9977-540c74f0ea2c.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/99e35527-ebe6-4efe-9977-540c74f0ea2c.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "d6ea5cf3-d96b-4205-8632-e3c5cd514505",
+      "product_id": "682f10b4-5f23-4ece-ab51-e3a8344f8594",
+      "source_product_id": "urlhash:ba4b29a99f7eccd1653983f85f6d2e8c",
+      "product_name": "PLACA SUPERBOARD 8mm BORDE RECTO",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/placa-superboard-8mm-borde-recto/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/35-36-39-401-a8f7303f9e52518a2015886432809745-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/682f10b4-5f23-4ece-ab51-e3a8344f8594.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/682f10b4-5f23-4ece-ab51-e3a8344f8594.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "c841bc8f-42c9-41e2-97c0-384a7cf9bf0e",
+      "product_id": "e8e63e79-67fd-45df-a630-847e69ea5557",
+      "source_product_id": "urlhash:7574a0a757c09ef332146e08db3a45b9",
+      "product_name": "SIDING CEDAR SUPERBOARD 6mm 3,60 X 0,2",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/siding-cedar-superboard-6mm-360-x-02/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/461-9640c0623ce828539515886439887303-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/e8e63e79-67fd-45df-a630-847e69ea5557.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/e8e63e79-67fd-45df-a630-847e69ea5557.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "5a96aa1f-ce56-41f2-8b86-22c776adb005",
+      "product_id": "a764b511-ac74-4173-8d61-ca1853a22721",
+      "source_product_id": "urlhash:63f911c435f316790e90493625d9eb96",
+      "product_name": "PGC 70mm-40mm-17mm E 0,93mm X 3 mts",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/pgc-70mm-40mm-17mm-e-093mm-x-3-mts/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/471-d75afb885ee76142cc15886437321455-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/a764b511-ac74-4173-8d61-ca1853a22721.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/a764b511-ac74-4173-8d61-ca1853a22721.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    },
+    {
+      "source_row_id": "df51fe21-7c76-4fbc-89aa-5934f56692af",
+      "product_id": "982bfc26-2098-4a77-88e2-a7d2c7ae746f",
+      "source_product_id": "urlhash:f6dd268d37bf07c38b0090bfd631b4c6",
+      "product_name": "PGC 100-40-17-E 0,93 X 3 mts",
+      "source_url": "https://tienda.layeserarosarina.com.ar/productos/pgc-100-40-17-e-093-x-3-mts/",
+      "source_image_url": "https://acdn-us.mitiendanube.com/stores/001/166/918/products/471-9823b89d22f491285e16527055116111-640-0.webp",
+      "current_image_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/982bfc26-2098-4a77-88e2-a7d2c7ae746f.webp",
+      "generated_fallback": null,
+      "storage_path": "la-yesera-rosarina/982bfc26-2098-4a77-88e2-a7d2c7ae746f.webp",
+      "stock": 0,
+      "availability_status": "CONSULT"
+    }
+  ],
+  "applied_at": "2026-09-11T02:21:30.038Z",
+  "results": [
+    {
+      "product_id": "cd945114-e233-4325-a3ce-e55334213c92",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "aa88687b-318f-45ff-871e-d56ffaa4356c",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "c9b24f7e-9dbe-4108-91ff-5bca2f90184e",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "a23fd2f5-9708-4455-9387-573ef8fafa24",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "3d547331-0753-4d8f-afad-c77e0e07311a",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "de36f758-f0ac-47ab-a1bd-4d34372fdf85",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "cb3b5159-e23d-4733-9624-501522f9cd61",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "ff8988aa-a1c7-4d50-92a7-3868bb8c54e0",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "7ed3d8df-3a01-4548-af74-07cba56cc7a1",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "9798fb94-5223-4916-9ef0-3148940771af",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "8586088f-1424-413e-a6cd-c107f873a2af",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "023ee48c-66b0-4e69-88c9-d7e8bba28591",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "07ad2ca5-a2f4-4c98-9b1a-c151b85d0638",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "28eb7782-0586-48ea-b5cb-1c39a18dec47",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "bc37a327-bbf7-4a6d-9103-aef38fd49304",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "86243629-50ac-4e41-aa05-f09ead64968a",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "a1e1816c-93c8-43dc-a276-7066efdafa0b",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6a570de9-a10c-4d62-bee1-5dcb2ce0e520",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "f6cf321b-576b-4d84-8e3a-87ca0d585ecf",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "1fe20e7c-9be3-47dd-b4d2-2f3c78f2d141",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "795eda27-b8e1-4ec1-9da1-67c47d59ae80",
+      "status": "UPLOADED",
+      "origin": "AUTHORIZED_GENERATED_FALLBACK",
+      "public_url": "https://gooxgjzetziwnxhuymmx.supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/795eda27-b8e1-4ec1-9da1-67c47d59ae80.webp",
+      "bytes": 67328
+    },
+    {
+      "product_id": "acd3d5ca-532e-4d22-9f84-da1f2a572b40",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "d5e0b7bb-2030-49de-9303-a33dde239d5e",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "5cf41d8f-8e95-4724-a22c-e8182d2db497",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "5368f464-a9a1-4cc9-bd0e-58879ba759fc",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "bbfb2304-bf12-4f78-90c7-24825499ae0a",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "b8ef6d6d-d4fd-4e1f-9e27-2a1002fddb8b",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "9db0e2e7-282e-44d2-826e-21c272489865",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "cc38b4fa-1428-46de-b472-fd89c195d753",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "d0b1e58c-3b77-4c5a-9ec1-9e733e8602a1",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "c7bb8b60-bcae-4f93-8b9f-dd6a821a1fb2",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "78288642-b063-47a8-afa4-0cf95c4fa9d7",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "84de96a4-b576-4cb5-a550-c3c157ba79a3",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "33f88a5a-74f3-4823-9d0b-6b43efa32951",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6b8e1f7b-ac39-4919-b94e-787490c5f912",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "165e9a9c-f051-46a4-bdd9-09f33a804f66",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "7f4eb18e-cebb-470c-8aea-da3f2d765c4f",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "9bad44ab-bd48-43cf-a52b-fdd9c9ba3289",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "31e3f7cc-b34c-432a-9b92-e0edbefb9d07",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "ee59c09c-74d8-447a-9893-b000a9582d2e",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "d6fab924-bab3-4bef-899b-0955996fa8d8",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "2d407387-b5d2-4b5b-80dd-ae70690100d6",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "1e1c86db-9ac1-430a-8b10-51986e55df9e",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "d714b174-3b7d-4650-b554-c75cc2281522",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "e755d8ca-3bb7-450d-a055-31e0d4769db0",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "e64648a8-56e9-4a24-9435-95e42eb4d1c1",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "f8143380-77d3-4ad6-b996-e558e1740632",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6153f5e5-8829-44a8-9614-23f70823dabc",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "25e611a8-d480-4de8-b8cf-e7142817c492",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "e48b6c11-9f6c-4f0f-ba8d-c0aeae7747d6",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "62075563-a119-44f3-9b17-e5f2f6512e65",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "420ddbe7-4e0d-4960-884c-f22773cc82b9",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "32e218f7-abb3-488d-a9dd-9d234c734ace",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "64bc248d-dd9f-483e-91d1-513e9c5efb4c",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "08fd7ac9-64ef-4454-b487-e2696e40eea0",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "cf7ee8e4-4820-4c09-bafc-89fc40d9509c",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "b1a88828-1118-4780-88e5-1fd4f8553759",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "1f83f5df-f010-48aa-920f-2d9be6ba5414",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "a8a4e988-bdab-4c08-b5ac-cc996021b2ff",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6dfa5bc0-52a5-45f8-bf03-ec9baf7b8a3a",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "7aba6666-b75a-419a-9033-b830d02af1ab",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "5e04d814-a505-45da-988c-30a1f2bc68b9",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "f809ba54-f9b0-4f66-832e-5a2def25029d",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "3ea9a684-f175-4795-8c0a-0e42413ed898",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "958312af-70ff-49bb-a834-be7014539ef6",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "254add68-9fef-483c-8401-f08787c36645",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "ff1ad233-9fbf-48a5-bb49-4ed6f32eb309",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "b3f255ef-3978-4a28-82f0-643cb99686ff",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "82b8a78f-bbe2-4adc-9be9-d0bd76829c42",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "3e093b95-b322-4dec-9c0f-dd68fd90805d",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "f096ca09-f51f-465b-a1a2-36431b0065f9",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "fd741968-d9fc-4f51-abbb-6b19d7399f6b",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "13f992c1-4843-4faa-b000-3a8e025dda2d",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "b6674e26-eec1-44da-868e-28d365e8fcd2",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "46737a99-4fdf-4262-828f-747813376cb3",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "1de2fe6e-781e-4aa7-b7d3-6b275dcc2d2c",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "79da1b01-2339-4441-815f-d7aa29cc9f0d",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "00099735-c25e-47a3-acb1-4c96b338c6ae",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6531d55f-a121-4bc8-a5a1-61c7cc44e1c8",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "d374c420-e368-4f0f-b018-facaec736a36",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "aa6892a3-5c7e-4ca9-bb89-1e9133f2bc23",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "21fdb585-b245-44b5-b797-8fdda46a49ac",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "02a22c90-d4ef-499b-a29e-833e78dc972b",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "4c453c20-0216-409c-b3fb-d57c070753a6",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "21a9ba9c-ef22-4826-a1e5-fef27ae0c1ea",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "39e91ad5-edfd-4127-a1b8-2930e10ccad1",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "df7dd95b-399b-471d-b781-246633b4f671",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "0d9a8768-60fa-4362-9263-c63883246f31",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "cd2df241-4ec6-4fdb-91db-460c8b33a603",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "398416e3-082d-4323-b15b-7e0c20961812",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "35f2141d-13c3-440c-9e59-3102c9bd79b0",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "3fcdf2b6-0edd-45ad-8d12-5926b41f480a",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "c7ca38f2-e7b8-481f-be0c-580a360ffa88",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "b359d10c-7c33-4032-889f-0d340f927a1b",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "2eb5b43d-0295-419f-8879-3863da7b9544",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "440f63c6-e842-4148-89dc-a788e6ac40da",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6846bd76-cfb8-42d2-8986-eec2dad2dc3f",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "2a2c92b1-1f13-4c6d-b99e-6c09ca6029a7",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "460e48e3-394c-462b-9354-1c6373c84511",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "078bdea2-40e2-4dd5-afcf-33144cca94f9",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "2ba4f39a-110f-478d-b0f7-20f613667aaf",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "e5541666-706c-4c5f-93d3-0a1c37735ad8",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "f62d1a2b-b0d7-4085-9389-90ec162c6904",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "6b27f582-67b6-4aeb-8ea7-e3d7d7374a7f",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "99e35527-ebe6-4efe-9977-540c74f0ea2c",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "682f10b4-5f23-4ece-ab51-e3a8344f8594",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "e8e63e79-67fd-45df-a630-847e69ea5557",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "a764b511-ac74-4173-8d61-ca1853a22721",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    },
+    {
+      "product_id": "982bfc26-2098-4a77-88e2-a7d2c7ae746f",
+      "status": "SKIPPED",
+      "reason": "El producto ya tiene una imagen propia"
+    }
+  ],
+  "applied_summary": {
+    "uploaded": 1,
+    "skipped": 108,
+    "errors": 0,
+    "total_bytes": 67328
+  }
+}

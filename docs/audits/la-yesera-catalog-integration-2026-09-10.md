@@ -1,5 +1,7 @@
 # Auditoría e integración La Yesera Rosarina — 2026-09-10
 
+> Nota histórica: este documento conserva el estado de la primera importación. El cierre productivo actualizado (109 productos, imágenes autorizadas, proveedores definitivos, QA y despliegue) está en [`catalog-suppliers-chatbot-audit.md`](./catalog-suppliers-chatbot-audit.md).
+
 ## 1. Resumen ejecutivo
 
 Se auditó el repositorio existente sin recrearlo ni cambiar el stack. Antes de escribir en producción se generó una vista previa de 96 productos públicos de la categoría **Construcción en Seco**, se comparó contra Supabase y se retuvieron 2 coincidencias ambiguas. Después de esa revisión se insertaron 94 productos, todos con precio `Math.round(precio_origen * 1.20)`, stock `0` y disponibilidad `CONSULT`.

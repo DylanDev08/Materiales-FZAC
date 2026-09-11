@@ -21,7 +21,7 @@ export default function Page() {
     name: SITE_NAME,
     alternateName: "Fortaleza Construcciones",
     url: siteUrl,
-    logo: toAbsoluteUrl("/logoFZAC.jpg"),
+    logo: toAbsoluteUrl("/icons/icon-512.png"),
     image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
     currenciesAccepted: "ARS",

@@ -14,17 +14,17 @@ import { hasSqlMeta } from "@/lib/validations/security";
 
 const addressSchema = z
   .object({
-    street: z.string().trim().min(2).max(120).refine((value) => {
+    street: z.string().trim().min(2, "Ingresá una calle válida.").max(120, "La calle es demasiado larga.").refine((value) => {
       const letters = value.normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
       return letters.length >= 3 && new Set(letters).size >= 2;
     }, "Ingresá una calle válida."),
-    number: z.string().trim().min(1).max(30).refine(
+    number: z.string().trim().min(1, "Ingresá una altura válida.").max(30, "La altura es demasiado larga.").refine(
       (value) => !/^\d+$/.test(value) || Number(value) <= 99_999,
       "Ingresá una altura válida."
     ),
     apartment: z.string().trim().max(60).optional(),
-    city: z.string().trim().min(2).max(80),
-    province: z.string().trim().min(2).max(80),
+    city: z.string().trim().min(2, "Ingresá una ciudad válida.").max(80),
+    province: z.string().trim().min(2, "Ingresá una provincia válida.").max(80),
     postalCode: z.string().trim().max(30).optional(),
     notes: z.string().trim().max(240).optional()
   })

@@ -109,7 +109,7 @@ export function parseProducts(html, subcategoryById) {
       sale_price: salePrice(originalPrice),
       source_image_url: publicImageUrl(variant?.image_url),
       image_url: null,
-      image_status: "PENDING_AUTHORIZATION",
+      image_status: "AUTHORIZED_PENDING_STORAGE_SYNC",
       brand: brandFromPublicName(originalName),
       category: "Construcción en seco",
       subcategory: subcategoryById.get(sourceProductId) ?? "General",
@@ -211,9 +211,9 @@ export function classify(rows, state) {
 
 async function upsertSuppliers(db) {
   const rows = [
-    { code: "LA-YESERA-ROSARINA", name: "La Yesera Rosarina", active: true },
+    { code: "LA-YESERA-ROSARINA", name: "Yesera Rosarina", active: true },
     { code: "URBE-SRL", name: "Urbe SRL", active: true },
-    { code: "UNIVERSO-PINTURAS", name: "Universo Pinturas", active: true }
+    { code: "MAQUINARIA-SORRENTOS", name: "Maquinaria Sorrentos", active: true }
   ];
   const { data, error } = await db.from("suppliers").upsert(rows, { onConflict: "code" }).select("id,code,name");
   if (error) throw error;
@@ -304,7 +304,7 @@ async function main() {
     source_category_url: SOURCE_CATEGORY_URL,
     source_requests: "8 category pages plus bounded child-category pagination; no product-detail bulk crawl",
     pricing_rule: "Math.round(original_price * 1.20)",
-    image_policy: "References only. Supplier authorization was not confirmed; no source image was copied or hotlinked into the storefront.",
+    image_policy: "El propietario de FZAC autorizó el uso comercial. La copia optimizada a Storage se ejecuta con catalog:la-yesera:images:apply; no se permite hotlink permanente.",
     summary: {
       found: products.length,
       insert: products.filter((row) => row.decision === "INSERT").length,

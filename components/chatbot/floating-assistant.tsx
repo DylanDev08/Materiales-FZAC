@@ -469,7 +469,7 @@ export function FloatingAssistant() {
         aria-label={open ? "Cerrar asistente FZAC" : "Abrir asistente FZAC"}
         aria-expanded={open}
       >
-        <Image src="/logoFZAC.jpg" alt="" width={40} height={40} priority={false} />
+        <Image src="/icons/icon-192.webp" alt="" width={48} height={48} priority={false} />
         <span className="sr-only">AI Chatbot FZAC</span>
       </button>
     </div>

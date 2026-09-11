@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { classify, normalizeText, parseProducts, salePrice } from "../../scripts/catalog/import-la-yesera.mjs";
+import { storefrontCategorySlug } from "../../scripts/catalog/sync-storefront-taxonomy.mjs";
 
 test("aplica exactamente 20% y redondea una sola vez", () => {
   assert.equal(salePrice(16100), 19320);
@@ -44,4 +45,11 @@ test("omite filas sin precio válido y conserva imagen faltante como null", () =
 
 test("una respuesta fuente vacía produce un dataset vacío sin inventar productos", () => {
   assert.deepEqual(parseProducts("", new Map()), []);
+});
+
+test("clasifica el catálogo público sin inferir categorías fuera de reglas verificables", () => {
+  assert.equal(storefrontCategorySlug("TORNILLOS T2 - 6X1 X 100"), "ferreteria");
+  assert.equal(storefrontCategorySlug("PGC 100-40-17-E 0,93 X 3 mts"), "steel-framing");
+  assert.equal(storefrontCategorySlug("PLACA SUPERBOARD 10mm BORDE RECTO"), "steel-framing");
+  assert.equal(storefrontCategorySlug("PLACAS DURLOCK 12,5mm 1,20 x 2,40"), "construccion-en-seco");
 });
