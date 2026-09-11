@@ -12,6 +12,7 @@
 @import "../styles/storefront.css";
 @import "../styles/entry-loader.css";
 @import "../styles/mobile.css";
+@import "../styles/ui-ux-hardening.css";
 
 * {
   box-sizing: border-box;
