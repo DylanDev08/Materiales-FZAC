@@ -57,10 +57,10 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - La integración backend usa Routes API `computeRouteMatrix`, clave exclusivamente server-side, field mask mínimo, timeout de 7 s, caché, deduplicación, límite de concurrencia y rate limit.
 - Autocomplete usa clave browser separada y carga controlada; no cotiza por cada tecla.
 - Retiro mantiene envío ARS 0.
-- La Yesera muestra la etiqueta pública `Envío gratis` en estos productos, pero no expone un tarifario por km, base comercial ni un cotizador postal en las páginas auditadas. Esa etiqueta no se transformó en una tarifa universal para FZAC.
-- Sin `FZAC_SHIPPING_BASE_PRICE` y `FZAC_SHIPPING_PRICE_PER_KM`, el backend falla cerrado con importe 0 y mensaje explícito; nunca inventa flete.
+- La Yesera muestra la etiqueta pública `Envío gratis` en la categoría y en las fichas inspeccionadas, sin publicar base, costo por km ni recargo. Con autorización del propietario, Render quedó configurado con base, km y mínimo en ARS 0 para este catálogo.
+- Si las variables de tarifa o Maps faltan, el backend sigue fallando cerrado con importe 0 y mensaje explícito; nunca inventa flete.
 - `render.yaml` declara claves browser/server por separado y las variables comerciales como secretos/valores operativos externos.
-- Verificación en Render: la cotización informa que falta la clave server-side. El checkout no cobra un valor falso ni se rompe; la clave debe cargarse en el dashboard con las restricciones indicadas.
+- Las claves browser/server se cargaron directamente en Render sin exponerlas en Git. La prueba real `Córdoba 1200, Rosario` devolvió Routes API, 10,5 km y envío ARS 0; direcciones incompleta e inexistente devolvieron 422.
 
 ## 9. Bugs UI/UX encontrados
 
@@ -139,8 +139,8 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 
 ## 20. Pendientes y despliegue
 
-- Pendiente comercial: FZAC debe definir una tarifa propia (`base`, `por km`, mínimo y radio) si desea cobrar delivery automático. La fuente no publica esos importes.
+- Si FZAC deja de respetar el envío gratuito publicado por la fuente, debe definir una tarifa propia (`base`, `por km`, mínimo y radio) antes de cobrar delivery automático.
 - Pendiente externo: confirmar en Google Cloud las restricciones HTTP referrer de la clave browser y API/IP de la clave server.
 - Pendiente QA autenticado: USER/ADMIN y checkout con escritura requieren credenciales controladas no incluidas en el repositorio.
-- Push a `main` realizado sin force. Render informó el SHA de código `58158f7` y respondió 200 en health, Home, catálogo, carrito, login/registro, legales y redirección Admin.
-- Smoke remoto: navegación activa, 109 productos, tres categorías, imágenes Storage, manifest/PWA y bloqueo Admin correctos. La única condición operativa detectada es la configuración externa faltante de Maps/tarifa ya documentada arriba.
+- Push a `main` realizado sin force. Render informó el SHA de código `c737bdc` y respondió 200 en health, Home, catálogo, carrito, login/registro, legales y redirección Admin.
+- Smoke remoto: navegación activa, 109 productos, tres categorías, imágenes Storage, manifest/PWA, bloqueo Admin y cotización Google Routes correctos.
