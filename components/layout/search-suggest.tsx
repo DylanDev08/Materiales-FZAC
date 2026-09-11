@@ -67,7 +67,10 @@ export function SearchSuggest() {
   }, []);
 
   useEffect(() => {
-    if (query.trim().length < 2) {
+    const clean = query.trim();
+    if (clean.length < 2) {
+      setLoading(false);
+      setSuggestions([]);
       return;
     }
 
@@ -75,9 +78,10 @@ export function SearchSuggest() {
     const timer = window.setTimeout(async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(clean)}`, {
           signal: controller.signal
         });
+        if (!response.ok) throw new Error("Search suggestions failed");
         const data = (await response.json()) as { suggestions?: Suggestion[] };
         setSuggestions(data.suggestions ?? []);
         setOpen(true);
@@ -86,7 +90,7 @@ export function SearchSuggest() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 160);
+    }, 180);
 
     return () => {
       controller.abort();
@@ -115,12 +119,13 @@ export function SearchSuggest() {
     event.preventDefault();
     const clean = query.trim();
     remember(clean);
+    setOpen(false);
     router.push(clean ? `/productos?search=${encodeURIComponent(clean)}` : "/productos");
   }
 
   return (
     <div className="search-suggest" ref={boxRef}>
-      <form className="header-search" onSubmit={submit}>
+      <form className="header-search" onSubmit={submit} role="search">
         <label className="sr-only" htmlFor="site-search">
           Buscar productos
         </label>
@@ -136,7 +141,9 @@ export function SearchSuggest() {
             setOpen(next.trim().length >= 2 || recent.length > 0);
           }}
           onFocus={() => setOpen(query.trim().length >= 2 || recent.length > 0)}
-          placeholder="Buscar cemento, placas, perfiles, pintura..."
+          placeholder="Buscar placas, perfiles, masilla..."
+          aria-controls="site-search-suggestions"
+          aria-expanded={open}
         />
         <button type="submit" aria-label="Buscar">
           <Search size={20} />
@@ -144,10 +151,10 @@ export function SearchSuggest() {
       </form>
 
       {open ? (
-        <div className="search-suggest__panel">
+        <div className="search-suggest__panel" id="site-search-suggestions" role="listbox">
           {query.trim().length < 2 && recent.length ? (
             <div className="search-suggest__group">
-              <span className="search-suggest__status">Busquedas recientes</span>
+              <span className="search-suggest__status">Búsquedas recientes</span>
               {recent.map((term) => (
                 <Link
                   className="search-suggest__item search-suggest__item--compact"
@@ -182,6 +189,8 @@ export function SearchSuggest() {
               href={suggestionHref(suggestion)}
               key={`${suggestion.type}-${suggestion.id}`}
               prefetch={false}
+              role="option"
+              aria-selected="false"
               onClick={() => {
                 remember(suggestion.name);
                 setOpen(false);
@@ -202,10 +211,10 @@ export function SearchSuggest() {
                   {suggestion.type === "product"
                     ? `${suggestion.brand} - ${suggestion.sku}`
                     : suggestion.type === "category"
-                      ? "Categoria"
+                      ? "Categoría"
                       : suggestion.type === "brand"
                         ? "Marca"
-                        : "Busqueda sugerida"}
+                        : "Búsqueda sugerida"}
                 </small>
               </span>
               {suggestion.type === "product" ? <b>{currency(suggestion.price)}</b> : null}
