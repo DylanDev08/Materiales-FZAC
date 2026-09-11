@@ -13,7 +13,7 @@ test("rechaza direcciones incompletas antes de consultar Google", async ({ reque
   expect(String(body.error ?? body.message)).toMatch(/calle|direcci[oó]n|caracteres/i);
 });
 
-test("una dirección válida falla cerrada cuando no hay tarifa comercial", async ({ request }) => {
+test("una dirección válida falla cerrada cuando Maps o la tarifa no están operativos", async ({ request }) => {
   const response = await request.post("/api/shipping/quote", {
     data: { street: "Córdoba", number: "1200", city: "Rosario", province: "Santa Fe" }
   });
@@ -21,5 +21,5 @@ test("una dirección válida falla cerrada cuando no hay tarifa comercial", asyn
   const body = await response.json();
   expect(body.available).toBe(false);
   expect(body.amount).toBe(0);
-  expect(body.reason).toMatch(/tarifa vigente/i);
+  expect(body.reason).toMatch(/API server-side de Google Maps|tarifa vigente/i);
 });

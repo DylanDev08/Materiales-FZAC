@@ -60,6 +60,7 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - La Yesera muestra la etiqueta pública `Envío gratis` en estos productos, pero no expone un tarifario por km, base comercial ni un cotizador postal en las páginas auditadas. Esa etiqueta no se transformó en una tarifa universal para FZAC.
 - Sin `FZAC_SHIPPING_BASE_PRICE` y `FZAC_SHIPPING_PRICE_PER_KM`, el backend falla cerrado con importe 0 y mensaje explícito; nunca inventa flete.
 - `render.yaml` declara claves browser/server por separado y las variables comerciales como secretos/valores operativos externos.
+- Verificación en Render: la cotización informa que falta la clave server-side. El checkout no cobra un valor falso ni se rompe; la clave debe cargarse en el dashboard con las restricciones indicadas.
 
 ## 9. Bugs UI/UX encontrados
 
@@ -141,4 +142,5 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - Pendiente comercial: FZAC debe definir una tarifa propia (`base`, `por km`, mínimo y radio) si desea cobrar delivery automático. La fuente no publica esos importes.
 - Pendiente externo: confirmar en Google Cloud las restricciones HTTP referrer de la clave browser y API/IP de la clave server.
 - Pendiente QA autenticado: USER/ADMIN y checkout con escritura requieren credenciales controladas no incluidas en el repositorio.
-- El commit, push y smoke del despliegue se registrarán en esta sección después de que Render informe el SHA activo.
+- Push a `main` realizado sin force. Render informó el SHA de código `58158f7` y respondió 200 en health, Home, catálogo, carrito, login/registro, legales y redirección Admin.
+- Smoke remoto: navegación activa, 109 productos, tres categorías, imágenes Storage, manifest/PWA y bloqueo Admin correctos. La única condición operativa detectada es la configuración externa faltante de Maps/tarifa ya documentada arriba.
