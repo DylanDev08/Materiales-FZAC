@@ -3,12 +3,13 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Instagram, Mail } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 
 const SESSION_KEY = "fzac-entry-complete-v1";
+const AUTO_CLOSE_MS = 1150;
 
-type LoaderState = "ready" | "building" | "hidden";
+type LoaderState = "building" | "hidden";
 
 export function FzacEntryLoader({
   instagramHref,
@@ -20,61 +21,60 @@ export function FzacEntryLoader({
   email: string;
 }) {
   const pathname = usePathname();
-  const [state, setState] = useState<LoaderState>("ready");
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [state, setState] = useState<LoaderState>("building");
   const timerRef = useRef<number | null>(null);
   const visible = pathname === "/" && state !== "hidden";
 
-  useEffect(() => {
-    if (pathname !== "/") return;
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        if (window.sessionStorage.getItem(SESSION_KEY) === "true") {
-          setState("hidden");
-          return;
-        }
-      } catch {
-        // The entry remains usable when storage is unavailable.
-      }
+  const completeEntry = useCallback(() => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
 
-      setState("ready");
-      buttonRef.current?.focus();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [pathname]);
+    try {
+      window.sessionStorage.setItem(SESSION_KEY, "true");
+    } catch {
+      // The transition still completes without persistent browser storage.
+    }
 
-  useEffect(() => {
-    if (!visible) return;
-    const previousOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = previousOverflow;
-    };
-  }, [visible]);
-
-  useEffect(() => () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
+    setState("hidden");
   }, []);
 
-  function enterStore() {
-    if (state !== "ready") return;
-    setState("building");
-    timerRef.current = window.setTimeout(() => {
-      try {
-        window.sessionStorage.setItem(SESSION_KEY, "true");
-      } catch {
-        // The transition still completes without persistent browser storage.
-      }
+  useEffect(() => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (pathname !== "/") {
       setState("hidden");
-    }, 900);
-  }
+      return;
+    }
+
+    try {
+      if (window.sessionStorage.getItem(SESSION_KEY) === "true") {
+        setState("hidden");
+        return;
+      }
+    } catch {
+      // The entry remains usable when storage is unavailable.
+    }
+
+    setState("building");
+    timerRef.current = window.setTimeout(completeEntry, AUTO_CLOSE_MS);
+
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [completeEntry, pathname]);
 
   if (!visible) return null;
 
-  const building = state === "building";
-
   return (
-    <div className={`fzac-entry-loader ${building ? "is-building" : ""}`} role="dialog" aria-modal="true" aria-labelledby="fzac-entry-title">
+    <div className="fzac-entry-loader is-building" role="status" aria-live="polite" aria-label="Ingresando a Materiales FZAC">
       <div className="fzac-entry-loader__frame">
         <div className="fzac-entry-loader__logo">
           <Image src="/logoFZAC.jpg" alt="Materiales FZAC" width={124} height={124} priority unoptimized />
@@ -82,13 +82,13 @@ export function FzacEntryLoader({
 
         <div className="fzac-entry-loader__copy">
           <span>Fortaleza Construcciones</span>
-          <h1 id="fzac-entry-title">Tu obra empieza en FZAC.</h1>
+          <h1>Tu obra empieza en FZAC.</h1>
           <p>Materiales, herramientas y soluciones para construir con confianza.</p>
         </div>
 
-        <button ref={buttonRef} className="fzac-entry-loader__action" type="button" onClick={enterStore} disabled={building} aria-busy={building}>
+        <button className="fzac-entry-loader__action" type="button" onClick={completeEntry}>
           <span aria-hidden="true" />
-          {building ? "Construyendo..." : "Construir"}
+          Entrar a la tienda
         </button>
 
         <div className="fzac-entry-loader__progress" aria-hidden="true"><span /></div>
