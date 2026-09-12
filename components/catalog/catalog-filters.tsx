@@ -121,6 +121,7 @@ export function CatalogFilters({
             <option value="price_asc">Menor precio</option>
             <option value="price_desc">Mayor precio</option>
             <option value="name_asc">Nombre A-Z</option>
+            <option value="stock_desc">Stock disponible</option>
           </select>
         </label>
 

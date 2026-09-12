@@ -1,9 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { storefrontCategorySlug } from "./sync-storefront-taxonomy.mjs";
 
 const SOURCE = "La Yesera Rosarina";
 const SOURCE_CATEGORY_URL = "https://tienda.layeserarosarina.com.ar/construccion-en-seco/";
+const SOURCE_CATALOG_URL = "https://tienda.layeserarosarina.com.ar/productos/";
 const OUTPUT_PATH = "data/imports/la-yesera-construccion-en-seco.preview.json";
 const USER_AGENT = "MaterialesFZACCatalogAudit/1.0 (+https://materiales-fzac-8xmp.onrender.com/)";
 const MAX_PAGES = 20;
@@ -74,8 +76,30 @@ async function fetchHtml(url) {
   return response.text();
 }
 
-export function salePrice(sourcePrice) {
-  return Math.round(sourcePrice * 1.2);
+export function isAroProduct(product = {}) {
+  const searchable = [
+    product.original_name,
+    product.name,
+    product.slug,
+    product.category,
+    product.subcategory,
+    JSON.stringify(product.metadata ?? {}),
+    JSON.stringify(product.specifications ?? {})
+  ].filter(Boolean).join(" ");
+  return /(^|\s)aros?(\s|$)/.test(normalizeText(searchable));
+}
+
+export function marginPercent(product = {}) {
+  return isAroProduct(product) ? 10 : 20;
+}
+
+export function salePrice(sourcePrice, product = {}) {
+  return Math.round(sourcePrice * (1 + marginPercent(product) / 100));
+}
+
+export function isSupplementalDryProduct(product = {}) {
+  const name = normalizeText(product.original_name ?? product.name ?? "");
+  return isAroProduct(product) || /(^|\s)(durlock|superboard|siding|pgc|pgu)(\s|$)/.test(name);
 }
 
 export function parseProducts(html, subcategoryById) {
@@ -100,13 +124,12 @@ export function parseProducts(html, subcategoryById) {
     if (!originalName || !Number.isFinite(originalPrice) || originalPrice <= 0) return [];
 
     const sourceUrl = decodeHtml(link[1]);
-    return [{
+    const product = {
       source: SOURCE,
       source_product_id: sourceProductId,
       source_url: sourceUrl,
       original_name: originalName,
       original_price: originalPrice,
-      sale_price: salePrice(originalPrice),
       source_image_url: publicImageUrl(variant?.image_url),
       image_url: null,
       image_status: "AUTHORIZED_PENDING_STORAGE_SYNC",
@@ -121,6 +144,13 @@ export function parseProducts(html, subcategoryById) {
       availability_status: "CONSULT",
       description: null,
       specifications: {}
+    };
+    const appliedMargin = marginPercent(product);
+    return [{
+      ...product,
+      margin_percent: appliedMargin,
+      sale_price: salePrice(originalPrice, product),
+      target_category_slug: storefrontCategorySlug(originalName)
     }];
   });
 }
@@ -139,15 +169,35 @@ async function discoverSubcategories() {
 }
 
 async function discoverProducts(subcategoryById) {
-  const rows = [];
+  const categoryRows = [];
   for (let page = 1; page <= MAX_PAGES; page += 1) {
     const html = await fetchHtml(`${SOURCE_CATEGORY_URL}?page=${page}`);
     const pageRows = parseProducts(html, subcategoryById);
     if (!pageRows.length) break;
-    rows.push(...pageRows);
+    categoryRows.push(...pageRows.map((row) => ({ ...row, source_scope: "CONSTRUCCION_EN_SECO" })));
     if (pageRows.length < PAGE_SIZE) break;
   }
-  return [...new Map(rows.map((row) => [row.source_product_id, row])).values()];
+
+  const supplementalRows = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const html = await fetchHtml(`${SOURCE_CATALOG_URL}?page=${page}`);
+    const pageRows = parseProducts(html, subcategoryById);
+    if (!pageRows.length) break;
+    supplementalRows.push(...pageRows
+      .filter(isSupplementalDryProduct)
+      .map((row) => ({ ...row, source_scope: "CATALOG_RELATED" })));
+    if (pageRows.length < PAGE_SIZE) break;
+  }
+
+  const uniqueRows = new Map();
+  for (const row of [...categoryRows, ...supplementalRows]) {
+    if (!uniqueRows.has(row.source_product_id)) uniqueRows.set(row.source_product_id, row);
+  }
+  return {
+    rows: [...uniqueRows.values()],
+    categoryCount: new Set(categoryRows.map((row) => row.source_product_id)).size,
+    supplementalCount: [...uniqueRows.values()].filter((row) => row.source_scope === "CATALOG_RELATED").length
+  };
 }
 
 function supabaseClient() {
@@ -175,20 +225,46 @@ async function loadFzacState(db) {
   if (productQuery.error?.message.includes("supplier_id") || productQuery.error?.message.includes("availability_status")) {
     productQuery = await db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url");
   }
-  const [{ data: category, error: categoryError }, sourceQuery] = await Promise.all([
-    db.from("categories").select("id").eq("slug", "construccion-en-seco").single(),
-    db.from("product_supplier_sources").select("product_id,source_product_id,original_price")
+  const [{ data: categories, error: categoryError }, { data: supplier, error: supplierError }] = await Promise.all([
+    db.from("categories").select("id,slug").in("slug", ["construccion-en-seco", "steel-framing", "ferreteria"]),
+    db.from("suppliers").select("id").eq("code", "LA-YESERA-ROSARINA").single()
   ]);
   if (productQuery.error) throw productQuery.error;
-  if (categoryError) throw categoryError;
-  return { products: productQuery.data ?? [], categoryId: category.id, sources: sourceQuery.error ? [] : sourceQuery.data ?? [] };
+  if (categoryError || supplierError) throw categoryError || supplierError;
+  const sourceQuery = await db.from("product_supplier_sources")
+    .select("product_id,supplier_id,source_product_id,source_url,source_sku,original_price")
+    .eq("supplier_id", supplier.id);
+  if (sourceQuery.error) throw sourceQuery.error;
+  return {
+    products: productQuery.data ?? [],
+    categoryBySlug: new Map((categories ?? []).map((category) => [category.slug, category.id])),
+    supplierId: supplier.id,
+    sources: sourceQuery.data ?? []
+  };
+}
+
+function errorMessage(error) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    return [error.message, error.details, error.hint, error.code].filter(Boolean).join(" | ") || JSON.stringify(error);
+  }
+  return String(error);
 }
 
 export function classify(rows, state) {
   const sourceByExternalId = new Map(state.sources.map((source) => [source.source_product_id, source]));
+  const sourceByUrl = new Map(state.sources.filter((source) => source.source_url).map((source) => [source.source_url, source]));
+  const sourceBySku = new Map(state.sources.filter((source) => source.source_sku).map((source) => [source.source_sku, source]));
   return rows.map((row) => {
-    const source = sourceByExternalId.get(row.source_product_id);
-    if (source) return { ...row, decision: "UPDATE_IMPORTED", existing_product_id: source.product_id, duplicate_reasons: ["source_product_id"] };
+    const source = sourceByExternalId.get(row.source_product_id)
+      ?? sourceByUrl.get(row.source_url)
+      ?? (row.source_sku ? sourceBySku.get(row.source_sku) : null);
+    if (source) {
+      const reason = source.source_product_id === row.source_product_id
+        ? "source_product_id"
+        : source.source_url === row.source_url ? "source_url" : "source_sku";
+      return { ...row, decision: "UPDATE_IMPORTED", existing_product_id: source.product_id, duplicate_reasons: [reason] };
+    }
 
     const candidates = state.products.flatMap((product) => {
       const reasons = [];
@@ -237,7 +313,7 @@ async function applyImport(db, preview, state) {
         slug: row.slug,
         sku: row.import_sku,
         description: "",
-        category_id: state.categoryId,
+        category_id: state.categoryBySlug.get(row.target_category_slug),
         subcategory: row.subcategory,
         brand: row.brand ?? "Sin marca informada",
         price: row.sale_price,
@@ -259,7 +335,12 @@ async function applyImport(db, preview, state) {
         const { data, error } = await db.from("products")
           // Preserve any stock and availability decision recorded by FZAC
           // after the initial import while refreshing source-linked prices.
-          .update({ price: row.sale_price, supplier_id: supplier.id, updated_at: new Date().toISOString() })
+          .update({
+            price: row.sale_price,
+            supplier_id: supplier.id,
+            category_id: state.categoryBySlug.get(row.target_category_slug),
+            updated_at: new Date().toISOString()
+          })
           .eq("id", row.existing_product_id).select("id,name,price").single();
         if (error) throw error;
         product = data;
@@ -281,12 +362,12 @@ async function applyImport(db, preview, state) {
         source_sku: row.source_sku,
         original_name: row.original_name,
         original_price: row.original_price,
-        margin_percent: 20,
+        margin_percent: row.margin_percent,
         checked_at: new Date().toISOString()
-      }, { onConflict: "supplier_id,source_product_id" });
+      }, { onConflict: "product_id" });
       if (provenanceError) throw provenanceError;
     } catch (error) {
-      result.errors.push({ source_product_id: row.source_product_id, name: row.original_name, error: error instanceof Error ? error.message : String(error) });
+      result.errors.push({ source_product_id: row.source_product_id, name: row.original_name, error: errorMessage(error) });
     }
   }
   return { suppliers, ...result };
@@ -295,18 +376,23 @@ async function applyImport(db, preview, state) {
 async function main() {
   const db = supabaseClient();
   const subcategoryById = await discoverSubcategories();
-  const sourceRows = await discoverProducts(subcategoryById);
+  const discovery = await discoverProducts(subcategoryById);
+  const sourceRows = discovery.rows;
   const state = await loadFzacState(db);
   const products = classify(sourceRows, state);
   const preview = {
     generated_at: new Date().toISOString(),
     source: SOURCE,
     source_category_url: SOURCE_CATEGORY_URL,
-    source_requests: "8 category pages plus bounded child-category pagination; no product-detail bulk crawl",
-    pricing_rule: "Math.round(original_price * 1.20)",
+    source_requests: "Bounded Construcción en Seco, child-category and full-catalog pagination; supplemental rows require an explicit dry-construction product signal.",
+    pricing_rule: "Math.round(original_price * 1.20), except products clearly identified as aro/aros: Math.round(original_price * 1.10)",
     image_policy: "El propietario de FZAC autorizó el uso comercial. La copia optimizada a Storage se ejecuta con catalog:la-yesera:images:apply; no se permite hotlink permanente.",
     summary: {
       found: products.length,
+      category_found: discovery.categoryCount,
+      supplemental_related: discovery.supplementalCount,
+      margin_20: products.filter((row) => row.margin_percent === 20).length,
+      margin_10_aros: products.filter((row) => row.margin_percent === 10).length,
       insert: products.filter((row) => row.decision === "INSERT").length,
       update_imported: products.filter((row) => row.decision === "UPDATE_IMPORTED").length,
       skip_duplicate: products.filter((row) => row.decision === "SKIP_DUPLICATE").length,

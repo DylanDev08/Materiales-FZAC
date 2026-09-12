@@ -45,7 +45,9 @@ export function SearchSuggest() {
   });
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rememberPreferences, setRememberPreferences] = useState(false);
+  const [rememberPreferences, setRememberPreferences] = useState(() => (
+    typeof window !== "undefined" && preferencesAllowed()
+  ));
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,15 +64,12 @@ export function SearchSuggest() {
       }
     };
 
-    syncPreference(preferencesAllowed());
     return subscribePrivacyConsent((consent) => syncPreference(consent?.preferences === true));
   }, []);
 
   useEffect(() => {
     const clean = query.trim();
     if (clean.length < 2) {
-      setLoading(false);
-      setSuggestions([]);
       return;
     }
 
@@ -137,13 +136,19 @@ export function SearchSuggest() {
           onChange={(event) => {
             const next = event.target.value;
             setQuery(next);
-            if (next.trim().length < 2) setSuggestions([]);
+            if (next.trim().length < 2) {
+              setLoading(false);
+              setSuggestions([]);
+            }
             setOpen(next.trim().length >= 2 || recent.length > 0);
           }}
           onFocus={() => setOpen(query.trim().length >= 2 || recent.length > 0)}
           placeholder="Buscar placas, perfiles, masilla..."
           aria-controls="site-search-suggestions"
           aria-expanded={open}
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          role="combobox"
         />
         <button type="submit" aria-label="Buscar">
           <Search size={20} />

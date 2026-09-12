@@ -9,6 +9,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isMercadoPagoConfigured, MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
+import { canPurchaseProduct } from "@/lib/products/availability";
 import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import {
@@ -444,7 +445,7 @@ export async function inspectCheckoutStock(input: unknown) {
 
   const issues = Array.from(requestedByProduct.entries()).flatMap(([productId, requested]) => {
     const available = requested.product?.stock ?? 0;
-    return !requested.product || requested.quantity > available
+    return !requested.product || !canPurchaseProduct(requested.product) || requested.quantity > available
       ? [{ productId, requested: requested.quantity, available, name: requested.fallbackName }]
       : [];
   });
@@ -517,7 +518,7 @@ export async function createCheckout(input: unknown) {
 
   const lines = Array.from(linesByProduct.values());
   const stockIssues = lines.flatMap(({ product, quantity }) =>
-    quantity > product.stock
+    !canPurchaseProduct(product) || quantity > product.stock
       ? [{ productId: product.id, requested: quantity, available: product.stock, name: product.name }]
       : []
   );

@@ -29,7 +29,7 @@ test("Home presenta el catálogo enfocado y productos reales", async ({ page }) 
 test("catálogo público limita proveedor, rubros e imágenes", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".product-card").first()).toBeVisible();
-  await expect(page.locator(".catalog-toolbar")).toContainText("109");
+  await expect(page.locator(".catalog-toolbar")).toContainText("111");
   await expect(page.locator(".catalog-category-rail a")).toHaveCount(4);
   await expect(page.locator(".catalog-category-rail")).not.toContainText(/Electricidad|Plomería|Pintura/i);
   await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Urbe SRL|Maquinaria Sorrentos/i);
@@ -39,6 +39,24 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
   );
   expect(sources.length).toBeGreaterThan(0);
   expect(sources.every((source) => decodeURIComponent(source).includes("supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/"))).toBe(true);
+});
+
+for (const search of ["durlock", "placa", "montante", "solera", "perfil", "masilla", "tornillo"]) {
+  test(`la búsqueda ${search} devuelve productos reales`, async ({ page }) => {
+    await page.goto(`/productos?search=${encodeURIComponent(search)}`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".product-card").first()).toBeVisible();
+  });
+}
+
+test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {
+  await page.goto("/productos?search=montantes%20y%20soleras", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".catalog-product-column")).toContainText(/montante/i);
+  await expect(page.locator(".catalog-product-column")).toContainText(/solera/i);
+});
+
+test("aro informa un resultado vacío real cuando no existe en el catálogo", async ({ page }) => {
+  await page.goto("/productos?search=aro", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
 });
 
 test("manifest instala iconos grandes y maskable", async ({ request }) => {

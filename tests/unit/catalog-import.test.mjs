@@ -1,11 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classify, normalizeText, parseProducts, salePrice } from "../../scripts/catalog/import-la-yesera.mjs";
+import {
+  classify,
+  isAroProduct,
+  isSupplementalDryProduct,
+  normalizeText,
+  parseProducts,
+  salePrice
+} from "../../scripts/catalog/import-la-yesera.mjs";
 import { storefrontCategorySlug } from "../../scripts/catalog/sync-storefront-taxonomy.mjs";
 
 test("aplica exactamente 20% y redondea una sola vez", () => {
   assert.equal(salePrice(16100), 19320);
   assert.equal(salePrice(19990), 23988);
+});
+
+test("aplica 10% únicamente a productos identificados claramente como aro", () => {
+  assert.equal(isAroProduct({ original_name: "ARO PARA DURLOCK 90 MM" }), true);
+  assert.equal(isAroProduct({ original_name: "CLAVO PUNTA PARIS" }), false);
+  assert.equal(salePrice(10000, { original_name: "Aro de embutir" }), 11000);
+  assert.equal(salePrice(10000, { original_name: "Placa Durlock" }), 12000);
+});
+
+test("limita el catálogo general a complementos inequívocos de construcción en seco", () => {
+  assert.equal(isSupplementalDryProduct({ original_name: "LANA DE VIDRIO DURLOCK 50 MM" }), true);
+  assert.equal(isSupplementalDryProduct({ original_name: "PGU 100-35 E 0,93 X 3 ML" }), true);
+  assert.equal(isSupplementalDryProduct({ original_name: "YESO TRADICIONAL 30 KG" }), false);
 });
 
 test("normaliza variantes de nombre para detectar duplicados potenciales", () => {

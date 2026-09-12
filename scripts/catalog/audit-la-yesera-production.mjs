@@ -48,7 +48,7 @@ async function main() {
   const db = client();
   const { data, error } = await db
     .from("product_supplier_sources")
-    .select("source_product_id,source_url,original_name,original_price,products!inner(name,slug,sku,price,stock,availability_status,image_url,categories(name,slug),suppliers(name,code))")
+    .select("source_product_id,source_url,original_name,original_price,margin_percent,products!inner(name,slug,sku,price,stock,availability_status,image_url,categories(name,slug),suppliers(name,code))")
     .eq("source", "La Yesera Rosarina")
     .order("original_name")
     .limit(1000);
@@ -59,6 +59,7 @@ async function main() {
     source_url: row.source_url,
     original_name: row.original_name,
     original_price: Number(row.original_price),
+    margin_percent: Number(row.margin_percent),
     sale_price: Number(row.products.price),
     sku: row.products.sku,
     slug: row.products.slug,
@@ -79,7 +80,10 @@ async function main() {
   const summary = {
     products: products.length,
     exact_duplicates: Object.values(duplicates).reduce((total, rows) => total + rows.length, 0),
-    invalid_margin: products.filter((row) => row.sale_price !== Math.round(row.original_price * 1.2)).length,
+    invalid_margin: products.filter((row) => {
+      const allowedMargin = row.margin_percent === 10 || row.margin_percent === 20;
+      return !allowedMargin || row.sale_price !== Math.round(row.original_price * (1 + row.margin_percent / 100));
+    }).length,
     nonzero_stock: products.filter((row) => row.stock !== 0).length,
     availability_not_consult: products.filter((row) => row.availability_status !== "CONSULT").length,
     missing_image: products.filter((row) => !row.image_url).length,

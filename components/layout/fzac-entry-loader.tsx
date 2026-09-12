@@ -47,21 +47,22 @@ export function FzacEntryLoader({
     }
 
     if (pathname !== "/") {
-      setState("hidden");
       return;
     }
 
+    let alreadyComplete = false;
     try {
       if (window.sessionStorage.getItem(SESSION_KEY) === "true") {
-        setState("hidden");
-        return;
+        alreadyComplete = true;
       }
     } catch {
       // The entry remains usable when storage is unavailable.
     }
 
-    setState("building");
-    timerRef.current = window.setTimeout(completeEntry, AUTO_CLOSE_MS);
+    timerRef.current = window.setTimeout(
+      alreadyComplete ? () => setState("hidden") : completeEntry,
+      alreadyComplete ? 0 : AUTO_CLOSE_MS
+    );
 
     return () => {
       if (timerRef.current) {

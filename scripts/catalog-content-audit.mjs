@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const REPORT_PATH = path.join("docs", "audits", "catalog-content-audit.md");
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env["\uFEFFNEXT_PUBLIC_SUPABASE_URL"] || process.env.SUPABASE_URL;
 const SUPABASE_READ_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
@@ -102,7 +102,7 @@ async function loadCatalog() {
     supabase
       .from("products")
       .select(
-        "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,unit,image_url,gallery,featured,on_sale,active,created_at,updated_at",
+        "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,featured,on_sale,active,created_at,updated_at",
         { count: "exact" }
       )
       .order("created_at", { ascending: false })
@@ -157,7 +157,9 @@ function analyze({ configured, products, productCount, categories, categoryCount
   const productsWithoutSku = activeProducts.filter((product) => normalizeText(product.sku).length < 2);
   const productsWithBadSlug = activeProducts.filter((product) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizeText(product.slug)));
   const productsWithBadPrice = activeProducts.filter((product) => Number(product.price) <= 0);
-  const productsWithoutStock = activeProducts.filter((product) => Number(product.stock) <= 0);
+  const productsWithoutStock = activeProducts.filter(
+    (product) => product.availability_status !== "CONSULT" && Number(product.stock) <= 0
+  );
   const lowStockProducts = activeProducts.filter(
     (product) => Number(product.stock) > 0 && Number(product.stock) <= Number(product.stock_minimum || 0)
   );

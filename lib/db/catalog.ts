@@ -25,6 +25,15 @@ export type ProductFilters = {
 export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria"] as const;
 const PUBLIC_SUPPLIER_CODE = "LA-YESERA-ROSARINA";
 
+function catalogSearchTerms(input: string) {
+  const search = sanitizeSearchTerm(input).toLowerCase();
+  if (!search) return [];
+  if (search.includes("montante") && search.includes("solera")) return ["montante", "solera"];
+  if (search.includes("masilla") && search.includes("cinta")) return ["masilla", "cinta"];
+  if (search === "pared" || search === "pared durlock") return ["durlock"];
+  return [search];
+}
+
 const getPublicSupplierId = cache(async () => {
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
@@ -94,9 +103,9 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
   let result = products.filter((product) => product.active && PUBLIC_CATEGORY_SLUGS.includes(product.category?.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
   if (filters.search) {
-    const search = sanitizeSearchTerm(filters.search).toLowerCase();
+    const terms = catalogSearchTerms(filters.search);
     result = result.filter((product) =>
-      [product.name, product.sku, product.brand, product.description].join(" ").toLowerCase().includes(search)
+      terms.some((term) => [product.name, product.sku, product.brand, product.description].join(" ").toLowerCase().includes(term))
     );
   }
 
@@ -203,9 +212,13 @@ export async function getProducts(filters: ProductFilters = {}) {
     .limit(filters.limit ?? 48);
 
   if (filters.search) {
-    const search = sanitizeSearchTerm(filters.search);
-    if (search.length >= 2) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,brand.ilike.%${search}%`);
+    const terms = catalogSearchTerms(filters.search).filter((term) => term.length >= 2);
+    if (terms.length) {
+      query = query.or(terms.flatMap((term) => [
+        `name.ilike.%${term}%`,
+        `sku.ilike.%${term}%`,
+        `brand.ilike.%${term}%`
+      ]).join(","));
     }
   }
 

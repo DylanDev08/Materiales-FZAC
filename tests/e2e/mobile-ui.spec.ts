@@ -74,10 +74,9 @@ test.describe("FZAC mobile entry", () => {
     await expect(loader.locator(".fzac-entry-loader__socials a")).toHaveCount(3);
     await expect(loader.locator(".fzac-entry-loader__logo img")).toHaveCSS("border-radius", "50%");
 
-    const action = loader.getByRole("button", { name: "Construir" });
+    const action = loader.getByRole("button", { name: "Entrar a la tienda" });
     await expect(action).toBeVisible();
     await action.click();
-    await expect(loader.getByRole("button", { name: "Construyendo..." })).toBeDisabled();
     await expect(loader).toBeHidden({ timeout: 2_000 });
   });
 });

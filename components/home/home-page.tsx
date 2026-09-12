@@ -27,11 +27,12 @@ const primaryCategories = [
 ];
 
 const buyingNeeds = [
-  { label: "Hacer una pared de Durlock", helper: "Placas, perfiles, masilla y cinta", href: "/productos?search=durlock", icon: Ruler },
-  { label: "Construir con Steel Framing", helper: "Perfiles PGC/PGU y placas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
-  { label: "Colocar cielorraso", helper: "Placas, PVC y perfilería", href: "/productos?search=cielorraso", icon: PanelsTopLeft },
-  { label: "Comprar placas", helper: "Compará medidas y prestaciones", href: "/productos?search=placa", icon: PanelsTopLeft },
-  { label: "Buscar perfiles", helper: "Montantes, soleras y perfiles", href: "/productos?search=perfil", icon: Hammer }
+  { label: "Construcción en seco", helper: "Todo el sistema en un solo rubro", href: "/categoria/construccion-en-seco", icon: Ruler },
+  { label: "Placas", helper: "Compará medidas y prestaciones", href: "/productos?search=placa", icon: PanelsTopLeft },
+  { label: "Montantes y soleras", helper: "Perfilería para tabiques y cielorrasos", href: "/productos?search=montantes%20y%20soleras", icon: Hammer },
+  { label: "Perfiles", helper: "Perfiles interiores y estructurales", href: "/productos?search=perfil", icon: Layers3 },
+  { label: "Tornillos y accesorios", helper: "Fijaciones para completar el sistema", href: "/categoria/ferreteria", icon: Wrench },
+  { label: "Masillas y cintas", helper: "Tomado de juntas y terminación", href: "/productos?search=masillas%20y%20cintas", icon: PanelsTopLeft }
 ];
 
 export async function HomePage() {

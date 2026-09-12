@@ -2,6 +2,8 @@
 
 Fecha de ejecución: 10/11 de septiembre de 2026 (America/Buenos_Aires).
 
+> Actualización del 12/09/2026: la continuación de catálogo, precios, imágenes, UX y QA está documentada en [`catalog-ui-ux-continuation-2026-09-12.md`](./catalog-ui-ux-continuation-2026-09-12.md). Esa auditoría, con 114 productos totales y 111 vinculados a Yesera, prevalece sobre las cantidades históricas de este documento.
+
 ## 1. Productos encontrados en La Yesera Rosarina
 
 - Fuente limitada a `Construcción en Seco`: <https://tienda.layeserarosarina.com.ar/construccion-en-seco/>.
@@ -57,10 +59,10 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - La integración backend usa Routes API `computeRouteMatrix`, clave exclusivamente server-side, field mask mínimo, timeout de 7 s, caché, deduplicación, límite de concurrencia y rate limit.
 - Autocomplete usa clave browser separada y carga controlada; no cotiza por cada tecla.
 - Retiro mantiene envío ARS 0.
-- La Yesera muestra la etiqueta pública `Envío gratis` en la categoría y en las fichas inspeccionadas, sin publicar base, costo por km ni recargo. Con autorización del propietario, Render quedó configurado con base, km y mínimo en ARS 0 para este catálogo.
+- La Yesera muestra la etiqueta pública `Envío gratis`, pero eso no define la tarifa comercial de FZAC. La configuración temporal en ARS 0 fue retirada; delivery falla cerrado hasta recibir base, precio por km, mínimo/radio o una tabla porcentual explícita.
 - Si las variables de tarifa o Maps faltan, el backend sigue fallando cerrado con importe 0 y mensaje explícito; nunca inventa flete.
 - `render.yaml` declara claves browser/server por separado y las variables comerciales como secretos/valores operativos externos.
-- Las claves browser/server se cargaron directamente en Render sin exponerlas en Git. La prueba real `Córdoba 1200, Rosario` devolvió Routes API, 10,5 km y envío ARS 0; direcciones incompleta e inexistente devolvieron 422.
+- Las claves browser/server se cargaron directamente en Render sin exponerlas en Git. La distancia se consulta con Routes API, pero no se cobra un importe inventado mientras falte la regla comercial exacta.
 
 ## 9. Bugs UI/UX encontrados
 
