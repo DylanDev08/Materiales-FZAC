@@ -247,7 +247,9 @@ test.describe("Mobile UI audit", () => {
       oauthRequestUrl = route.request().url();
       await route.fulfill({ status: 204, body: "" });
     });
-    await page.getByRole("button", { name: /google/i }).click();
+    const googleButton = page.getByRole("button", { name: /google/i });
+    await expect(googleButton).toBeEnabled({ timeout: 20_000 });
+    await googleButton.click();
     await expect.poll(() => oauthRequestUrl).not.toBe("");
 
     const authorizeUrl = new URL(oauthRequestUrl);

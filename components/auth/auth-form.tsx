@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Eye, EyeOff, Loader2, LogIn, MailCheck, ShieldCheck } from "lucide-react";
@@ -11,7 +11,12 @@ import { isValidArgentinePhone, limitPhoneInput, normalizeArgentinePhone, normal
 
 type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | "confirmPassword" | "acceptedTerms", string>>;
 
+const subscribeToHydration = () => () => undefined;
+const browserHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
+  const hydrated = useSyncExternalStore(subscribeToHydration, browserHydrationSnapshot, serverHydrationSnapshot);
   const router = useRouter();
   const searchParams = useSearchParams();
   const submitInFlightRef = useRef(false);
@@ -243,9 +248,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </label>
         ) : null}
 
-        <button className="btn btn--ghost auth-google" type="button" onClick={googleLogin} disabled={loading || googleLoading || successLocked}>
-          {googleLoading ? <Loader2 size={18} /> : <LogIn size={18} />}
-          Continuar con Google
+        <button className="btn btn--ghost auth-google" type="button" onClick={googleLogin} disabled={!hydrated || loading || googleLoading || successLocked}>
+          {!hydrated || googleLoading ? <Loader2 size={18} /> : <LogIn size={18} />}
+          {hydrated ? "Continuar con Google" : "Preparando acceso con Google"}
         </button>
 
         <div className="auth-divider">

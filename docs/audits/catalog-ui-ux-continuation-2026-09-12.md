@@ -44,7 +44,7 @@ La auditoría final informa 0 márgenes inválidos, 0 stock distinto de cero, 0 
 ## 20–21. Checkout/backend y seguridad
 
 20. El backend recalcula precios desde Supabase y ahora también rechaza explícitamente `CONSULT` y `OUT_OF_STOCK` mediante la misma regla comercial central, incluso si una fila quedara con stock positivo por inconsistencia. Retiro no cotiza envío; delivery falla cerrado si no existe distancia/tarifa real.
-21. Correcciones: falso negativo del auditor causado por una variable `.env` con BOM; efectos React sincrónicos que rompían ESLint; contrato ARIA del buscador; validación backend de disponibilidad. `security:check` y el control de 37 tablas con FORCE RLS pasan.
+21. Correcciones: falso negativo del auditor causado por una variable `.env` con BOM; efectos React sincrónicos que rompían ESLint; contrato ARIA del buscador; validación backend de disponibilidad; Google OAuth queda deshabilitado y muestra preparación hasta que React haya hidratado el formulario, evitando clics perdidos en conexiones lentas. `security:check` y el control de 37 tablas con FORCE RLS pasan.
 
 Advisors de Supabase pendientes, sin abrir políticas: protección de contraseñas filtradas deshabilitada en Auth; aviso sobre `is_admin()` SECURITY DEFINER (su ejecución por autenticados es parte del diseño de las policies y solo devuelve el rol efectivo); recomendaciones de índices/policies para rendimiento. Referencias: [password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) y [database linter](https://supabase.com/docs/guides/database/database-linter).
 
@@ -77,4 +77,3 @@ Advisors de Supabase pendientes, sin abrir políticas: protección de contraseñ
 - Completar descripciones comerciales autorizadas: 112 productos tienen descripción corta; no se inventó contenido.
 - Dos productos históricos ajenos a esta importación siguen con placeholder/sin foto.
 - Las pruebas USER/ADMIN y checkout mutante requieren cuentas QA controladas y stock real; no se fabricó stock para habilitarlas.
-
