@@ -54,6 +54,7 @@ test("galería permite ampliar la foto real y cerrar con Escape", async ({ page 
   expect(href).toMatch(/^\/producto\//);
   await page.goto(href!, { waitUntil: "domcontentloaded" });
 
+  await expect(page.locator(".mobile-menu-trigger")).toBeEnabled();
   await page.getByRole("button", { name: /ampliar foto/i }).click();
   await expect(page.getByRole("dialog", { name: /vista ampliada/i })).toBeVisible();
   await page.keyboard.press("Escape");

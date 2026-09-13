@@ -29,7 +29,7 @@ test("Home presenta el catálogo enfocado y productos reales", async ({ page }) 
 test("catálogo público limita proveedor, rubros e imágenes", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".product-card").first()).toBeVisible();
-  await expect(page.locator(".catalog-toolbar")).toContainText("111");
+  await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("111");
   await expect(page.locator(".catalog-category-rail a")).toHaveCount(4);
   await expect(page.locator(".catalog-category-rail")).not.toContainText(/Electricidad|Plomería|Pintura/i);
   await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Urbe SRL|Maquinaria Sorrentos/i);
@@ -74,8 +74,8 @@ test("la disponibilidad separa productos a consultar del stock comprable", async
   await expect(page.locator(".product-card").first()).toContainText(/consultar disponibilidad/i);
 
   await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".catalog-product-column > .empty-state")).toContainText(/no encontramos productos/i);
-  await expect(page.locator("select").filter({ has: page.locator("option[value='IN_STOCK']") })).toHaveValue("IN_STOCK");
+  await expect(page.locator(".catalog-product-column > .empty-state").last()).toContainText(/no encontramos productos/i);
+  await expect(page.locator("select").filter({ has: page.locator("option[value='IN_STOCK']") }).last()).toHaveValue("IN_STOCK");
 });
 
 test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {
