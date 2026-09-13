@@ -31,6 +31,7 @@ test("catálogo limita el DOM y permite cargar más resultados", async ({ page }
   const cards = page.locator(".catalog-product-column > .product-grid .product-card");
 
   await expect(cards).toHaveCount(24);
+  await expect(page.locator(".mobile-menu-trigger")).toBeEnabled();
   await page.getByRole("button", { name: /mostrar más productos/i }).click();
   await expect(cards).toHaveCount(48);
 });
