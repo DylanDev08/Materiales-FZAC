@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency } from "@/lib/formatters/currency";
+import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
@@ -150,6 +151,8 @@ export function CartPage() {
               </div>
             </div>
             {items.map((item) => {
+              const availabilityStatus = getProductAvailabilityStatus(item.product);
+              const needsAvailabilityCheck = availabilityStatus === "CONSULT";
               const issue =
                 validation.status === "error"
                   ? validation.items.find((candidate) => candidate.productId === item.productId)
@@ -163,7 +166,11 @@ export function CartPage() {
                       {item.product.sku} - {currency(item.product.price)} por {item.product.unit}
                     </p>
                     <span className={`cart-line__stock ${item.product.stock > 0 && !issue ? "is-ok" : "is-warning"}`}>
-                      {issue
+                      {needsAvailabilityCheck
+                        ? "Disponibilidad a confirmar: este producto no permite compra directa."
+                        : availabilityStatus === "OUT_OF_STOCK"
+                          ? "Sin stock para compra directa."
+                          : issue
                         ? `Pediste ${issue.requested}; disponibles ${issue.available}`
                         : `${item.product.stock} ${item.product.unit} disponibles`}
                     </span>
@@ -183,7 +190,7 @@ export function CartPage() {
                         <strong>{item.quantity}</strong>
                         <button
                           type="button"
-                          disabled={item.product.stock <= 0 || item.quantity >= item.product.stock}
+                          disabled={availabilityStatus !== "IN_STOCK" || item.product.stock <= 0 || item.quantity >= item.product.stock}
                           onClick={() => {
                             if (item.quantity >= item.product.stock) {
                               setMessage(`Solo quedan ${item.product.stock} unidades disponibles.`);

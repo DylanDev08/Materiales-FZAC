@@ -103,11 +103,21 @@ function ruleIntent(message: string): AssistantIntent | null {
   if (
     /\b\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\s?(?:x|por)\s?\d{1,4}(?:[.,]\d+)?\s?(?:m|metros?)?\b/.test(normalized) ||
     /\b\d+(?:[.,]\d+)?\s?(m2|m\u00b2|metros?)\b/.test(normalized) ||
-    includesAny(normalized, ["calcular", "presupuesto", "rendimiento", "cuanto material", "cuantas placas lleva", "margen de desperdicio"])
+    includesAny(normalized, [
+      "calcular",
+      "presupuesto",
+      "rendimiento",
+      "cuanto material",
+      "cuantas placas lleva",
+      "margen de desperdicio",
+      "hacer una pared",
+      "armar una pared",
+      "construir una pared"
+    ])
   ) {
     return "estimate";
   }
-  if (includesAny(normalized, ["sin stock", "hay stock", "disponibilidad", "reposicion", "cuantas unidades", "cuantas bolsas", "cuantas placas"])) {
+  if (includesAny(normalized, ["sin stock", "hay stock", "tenes stock", "tienen stock", "disponibilidad", "reposicion", "cuantas unidades", "cuantas bolsas", "cuantas placas"])) {
     return "stock";
   }
   if (includesAny(normalized, ["cuanto cuesta", "cuanto sale", "que precio", "precio actual", "precio por", "valor actual", "descuento", "oferta vigente"])) {

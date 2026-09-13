@@ -33,6 +33,8 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
   await expect(page.locator(".catalog-category-rail a")).toHaveCount(4);
   await expect(page.locator(".catalog-category-rail")).not.toContainText(/Electricidad|Plomería|Pintura/i);
   await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Urbe SRL|Maquinaria Sorrentos/i);
+  const documentSource = await page.content();
+  expect(documentSource).not.toMatch(/original_price|margin_percent|source_image_url|product_supplier_sources/i);
 
   const sources = await page.locator(".product-card img").evaluateAll((images) =>
     images.slice(0, 12).map((image) => (image as HTMLImageElement).currentSrc || (image as HTMLImageElement).src)
@@ -41,12 +43,40 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
   expect(sources.every((source) => decodeURIComponent(source).includes("supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/"))).toBe(true);
 });
 
-for (const search of ["durlock", "placa", "montante", "solera", "perfil", "masilla", "tornillo"]) {
+for (const search of [
+  "durlock",
+  "placa",
+  "placas",
+  "montante",
+  "montantes",
+  "solera",
+  "soleras",
+  "perfil",
+  "perfiles",
+  "masilla",
+  "cinta",
+  "tornillo",
+  "cielorraso",
+  "pvc",
+  "lana de vidrio",
+  "PGU",
+  "PGC"
+]) {
   test(`la búsqueda ${search} devuelve productos reales`, async ({ page }) => {
     await page.goto(`/productos?search=${encodeURIComponent(search)}`, { waitUntil: "domcontentloaded" });
     await expect(page.locator(".product-card").first()).toBeVisible();
   });
 }
+
+test("la disponibilidad separa productos a consultar del stock comprable", async ({ page }) => {
+  await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".catalog-toolbar")).toContainText("111");
+  await expect(page.locator(".product-card").first()).toContainText(/consultar disponibilidad/i);
+
+  await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".catalog-product-column > .empty-state")).toContainText(/no encontramos productos/i);
+  await expect(page.locator("select").filter({ has: page.locator("option[value='IN_STOCK']") })).toHaveValue("IN_STOCK");
+});
 
 test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {
   await page.goto("/productos?search=montantes%20y%20soleras", { waitUntil: "domcontentloaded" });

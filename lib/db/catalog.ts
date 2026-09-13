@@ -24,6 +24,16 @@ export type ProductFilters = {
 
 export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria"] as const;
 const PUBLIC_SUPPLIER_CODE = "LA-YESERA-ROSARINA";
+const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
+const SEARCH_WORD_ALIASES: Record<string, string> = {
+  placas: "placa",
+  montantes: "montante",
+  soleras: "solera",
+  perfiles: "perfil",
+  masillas: "masilla",
+  cintas: "cinta",
+  tornillos: "tornillo"
+};
 
 function catalogSearchTerms(input: string) {
   const search = sanitizeSearchTerm(input).toLowerCase();
@@ -31,7 +41,11 @@ function catalogSearchTerms(input: string) {
   if (search.includes("montante") && search.includes("solera")) return ["montante", "solera"];
   if (search.includes("masilla") && search.includes("cinta")) return ["masilla", "cinta"];
   if (search === "pared" || search === "pared durlock") return ["durlock"];
-  return [search];
+  const aliased = search
+    .split(/\s+/)
+    .map((word) => SEARCH_WORD_ALIASES[word] ?? word)
+    .join(" ");
+  return aliased === search ? [search] : [search, aliased];
 }
 
 const getPublicSupplierId = cache(async () => {
@@ -86,7 +100,6 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     stock: Number(row.stock ?? 0),
     stock_minimum: Number(row.stock_minimum ?? row.stockMinimum ?? 0),
     availability_status: normalizeAvailabilityStatus(row),
-    supplier_id: row.supplier_id ? String(row.supplier_id) : null,
     unit: String(row.unit ?? "unidad"),
     image_url: String(row.image_url ?? row.image ?? "/placeholder-product.jpg"),
     gallery: Array.isArray(row.gallery) ? (row.gallery as string[]) : [],
@@ -105,7 +118,16 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
   if (filters.search) {
     const terms = catalogSearchTerms(filters.search);
     result = result.filter((product) =>
-      terms.some((term) => [product.name, product.sku, product.brand, product.description].join(" ").toLowerCase().includes(term))
+      terms.some((term) => [
+        product.name,
+        product.sku,
+        product.brand,
+        product.description,
+        product.category?.name,
+        product.category?.slug,
+        product.subcategory,
+        ...Object.entries(product.specifications).flatMap(([key, value]) => [key, String(value)])
+      ].join(" ").toLowerCase().includes(term))
     );
   }
 
@@ -205,7 +227,7 @@ export async function getProducts(filters: ProductFilters = {}) {
 
   let query = supabase
     .from("products")
-    .select("*, category:categories(*)")
+    .select(PUBLIC_PRODUCT_SELECT)
     .eq("active", true)
     .eq("supplier_id", supplierId)
     .in("category_id", categories.map((category) => category.id))
@@ -214,11 +236,18 @@ export async function getProducts(filters: ProductFilters = {}) {
   if (filters.search) {
     const terms = catalogSearchTerms(filters.search).filter((term) => term.length >= 2);
     if (terms.length) {
-      query = query.or(terms.flatMap((term) => [
+      const categoryIds = categories
+        .filter((category) => terms.some((term) => [category.name, category.slug, category.description].join(" ").toLowerCase().includes(term)))
+        .map((category) => category.id);
+      const clauses = terms.flatMap((term) => [
         `name.ilike.%${term}%`,
         `sku.ilike.%${term}%`,
-        `brand.ilike.%${term}%`
-      ]).join(","));
+        `brand.ilike.%${term}%`,
+        `subcategory.ilike.%${term}%`,
+        `description.ilike.%${term}%`
+      ]);
+      if (categoryIds.length) clauses.push(`category_id.in.(${categoryIds.join(",")})`);
+      query = query.or(clauses.join(","));
     }
   }
 
@@ -259,7 +288,7 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
 
   const { data, error } = await supabase
     .from("products")
-    .select("*, category:categories(*)")
+    .select(PUBLIC_PRODUCT_SELECT)
     .eq("slug", slug)
     .eq("active", true)
     .eq("supplier_id", supplierId)

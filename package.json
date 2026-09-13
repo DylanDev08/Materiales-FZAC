@@ -21,6 +21,7 @@
     "assistant:check": "python scripts/assistant/train_intents.py --check",
     "assistant:eval": "playwright test tests/e2e/assistant-orchestration.spec.ts --project=desktop-chromium",
     "assistant:test": "node --env-file-if-exists=.env scripts/assistant-conversation-smoke.mjs",
+    "assistant:test:catalog": "node --env-file-if-exists=.env scripts/assistant-catalog-smoke.mjs",
     "assistant:test:persistence": "node --env-file-if-exists=.env scripts/assistant-persistence-smoke.mjs",
     "readiness:production": "node --env-file-if-exists=.env scripts/production-readiness.mjs",
     "preflight:mercadopago": "node --env-file-if-exists=.env scripts/mercadopago-production-preflight.mjs",

@@ -34,6 +34,13 @@ const STOP_WORDS = new Set([
 const SYNONYMS: Record<string, string[]> = {
   durlock: ["placa", "yeso", "construccion", "seco"],
   drywall: ["placa", "yeso", "construccion", "seco"],
+  placas: ["placa"],
+  montantes: ["montante"],
+  soleras: ["solera"],
+  perfiles: ["perfil"],
+  masillas: ["masilla"],
+  cintas: ["cinta"],
+  tornillos: ["tornillo", "fijacion", "ferreteria"],
   latex: ["pintura", "interior"],
   portland: ["cemento"],
   termica: ["termomagnetica", "electricidad"],
@@ -100,6 +107,9 @@ async function loadSnapshot() {
     getProducts({ limit: CATALOG_LIMIT, order: "name_asc" }),
     getCategories()
   ]);
+  if (!products.length) {
+    throw new Error("El catálogo público no devolvió productos.");
+  }
   const value = { products, categories };
   snapshotCache = { expiresAt: now + CACHE_TTL_MS, value };
   return value;

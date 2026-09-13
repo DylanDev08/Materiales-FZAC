@@ -139,10 +139,16 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - Incluye las pruebas agregadas de catálogo/PWA (3) y cotización segura de envío (2).
 - Los skips son escenarios condicionados por credenciales QA o productos con stock comprable; los 109 nuevos quedan intencionalmente en consulta.
 
-## 20. Pendientes y despliegue
+## 20. Continuación UI/UX, seguridad y despliegue — 2026-09-13
 
-- Si FZAC deja de respetar el envío gratuito publicado por la fuente, debe definir una tarifa propia (`base`, `por km`, mínimo y radio) antes de cobrar delivery automático.
-- Pendiente externo: confirmar en Google Cloud las restricciones HTTP referrer de la clave browser y API/IP de la clave server.
-- Pendiente QA autenticado: USER/ADMIN y checkout con escritura requieren credenciales controladas no incluidas en el repositorio.
-- Push a `main` realizado sin force. Render informó el SHA de código `c737bdc` y respondió 200 en health, Home, catálogo, carrito, login/registro, legales y redirección Admin.
-- Smoke remoto: navegación activa, 109 productos, tres categorías, imágenes Storage, manifest/PWA, bloqueo Admin y cotización Google Routes correctos.
+- Catálogo final: 114 productos activos y 9 categorías. La auditoría automática quedó `READY`, sin slugs ni SKU duplicados.
+- Productos históricos: `Clavos` se corrigió de Plomería a Ferretería usando su descripción existente como evidencia. `Clavos` y `Placa Drywall 12,5mm` siguen pendientes de una foto inequívoca; no se inventaron assets ni descripciones.
+- Catálogo y detalle: carga progresiva 24/24, carruseles explícitos, galería ampliable, unidad junto al precio y mensajes diferenciados para `CONSULT`.
+- Carrito/checkout: los productos a consultar no se presentan como stock validado; Maps fallido ofrece retiro `$0` o coordinación por WhatsApp y nunca habilita un flete inventado.
+- Búsqueda verificada para durlock, placa(s), montante(s), solera(s), perfil(es), masilla, cinta, tornillo, cielorraso, pvc, lana de vidrio, PGU y PGC.
+- Asistente: cinco consultas reales de catálogo, cálculo de pared, stock genérico e intento de prompt injection aprobados. Las variantes acentuadas también se bloquean.
+- Seguridad: `product_supplier_sources` y `suppliers` conservan lectura exclusiva de admin; pedidos, items y pagos conservan owner/admin; eventos y auditoría son solo admin. El select público ya no serializa `supplier_id`.
+- Leaked Password Protection permanece desactivado según Supabase Advisor. Debe habilitarse desde Auth settings si el plan Pro lo permite; no existe una operación segura disponible en el conector actual para cambiar esa opción.
+- Envío automático permanece cerrado con HTTP `422` mientras falten `base`, precio/km, mínimo, redondeo y radio máximo aprobados. Fórmula sugerida, no activada: máximo entre mínimo y `base + km × precio/km`, redondeado hacia arriba.
+- Validación local final: typecheck, ESLint, build, seguridad y 8 unit tests correctos; smoke del asistente 8/8; Playwright desktop 95 aprobados/27 omitidos; mobile 360 px 16 aprobados/6 omitidos; 0 fallos.
+- El SHA y deploy definitivos se registran en el cierre posterior al push y la verificación explícita de Render.

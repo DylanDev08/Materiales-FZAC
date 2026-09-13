@@ -7,11 +7,14 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   ChevronDown,
+  Clock3,
   CreditCard,
   ExternalLink,
   Landmark,
   Loader2,
+  LockKeyhole,
   MapPin,
   MessageCircle,
   Minus,
@@ -98,30 +101,34 @@ const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [
   { id: "payment", label: "Pago" }
 ];
 
-const paymentModeContent: Record<PaymentMode, { title: string; eyebrow: string; description: string; reassurance: string }> = {
+const paymentModeContent: Record<PaymentMode, { title: string; eyebrow: string; description: string; reassurance: string; benefit: string }> = {
   CARD_BRICK: {
     title: "Tarjeta online segura",
     eyebrow: "Dentro de FZAC",
     description: "Completá los datos en el formulario oficial de Mercado Pago sin que FZAC vea ni guarde tu tarjeta.",
-    reassurance: "No almacenamos número, vencimiento ni CVV."
+    reassurance: "No almacenamos número, vencimiento ni CVV.",
+    benefit: "Pagás sin salir del sitio"
   },
   MERCADOPAGO: {
     title: "Mercado Pago",
     eyebrow: "Redirección segura",
     description: "Se genera una preferencia y vas a Mercado Pago para elegir los medios disponibles.",
-    reassurance: "Solo esta opción abre Mercado Pago."
+    reassurance: "Solo esta opción abre Mercado Pago.",
+    benefit: "Continuás en Mercado Pago"
   },
   BANK_TRANSFER: {
     title: "Transferencia FZAC",
     eyebrow: "Revisión manual",
     description: "Generás el pedido y FZAC revisa stock y total antes de enviarte los datos bancarios.",
-    reassurance: "No abre Mercado Pago ni solicita tarjeta."
+    reassurance: "No abre Mercado Pago ni solicita tarjeta.",
+    benefit: "FZAC confirma total y stock"
   },
   WHATSAPP: {
     title: "WhatsApp",
     eyebrow: "Coordinación",
     description: "Generás el pedido y coordinás pago, entrega o retiro con el equipo de FZAC.",
-    reassurance: "No abre Mercado Pago; queda como pedido pendiente."
+    reassurance: "No abre Mercado Pago; queda como pedido pendiente.",
+    benefit: "Coordinación personalizada"
   }
 };
 
@@ -604,6 +611,12 @@ export function CheckoutForm({
     return "";
   }
 
+  function choosePickup() {
+    setShippingMethod("PICKUP");
+    setShippingQuote({ status: "idle" });
+    setError("");
+  }
+
   function goToDelivery() {
     if (!basicCustomerComplete) {
       setError("Completá nombre, email y teléfono con formato válido para continuar.");
@@ -1032,6 +1045,12 @@ export function CheckoutForm({
           </div>
         </div>
 
+        <div className="checkout-confidence" aria-label="Garantías del checkout">
+          <div><Clock3 size={18} /><span><strong>4 pasos claros</strong> y resumen antes de pagar</span></div>
+          <div><LockKeyhole size={18} /><span><strong>Pago protegido</strong> sin guardar tu tarjeta</span></div>
+          <div><BadgeCheck size={18} /><span><strong>Total validado</strong> antes de confirmar</span></div>
+        </div>
+
         <div className="checkout-progress">
           {checkoutSteps.map((item, index) => (
             <span className={progressClass(item.id)} key={item.id}>
@@ -1116,11 +1135,7 @@ export function CheckoutForm({
                       type="button"
                       className="method-button"
                       aria-pressed={shippingMethod === "PICKUP"}
-                      onClick={() => {
-                        setShippingMethod("PICKUP");
-                        setShippingQuote({ status: "idle" });
-                        setError("");
-                      }}
+                      onClick={choosePickup}
                     >
                       <Package size={20} />
                       <strong>Retiro coordinado</strong>
@@ -1231,10 +1246,16 @@ export function CheckoutForm({
                         </p>
                       ) : null}
                       {shippingQuote.status === "error" ? (
-                        <p className="notice notice--danger">
-                          {shippingQuote.message}
-                          {shippingQuote.distanceKm ? ` Distancia detectada: ${shippingQuote.distanceKm} km.` : ""}
-                        </p>
+                        <div className="notice notice--danger checkout-shipping-fallback">
+                          <p>
+                            {shippingQuote.message}
+                            {shippingQuote.distanceKm ? ` Distancia detectada: ${shippingQuote.distanceKm} km.` : ""}
+                          </p>
+                          <div>
+                            <button type="button" onClick={choosePickup}><Package size={16} /> Elegir retiro $0</button>
+                            <a href={deliveryHref} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Coordinar por WhatsApp</a>
+                          </div>
+                        </div>
                       ) : null}
                     </div>
                   ) : null}
@@ -1422,6 +1443,7 @@ export function CheckoutForm({
                       <CreditCard size={18} />
                       <span>{paymentModeContent.CARD_BRICK.eyebrow}</span>
                       <strong>{paymentModeContent.CARD_BRICK.title}</strong>
+                      <small>{paymentModeContent.CARD_BRICK.benefit}</small>
                     </button>
                   ) : null}
                   <button
@@ -1434,6 +1456,7 @@ export function CheckoutForm({
                     <Landmark size={18} />
                     <span>{paymentModeContent.MERCADOPAGO.eyebrow}</span>
                     <strong>{paymentModeContent.MERCADOPAGO.title}</strong>
+                    <small>{paymentModeContent.MERCADOPAGO.benefit}</small>
                   </button>
                   <button
                     type="button"
@@ -1445,6 +1468,7 @@ export function CheckoutForm({
                     <Landmark size={18} />
                     <span>{paymentModeContent.BANK_TRANSFER.eyebrow}</span>
                     <strong>{paymentModeContent.BANK_TRANSFER.title}</strong>
+                    <small>{paymentModeContent.BANK_TRANSFER.benefit}</small>
                   </button>
                   <button
                     type="button"
@@ -1456,6 +1480,7 @@ export function CheckoutForm({
                     <MessageCircle size={18} />
                     <span>{paymentModeContent.WHATSAPP.eyebrow}</span>
                     <strong>{paymentModeContent.WHATSAPP.title}</strong>
+                    <small>{paymentModeContent.WHATSAPP.benefit}</small>
                   </button>
                 </div>
                 <div className="payment-method-hint">

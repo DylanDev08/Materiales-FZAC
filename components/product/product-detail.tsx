@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, CreditCard, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { ChevronRight, CreditCard, MessageCircle, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import { ProductBuyBox } from "@/components/product/product-buybox";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductGrid } from "@/components/catalog/product-grid";
@@ -8,6 +8,7 @@ import type { Product } from "@/types/domain";
 
 export function ProductDetail({ product, related }: { product: Product; related: Product[] }) {
   const gallery = [product.image_url, ...product.gallery].filter(Boolean);
+  const availabilityStatus = product.availability_status ?? (product.stock > 0 ? "IN_STOCK" : "OUT_OF_STOCK");
 
   return (
     <main className="page-section">
@@ -32,8 +33,16 @@ export function ProductDetail({ product, related }: { product: Product; related:
 
         <section className="product-assurance-strip" aria-label="Condiciones de compra">
           <div>
-            <PackageCheck size={19} />
-            <span><strong>Stock validado</strong> antes de cobrar</span>
+            {availabilityStatus === "CONSULT" ? <MessageCircle size={19} /> : <PackageCheck size={19} />}
+            <span>
+              {availabilityStatus === "CONSULT" ? (
+                <><strong>Disponibilidad a confirmar</strong> con FZAC</>
+              ) : availabilityStatus === "OUT_OF_STOCK" ? (
+                <><strong>Sin stock</strong> para compra directa</>
+              ) : (
+                <><strong>Stock validado</strong> antes de cobrar</>
+              )}
+            </span>
           </div>
           <div>
             <Truck size={19} />

@@ -37,7 +37,9 @@ function askForArea(gathered: Record<string, string>): EstimateGuidance {
   const project = gathered.project;
   const label = project === "PAINT" ? "pintar" : project === "DRYWALL" ? "cubrir con placas" : "construir";
   return {
-    message: `Necesito la superficie para ${label}. Podés escribir, por ejemplo, “40 m2” o “pared de 3 x 4 metros”.`,
+    message: project === "DRYWALL"
+      ? "Necesito el ancho y el alto aproximados de la pared. Escribí, por ejemplo, “3 x 2,40 metros” y contame si querés una división simple o con aislación."
+      : `Necesito la superficie para ${label}. Podés escribir, por ejemplo, “40 m2” o “pared de 3 x 4 metros”.`,
     stage: "AWAITING_AREA",
     gathered,
     actions: [

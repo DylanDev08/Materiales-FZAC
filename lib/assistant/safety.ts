@@ -105,21 +105,22 @@ export function redactAssistantSensitiveText(value: string, maxLength = 500) {
 
 export function assessAssistantInput(value: string): AssistantSafetyAssessment {
   const normalized = normalize(value).slice(0, 500);
+  const detectionText = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const persistenceText = redactAssistantSensitiveText(normalized);
 
-  if (HTML_EXECUTION.test(normalized) || SQL_ATTACK.test(normalized)) {
+  if (HTML_EXECUTION.test(detectionText) || SQL_ATTACK.test(detectionText)) {
     return { decision: "BLOCK", reason: "CODE_INJECTION", safeText: persistenceText, persistenceText: "[consulta bloqueada: contenido ejecutable]", redacted: true };
   }
-  if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(detectionText))) {
     return { decision: "BLOCK", reason: "PROMPT_INJECTION", safeText: persistenceText, persistenceText: "[consulta bloqueada: intento de alterar el asistente]", redacted: true };
   }
-  if (SECRET_EXFILTRATION_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (SECRET_EXFILTRATION_PATTERNS.some((pattern) => pattern.test(detectionText))) {
     return { decision: "BLOCK", reason: "SECRET_EXFILTRATION", safeText: persistenceText, persistenceText: "[consulta bloqueada: solicitud de información interna]", redacted: true };
   }
-  if (CROSS_USER_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (CROSS_USER_PATTERNS.some((pattern) => pattern.test(detectionText))) {
     return { decision: "BLOCK", reason: "CROSS_USER_DATA", safeText: persistenceText, persistenceText: "[consulta bloqueada: datos de terceros]", redacted: true };
   }
-  if (containsPaymentData(normalized) || containsExplicitSecret(normalized)) {
+  if (containsPaymentData(detectionText) || containsExplicitSecret(detectionText)) {
     return { decision: "REDACT", reason: "PAYMENT_DATA", safeText: persistenceText, persistenceText: "[dato sensible omitido por seguridad]", redacted: true };
   }
 

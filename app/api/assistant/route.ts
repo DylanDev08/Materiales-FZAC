@@ -686,6 +686,9 @@ async function handleAssistantRequest(request: Request, payload: AssistantPayloa
     .filter((word) => word.length > 2 && !genericTerms.has(word))
     .slice(0, 3)
     .join(" ");
+  if (plan.route === "CATALOG" && (classification.intent === "stock" || classification.intent === "price") && !query) {
+    plan.route = "GUIDED";
+  }
   if (plan.route === "ESTIMATE") {
     const guidance = createEstimateGuidance(message, conversation.state);
     const state = deriveAssistantState({
@@ -839,7 +842,7 @@ async function handleAssistantRequest(request: Request, payload: AssistantPayloa
         ? productTechnicalReply(products[0])
         : `${catalog.equivalentRequest ? "Tomando el primer resultado como referencia, estas son alternativas del mismo rubro o unidad de venta: " : "Encontré estas opciones del catálogo: "}${products
             .map((product) => `${product.name} a ${currency(product.price)}, con ${productAvailabilityText(product)}`)
-            .join("; ")}. ${catalog.equivalentRequest ? "Confirmá medidas, rendimiento y ficha técnica antes de reemplazar un material." : "Revisá la unidad de venta y sumá margen si es para una obra."}`;
+            .join("; ")}. ${catalog.equivalentRequest ? "Confirmá medidas, rendimiento y ficha técnica antes de reemplazar un material." : "Revisá la unidad de venta y confirmá la cantidad necesaria para tu obra."}`;
       const marketReference = await marketReferenceReply(normalizedForSearch, products[0]);
       const groundedDraft = `${baseReply}${marketReference}`;
       const language = await refineGroundedAssistantAnswer({

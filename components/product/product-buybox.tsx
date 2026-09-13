@@ -68,6 +68,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         <strong>{currency(product.price)}</strong>
         {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
         {discount ? <span className="status-pill status-pill--warning">-{discount}%</span> : null}
+        <small className="product-price__unit">Precio por {product.unit}</small>
       </div>
 
       <span

@@ -1,6 +1,6 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 12 de septiembre de 2026, 5:06 p. m.
+Fecha: 13 de septiembre de 2026, 2:18 a. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.
@@ -32,7 +32,7 @@ Estado: **Apto para venta controlada**
 | Productos con descripción débil | 112 | Completar uso, presentación y recomendaciones. |
 | Productos bajo stock | 1 | Reponer o revisar stock mínimo. |
 | Rubros sin imagen | 9 | Agregar imagen real o mantener ícono como fallback. |
-| Rubros sin productos activos | 4 | Asignar productos o ocultar el rubro. |
+| Rubros sin productos activos | 5 | Asignar productos o ocultar el rubro. |
 
 ## Detalle para carga comercial
 
@@ -74,6 +74,7 @@ _Sin elementos._
 ### Rubros sin productos activos
 - Herramientas
 - Electricidad
+- Plomería
 - Pintura e impermeabilización
 - Revestimientos
 
