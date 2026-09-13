@@ -22,7 +22,7 @@ const fallbackCategories = [
   { href: "/categoria/herramientas", label: "Herramientas" },
   { href: "/categoria/electricidad", label: "Electricidad" },
   { href: "/categoria/plomeria", label: "Plomería" },
-  { href: "/categoria/pintura", label: "Pintura e impermeabilización" },
+  { href: "/categoria/pintura-impermeabilizacion", label: "Pintura e impermeabilización" },
   { href: "/categoria/revestimientos", label: "Revestimientos" },
   { href: "/ofertas", label: "Ofertas" }
 ];

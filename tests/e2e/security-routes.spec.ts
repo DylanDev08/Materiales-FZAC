@@ -164,7 +164,7 @@ test.describe("Controles de seguridad no destructivos", () => {
 
     const recoveredDocuments = await page.evaluate(() => Number(window.localStorage.getItem("fzac-qa-document-count") || "0"));
     expect(recoveredDocuments).toBeGreaterThan(baseline);
-    const addButton = page.getByRole("button", { name: /Agregar/i }).first();
+    const addButton = page.getByRole("button", { name: /Añadir al carrito|Agregar/i }).first();
     if ((await addButton.count()) > 0) {
       await expect(addButton).toBeVisible();
     } else if ((await page.getByRole("link", { name: /^Consultar$/i }).count()) > 0) {

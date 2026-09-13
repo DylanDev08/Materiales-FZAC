@@ -20,10 +20,11 @@ export type ProductFilters = {
   featured?: boolean;
   order?: "price_asc" | "price_desc" | "stock_desc" | "offers" | "newest" | "name_asc";
   limit?: number;
+  offset?: number;
 };
 
-export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria"] as const;
-const PUBLIC_SUPPLIER_CODE = "LA-YESERA-ROSARINA";
+export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "pintura-impermeabilizacion"] as const;
+const PUBLIC_SUPPLIER_CODES = ["LA-YESERA-ROSARINA", "UNIVERSO-PINTURAS-SRL"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
@@ -32,7 +33,8 @@ const SEARCH_WORD_ALIASES: Record<string, string> = {
   perfiles: "perfil",
   masillas: "masilla",
   cintas: "cinta",
-  tornillos: "tornillo"
+  tornillos: "tornillo",
+  pinturas: "pintura"
 };
 
 function catalogSearchTerms(input: string) {
@@ -48,16 +50,15 @@ function catalogSearchTerms(input: string) {
   return aliased === search ? [search] : [search, aliased];
 }
 
-const getPublicSupplierId = cache(async () => {
+const getPublicSupplierIds = cache(async () => {
   const admin = getSupabaseAdminClient();
-  if (!admin) return null;
+  if (!admin) return [];
   const { data, error } = await admin
     .from("suppliers")
     .select("id")
-    .eq("code", PUBLIC_SUPPLIER_CODE)
+    .in("code", [...PUBLIC_SUPPLIER_CODES])
     .eq("active", true)
-    .maybeSingle();
-  return error || !data ? null : String(data.id);
+  return error ? [] : (data ?? []).map((row) => String(row.id));
 });
 
 export type CatalogFacets = {
@@ -169,7 +170,8 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
       result = result.sort((a, b) => Number(b.featured) - Number(a.featured));
   }
 
-  return result.slice(0, filters.limit ?? 48);
+  const offset = Math.max(0, filters.offset ?? 0);
+  return result.slice(offset, offset + (filters.limit ?? 48));
 }
 
 export const getCategories = cache(async function getCategories() {
@@ -198,21 +200,27 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
     };
   }
 
-  const supplierId = await getPublicSupplierId();
-  if (!supplierId) return { brands: [] };
+  const supplierIds = await getPublicSupplierIds();
+  if (!supplierIds.length) return { brands: [] };
 
   const categories = await getCategories();
-  const { data, error } = await supabase
-    .from("products")
-    .select("brand")
-    .eq("active", true)
-    .eq("supplier_id", supplierId)
-    .in("category_id", categories.map((category) => category.id))
-    .limit(1000);
-  if (error) return { brands: [] };
+  const rows: Array<{ brand: string | null }> = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("brand")
+      .eq("active", true)
+      .in("supplier_id", supplierIds)
+      .in("category_id", categories.map((category) => category.id))
+      .order("id")
+      .range(from, from + 999);
+    if (error) return { brands: [] };
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
 
   return {
-    brands: Array.from(new Set((data ?? []).map((row) => String(row.brand ?? "").trim()).filter(Boolean))).sort((a, b) =>
+    brands: Array.from(new Set(rows.map((row) => String(row.brand ?? "").trim()).filter(Boolean))).sort((a, b) =>
       a.localeCompare(b, "es")
     )
   };
@@ -222,16 +230,19 @@ export async function getProducts(filters: ProductFilters = {}) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return applyFallbackFilters(fallbackProducts, filters);
 
-  const [supplierId, categories] = await Promise.all([getPublicSupplierId(), getCategories()]);
-  if (!supplierId || !categories.length) return [];
+  const [supplierIds, categories] = await Promise.all([getPublicSupplierIds(), getCategories()]);
+  if (!supplierIds.length || !categories.length) return [];
+
+  const limit = Math.max(1, Math.min(filters.limit ?? 48, 250));
+  const offset = Math.max(0, filters.offset ?? 0);
 
   let query = supabase
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
     .eq("active", true)
-    .eq("supplier_id", supplierId)
+    .in("supplier_id", supplierIds)
     .in("category_id", categories.map((category) => category.id))
-    .limit(filters.limit ?? 48);
+    .range(offset, offset + limit - 1);
 
   if (filters.search) {
     const terms = catalogSearchTerms(filters.search).filter((term) => term.length >= 2);
@@ -271,6 +282,7 @@ export async function getProducts(filters: ProductFilters = {}) {
   else if (filters.order === "offers") query = query.order("on_sale", { ascending: false }).order("stock", { ascending: false });
   else if (filters.order === "name_asc") query = query.order("name", { ascending: true });
   else query = query.order("created_at", { ascending: false });
+  query = query.order("id", { ascending: true });
 
   const { data, error } = await query;
   if (error) return [];
@@ -283,15 +295,15 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
     return applyFallbackFilters(fallbackProducts, { limit: 500 }).find((product) => product.slug === slug) ?? null;
   }
 
-  const [supplierId, categories] = await Promise.all([getPublicSupplierId(), getCategories()]);
-  if (!supplierId || !categories.length) return null;
+  const [supplierIds, categories] = await Promise.all([getPublicSupplierIds(), getCategories()]);
+  if (!supplierIds.length || !categories.length) return null;
 
   const { data, error } = await supabase
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
     .eq("slug", slug)
     .eq("active", true)
-    .eq("supplier_id", supplierId)
+    .in("supplier_id", supplierIds)
     .in("category_id", categories.map((category) => category.id))
     .maybeSingle();
 

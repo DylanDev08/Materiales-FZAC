@@ -220,6 +220,15 @@
   color: #74d7a3;
 }
 
+.product-added-toast--error {
+  border-color: rgba(220, 65, 65, 0.55);
+  background: linear-gradient(135deg, rgba(161, 35, 35, 0.2), rgba(17, 17, 17, 0.98));
+}
+
+.product-added-toast--error strong {
+  color: #ff9b9b;
+}
+
 .product-added-toast span {
   color: var(--color-muted);
   font-size: 0.88rem;

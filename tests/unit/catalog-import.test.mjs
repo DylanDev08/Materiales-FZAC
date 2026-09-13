@@ -9,6 +9,10 @@ import {
   salePrice
 } from "../../scripts/catalog/import-la-yesera.mjs";
 import { storefrontCategorySlug } from "../../scripts/catalog/sync-storefront-taxonomy.mjs";
+import {
+  classify as classifyUniverso,
+  parseProduct as parseUniversoProduct
+} from "../../scripts/catalog/import-universo-pinturas.mjs";
 
 test("aplica exactamente 20% y redondea una sola vez", () => {
   assert.equal(salePrice(16100), 19320);
@@ -72,4 +76,52 @@ test("clasifica el catálogo público sin inferir categorías fuera de reglas ve
   assert.equal(storefrontCategorySlug("PGC 100-40-17-E 0,93 X 3 mts"), "steel-framing");
   assert.equal(storefrontCategorySlug("PLACA SUPERBOARD 10mm BORDE RECTO"), "steel-framing");
   assert.equal(storefrontCategorySlug("PLACAS DURLOCK 12,5mm 1,20 x 2,40"), "construccion-en-seco");
+});
+
+test("Universo conserva el precio público, no importa stock y exige consulta", () => {
+  const [row] = parseUniversoProduct({
+    productId: "100",
+    productName: "Látex interior 4 l",
+    link: "https://www.tiendauniverso.com.ar/latex-interior/p",
+    brand: "Marca real",
+    categories: ["/PINTURAS/LATEX/"],
+    description: "Pintura para interiores.",
+    items: [{
+      itemId: "200",
+      nameComplete: "Látex interior 4 l",
+      measurementUnit: "un",
+      images: [{ imageUrl: "https://example.com/latex.jpg" }],
+      sellers: [{ commertialOffer: { Price: 12500, ListPrice: 14000, AvailableQuantity: 100 } }]
+    }]
+  });
+  assert.equal(row.original_price, 12500);
+  assert.equal(row.sale_price, 12500);
+  assert.equal(row.margin_percent, 0);
+  assert.equal(row.stock, null);
+  assert.equal(row.availability_status, "CONSULT");
+});
+
+test("Universo omite variantes sin precio y detecta duplicados por nombre normalizado", () => {
+  const empty = parseUniversoProduct({
+    productId: "101",
+    link: "https://www.tiendauniverso.com.ar/sin-precio/p",
+    items: [{ itemId: "201", sellers: [{ commertialOffer: { Price: 0 } }] }]
+  });
+  assert.deepEqual(empty, []);
+
+  const source = {
+    source_product_id: "101:201",
+    original_name: "Esmalte sintético blanco 1 l",
+    original_price: 100,
+    sale_price: 100,
+    import_sku: "UNV-201",
+    source_sku: "201",
+    slug: "esmalte-sintetico-blanco-1-l"
+  };
+  const [decision] = classifyUniverso([source], {
+    products: [{ id: "existing", name: "Esmalte sintetico blanco 1 L", slug: "otro-slug", sku: "FZAC-1", supplier_id: null }],
+    sources: [],
+    supplier: null
+  });
+  assert.equal(decision.decision, "SKIP_DUPLICATE");
 });

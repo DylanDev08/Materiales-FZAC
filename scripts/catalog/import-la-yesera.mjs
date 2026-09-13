@@ -5,6 +5,7 @@ import { storefrontCategorySlug } from "./sync-storefront-taxonomy.mjs";
 
 const SOURCE = "La Yesera Rosarina";
 const SOURCE_CATEGORY_URL = "https://tienda.layeserarosarina.com.ar/construccion-en-seco/";
+const SOURCE_STEEL_FRAMING_URL = "https://tienda.layeserarosarina.com.ar/steel-framing/";
 const SOURCE_CATALOG_URL = "https://tienda.layeserarosarina.com.ar/productos/";
 const OUTPUT_PATH = "data/imports/la-yesera-construccion-en-seco.preview.json";
 const USER_AGENT = "MaterialesFZACCatalogAudit/1.0 (+https://materiales-fzac-8xmp.onrender.com/)";
@@ -169,13 +170,19 @@ async function discoverSubcategories() {
 }
 
 async function discoverProducts(subcategoryById) {
-  const categoryRows = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const html = await fetchHtml(`${SOURCE_CATEGORY_URL}?page=${page}`);
-    const pageRows = parseProducts(html, subcategoryById);
-    if (!pageRows.length) break;
-    categoryRows.push(...pageRows.map((row) => ({ ...row, source_scope: "CONSTRUCCION_EN_SECO" })));
-    if (pageRows.length < PAGE_SIZE) break;
+  const scopedRows = [];
+  const sourceScopes = [
+    [SOURCE_CATEGORY_URL, "CONSTRUCCION_EN_SECO"],
+    [SOURCE_STEEL_FRAMING_URL, "STEEL_FRAMING"]
+  ];
+  for (const [sourceUrl, scope] of sourceScopes) {
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const html = await fetchHtml(`${sourceUrl}?page=${page}`);
+      const pageRows = parseProducts(html, subcategoryById);
+      if (!pageRows.length) break;
+      scopedRows.push(...pageRows.map((row) => ({ ...row, source_scope: scope })));
+      if (pageRows.length < PAGE_SIZE) break;
+    }
   }
 
   const supplementalRows = [];
@@ -190,12 +197,13 @@ async function discoverProducts(subcategoryById) {
   }
 
   const uniqueRows = new Map();
-  for (const row of [...categoryRows, ...supplementalRows]) {
+  for (const row of [...scopedRows, ...supplementalRows]) {
     if (!uniqueRows.has(row.source_product_id)) uniqueRows.set(row.source_product_id, row);
   }
   return {
     rows: [...uniqueRows.values()],
-    categoryCount: new Set(categoryRows.map((row) => row.source_product_id)).size,
+    categoryCount: new Set(scopedRows.filter((row) => row.source_scope === "CONSTRUCCION_EN_SECO").map((row) => row.source_product_id)).size,
+    steelFramingCount: new Set(scopedRows.filter((row) => row.source_scope === "STEEL_FRAMING").map((row) => row.source_product_id)).size,
     supplementalCount: [...uniqueRows.values()].filter((row) => row.source_scope === "CATALOG_RELATED").length
   };
 }
@@ -390,6 +398,7 @@ async function main() {
     summary: {
       found: products.length,
       category_found: discovery.categoryCount,
+      steel_framing_found: discovery.steelFramingCount,
       supplemental_related: discovery.supplementalCount,
       margin_20: products.filter((row) => row.margin_percent === 20).length,
       margin_10_aros: products.filter((row) => row.margin_percent === 10).length,

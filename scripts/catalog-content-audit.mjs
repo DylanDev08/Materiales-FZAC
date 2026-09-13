@@ -98,30 +98,42 @@ async function loadCatalog() {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 
-  const [productsResult, categoriesResult] = await Promise.all([
-    supabase
+  const products = [];
+  let productCount = 0;
+  let productError = null;
+  for (let from = 0; ; from += 1000) {
+    const result = await supabase
       .from("products")
       .select(
         "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,featured,on_sale,active,created_at,updated_at",
-        { count: "exact" }
+        from === 0 ? { count: "exact" } : undefined
       )
       .order("created_at", { ascending: false })
-      .limit(2500),
-    supabase
-      .from("categories")
-      .select("id,name,slug,description,image_url,parent_id,active,sort_order", { count: "exact" })
-      .order("sort_order", { ascending: true })
-      .limit(500)
-  ]);
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    if (result.error) {
+      productError = result.error;
+      break;
+    }
+    if (from === 0) productCount = result.count ?? 0;
+    products.push(...(result.data ?? []));
+    if (!result.data || result.data.length < 1000) break;
+  }
+
+  const categoriesResult = await supabase
+    .from("categories")
+    .select("id,name,slug,description,image_url,parent_id,active,sort_order", { count: "exact" })
+    .order("sort_order", { ascending: true })
+    .limit(500);
 
   const errors = [];
-  if (productsResult.error) errors.push(`Productos: ${productsResult.error.message}`);
+  if (productError) errors.push(`Productos: ${productError.message}`);
   if (categoriesResult.error) errors.push(`Categorías: ${categoriesResult.error.message}`);
 
   return {
     configured: true,
-    products: productsResult.data || [],
-    productCount: productsResult.count || 0,
+    products,
+    productCount,
     categories: categoriesResult.data || [],
     categoryCount: categoriesResult.count || 0,
     errors

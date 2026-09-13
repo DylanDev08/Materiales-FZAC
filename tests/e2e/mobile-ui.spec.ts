@@ -48,7 +48,7 @@ async function expectTouchTargets(page: Page, selector: string) {
 }
 
 async function addFirstAvailableProduct(page: Page) {
-  const addButton = page.getByRole("button", { name: /^agregar$/i }).first();
+  const addButton = page.getByRole("button", { name: /añadir al carrito/i }).first();
   await expect(addButton).toBeVisible();
   await addButton.click();
   await page.waitForFunction(() => {
@@ -157,9 +157,9 @@ test.describe("Mobile UI audit", () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test("catalogo mobile permite escanear y agregar producto", async ({ page }, testInfo) => {
+  test("catalogo mobile permite escanear y añadir producto a consultar", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
     if ((await page.locator(".product-card").count()) === 0) {
       await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
@@ -168,12 +168,12 @@ test.describe("Mobile UI audit", () => {
     await expect(page.locator(".product-card").first()).toBeVisible();
     await expectTouchTargets(page, ".product-card__actions button, .product-card__actions a");
     await addFirstAvailableProduct(page);
-    await expect(page.locator("body")).toContainText(/producto|carrito|agregado/i);
+    await expect(page.locator("body")).toContainText(/producto añadido al carrito/i);
   });
 
   test("detalle de producto mobile conserva acciones principales", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
     if ((await page.locator("a[href^='/producto/']").count()) === 0) {
       test.skip(true, "El catálogo conectado no tiene un detalle de producto activo para probar.");
     }
@@ -182,29 +182,29 @@ test.describe("Mobile UI audit", () => {
 
     await page.goto(productHref!, { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
-    await expect(page.getByRole("button", { name: /agregar/i }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /comprar/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /añadir al carrito/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /comprar ahora/i })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /whatsapp|consultar/i }).first()).toBeVisible();
   });
 
-  test("carrito mobile modifica cantidad y llega al checkout", async ({ page }, testInfo) => {
+  test("carrito mobile modifica cantidad y solicita disponibilidad sin pago falso", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
-    if ((await page.getByRole("button", { name: /^agregar$/i }).count()) === 0) {
-      test.skip(true, "El catálogo conectado no tiene productos activos para preparar el carrito.");
-    }
+    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
     await addFirstAvailableProduct(page);
     await page.goto("/carrito", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
     await expectTouchTargets(page, ".quantity-control button, .cart-remove, .cart-summary-actions a, .cart-summary-actions button");
-    await page.getByRole("link", { name: /continuar al checkout/i }).click();
-    await expect(page).toHaveURL(hasAuthenticatedState ? /\/checkout/ : /\/login\?next=(%2F|\/)checkout/);
+    await expect(page.getByRole("link", { name: /solicitar disponibilidad/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
   });
 
   test("checkout mobile muestra pasos, metodos y no exige direccion en retiro", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     test.skip(!hasAuthenticatedState, "El formulario de checkout requiere PLAYWRIGHT_AUTH_STATE porque comprar exige una cuenta registrada.");
     await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
+    if ((await page.getByRole("button", { name: /añadir al carrito/i }).count()) === 0) {
+      test.skip(true, "El catálogo conectado no tiene productos con stock confirmado para probar checkout.");
+    }
     await addFirstAvailableProduct(page);
     await page.goto("/checkout", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);

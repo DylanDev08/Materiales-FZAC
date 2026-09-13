@@ -152,3 +152,58 @@ No se inventaron CUIT, teléfono, email, dirección ni condiciones comerciales. 
 - Envío automático permanece cerrado con HTTP `422` mientras falten `base`, precio/km, mínimo, redondeo y radio máximo aprobados. Fórmula sugerida, no activada: máximo entre mínimo y `base + km × precio/km`, redondeado hacia arriba.
 - Validación local final: typecheck, ESLint, build, seguridad y 8 unit tests correctos; smoke del asistente 8/8; Playwright desktop 95 aprobados/27 omitidos; mobile 360 px 16 aprobados/6 omitidos; 0 fallos.
 - El SHA y deploy definitivos se registran en el cierre posterior al push y la verificación explícita de Render.
+
+## 21. Carrito y catálogo de Pinturas — 2026-09-13
+
+### Carrito y compra
+
+- Las cards y el detalle permiten añadir productos `CONSULT` al carrito sin presentarlos como stock confirmado.
+- Éxito visible: `Producto añadido al carrito`; fallo visible y accesible: `El producto no se pudo añadir`.
+- La cantidad de un producto a consultar puede ajustarse en carrito. El checkout y el backend continúan bloqueando `CONSULT`, `OUT_OF_STOCK` y stock 0.
+- Si el carrito contiene artículos a consultar, la acción principal genera una consulta de WhatsApp con productos y cantidades; no habilita un pago falso.
+
+### Vista previa y deduplicación de Universo
+
+- Catálogo FZAC resultante: 1.770 productos activos (114 previos + 1.656 Pinturas).
+- Fuente oficial inspeccionada: <https://www.tiendauniverso.com.ar/pinturas> y su catálogo público paginado.
+- La fuente reportó 1.657 productos; 1.656 variantes tenían nombre, precio vigente, URL e imagen válidos. Una fila sin precio válido se excluyó.
+- Vista previa antes de insertar: 1.656 nuevos, 0 actualizaciones, 0 recuperaciones y 0 duplicados contra FZAC.
+- Auditoría posterior: 1.656 productos, 0 SKU duplicados, 0 slugs duplicados, 0 precios inválidos y 0 estados de disponibilidad incorrectos.
+- No se tomó `AvailableQuantity` de VTEX porque puede ser un valor limitado por la plataforma. Los 1.656 productos quedaron con stock 0 y `CONSULT`.
+- Como no existe una regla comercial de margen aprobada para Universo, el precio FZAC conserva el precio público vigente (`margin_percent = 0`). No se trasladaron precios de lista/promociones como ofertas FZAC.
+- Rango de precios publicado e importado: ARS 49,05 a ARS 505.344,60. El costo/procedencia permanece fuera de las consultas públicas.
+- Dataset: [`data/imports/universo-pinturas.preview.json`](../../data/imports/universo-pinturas.preview.json).
+
+### Imágenes y proveedor
+
+- Se creó/activó `Universo Pinturas SRL Rosario` (`UNIVERSO-PINTURAS-SRL`) sin inventar CUIT, contacto, domicilio ni condiciones comerciales.
+- Se descargaron, validaron y optimizaron las 1.656 imágenes autorizadas a WebP (máximo 1000 px), y se guardaron bajo `product-images/universo-pinturas/`.
+- Resultado de Storage: 1.656/1.656 imágenes propias, 0 hotlinks pendientes y 0 errores. La última corrida subió 1.525 y omitió correctamente 131 ya sincronizadas.
+- Resultado detallado: [`data/imports/universo-pinturas-images.preview.json`](../../data/imports/universo-pinturas-images.preview.json).
+
+### La Yesera, navegación y asistente
+
+- La auditoría ahora recorre explícitamente Construcción en Seco y Steel Framing, además de complementos inequívocos Drywall/Durlock del catálogo.
+- Resultado actual: 110 referencias públicas pertinentes —96 Construcción en Seco, 13 Steel Framing y 1 complemento—; todas ya existían por `source_product_id`. No se insertó ni actualizó ninguna y se conservaron 3 referencias históricas que ya no aparecen en la vista previa actual.
+- Pintura e impermeabilización se habilitó como cuarto rubro público, con acceso desde Home, categorías, navegación, catálogo y buscador.
+- El catálogo pagina 120 productos por vista y conserva filtros al avanzar/retroceder, evitando serializar más de 1.600 cards en una sola respuesta.
+- El asistente carga el catálogo público completo por lotes, reconoce látex, esmaltes, barnices y aerosoles y sigue sin revelar proveedor, precio de referencia, margen ni IDs.
+
+### Supabase y seguridad
+
+- Migración aplicada: `20260913185058_allow_zero_margin_for_reference_pricing.sql`; amplía el check de procedencia a márgenes 0, 10 o 20 sin borrar datos.
+- `product_supplier_sources` y `suppliers` continúan con RLS + FORCE RLS y lectura solo Admin. Productos públicos solo serializan campos comerciales.
+- `orders`, `payments` y `profiles` conservan RLS owner/admin; el checkout vuelve a validar disponibilidad server-side.
+- Leaked Password Protection sigue desactivado. El conector actual permite SQL/migraciones pero no `Auth Config`; la acción exacta pendiente es Dashboard → Authentication → Providers → Email → `Prevent use of leaked passwords`, disponible en plan Pro o superior.
+
+### Validación de esta entrega
+
+- Typecheck: correcto.
+- Build productivo: correcto, 74 rutas.
+- Seguridad local: correcto; secretos y 37 tablas con FORCE RLS validados.
+- Unit tests: 10/10 correctos, incluyendo Universo sin precio, margen 0, stock no inferido y deduplicación.
+- Playwright catálogo desktop: 25/25 correctos.
+- Playwright seguridad y rutas sensibles: 24/24 correctos.
+- Playwright carrito/detalle mobile Pixel 7: 3/3 correctos, sin scroll horizontal ni pago falso.
+- Smoke del asistente: 7 consultas de catálogo, cálculo, stock y prompt injection correctos.
+- Shipping no se modificó: retiro sigue en ARS 0 y delivery continúa cerrado con 422 mientras no exista una fórmula comercial aprobada.

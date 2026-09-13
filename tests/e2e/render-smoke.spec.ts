@@ -109,26 +109,17 @@ test.describe("Render public smoke", () => {
     }
   });
 
-  test("producto se agrega al carrito y checkout carga con productos", async ({ page }) => {
-    await page.goto("/productos?inStock=true", { waitUntil: "domcontentloaded" });
-    await expect(page.locator(".product-card, .empty-state").first()).toBeVisible();
-    const addButton = page.getByRole("button", { name: /agregar/i }).first();
-    if ((await addButton.count()) === 0) {
-      test.skip(true, "El catálogo conectado no expuso un producto con stock comprable para esta prueba.");
-    }
+  test("producto a consultar se añade al carrito sin habilitar un pago falso", async ({ page }) => {
+    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".product-card").first()).toBeVisible();
+    const addButton = page.getByRole("button", { name: /añadir al carrito/i }).first();
     await expect(addButton).toBeVisible();
     await addButton.click();
+    await expect(page.getByRole("status").filter({ hasText: "Producto añadido al carrito" })).toBeVisible();
 
     await page.goto("/carrito", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("link", { name: /continuar al checkout/i })).toBeVisible();
-    await page.getByRole("link", { name: /continuar al checkout/i }).click();
-    if (hasAuthenticatedState) {
-      await expect(page).toHaveURL(/\/checkout/);
-      await expect(page.locator("body")).toContainText(/comprador|checkout|pago|pedido|total/i);
-    } else {
-      await expect(page).toHaveURL(/\/login\?next=(%2F|\/)checkout/);
-      await expect(page.locator("body")).toContainText(/ingresar|cuenta|google/i);
-    }
+    await expect(page.getByRole("link", { name: /solicitar disponibilidad/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
   });
 
   test("proteccion al consumidor es visible y no exige registro", async ({ page }) => {

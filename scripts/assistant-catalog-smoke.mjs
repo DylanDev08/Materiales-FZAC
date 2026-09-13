@@ -25,7 +25,7 @@ function assertGroundedProducts(prompt, body, expected) {
   assert.ok(Array.isArray(body.suggested_products) && body.suggested_products.length > 0, `${prompt}: faltan productos reales`);
   assert.ok(body.suggested_products.some((product) => expected.test(product.name)), `${prompt}: resultado fuera de intención`);
   assert.match(body.message, /disponibilidad a consultar/i, `${prompt}: debe explicar CONSULT`);
-  assert.doesNotMatch(body.message, /yesera|proveedor|costo|margen|precio original/i, `${prompt}: filtró información interna`);
+  assert.doesNotMatch(body.message, /yesera|universo pinturas|proveedor|costo|margen|precio original/i, `${prompt}: filtró información interna`);
   for (const product of body.suggested_products) {
     assert.equal(product.availability_status, "CONSULT", `${prompt}: estado inesperado`);
     assert.ok(Number(product.price) > 0, `${prompt}: precio inválido`);
@@ -38,7 +38,9 @@ const cases = [
   ["Tenés montantes?", /montante/i],
   ["Busco perfiles", /perfil/i],
   ["Cuánto sale PGU 100?", /PGU\s*100/i],
-  ["Necesito lana de vidrio", /lana de vidrio/i]
+  ["Necesito lana de vidrio", /lana de vidrio/i],
+  ["Necesito pintura látex interior", /latex|látex/i],
+  ["Busco esmalte sintético", /esmalte sint[eé]tico/i]
 ];
 
 for (const [prompt, expected] of cases) {

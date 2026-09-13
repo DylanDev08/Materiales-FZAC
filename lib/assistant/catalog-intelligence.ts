@@ -21,8 +21,8 @@ export type AssistantCatalogResult = {
   equivalentRequest: boolean;
 };
 
-const CACHE_TTL_MS = 20_000;
-const CATALOG_LIMIT = 500;
+const CACHE_TTL_MS = 5 * 60_000;
+const CATALOG_PAGE_SIZE = 250;
 let snapshotCache: { expiresAt: number; value: CatalogSnapshot } | null = null;
 
 const STOP_WORDS = new Set([
@@ -42,6 +42,10 @@ const SYNONYMS: Record<string, string[]> = {
   cintas: ["cinta"],
   tornillos: ["tornillo", "fijacion", "ferreteria"],
   latex: ["pintura", "interior"],
+  pinturas: ["pintura"],
+  esmaltes: ["esmalte", "pintura"],
+  barnices: ["barniz", "pintura"],
+  aerosoles: ["aerosol", "pintura"],
   portland: ["cemento"],
   termica: ["termomagnetica", "electricidad"],
   cano: ["tubo", "plomeria"],
@@ -103,10 +107,14 @@ function categoryCounts(snapshot: CatalogSnapshot) {
 async function loadSnapshot() {
   const now = Date.now();
   if (snapshotCache && snapshotCache.expiresAt > now) return snapshotCache.value;
-  const [products, categories] = await Promise.all([
-    getProducts({ limit: CATALOG_LIMIT, order: "name_asc" }),
-    getCategories()
-  ]);
+  const categoriesPromise = getCategories();
+  const products: Product[] = [];
+  for (let offset = 0; ; offset += CATALOG_PAGE_SIZE) {
+    const page = await getProducts({ limit: CATALOG_PAGE_SIZE, offset, order: "name_asc" });
+    products.push(...page);
+    if (page.length < CATALOG_PAGE_SIZE) break;
+  }
+  const categories = await categoriesPromise;
   if (!products.length) {
     throw new Error("El catálogo público no devolvió productos.");
   }

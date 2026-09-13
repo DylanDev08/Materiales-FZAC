@@ -8,6 +8,7 @@ import {
   Headphones,
   Layers3,
   MessageCircle,
+  PaintRoller,
   PanelsTopLeft,
   Ruler,
   RotateCcw,
@@ -23,7 +24,8 @@ import { getWhatsAppHref } from "@/lib/utils/contact";
 const primaryCategories = [
   { label: "Construcción en Seco", helper: "Placas, perfiles, masillas y terminaciones", href: "/categoria/construccion-en-seco", icon: PanelsTopLeft },
   { label: "Steel Framing", helper: "Estructuras y soluciones para sistemas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
-  { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench }
+  { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench },
+  { label: "Pinturas", helper: "Látex, esmaltes, barnices e impermeabilizantes", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller }
 ];
 
 const buyingNeeds = [
@@ -32,11 +34,18 @@ const buyingNeeds = [
   { label: "Montantes y soleras", helper: "Perfilería para tabiques y cielorrasos", href: "/productos?search=montantes%20y%20soleras", icon: Hammer },
   { label: "Perfiles", helper: "Perfiles interiores y estructurales", href: "/productos?search=perfil", icon: Layers3 },
   { label: "Tornillos y accesorios", helper: "Fijaciones para completar el sistema", href: "/categoria/ferreteria", icon: Wrench },
-  { label: "Masillas y cintas", helper: "Tomado de juntas y terminación", href: "/productos?search=masillas%20y%20cintas", icon: PanelsTopLeft }
+  { label: "Masillas y cintas", helper: "Tomado de juntas y terminación", href: "/productos?search=masillas%20y%20cintas", icon: PanelsTopLeft },
+  { label: "Pintar y proteger", helper: "Pinturas y soluciones para cada superficie", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller }
 ];
 
 export async function HomePage() {
-  const products = await getProducts({ limit: 12, order: "newest" });
+  const shelves = await Promise.all([
+    getProducts({ category: "construccion-en-seco", limit: 3, order: "newest" }),
+    getProducts({ category: "steel-framing", limit: 3, order: "newest" }),
+    getProducts({ category: "ferreteria", limit: 3, order: "newest" }),
+    getProducts({ category: "pintura-impermeabilizacion", limit: 3, order: "newest" })
+  ]);
+  const products = shelves.flat();
   const materialHelpHref = getWhatsAppHref("Hola FZAC, no encuentro un material en la tienda y necesito asesoramiento.");
   const productShelf = products.slice(0, 10);
 
@@ -46,7 +55,7 @@ export async function HomePage() {
         <div className="container home-promo__inner">
           <span><Truck size={18} /> Envíos y retiro coordinados</span>
           <span><ShieldCheck size={18} /> Compra protegida</span>
-          <span><BadgeCheck size={18} /> Disponibilidad confirmada</span>
+          <span><BadgeCheck size={18} /> Disponibilidad informada</span>
           <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={18} /> Botón de arrepentimiento</Link>
         </div>
       </section>
@@ -55,8 +64,8 @@ export async function HomePage() {
         <div className="container storefront-hero__inner">
           <div className="storefront-hero__content">
             <span className="storefront-hero__eyebrow">Materiales FZAC · Rosario</span>
-            <h1>Todo para construir en seco, en un solo lugar.</h1>
-            <p>Materiales para construcción en seco, steel framing y ferretería, con precios online, carrito y asesoramiento.</p>
+            <h1>Materiales y pinturas para avanzar con tu obra.</h1>
+            <p>Construcción en seco, steel framing, ferretería y pinturas, con precios online, carrito y asesoramiento.</p>
             <div className="storefront-hero__actions">
               <Link className="btn" href="/productos" prefetch={false}>
                 Ver productos <ArrowRight size={18} />
@@ -66,7 +75,7 @@ export async function HomePage() {
               </a>
             </div>
             <div className="storefront-hero__facts" aria-label="Condiciones de compra">
-              <span><BadgeCheck size={17} /> Disponibilidad real</span>
+              <span><BadgeCheck size={17} /> Disponibilidad informada</span>
               <span><CreditCard size={17} /> Pago seguro</span>
               <span><Truck size={17} /> Entrega coordinada</span>
             </div>
@@ -91,7 +100,7 @@ export async function HomePage() {
           <SectionHeader
             eyebrow="Categorías principales"
             title="Comprá por rubro"
-            text="Un catálogo enfocado en sistemas en seco y sus fijaciones."
+            text="Sistemas en seco, fijaciones, pinturas y terminaciones en un mismo catálogo."
           />
           <div className="storefront-category-rail">
             {primaryCategories.map(({ href, icon: Icon, label, helper }) => (

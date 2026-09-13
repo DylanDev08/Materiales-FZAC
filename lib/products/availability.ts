@@ -14,6 +14,11 @@ export function canPurchaseProduct(product: Pick<Product, "stock" | "availabilit
   return getProductAvailabilityStatus(product) === "IN_STOCK" && product.stock > 0;
 }
 
+export function canAddProductToCart(product: Pick<Product, "stock" | "availability_status">) {
+  const status = getProductAvailabilityStatus(product);
+  return status === "CONSULT" || (status === "IN_STOCK" && product.stock > 0);
+}
+
 export function productAvailabilityLabel(
   product: Pick<Product, "stock" | "unit" | "availability_status">,
   options: { includeQuantity?: boolean } = {}

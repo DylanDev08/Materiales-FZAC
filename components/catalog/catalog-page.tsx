@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Boxes, ChevronRight, Hammer, Layers3, PackageSearch, PanelsTopLeft, Ruler, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, Boxes, ChevronRight, Hammer, Layers3, PackageSearch, PaintRoller, PanelsTopLeft, Ruler, Wrench } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
@@ -43,12 +43,31 @@ const projectShortcuts = [
     helper: "Tornillos, tarugos y fijaciones",
     href: "/categoria/ferreteria",
     icon: Hammer
+  },
+  {
+    label: "Pinturas",
+    helper: "Látex, esmaltes e impermeabilizantes",
+    href: "/categoria/pintura-impermeabilizacion",
+    icon: PaintRoller
   }
 ];
+
+const CATALOG_PAGE_SIZE = 120;
 
 function value(params: SearchParams, key: string) {
   const raw = params[key];
   return Array.isArray(raw) ? raw[0] : raw;
+}
+
+function catalogPageHref(searchParams: SearchParams, page: number) {
+  const params = new URLSearchParams();
+  for (const [key, raw] of Object.entries(searchParams)) {
+    const current = Array.isArray(raw) ? raw[0] : raw;
+    if (current && key !== "page") params.set(key, current);
+  }
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `?${query}` : "?";
 }
 
 export async function CatalogPage({
@@ -64,6 +83,8 @@ export async function CatalogPage({
   forcedFilters?: ProductFilters;
   showAdminProductLoader?: boolean;
 }) {
+  const requestedPage = Number.parseInt(value(searchParams, "page") ?? "1", 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 100) : 1;
   const filters: ProductFilters = {
     search: value(searchParams, "search"),
     category: value(searchParams, "category"),
@@ -77,16 +98,19 @@ export async function CatalogPage({
     onSale: value(searchParams, "onSale") === "true",
     featured: value(searchParams, "featured") === "true",
     order: value(searchParams, "order") as ProductFilters["order"],
-    limit: 120,
+    limit: CATALOG_PAGE_SIZE + 1,
+    offset: (page - 1) * CATALOG_PAGE_SIZE,
     ...forcedFilters
   };
 
-  const [categories, products, facets, profile] = await Promise.all([
+  const [categories, fetchedProducts, facets, profile] = await Promise.all([
     getCategories(),
     getProducts(filters),
     getCatalogFacets(),
     getUserProfile()
   ]);
+  const hasNextPage = fetchedProducts.length > CATALOG_PAGE_SIZE;
+  const products = fetchedProducts.slice(0, CATALOG_PAGE_SIZE);
   const isAdmin = profile?.role === "ADMIN";
   const adminProductData = isAdmin && showAdminProductLoader
     ? await Promise.all([getAdminProducts(), getAdminCategories(), getAdminSuppliers()])
@@ -192,13 +216,28 @@ export async function CatalogPage({
             <div className="catalog-toolbar">
               <div>
                 <strong>{products.length}</strong>
-                <span>{products.length === 1 ? "producto encontrado" : "productos encontrados"}</span>
+                <span>{products.length === 1 ? "producto en esta página" : "productos en esta página"}{page > 1 ? ` · Página ${page}` : ""}</span>
               </div>
               <Suspense fallback={<CatalogViewToggleSkeleton />}>
                 <CatalogViewToggle />
               </Suspense>
             </div>
             <ProductGrid products={products} variant={view} />
+            {page > 1 || hasNextPage ? (
+              <nav className="catalog-pagination" aria-label="Páginas del catálogo">
+                {page > 1 ? (
+                  <Link className="btn btn--ghost" href={catalogPageHref(searchParams, page - 1)} scroll>
+                    <ArrowLeft size={17} /> Anterior
+                  </Link>
+                ) : <span />}
+                <strong>Página {page}</strong>
+                {hasNextPage ? (
+                  <Link className="btn btn--ghost" href={catalogPageHref(searchParams, page + 1)} scroll>
+                    Siguiente <ArrowRight size={17} />
+                  </Link>
+                ) : <span />}
+              </nav>
+            ) : null}
             <div className="catalog-help-band">
               <PackageSearch size={24} />
               <div>

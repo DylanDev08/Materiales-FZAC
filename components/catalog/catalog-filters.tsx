@@ -28,6 +28,7 @@ export function CatalogFilters({
   const replaceParams = useCallback(
     (updates: Record<string, string | null>) => {
       const next = new URLSearchParams(searchParams.toString());
+      next.delete("page");
       Object.entries(updates).forEach(([key, value]) => {
         if (value) next.set(key, value);
         else next.delete(key);

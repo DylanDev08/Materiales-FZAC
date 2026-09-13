@@ -17,11 +17,11 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test("Home presenta el catálogo enfocado y productos reales", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Todo para construir en seco, en un solo lugar." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Materiales y pinturas para avanzar con tu obra." })).toBeVisible();
   await expect(page.locator(".product-card").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/La Yesera Rosarina|precio proveedor|margen comercial/i);
 
-  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería"]) {
+  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería", "Pinturas"]) {
     await expect(page.getByRole("link", { name: new RegExp(category, "i") }).first()).toBeVisible();
   }
 });
@@ -29,10 +29,10 @@ test("Home presenta el catálogo enfocado y productos reales", async ({ page }) 
 test("catálogo público limita proveedor, rubros e imágenes", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".product-card").first()).toBeVisible();
-  await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("111");
-  await expect(page.locator(".catalog-category-rail a")).toHaveCount(4);
-  await expect(page.locator(".catalog-category-rail")).not.toContainText(/Electricidad|Plomería|Pintura/i);
-  await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Urbe SRL|Maquinaria Sorrentos/i);
+  await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("120");
+  await expect(page.locator(".catalog-category-rail a")).toHaveCount(5);
+  await expect(page.locator(".catalog-category-rail")).toContainText(/Pintura/i);
+  await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Universo Pinturas|Urbe SRL|Maquinaria Sorrentos/i);
   const documentSource = await page.content();
   expect(documentSource).not.toMatch(/original_price|margin_percent|source_image_url|product_supplier_sources/i);
 
@@ -40,7 +40,7 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
     images.slice(0, 12).map((image) => (image as HTMLImageElement).currentSrc || (image as HTMLImageElement).src)
   );
   expect(sources.length).toBeGreaterThan(0);
-  expect(sources.every((source) => decodeURIComponent(source).includes("supabase.co/storage/v1/object/public/product-images/la-yesera-rosarina/"))).toBe(true);
+  expect(sources.every((source) => /supabase\.co\/storage\/v1\/object\/public\/product-images\/(la-yesera-rosarina|universo-pinturas)\//.test(decodeURIComponent(source)))).toBe(true);
 });
 
 for (const search of [
@@ -70,12 +70,34 @@ for (const search of [
 
 test("la disponibilidad separa productos a consultar del stock comprable", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".catalog-toolbar")).toContainText("111");
+  await expect(page.locator(".catalog-toolbar")).toContainText("120");
   await expect(page.locator(".product-card").first()).toContainText(/consultar disponibilidad/i);
 
   await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".catalog-product-column > .empty-state").last()).toContainText(/no encontramos productos/i);
   await expect(page.locator("select").filter({ has: page.locator("option[value='IN_STOCK']") }).last()).toHaveValue("IN_STOCK");
+});
+
+test("un producto a consultar se añade al carrito y pide confirmación antes del pago", async ({ page }) => {
+  await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+  const firstCard = page.locator(".product-card").first();
+  await expect(firstCard).toBeVisible();
+  await firstCard.getByRole("button", { name: "Añadir al carrito" }).click();
+  await expect(firstCard.getByRole("status")).toContainText("Producto añadido al carrito");
+
+  await page.goto("/carrito", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".cart-line").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /solicitar disponibilidad/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
+});
+
+test("Pinturas pagina el catálogo completo sin cargar miles de cards juntas", async ({ page }) => {
+  await page.goto("/categoria/pintura-impermeabilizacion", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".catalog-toolbar")).toContainText("120");
+  await page.getByRole("link", { name: /siguiente/i }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.locator(".catalog-toolbar")).toContainText("Página 2");
+  await expect(page.locator(".product-card").first()).toBeVisible();
 });
 
 test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {
@@ -84,8 +106,8 @@ test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async
   await expect(page.locator(".catalog-product-column")).toContainText(/solera/i);
 });
 
-test("aro informa un resultado vacío real cuando no existe en el catálogo", async ({ page }) => {
-  await page.goto("/productos?search=aro", { waitUntil: "domcontentloaded" });
+test("aro informa un resultado vacío real en construcción en seco", async ({ page }) => {
+  await page.goto("/categoria/construccion-en-seco?search=aro", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
 });
 

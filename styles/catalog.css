@@ -596,6 +596,39 @@
   backdrop-filter: blur(12px);
 }
 
+.catalog-pagination {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  border-block: 1px solid var(--color-border);
+  padding-block: 10px;
+}
+
+.catalog-pagination strong {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.catalog-pagination .btn:first-child {
+  justify-self: start;
+}
+
+.catalog-pagination .btn:last-child {
+  justify-self: end;
+}
+
+.product-card__toast--error {
+  border-color: rgba(220, 65, 65, 0.55);
+  background: linear-gradient(135deg, rgba(161, 35, 35, 0.2), rgba(17, 17, 17, 0.98));
+}
+
+.product-card__toast--error strong {
+  color: #ff9b9b;
+}
+
 .catalog-admin-entry {
   border-bottom: 1px solid rgba(244, 196, 0, 0.16);
   background:
@@ -1472,6 +1505,15 @@
   .catalog-help-band .btn {
     grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .catalog-pagination {
+    gap: 8px;
+  }
+
+  .catalog-pagination .btn {
+    min-width: 0;
+    padding-inline: 11px;
   }
 
   .category-directory-hero__inner {

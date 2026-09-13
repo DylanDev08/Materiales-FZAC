@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Zap } from "lucide-react";
+import { AlertCircle, CheckCircle, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import {
+  canAddProductToCart,
   canPurchaseProduct,
   getProductAvailabilityStatus,
   productAvailabilityLabel
@@ -18,19 +19,21 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const router = useRouter();
   const { addItem, hydrated } = useCart();
   const purchasable = canPurchaseProduct(product);
+  const cartEligible = canAddProductToCart(product);
   const availabilityStatus = getProductAvailabilityStatus(product);
-  const [quantity, setQuantity] = useState(() => (purchasable ? 1 : 0));
+  const [quantity, setQuantity] = useState(() => (cartEligible ? 1 : 0));
   const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
-  const maxQuantity = purchasable ? product.stock : 0;
+  const maxQuantity = purchasable ? product.stock : 999;
   const subtotal = product.price * quantity;
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero consultar disponibilidad de ${product.name} (${product.sku}).`);
 
   function setSafeQuantity(next: number) {
-    if (!purchasable) {
+    if (!cartEligible) {
       setQuantity(0);
       return;
     }
@@ -39,10 +42,12 @@ export function ProductBuyBox({ product }: { product: Product }) {
   }
 
   function addToCart() {
-    if (!hydrated || isAdding || !purchasable) return;
+    if (!hydrated || isAdding || !cartEligible) return;
     setIsAdding(true);
-    addItem(product, quantity);
-    setAdded(true);
+    setAddError(false);
+    const success = addItem(product, quantity);
+    setAdded(success);
+    setAddError(!success);
     window.requestAnimationFrame(() => setIsAdding(false));
   }
 
@@ -86,7 +91,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         <span className="status-pill status-pill--warning">Últimas unidades</span>
       ) : null}
 
-      {purchasable ? (
+      {cartEligible ? (
         <>
           <div className="product-actions">
             <div className="quantity-stepper" aria-label="Cantidad">
@@ -96,7 +101,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
               <input
                 aria-label="Cantidad"
                 min={1}
-                max={product.stock}
+                max={purchasable ? product.stock : undefined}
                 type="number"
                 value={quantity}
                 onChange={(event) => setSafeQuantity(Number(event.target.value))}
@@ -107,7 +112,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
             </div>
             <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
               <ShoppingCart size={18} />
-              {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar al carrito"}
+              {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
             </button>
           </div>
 
@@ -116,6 +121,11 @@ export function ProductBuyBox({ product }: { product: Product }) {
           </p>
 
           {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
+          {availabilityStatus === "CONSULT" ? (
+            <p className="notice">
+              Podés armar el carrito y solicitar la cantidad que necesitás. FZAC confirmará disponibilidad antes de habilitar el pago.
+            </p>
+          ) : null}
         </>
       ) : (
         <p className="notice">
@@ -128,7 +138,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
       {added ? (
         <div className="product-added-toast" role="status" aria-live="polite">
           <strong>
-            <CheckCircle size={18} /> Producto agregado al carrito
+            <CheckCircle size={18} /> Producto añadido al carrito
           </strong>
           <span>
             {product.name} · Cantidad: {quantity}
@@ -141,6 +151,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
               Seguir comprando
             </Link>
           </div>
+        </div>
+      ) : null}
+
+      {addError ? (
+        <div className="product-added-toast product-added-toast--error" role="alert" aria-live="assertive">
+          <strong><AlertCircle size={18} /> El producto no se pudo añadir</strong>
+          <span>Volvé a intentarlo o consultanos si el problema continúa.</span>
         </div>
       ) : null}
 

@@ -1,6 +1,6 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 13 de septiembre de 2026, 2:18 a. m.
+Fecha: 13 de septiembre de 2026, 4:25 p. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.
@@ -11,8 +11,8 @@ Estado: **Apto para venta controlada**
 
 | Métrica | Valor |
 | --- | ---: |
-| Productos totales auditados | 114 |
-| Productos activos | 114 |
+| Productos totales auditados | 1770 |
+| Productos activos | 1770 |
 | Productos inactivos | 0 |
 | Categorías totales auditadas | 9 |
 | Categorías activas | 9 |
@@ -20,7 +20,7 @@ Estado: **Apto para venta controlada**
 | Productos destacados | 2 |
 | Productos en oferta | 1 |
 | Stock total visible | 120 |
-| Precio mínimo activo | $ 500 |
+| Precio mínimo activo | $ 49 |
 | Precio máximo activo | $ 783.600 |
 
 ## Hallazgos
@@ -29,10 +29,10 @@ Estado: **Apto para venta controlada**
 | --- | --- | --- |
 | Productos sin foto | 2 | Cargar imagen real al bucket product-images. |
 | Productos con foto placeholder/banco | 2 | Reemplazar por foto real del producto o proveedor. |
-| Productos con descripción débil | 112 | Completar uso, presentación y recomendaciones. |
+| Productos con descripción débil | 113 | Completar uso, presentación y recomendaciones. |
 | Productos bajo stock | 1 | Reponer o revisar stock mínimo. |
 | Rubros sin imagen | 9 | Agregar imagen real o mantener ícono como fallback. |
-| Rubros sin productos activos | 5 | Asignar productos o ocultar el rubro. |
+| Rubros sin productos activos | 4 | Asignar productos o ocultar el rubro. |
 
 ## Detalle para carga comercial
 
@@ -51,19 +51,19 @@ _Sin elementos._
 _Sin elementos._
 
 ### Productos con descripción débil
+- Impregnante hidro repelente protector incoloro 20 l IMPREGNANTE HIDRO-REP 20KG (UNV-1327)
 - PGU 100-35 E 0,93 X 3 ML (LYR-120351569)
 - LANA DE VIDRIO DURLOCK 14.5 X 1.20 50 MM (LYR-263661499)
-- PLACA SUPERBOARD 15mm BORDES RECTO (LYR-EB11CF0B8AFC)
 - SIDING CEDAR SUPERBOARD 8 mm 3,60 X 0,2 (LYR-E0C0E103F581)
+- PLACA SUPERBOARD 15mm BORDES RECTO (LYR-EB11CF0B8AFC)
 - MASILLA SUPERBOARD 5 KG (LYR-9400ED4F16F7)
 - PLACA SUPERBOARD 6mm BORDES RECTOS (LYR-82F59800C745)
-- BASE COAT BICOMPONENTE DURLOCK EXTERIORES (LYR-46B7127ECA97)
-- SIDING CEDAR SUPERBOARD 6mm 3,60 X 0,2 (LYR-7574A0A757C0)
-- PLACAS DURLOCK 12,5mm -1,20m x 2,00m- (LYR-10B1B3DE7598)
 - PLACAS DURLOCK 12,5mm 1,2 x 3m (LYR-2FC76A4B722B)
+- PGU 70mm-35mm E 0,93mm X 3 mts (LYR-B9C8B7404E02)
 - PLACA SUPERBOARD 8mm BORDE RECTO (LYR-BA4B29A99F7E)
-- PGC 70mm-40mm-17mm E 0,93mm X 3 mts (LYR-63F911C435F3)
-- ... 100 más
+- PLACA SUPERBOARD 10mm BORDE RECTO (LYR-7BD4176B38FE)
+- BASE COAT BICOMPONENTE DURLOCK EXTERIORES (LYR-46B7127ECA97)
+- ... 101 más
 
 ### Productos sin stock activo
 _Sin elementos._
@@ -75,7 +75,6 @@ _Sin elementos._
 - Herramientas
 - Electricidad
 - Plomería
-- Pintura e impermeabilización
 - Revestimientos
 
 ### Rubros con descripción débil

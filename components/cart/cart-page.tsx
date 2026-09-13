@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency } from "@/lib/formatters/currency";
-import { getProductAvailabilityStatus } from "@/lib/products/availability";
+import { canAddProductToCart, getProductAvailabilityStatus } from "@/lib/products/availability";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
@@ -29,7 +29,12 @@ export function CartPage() {
   const [message, setMessage] = useState("");
   const [validation, setValidation] = useState<CartValidationState>({ status: "idle" });
   const lastValidationRef = useRef("");
-  const helpHref = getWhatsAppHref("Hola FZAC, necesito ayuda para revisar mi carrito antes de comprar.");
+  const hasConsultItems = items.some((item) => getProductAvailabilityStatus(item.product) === "CONSULT");
+  const helpHref = getWhatsAppHref(
+    hasConsultItems
+      ? `Hola FZAC, quiero confirmar disponibilidad de este carrito:\n${items.map((item) => `- ${item.quantity} x ${item.product.name}`).join("\n")}`
+      : "Hola FZAC, necesito ayuda para revisar mi carrito antes de comprar."
+  );
   const cartFingerprint = useMemo(
     () => items.map((item) => `${item.productId}:${item.quantity}`).sort().join("|"),
     [items]
@@ -190,9 +195,13 @@ export function CartPage() {
                         <strong>{item.quantity}</strong>
                         <button
                           type="button"
-                          disabled={availabilityStatus !== "IN_STOCK" || item.product.stock <= 0 || item.quantity >= item.product.stock}
+                          disabled={
+                            !canAddProductToCart(item.product)
+                            || (availabilityStatus === "IN_STOCK" && item.quantity >= item.product.stock)
+                            || (availabilityStatus === "CONSULT" && item.quantity >= 999)
+                          }
                           onClick={() => {
-                            if (item.quantity >= item.product.stock) {
+                            if (availabilityStatus === "IN_STOCK" && item.quantity >= item.product.stock) {
                               setMessage(`Solo quedan ${item.product.stock} unidades disponibles.`);
                               return;
                             }
@@ -246,6 +255,10 @@ export function CartPage() {
                 <Link className="btn" href="/checkout">
                   Continuar al checkout
                 </Link>
+              ) : hasConsultItems ? (
+                <a className="btn" href={helpHref} target="_blank" rel="noreferrer">
+                  <MessageCircle size={17} /> Solicitar disponibilidad
+                </a>
               ) : (
                 <span className="btn is-disabled" aria-disabled="true">
                   {validation.status === "loading" ? "Validando carrito..." : "Revisar stock para continuar"}

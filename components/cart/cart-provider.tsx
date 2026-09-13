@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { canAddProductToCart } from "@/lib/products/availability";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import type { CartLine, Product } from "@/types/domain";
 
@@ -10,7 +11,7 @@ type CartContextValue = {
   count: number;
   subtotal: number;
   hydrated: boolean;
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (product: Product, quantity?: number) => boolean;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
@@ -88,6 +89,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       subtotal,
       hydrated,
       addItem(product, quantity = 1) {
+        if (
+          !product.id
+          || !product.name
+          || !Number.isFinite(Number(product.price))
+          || Number(product.price) <= 0
+          || !Number.isFinite(Number(quantity))
+          || quantity < 1
+          || !canAddProductToCart(product)
+        ) {
+          return false;
+        }
         setItems((current) => {
           const existing = current.find((item) => item.productId === product.id);
           if (!existing) return sanitize([...current, { productId: product.id, quantity, product }]);
@@ -98,6 +110,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             )
           );
         });
+        return true;
       },
       updateQuantity(productId, quantity) {
         setItems((current) =>

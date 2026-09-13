@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, CheckCircle, MessageCircle, ShieldCheck, ShoppingCart } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import {
+  canAddProductToCart,
   canPurchaseProduct,
   getProductAvailabilityStatus,
   productAvailabilityLabel
@@ -17,25 +18,32 @@ export function ProductCard({ product }: { product: Product }) {
   const { addItem, hydrated } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
   const availabilityStatus = getProductAvailabilityStatus(product);
   const purchasable = canPurchaseProduct(product);
+  const cartEligible = canAddProductToCart(product);
   const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
 
   function addToCart() {
-    if (!hydrated || isAdding || !purchasable) return;
+    if (!hydrated || isAdding || !cartEligible) return;
     setIsAdding(true);
-    addItem(product, 1);
-    setAdded(true);
+    setAddError(false);
+    const success = addItem(product, 1);
+    setAdded(success);
+    setAddError(!success);
     window.requestAnimationFrame(() => setIsAdding(false));
   }
 
   useEffect(() => {
-    if (!added) return;
-    const timer = window.setTimeout(() => setAdded(false), 4500);
+    if (!added && !addError) return;
+    const timer = window.setTimeout(() => {
+      setAdded(false);
+      setAddError(false);
+    }, 4500);
     return () => window.clearTimeout(timer);
-  }, [added]);
+  }, [added, addError]);
 
   return (
     <article className="product-card">
@@ -86,10 +94,10 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
 
         <div className="product-card__actions">
-          {purchasable ? (
+          {cartEligible ? (
             <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
               <ShoppingCart size={18} />
-              {!hydrated ? "Cargando..." : isAdding ? "Agregando..." : "Agregar"}
+              {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
             </button>
           ) : (
             <Link className="btn" href={`/producto/${product.slug}`} prefetch={false}>
@@ -109,7 +117,7 @@ export function ProductCard({ product }: { product: Product }) {
         {added ? (
           <div className="product-card__toast" role="status" aria-live="polite">
             <strong>
-              <CheckCircle size={15} /> Producto agregado
+              <CheckCircle size={15} /> Producto añadido al carrito
             </strong>
             <small>
               {product.name} · Cantidad 1
@@ -118,6 +126,12 @@ export function ProductCard({ product }: { product: Product }) {
               <Link href="/carrito" prefetch={false}>Ver carrito</Link>
               <Link href="/productos" prefetch={false}>Seguir comprando</Link>
             </span>
+          </div>
+        ) : null}
+        {addError ? (
+          <div className="product-card__toast product-card__toast--error" role="alert" aria-live="assertive">
+            <strong><AlertCircle size={15} /> El producto no se pudo añadir</strong>
+            <small>Volvé a intentarlo o consultanos si el problema continúa.</small>
           </div>
         ) : null}
       </div>
