@@ -13,7 +13,7 @@ export default async function Page() {
   const rows = (await getAdminRows("chat_conversations")).map((chat) => ({
     Asunto: chat.subject,
     Estado: statusLabels[String(chat.status)] ?? "En seguimiento",
-    Canal: chat.channel === "AI" ? "Asistente FZAC" : "Atención FZAC",
+    Canal: chat.channel === "AI" ? "Asistente FZAC" : chat.channel === "WHATSAPP" ? "WhatsApp" : "Atención FZAC",
     "Último mensaje": chat.updated_at ?? chat.created_at,
     Creado: chat.created_at
   }));

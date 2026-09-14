@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, ImageOff, PackageSearch, Save, Search, Tra
 import { currency } from "@/lib/formatters/currency";
 import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
+import { duplicateReason } from "@/lib/products/identity";
 import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
 
 type ProductForm = {
@@ -146,12 +147,20 @@ export function AdminProductsManager({
       return matchesQuery && matchesFilter && matchesSupplier;
     });
   }, [catalogFilter, categoryById, categoryIds, query, sortedRows, supplierFilter]);
+  const duplicateWarning = useMemo(
+    () => form.name.trim() && form.slug.trim() && form.sku.trim() ? duplicateReason(form, rows) : null,
+    [form, rows]
+  );
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
     if (!hasCategories || !form.category_id) {
       setMessage("Primero carga una categoria valida para poder guardar productos.");
+      return;
+    }
+    if (duplicateWarning) {
+      setMessage(duplicateWarning);
       return;
     }
 
@@ -357,7 +366,20 @@ export function AdminProductsManager({
               </label>
             </span>
           </div>
-          <button className="btn admin-product-save" type="submit" disabled={saving || !hasCategories}>
+          <aside className="admin-product-preview" aria-label="Vista previa antes de guardar">
+            <span className="kicker">Vista previa</span>
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {form.image_url ? <img src={form.image_url} alt="" /> : <ImageOff size={28} />}
+              <p>
+                <strong>{form.name || "Nombre del producto"}</strong>
+                <span>{currency(Number(form.price) || 0)} · {form.unit || "unidad"}</span>
+                <small>{form.availability_status === "CONSULT" ? "Consultar disponibilidad" : form.availability_status === "IN_STOCK" ? `${form.stock} disponibles` : "Sin stock"}</small>
+              </p>
+            </div>
+            {duplicateWarning ? <em><AlertTriangle size={15} /> {duplicateWarning}</em> : <small>Sin coincidencias visibles por nombre, SKU o slug.</small>}
+          </aside>
+          <button className="btn admin-product-save" type="submit" disabled={saving || !hasCategories || Boolean(duplicateWarning)}>
             <Save size={18} />
             {saving ? "Guardando..." : "Guardar producto"}
           </button>

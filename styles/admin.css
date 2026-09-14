@@ -855,7 +855,7 @@ body:has(.admin-page) .site-main {
 .admin-finance-ledger > header > span { color: var(--color-muted); font-size: 0.78rem; }
 .admin-finance-ledger__tools {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) auto auto auto;
+  grid-template-columns: minmax(170px, 1fr) repeat(4, auto);
   gap: 9px;
   align-items: end;
   margin-bottom: 14px;
@@ -3339,6 +3339,25 @@ body:has(.admin-page) .site-main {
   justify-self: center;
   width: min(260px, 100%);
 }
+
+.admin-product-preview {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px;
+}
+
+.admin-product-preview > div { display: flex; align-items: center; gap: 12px; }
+.admin-product-preview img { width: 62px; height: 62px; border-radius: 8px; object-fit: contain; background: #fff; }
+.admin-product-preview p { display: grid; gap: 3px; margin: 0; }
+.admin-product-preview p strong { color: var(--color-white); }
+.admin-product-preview p span { color: var(--color-yellow); font-weight: 850; }
+.admin-product-preview p small,
+.admin-product-preview > small { color: var(--color-muted); }
+.admin-product-preview > em { display: flex; align-items: center; gap: 7px; color: #ffb4a8; font-size: 0.8rem; font-style: normal; }
 
 .admin-upload-field {
   align-content: start;

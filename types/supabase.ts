@@ -528,6 +528,8 @@ export type Database = {
           channel: string
           created_at: string
           id: string
+          phone_hash: string | null
+          phone_last4: string | null
           status: string
           subject: string | null
           updated_at: string
@@ -539,6 +541,8 @@ export type Database = {
           channel?: string
           created_at?: string
           id?: string
+          phone_hash?: string | null
+          phone_last4?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
@@ -550,6 +554,8 @@ export type Database = {
           channel?: string
           created_at?: string
           id?: string
+          phone_hash?: string | null
+          phone_last4?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
@@ -563,7 +569,10 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          direction: string | null
+          external_message_id: string | null
           id: string
+          message_type: string | null
           metadata: Json | null
           role: string
           sender_id: string | null
@@ -572,7 +581,10 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          direction?: string | null
+          external_message_id?: string | null
           id?: string
+          message_type?: string | null
           metadata?: Json | null
           role: string
           sender_id?: string | null
@@ -581,7 +593,10 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          direction?: string | null
+          external_message_id?: string | null
           id?: string
+          message_type?: string | null
           metadata?: Json | null
           role?: string
           sender_id?: string | null

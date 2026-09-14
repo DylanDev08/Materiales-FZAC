@@ -23,7 +23,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!isSeoIndexingEnabled()) return [];
 
   const siteUrl = getPublicSiteUrl();
-  const [categories, products] = await Promise.all([getCategories(), getProducts({ limit: 500 })]);
+  const categories = await getCategories();
+  const products = [];
+  const pageSize = 250;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await getProducts({ limit: pageSize, offset, order: "name_asc" });
+    products.push(...page);
+    if (page.length < pageSize) break;
+  }
 
   return [
     ...publicRoutes.map((path, index) => ({

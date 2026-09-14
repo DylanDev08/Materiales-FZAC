@@ -1,6 +1,6 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 13 de septiembre de 2026, 4:25 p. m.
+Fecha: 14 de septiembre de 2026, 12:26 a. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.

@@ -7,6 +7,7 @@ import {
 } from "@/lib/payments/config";
 import { canQuoteShipping } from "@/lib/shipping/quote";
 import { hasRealValue } from "@/lib/utils/env";
+import { getWhatsAppConfig } from "@/lib/whatsapp/config";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
   const supabase = getSupabaseConfig();
   const mercadoPago = getMercadoPagoEnvironmentState();
   const paymentProductionReadiness = getPaymentProductionReadiness();
+  const whatsapp = getWhatsAppConfig();
 
   return Response.json(
     {
@@ -32,6 +34,10 @@ export async function GET(request: Request) {
       resendConfigured: hasRealValue(process.env.RESEND_API_KEY) && hasRealValue(process.env.RESEND_FROM_EMAIL),
       resendFromEmail: hasRealValue(process.env.RESEND_FROM_EMAIL),
       shippingQuoteReady: canQuoteShipping(),
+      whatsappBotEnabled: whatsapp.enabled,
+      whatsappDryRun: whatsapp.dryRun,
+      whatsappWebhookVerificationReady: whatsapp.canVerifyWebhook && whatsapp.canVerifySignature,
+      whatsappSendReady: whatsapp.canSend,
       adminEmails: hasRealValue(process.env.ADMIN_EMAILS),
       fiscalInvoicingConfigured:
         process.env.FISCAL_INVOICING_ENABLED?.toLowerCase() === "true" &&

@@ -13,6 +13,7 @@ import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "@/lib/legal/vers
 import { getStoreLegalIdentity } from "@/lib/legal/store-identity";
 import { PRIVACY_CONSENT_VERSION } from "@/lib/privacy/consent";
 import { isSeoIndexingEnabled } from "@/lib/seo/site";
+import { getWhatsAppConfig } from "@/lib/whatsapp/config";
 
 type SystemStatusTone = "success" | "warning" | "danger";
 export type SystemStatusArea = "Comercio" | "Infraestructura" | "Pagos" | "Seguridad";
@@ -75,20 +76,30 @@ async function getCatalogOperationalStatus(): Promise<CatalogOperationalStatus |
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
-  const [productsResult, categoriesResult] = await Promise.all([
-    admin.from("products").select("id,active,price,stock,image_url,description,category_id").limit(1000),
-    admin.from("categories").select("id,active").limit(500)
-  ]);
-  if (productsResult.error || categoriesResult.error) return null;
+  const categoriesPromise = admin.from("categories").select("id,active").limit(500);
+  const products: Array<Record<string, unknown>> = [];
+  const pageSize = 1_000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin
+      .from("products")
+      .select("id,active,price,stock,image_url,description,category_id,availability_status")
+      .range(offset, offset + pageSize - 1);
+    if (error) return null;
+    products.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) break;
+  }
+  const categoriesResult = await categoriesPromise;
+  if (categoriesResult.error) return null;
 
   const categoryIds = new Set(
     (categoriesResult.data ?? []).filter((category) => Boolean(category.active)).map((category) => String(category.id))
   );
-  const activeProducts = (productsResult.data ?? []).filter((product) => Boolean(product.active));
+  const activeProducts = products.filter((product) => Boolean(product.active));
   const readyProducts = activeProducts.filter(
     (product) =>
       Number(product.price ?? 0) > 0 &&
-      Number(product.stock ?? 0) > 0 &&
+      (product.availability_status === "CONSULT" || Number(product.stock ?? 0) > 0) &&
+      product.availability_status !== "OUT_OF_STOCK" &&
       Boolean(String(product.image_url ?? "").trim()) &&
       Boolean(String(product.description ?? "").trim()) &&
       categoryIds.has(String(product.category_id ?? ""))
@@ -99,7 +110,10 @@ async function getCatalogOperationalStatus(): Promise<CatalogOperationalStatus |
     readyProducts: readyProducts.length,
     activeCategories: categoryIds.size,
     missingImages: activeProducts.filter((product) => !String(product.image_url ?? "").trim()).length,
-    outOfStock: activeProducts.filter((product) => Number(product.stock ?? 0) <= 0).length
+    outOfStock: activeProducts.filter(
+      (product) => product.availability_status === "OUT_OF_STOCK"
+        || (product.availability_status !== "CONSULT" && Number(product.stock ?? 0) <= 0)
+    ).length
   };
 }
 
@@ -117,6 +131,7 @@ export async function getSystemStatus() {
   const productionMode = payment.paymentsEnv === "production";
   const seoEnabled = isSeoIndexingEnabled();
   const legalIdentity = getStoreLegalIdentity();
+  const whatsapp = getWhatsAppConfig();
   const [integrity, catalog] = await Promise.all([getDatabaseIntegrityStatus(), getCatalogOperationalStatus()]);
 
   const items: SystemStatusItem[] = [
@@ -137,6 +152,22 @@ export async function getSystemStatus() {
       label: "URL pública",
       ...siteState,
       detail: payment.siteUrl
+    },
+    {
+      area: "Infraestructura",
+      label: "Bot propio de WhatsApp",
+      ...(whatsapp.enabled
+        ? whatsapp.dryRun
+          ? status("success", "Dry-run")
+          : whatsapp.canSend && whatsapp.canVerifySignature
+            ? status("success", "Activo")
+            : status("danger", "Configuración incompleta")
+        : status("success", "Apagado seguro")),
+      detail: whatsapp.enabled
+        ? whatsapp.dryRun
+          ? "Recibe eventos firmados y registra pruebas, pero no envía mensajes reales."
+          : "Cloud API activa con firma y credenciales server-side."
+        : "No interfiere con el Meta Business Agent actual. Requiere aprobación y coexistencia verificada para activarse."
     },
     {
       area: "Pagos",

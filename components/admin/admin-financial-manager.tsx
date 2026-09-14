@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Ban, CheckCircle2, FilterX, Loader2, Plus, Scale, ShieldAlert } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Ban, CheckCircle2, Download, FilterX, Loader2, Plus, Scale, ShieldAlert } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import type { AdminFinancialMovement } from "@/lib/db/admin";
 
@@ -195,6 +195,33 @@ export function AdminFinancialManager({
     setMessage("");
   }
 
+  function exportVisibleCsv() {
+    const safeCell = (value: string | number) => {
+      const text = String(value);
+      const spreadsheetSafe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${spreadsheetSafe.replaceAll('"', '""')}"`;
+    };
+    const lines = [
+      ["Fecha", "Tipo", "Categoría", "Descripción", "Importe", "Estado", "Origen"],
+      ...visibleRows.map((row) => [
+        row.occurredAt,
+        row.type === "INCOME" ? "Ingreso" : "Egreso",
+        row.category,
+        row.description,
+        row.amount.toFixed(2),
+        row.status === "ACTIVE" ? "Vigente" : "Anulado",
+        row.source
+      ])
+    ].map((line) => line.map(safeCell).join(","));
+    const blob = new Blob([`\uFEFF${lines.join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `fzac-caja-${localDateValue()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="admin-finance-page">
       {!available ? (
@@ -274,6 +301,9 @@ export function AdminFinancialManager({
             </label>
             <button className="btn btn--ghost" type="button" onClick={clearLedgerView} disabled={viewType === "ALL" && !showVoided}>
               <FilterX size={16} /> Limpiar vista
+            </button>
+            <button className="btn btn--ghost" type="button" onClick={exportVisibleCsv} disabled={!visibleRows.length}>
+              <Download size={16} /> Exportar CSV
             </button>
             <button className="btn btn--danger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading}>
               <ShieldAlert size={16} /> Mantenimiento

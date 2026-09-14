@@ -4,6 +4,8 @@ import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
 import { invalidateAssistantCatalogCache } from "@/lib/assistant/catalog-intelligence";
 import { isTrustedMutationRequest, validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { duplicateReason } from "@/lib/products/identity";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const productIdSchema = z.string().uuid("Producto inválido.");
 
@@ -11,6 +13,18 @@ function productValidationError(error: unknown) {
   if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Revisá los datos del producto.", 422);
   if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
   return null;
+}
+
+async function findDuplicate(admin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>, payload: z.infer<typeof adminProductSchema>) {
+  const rows: Array<{ id: string; name: string; slug: string; sku: string }> = [];
+  const pageSize = 1_000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin.from("products").select("id,name,slug,sku").range(offset, offset + pageSize - 1);
+    if (error) return null;
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) break;
+  }
+  return duplicateReason(payload, rows);
 }
 
 export async function GET(request: Request) {
@@ -32,6 +46,8 @@ export async function POST(request: Request) {
 
   try {
     const payload = adminProductSchema.parse(await request.json());
+    const duplicate = await findDuplicate(admin, payload);
+    if (duplicate) return jsonError(duplicate, 409);
     const insert = { ...payload };
     delete insert.id;
     const { data, error } = await admin.from("products").insert(insert).select("*").single();
@@ -64,6 +80,8 @@ export async function PATCH(request: Request) {
   try {
     const payload = adminProductSchema.parse(await request.json());
     if (!payload.id) return jsonError("Falta el producto a modificar.", 422);
+    const duplicate = await findDuplicate(admin, payload);
+    if (duplicate) return jsonError(duplicate, 409);
 
     const { id, ...update } = payload;
     const { data, error } = await admin
