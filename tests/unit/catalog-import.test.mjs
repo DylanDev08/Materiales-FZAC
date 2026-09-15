@@ -4,6 +4,7 @@ import {
   classify,
   isAroProduct,
   isSupplementalDryProduct,
+  marginPercent,
   normalizeText,
   parseProducts,
   salePrice
@@ -11,19 +12,29 @@ import {
 import { storefrontCategorySlug } from "../../scripts/catalog/sync-storefront-taxonomy.mjs";
 import {
   classify as classifyUniverso,
+  commercialScope as universoCommercialScope,
   parseProduct as parseUniversoProduct
 } from "../../scripts/catalog/import-universo-pinturas.mjs";
+import { expectedPrice as expectedSupplierPrice } from "../../scripts/catalog/audit-supplier-price-parity.mjs";
 
-test("aplica exactamente 20% y redondea una sola vez", () => {
+test("aplica 20% hasta 60000 y redondea una sola vez", () => {
   assert.equal(salePrice(16100), 19320);
   assert.equal(salePrice(19990), 23988);
+  assert.equal(salePrice(60000), 72000);
 });
 
-test("aplica 10% únicamente a productos identificados claramente como aro", () => {
+test("aplica 10% cuando el precio proveedor supera 60000", () => {
   assert.equal(isAroProduct({ original_name: "ARO PARA DURLOCK 90 MM" }), true);
   assert.equal(isAroProduct({ original_name: "CLAVO PUNTA PARIS" }), false);
-  assert.equal(salePrice(10000, { original_name: "Aro de embutir" }), 11000);
+  assert.equal(marginPercent({ original_price: 60000 }), 20);
+  assert.equal(marginPercent({ original_price: 60000.01 }), 10);
+  assert.equal(salePrice(10000, { original_name: "Aro de embutir" }), 12000);
   assert.equal(salePrice(10000, { original_name: "Placa Durlock" }), 12000);
+  assert.equal(salePrice(135000), 148500);
+  assert.equal(salePrice(69600), 76560);
+  assert.equal(salePrice(96700), 106370);
+  assert.equal(salePrice(65000), 71500);
+  assert.throws(() => salePrice(0), /Precio proveedor inválido/);
 });
 
 test("limita el catálogo general a complementos inequívocos de construcción en seco", () => {
@@ -37,6 +48,7 @@ test("normaliza variantes de nombre para detectar duplicados potenciales", () =>
     normalizeText("PLACA DURLOCK 12,5mm 1,20 x 2,40 m"),
     normalizeText("Placas Drywall 12.5mm 1.20x2.40 mts")
   );
+  assert.equal(normalizeText("Látex interior"), "latex interior");
 });
 
 test("un source_product_id ya importado se actualiza sin recalcular sobre el precio de venta", () => {
@@ -124,4 +136,14 @@ test("Universo omite variantes sin precio y detecta duplicados por nombre normal
     supplier: null
   });
   assert.equal(decision.decision, "SKIP_DUPLICATE");
+});
+
+test("Universo deja categorías dudosas en preview y mantiene pinturas de obra", () => {
+  assert.equal(universoCommercialScope({ original_name: "Látex interior blanco 20 l", subcategory: "Pinturas" }), "INCLUDE");
+  assert.equal(universoCommercialScope({ original_name: "Recubrimiento para bordes", subcategory: "Piletas" }), "REVIEW");
+});
+
+test("la auditoría conserva centavos de Universo y redondea Yesera", () => {
+  assert.equal(expectedSupplierPrice("UNIVERSO-PINTURAS-SRL", 123.45), 123.45);
+  assert.equal(expectedSupplierPrice("LA-YESERA-ROSARINA", 69600), 76560);
 });

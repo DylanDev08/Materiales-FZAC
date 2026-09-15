@@ -6218,6 +6218,76 @@ body:has(.admin-page) .site-main {
   gap: 18px;
 }
 
+.admin-supplier-audit {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-supplier-audit__filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-supplier-audit__filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.admin-supplier-audit__filters select {
+  width: 100%;
+  min-height: 44px;
+}
+
+.admin-supplier-audit__filters .btn,
+.admin-supplier-audit__actions .btn {
+  width: auto;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.admin-supplier-audit__table header {
+  margin-bottom: 16px;
+}
+
+.admin-supplier-audit__table header h2,
+.admin-supplier-audit__table header p {
+  margin: 0;
+}
+
+.admin-supplier-audit__table header p,
+.admin-supplier-audit__table td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+}
+
+.admin-supplier-audit__actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+@media (max-width: 980px) {
+  .admin-supplier-audit__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-supplier-audit__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-supplier-audit__filters .btn {
+    width: 100%;
+  }
+}
+
 .admin-market-prices__guardrail {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

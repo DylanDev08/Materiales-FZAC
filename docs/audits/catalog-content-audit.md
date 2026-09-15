@@ -1,6 +1,6 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 14 de septiembre de 2026, 12:26 a. m.
+Fecha: 15 de septiembre de 2026, 1:26 a. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.
@@ -21,7 +21,7 @@ Estado: **Apto para venta controlada**
 | Productos en oferta | 1 |
 | Stock total visible | 120 |
 | Precio mínimo activo | $ 49 |
-| Precio máximo activo | $ 783.600 |
+| Precio máximo activo | $ 718.300 |
 
 ## Hallazgos
 

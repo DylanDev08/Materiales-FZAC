@@ -11,6 +11,12 @@ type RouteMatrixElement = {
   duration?: string;
 };
 
+type GoogleRoutesError = {
+  error?: {
+    details?: Array<{ reason?: string }>;
+  };
+};
+
 export type ShippingQuote =
   | {
       available: true;
@@ -81,7 +87,7 @@ function shippingTariff() {
   const roundTo = Math.max(numberEnv("FZAC_SHIPPING_ROUND_TO") ?? 10, 1);
   const maxKm = Math.max(numberEnv("FZAC_SHIPPING_MAX_KM") ?? 30, 1);
 
-  if (base === null || perKm === null) return null;
+  if (base === null || perKm === null || base < 0 || perKm < 0 || min < 0) return null;
   return { base, perKm, min, roundTo, maxKm };
 }
 
@@ -97,6 +103,32 @@ function durationLabel(value?: string) {
 
 export function canQuoteShipping() {
   return hasRealValue(shippingApiKey()) && Boolean(shippingTariff());
+}
+
+export function getShippingConfigStatus() {
+  return {
+    googleMapsServerKeyConfigured: hasRealValue(shippingApiKey()),
+    shippingTariffConfigured: Boolean(shippingTariff()),
+    shippingQuoteReady: canQuoteShipping()
+  };
+}
+
+export function googleRoutesFailureReason(status: number, payload: GoogleRoutesError) {
+  const reason = payload.error?.details?.find((detail) => detail.reason)?.reason;
+
+  if (reason === "API_KEY_HTTP_REFERRER_BLOCKED") {
+    return "La clave server de Google Maps tiene una restricción de navegador incompatible con Routes API.";
+  }
+  if (reason === "API_KEY_SERVICE_BLOCKED" || reason === "SERVICE_DISABLED") {
+    return "Routes API no está habilitada para la clave server configurada.";
+  }
+  if (status === 401 || status === 403) {
+    return "Google Maps rechazó la credencial server configurada.";
+  }
+  if (status === 429) {
+    return "Google Maps alcanzó temporalmente el límite de consultas. Probá nuevamente.";
+  }
+  return "No pudimos consultar la distancia real del envío.";
 }
 
 function quoteCacheKey(address: AddressPayload) {
@@ -132,16 +164,6 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  if (!tariff) {
-    return {
-      available: false,
-      amount: 0,
-      reason: "Falta configurar la tarifa vigente de envío FZAC.",
-      origin,
-      destination
-    };
-  }
-
   let response: Response;
   try {
     response = await fetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {
@@ -172,18 +194,20 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
       provider: "GOOGLE_ROUTES"
     };
   }
+  const payload = (await response.json().catch(() => ({}))) as RouteMatrixElement[] | GoogleRoutesError;
+
   if (!response.ok) {
     return {
       available: false,
       amount: 0,
-      reason: "No pudimos consultar distancia real del envío.",
+      reason: googleRoutesFailureReason(response.status, payload as GoogleRoutesError),
       origin,
       destination,
       provider: "GOOGLE_ROUTES"
     };
   }
 
-  const data = (await response.json()) as RouteMatrixElement[];
+  const data = payload as RouteMatrixElement[];
   const element = data[0];
   const distanceMeters = Number(element?.distanceMeters ?? 0);
   const distanceKm = distanceMeters / 1000;
@@ -199,12 +223,24 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  if (distanceKm > tariff.maxKm) {
+  if (tariff && distanceKm > tariff.maxKm) {
     return {
       available: false,
       amount: 0,
       reason: `La dirección supera el radio automático de ${tariff.maxKm} km desde Rosario.`,
       distanceKm,
+      origin,
+      destination,
+      provider: "GOOGLE_ROUTES"
+    };
+  }
+
+  if (!tariff) {
+    return {
+      available: false,
+      amount: 0,
+      reason: "La distancia pudo verificarse, pero falta configurar la tarifa vigente de envío FZAC.",
+      distanceKm: Number(distanceKm.toFixed(1)),
       origin,
       destination,
       provider: "GOOGLE_ROUTES"

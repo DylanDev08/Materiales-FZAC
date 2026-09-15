@@ -5,7 +5,7 @@ import {
   getPaymentProductionReadiness,
   isPaymentsEnabled
 } from "@/lib/payments/config";
-import { canQuoteShipping } from "@/lib/shipping/quote";
+import { getShippingConfigStatus } from "@/lib/shipping/quote";
 import { hasRealValue } from "@/lib/utils/env";
 import { getWhatsAppConfig } from "@/lib/whatsapp/config";
 
@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const mercadoPago = getMercadoPagoEnvironmentState();
   const paymentProductionReadiness = getPaymentProductionReadiness();
   const whatsapp = getWhatsAppConfig();
+  const shipping = getShippingConfigStatus();
 
   return Response.json(
     {
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
       paymentProductionReadiness,
       resendConfigured: hasRealValue(process.env.RESEND_API_KEY) && hasRealValue(process.env.RESEND_FROM_EMAIL),
       resendFromEmail: hasRealValue(process.env.RESEND_FROM_EMAIL),
-      shippingQuoteReady: canQuoteShipping(),
+      ...shipping,
       whatsappBotEnabled: whatsapp.enabled,
       whatsappDryRun: whatsapp.dryRun,
       whatsappWebhookVerificationReady: whatsapp.canVerifyWebhook && whatsapp.canVerifySignature,

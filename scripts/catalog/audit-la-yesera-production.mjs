@@ -32,7 +32,7 @@ function normalized(value) {
     .toLowerCase()
     .replace(/\bdrywall\b/g, "durlock")
     .replace(/,/g, ".")
-    .replace(/\s*x\s*/g, "x")
+    .replace(/(\d)\s*x\s*(?=\d)/g, "$1x")
     .replace(/[^a-z0-9.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -69,7 +69,16 @@ async function main() {
     availability_status: row.products.availability_status,
     image_url: row.products.image_url,
     supplier: row.products.suppliers?.name ?? null
-  }));
+  })).map((row) => {
+    const expected_margin_percent = row.original_price > 60_000 ? 10 : 20;
+    const expected_sale_price = Math.round(row.original_price * (1 + expected_margin_percent / 100));
+    return {
+      ...row,
+      expected_margin_percent,
+      expected_sale_price,
+      price_difference: row.sale_price - expected_sale_price
+    };
+  });
 
   const duplicates = {
     source_product_id: duplicateKeys(products, (row) => row.source_product_id),
@@ -80,10 +89,11 @@ async function main() {
   const summary = {
     products: products.length,
     exact_duplicates: Object.values(duplicates).reduce((total, rows) => total + rows.length, 0),
-    invalid_margin: products.filter((row) => {
-      const allowedMargin = row.margin_percent === 10 || row.margin_percent === 20;
-      return !allowedMargin || row.sale_price !== Math.round(row.original_price * (1 + row.margin_percent / 100));
-    }).length,
+    margin_10: products.filter((row) => row.expected_margin_percent === 10).length,
+    margin_20: products.filter((row) => row.expected_margin_percent === 20).length,
+    invalid_margin: products.filter((row) =>
+      row.margin_percent !== row.expected_margin_percent || row.sale_price !== row.expected_sale_price
+    ).length,
     nonzero_stock: products.filter((row) => row.stock !== 0).length,
     availability_not_consult: products.filter((row) => row.availability_status !== "CONSULT").length,
     missing_image: products.filter((row) => !row.image_url).length,

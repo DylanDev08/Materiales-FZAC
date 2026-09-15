@@ -39,7 +39,7 @@ export function normalizeText(value = "") {
     .replace(/\bplacas\b/g, "placa")
     .replace(/\bmts?\b|\bmetros?\b/g, "m")
     .replace(/,/g, ".")
-    .replace(/\s*x\s*/g, "x")
+    .replace(/(\d)\s*x\s*(?=\d)/g, "$1x")
     .replace(/[^a-z0-9.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -91,11 +91,15 @@ export function isAroProduct(product = {}) {
 }
 
 export function marginPercent(product = {}) {
-  return isAroProduct(product) ? 10 : 20;
+  const sourcePrice = Number(product.original_price ?? product.source_price ?? product.price ?? 0);
+  if (Number.isFinite(sourcePrice) && sourcePrice > 60_000) return 10;
+  return 20;
 }
 
 export function salePrice(sourcePrice, product = {}) {
-  return Math.round(sourcePrice * (1 + marginPercent(product) / 100));
+  const price = Number(sourcePrice);
+  if (!Number.isFinite(price) || price <= 0) throw new Error("Precio proveedor inválido.");
+  return Math.round(price * (1 + marginPercent({ ...product, original_price: price }) / 100));
 }
 
 export function isSupplementalDryProduct(product = {}) {
@@ -228,26 +232,37 @@ function supabaseClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+async function readAll(queryFactory, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await queryFactory().range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) return rows;
+  }
+}
+
 async function loadFzacState(db) {
-  let productQuery = await db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url,supplier_id,availability_status");
-  if (productQuery.error?.message.includes("supplier_id") || productQuery.error?.message.includes("availability_status")) {
-    productQuery = await db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url");
+  let products;
+  try {
+    products = await readAll(() => db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url,supplier_id,availability_status"));
+  } catch (error) {
+    if (!String(error?.message ?? "").match(/supplier_id|availability_status/)) throw error;
+    products = await readAll(() => db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url"));
   }
   const [{ data: categories, error: categoryError }, { data: supplier, error: supplierError }] = await Promise.all([
     db.from("categories").select("id,slug").in("slug", ["construccion-en-seco", "steel-framing", "ferreteria"]),
     db.from("suppliers").select("id").eq("code", "LA-YESERA-ROSARINA").single()
   ]);
-  if (productQuery.error) throw productQuery.error;
   if (categoryError || supplierError) throw categoryError || supplierError;
-  const sourceQuery = await db.from("product_supplier_sources")
+  const sources = await readAll(() => db.from("product_supplier_sources")
     .select("product_id,supplier_id,source_product_id,source_url,source_sku,original_price")
-    .eq("supplier_id", supplier.id);
-  if (sourceQuery.error) throw sourceQuery.error;
+    .eq("supplier_id", supplier.id));
   return {
-    products: productQuery.data ?? [],
+    products,
     categoryBySlug: new Map((categories ?? []).map((category) => [category.slug, category.id])),
     supplierId: supplier.id,
-    sources: sourceQuery.data ?? []
+    sources
   };
 }
 
@@ -393,7 +408,7 @@ async function main() {
     source: SOURCE,
     source_category_url: SOURCE_CATEGORY_URL,
     source_requests: "Bounded Construcción en Seco, child-category and full-catalog pagination; supplemental rows require an explicit dry-construction product signal.",
-    pricing_rule: "Math.round(original_price * 1.20), except products clearly identified as aro/aros: Math.round(original_price * 1.10)",
+    pricing_rule: "Productos con original_price > 60000 usan +10%; productos con original_price <= 60000 usan +20%.",
     image_policy: "El propietario de FZAC autorizó el uso comercial. La copia optimizada a Storage se ejecuta con catalog:la-yesera:images:apply; no se permite hotlink permanente.",
     summary: {
       found: products.length,
@@ -401,7 +416,7 @@ async function main() {
       steel_framing_found: discovery.steelFramingCount,
       supplemental_related: discovery.supplementalCount,
       margin_20: products.filter((row) => row.margin_percent === 20).length,
-      margin_10_aros: products.filter((row) => row.margin_percent === 10).length,
+      margin_10: products.filter((row) => row.margin_percent === 10).length,
       insert: products.filter((row) => row.decision === "INSERT").length,
       update_imported: products.filter((row) => row.decision === "UPDATE_IMPORTED").length,
       skip_duplicate: products.filter((row) => row.decision === "SKIP_DUPLICATE").length,

@@ -5,7 +5,7 @@ export function normalizeProductIdentity(value: string) {
     .toLowerCase()
     .replace(/(\d),(\d)/g, "$1.$2")
     .replace(/\b(?:metros?|mts?|ml)\b/g, "m")
-    .replace(/\s*x\s*/g, "x")
+    .replace(/(\d)\s*x\s*(?=\d)/g, "$1x")
     .replace(/[^a-z0-9.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();

@@ -22,7 +22,7 @@ function normalizeText(value = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("es-AR")
     .replace(/,/g, ".")
-    .replace(/\s*x\s*/g, "x")
+    .replace(/(\d)\s*x\s*(?=\d)/g, "$1x")
     .replace(/[^a-z0-9.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -62,6 +62,18 @@ function sourceSubcategory(product) {
   return pieces[1] || "Pinturas";
 }
 
+export function commercialScope(product = {}) {
+  const searchable = normalizeText([
+    product.original_name,
+    product.subcategory,
+    product.category,
+    product.description
+  ].filter(Boolean).join(" "));
+  if (/(^| )(piletas?|hogar|jardin|automotor|muebles?|megaofertas?)( |$)/.test(searchable)) return "REVIEW";
+  if (/(^| )(latex|esmalte|pintura|impermeabilizante|membrana|enduido|sellador|barniz|revestimiento|fijador|masilla|diluyente|aguarras|rodillo|pincel|brocha|lija|cinta|espatula|aerosol|antioxido)( |$)/.test(searchable)) return "INCLUDE";
+  return "REVIEW";
+}
+
 function publicSpecifications(product, item) {
   const allowed = new Set(["Capacidad", "COLOR", "DILUCION", "TERMINACION", "Tipo de Diluyente", "TIPO DE EPOXI", "Sub-Categoría"]);
   const specifications = {};
@@ -94,7 +106,7 @@ function parseProduct(product) {
       .filter(Boolean);
     const originalPrice = Number(Number(offer.Price).toFixed(2));
     if (!originalName || !sourceUrl || !originalPrice) return [];
-    return [{
+    const parsed = {
       source: SOURCE,
       source_product_id: sourceProductId,
       source_url: sourceUrl,
@@ -118,7 +130,8 @@ function parseProduct(product) {
       stock: null,
       availability_status: "CONSULT",
       image_status: "AUTHORIZED_PENDING_STORAGE_SYNC"
-    }];
+    };
+    return [{ ...parsed, commercial_scope: commercialScope(parsed) }];
   });
 }
 
@@ -172,27 +185,35 @@ function supabaseClient() {
   return createClient(url.replace(/^['"]|['"]$/g, ""), key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+async function readAll(queryFactory, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await queryFactory().range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) return rows;
+  }
+}
+
 async function loadFzacState(db) {
-  const [{ data: products, error: productError }, { data: category, error: categoryError }, supplierResult] = await Promise.all([
-    db.from("products").select("id,name,slug,sku,supplier_id,image_url,stock,availability_status").limit(5000),
+  const [products, categoryResult, supplierResult] = await Promise.all([
+    readAll(() => db.from("products").select("id,name,slug,sku,price,supplier_id,image_url,stock,availability_status")),
     db.from("categories").select("id,slug").eq("slug", "pintura-impermeabilizacion").single(),
     db.from("suppliers").select("id,code").eq("code", SUPPLIER_CODE).maybeSingle()
   ]);
-  if (productError || categoryError || supplierResult.error) throw productError || categoryError || supplierResult.error;
+  if (categoryResult.error || supplierResult.error) throw categoryResult.error || supplierResult.error;
   let sources = [];
   if (supplierResult.data?.id) {
-    const sourceResult = await db.from("product_supplier_sources")
+    sources = await readAll(() => db.from("product_supplier_sources")
       .select("product_id,source_product_id,source_url,source_sku")
-      .eq("supplier_id", supplierResult.data.id)
-      .limit(5000);
-    if (sourceResult.error) throw sourceResult.error;
-    sources = sourceResult.data ?? [];
+      .eq("supplier_id", supplierResult.data.id));
   }
-  return { products: products ?? [], category, supplier: supplierResult.data, sources };
+  return { products, category: categoryResult.data, supplier: supplierResult.data, sources };
 }
 
 function classify(sourceRows, state) {
   const sourceById = new Map(state.sources.map((row) => [row.source_product_id, row]));
+  const productById = new Map(state.products.map((row) => [row.id, row]));
   const existingSku = new Map(state.products.map((row) => [String(row.sku).toLowerCase(), row]));
   const existingSlug = new Map(state.products.map((row) => [row.slug, row]));
   const existingName = new Map(state.products.map((row) => [normalizeText(row.name), row]));
@@ -202,7 +223,16 @@ function classify(sourceRows, state) {
   return sourceRows.map((sourceRow) => {
     const existingSource = sourceById.get(sourceRow.source_product_id);
     if (existingSource) {
-      return { ...sourceRow, decision: "UPDATE_IMPORTED", existing_product_id: existingSource.product_id, duplicate_reasons: ["source_product_id"] };
+      const current = productById.get(existingSource.product_id);
+      const currentPrice = current ? Number(current.price) : null;
+      return {
+        ...sourceRow,
+        decision: "UPDATE_IMPORTED",
+        existing_product_id: existingSource.product_id,
+        current_fzac_price: currentPrice,
+        price_difference: currentPrice === null ? null : sourceRow.sale_price - currentPrice,
+        duplicate_reasons: ["source_product_id"]
+      };
     }
     const skuMatch = existingSku.get(sourceRow.import_sku.toLowerCase());
     if (skuMatch && state.supplier?.id && skuMatch.supplier_id === state.supplier.id) {
@@ -221,7 +251,9 @@ function classify(sourceRows, state) {
     return {
       ...sourceRow,
       slug: stableSlug,
-      decision: exactMatches.length ? "SKIP_DUPLICATE" : "INSERT",
+      decision: exactMatches.length
+        ? "SKIP_DUPLICATE"
+        : sourceRow.commercial_scope === "INCLUDE" ? "INSERT" : "REVIEW_CATEGORY",
       duplicate_candidates: exactMatches.map((match) => ({ id: match.product.id, name: match.product.name, reason: match.reason }))
     };
   });
@@ -278,7 +310,7 @@ async function applyImport(db, preview, state) {
     result.recovered += batch.filter((row) => row.decision === "RECOVER_IMPORTED").length;
   }
 
-  for (const row of preview.products.filter((item) => item.decision === "UPDATE_IMPORTED")) {
+  for (const row of preview.products.filter((item) => item.decision === "UPDATE_IMPORTED" && item.price_difference !== 0)) {
     const current = state.products.find((product) => product.id === row.existing_product_id);
     const response = await db.from("products").update({
       price: row.sale_price,
@@ -297,7 +329,7 @@ async function applyImport(db, preview, state) {
   }
 
   const provenance = preview.products.flatMap((row) => {
-    if (row.decision === "SKIP_DUPLICATE") {
+    if (row.decision === "SKIP_DUPLICATE" || row.decision === "REVIEW_CATEGORY") {
       result.skipped += 1;
       return [];
     }
@@ -345,8 +377,13 @@ async function main() {
       priced_skus_found: products.length,
       insert: products.filter((row) => row.decision === "INSERT").length,
       update_imported: products.filter((row) => row.decision === "UPDATE_IMPORTED").length,
+      price_changes: products.filter((row) => row.decision === "UPDATE_IMPORTED" && row.price_difference !== 0).length,
+      price_unchanged: products.filter((row) => row.decision === "UPDATE_IMPORTED" && row.price_difference === 0).length,
       recover_imported: products.filter((row) => row.decision === "RECOVER_IMPORTED").length,
       skip_duplicate: products.filter((row) => row.decision === "SKIP_DUPLICATE").length,
+      review_category: products.filter((row) => row.decision === "REVIEW_CATEGORY").length,
+      scope_include: products.filter((row) => row.commercial_scope === "INCLUDE").length,
+      scope_review: products.filter((row) => row.commercial_scope === "REVIEW").length,
       missing_source_image: products.filter((row) => !row.source_image_url).length,
       stock_imported: 0,
       availability: "CONSULT",

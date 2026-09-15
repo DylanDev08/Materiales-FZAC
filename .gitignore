@@ -28,3 +28,10 @@ coverage
 playwright-report
 test-results
 supabase/.temp
+
+# Internal supplier-cost audits. These contain source prices and must never be committed.
+data/audits/
+docs/audits/supplier-price-parity-*.md
+data/imports/la-yesera-construccion-en-seco.preview.json
+data/imports/la-yesera-production-audit.json
+data/imports/universo-pinturas.preview.json

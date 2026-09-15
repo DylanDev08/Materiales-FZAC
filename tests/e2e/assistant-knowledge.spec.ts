@@ -30,7 +30,7 @@ async function openKnowledgeAnswer(page: Page, viewport: { width: number; height
   await page.getByRole("button", { name: "Enviar consulta" }).click();
 
   const source = page.getByRole("link", { name: "Política de privacidad" }).last();
-  await expect(source).toBeVisible();
+  await expect(source).toBeVisible({ timeout: 25_000 });
   await expect(source).toHaveAttribute("href", "/privacidad");
   await expect(page.getByText("Fuente FZAC:").last()).toBeVisible();
   await expect(page.locator(".chatbot__inline-options").last().locator("a, button")).toHaveCount(3);

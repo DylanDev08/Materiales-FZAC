@@ -30,5 +30,6 @@ test("una dirección válida cotiza o falla cerrada según la configuración", a
   expect(response.status()).toBe(422);
   expect(body.available).toBe(false);
   expect(body.amount).toBe(0);
-  expect(body.reason).toMatch(/API server-side de Google Maps|tarifa vigente/i);
+  expect(body.reason).toMatch(/API server-side de Google Maps|tarifa vigente|clave server|credencial server|Routes API|límite de consultas/i);
+  expect(JSON.stringify(body)).not.toMatch(/AIza|API_KEY_HTTP_REFERRER_BLOCKED|projects\//i);
 });
