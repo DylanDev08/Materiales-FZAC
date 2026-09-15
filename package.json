@@ -38,6 +38,7 @@
     "catalog:universo:images:preview": "node --env-file-if-exists=.env scripts/catalog/sync-universo-images.mjs",
     "catalog:universo:images:apply": "node --env-file-if-exists=.env scripts/catalog/sync-universo-images.mjs --apply",
     "catalog:supplier-parity:audit": "node --env-file-if-exists=.env scripts/catalog/audit-supplier-price-parity.mjs",
+    "catalog:content-sources:audit": "node --env-file-if-exists=.env scripts/catalog/audit-product-content-sources.mjs",
     "test:auth-roles": "node --env-file-if-exists=.env scripts/auth-role-smoke.mjs",
     "test:account-flow": "node --env-file-if-exists=.env scripts/account-flow-smoke.mjs",
     "test:checkout-flow": "node --env-file-if-exists=.env scripts/checkout-flow-smoke.mjs",

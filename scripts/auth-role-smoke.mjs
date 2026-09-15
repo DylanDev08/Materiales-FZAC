@@ -9,7 +9,8 @@ if (!isLocal && process.env.ALLOW_REMOTE_AUTH_QA !== "true") {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env["\uFEFFNEXT_PUBLIC_SUPABASE_URL"];
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase server configuration is missing.");
+const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+if (!supabaseUrl || !serviceRoleKey || !publicKey) throw new Error("Supabase server configuration is missing.");
 
 const admin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false }
@@ -53,6 +54,22 @@ try {
   const cookies = cookieHeader(login);
   if (!cookies) throw new Error("QA login did not issue a session cookie.");
 
+  const userClient = createClient(supabaseUrl, publicKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  const { error: directLoginError } = await userClient.auth.signInWithPassword({ email, password });
+  if (directLoginError) throw new Error("Could not create the direct authenticated RLS session.");
+  const [{ data: regularIsAdmin, error: adminRpcError }, { data: privateSources, error: privateSourceError }] = await Promise.all([
+    userClient.rpc("is_admin"),
+    userClient.from("product_supplier_sources").select("id").limit(1)
+  ]);
+  if (adminRpcError || regularIsAdmin !== false) {
+    throw new Error("The authenticated non-admin role was not rejected by is_admin().");
+  }
+  if (privateSourceError || (privateSources ?? []).length !== 0) {
+    throw new Error("The authenticated non-admin role could read private supplier sources.");
+  }
+
   const { data: injectedProfile, error: roleError } = await admin
     .from("profiles")
     .update({ role: "ADMIN" })
@@ -61,6 +78,10 @@ try {
     .single();
   if (roleError || injectedProfile?.role !== "ADMIN") {
     throw new Error("Could not prepare the role-escalation assertion.");
+  }
+  const { data: databaseIsAdmin, error: databaseAdminError } = await userClient.rpc("is_admin");
+  if (databaseAdminError || databaseIsAdmin !== true) {
+    throw new Error("The hardened RLS admin helper did not preserve authenticated admin behavior.");
   }
 
   const [account, metrics] = await Promise.all([
@@ -78,6 +99,9 @@ try {
     login: login.status,
     account: account.status,
     admin: metrics.status,
+    regularRlsAdmin: regularIsAdmin,
+    injectedRlsAdmin: databaseIsAdmin,
+    privateSupplierSourcesVisibleToUser: (privateSources ?? []).length,
     injectedRoleRejected: true
   }));
 } finally {

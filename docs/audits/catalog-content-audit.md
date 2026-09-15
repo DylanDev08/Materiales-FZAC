@@ -1,6 +1,6 @@
 # Auditoría de catálogo y contenido comercial FZAC
 
-Fecha: 15 de septiembre de 2026, 1:26 a. m.
+Fecha: 15 de septiembre de 2026, 9:09 a. m.
 URL objetivo: http://localhost:3000
 Entorno: local
 Modo: lectura segura desde Supabase, sin escrituras.
@@ -29,7 +29,7 @@ Estado: **Apto para venta controlada**
 | --- | --- | --- |
 | Productos sin foto | 2 | Cargar imagen real al bucket product-images. |
 | Productos con foto placeholder/banco | 2 | Reemplazar por foto real del producto o proveedor. |
-| Productos con descripción débil | 113 | Completar uso, presentación y recomendaciones. |
+| Productos con descripción débil | 89 | Completar uso, presentación y recomendaciones. |
 | Productos bajo stock | 1 | Reponer o revisar stock mínimo. |
 | Rubros sin imagen | 9 | Agregar imagen real o mantener ícono como fallback. |
 | Rubros sin productos activos | 4 | Asignar productos o ocultar el rubro. |
@@ -63,7 +63,7 @@ _Sin elementos._
 - PLACA SUPERBOARD 8mm BORDE RECTO (LYR-BA4B29A99F7E)
 - PLACA SUPERBOARD 10mm BORDE RECTO (LYR-7BD4176B38FE)
 - BASE COAT BICOMPONENTE DURLOCK EXTERIORES (LYR-46B7127ECA97)
-- ... 101 más
+- ... 77 más
 
 ### Productos sin stock activo
 _Sin elementos._

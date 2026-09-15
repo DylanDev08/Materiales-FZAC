@@ -51,6 +51,11 @@ const pendingQuotes = new Map<string, Promise<ShippingQuote>>();
 const MAX_QUOTE_CACHE_ENTRIES = 500;
 const SUCCESS_CACHE_MS = 5 * 60_000;
 const FAILURE_CACHE_MS = 30_000;
+const SHIPPING_FALLBACK = "Podés elegir retiro sin costo o coordinar el envío por WhatsApp.";
+
+function withShippingFallback(reason: string) {
+  return `${reason} ${SHIPPING_FALLBACK}`;
+}
 
 function addressLine(address: AddressPayload) {
   return [
@@ -117,18 +122,18 @@ export function googleRoutesFailureReason(status: number, payload: GoogleRoutesE
   const reason = payload.error?.details?.find((detail) => detail.reason)?.reason;
 
   if (reason === "API_KEY_HTTP_REFERRER_BLOCKED") {
-    return "La clave server de Google Maps tiene una restricción de navegador incompatible con Routes API.";
+    return withShippingFallback("No pudimos calcular el envío automático porque el servicio de distancia necesita configuración.");
   }
   if (reason === "API_KEY_SERVICE_BLOCKED" || reason === "SERVICE_DISABLED") {
-    return "Routes API no está habilitada para la clave server configurada.";
+    return withShippingFallback("No pudimos calcular el envío automático porque Routes API no está disponible.");
   }
   if (status === 401 || status === 403) {
-    return "Google Maps rechazó la credencial server configurada.";
+    return withShippingFallback("No pudimos calcular el envío automático porque Google Maps rechazó la solicitud.");
   }
   if (status === 429) {
-    return "Google Maps alcanzó temporalmente el límite de consultas. Probá nuevamente.";
+    return withShippingFallback("Google Maps alcanzó temporalmente el límite de consultas. Probá nuevamente.");
   }
-  return "No pudimos consultar la distancia real del envío.";
+  return withShippingFallback("No pudimos consultar la distancia real del envío.");
 }
 
 function quoteCacheKey(address: AddressPayload) {
@@ -158,7 +163,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     return {
       available: false,
       amount: 0,
-      reason: "Falta configurar la API server-side de Google Maps para calcular distancia real.",
+      reason: withShippingFallback("No pudimos calcular el envío automático porque falta configurar el servicio de distancia."),
       origin,
       destination
     };
@@ -188,7 +193,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     return {
       available: false,
       amount: 0,
-      reason: "El servicio de distancia no respondió a tiempo. Probá nuevamente.",
+      reason: withShippingFallback("El servicio de distancia no respondió a tiempo. Probá nuevamente."),
       origin,
       destination,
       provider: "GOOGLE_ROUTES"
@@ -216,7 +221,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     return {
       available: false,
       amount: 0,
-      reason: "La dirección no pudo cotizarse con distancia real.",
+      reason: withShippingFallback("La dirección no pudo cotizarse con distancia real."),
       origin,
       destination,
       provider: "GOOGLE_ROUTES"
@@ -227,7 +232,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     return {
       available: false,
       amount: 0,
-      reason: `La dirección supera el radio automático de ${tariff.maxKm} km desde Rosario.`,
+      reason: withShippingFallback(`La dirección supera el radio automático de ${tariff.maxKm} km desde Rosario.`),
       distanceKm,
       origin,
       destination,
@@ -239,7 +244,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     return {
       available: false,
       amount: 0,
-      reason: "La distancia pudo verificarse, pero falta configurar la tarifa vigente de envío FZAC.",
+      reason: withShippingFallback("No pudimos calcular el envío automático todavía porque falta configurar la tarifa vigente de FZAC."),
       distanceKm: Number(distanceKm.toFixed(1)),
       origin,
       destination,
