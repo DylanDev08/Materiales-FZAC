@@ -25,6 +25,26 @@ const nextConfig: NextConfig = {
   async redirects() {
     const redirects = [
       {
+        source: "/productos.html",
+        destination: "/productos",
+        permanent: true
+      },
+      {
+        source: "/carrito.html",
+        destination: "/carrito",
+        permanent: true
+      },
+      {
+        source: "/mis-pedidos.html",
+        destination: "/cuenta/pedidos",
+        permanent: true
+      },
+      {
+        source: "/cliente-login.html",
+        destination: "/login",
+        permanent: true
+      },
+      {
         source: "/register",
         destination: "/registro",
         permanent: false
@@ -40,7 +60,7 @@ const nextConfig: NextConfig = {
         permanent: false
       }
     ];
-    if (adminConsolePath === "/admin") return redirects.slice(0, 1);
+    if (adminConsolePath === "/admin") return redirects.slice(0, 5);
     return redirects;
   },
   async rewrites() {
