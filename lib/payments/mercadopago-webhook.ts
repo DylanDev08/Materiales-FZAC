@@ -10,6 +10,7 @@ import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payment
 import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
+import { errorCode, getCorrelationId, logEvent } from "@/lib/observability/logger";
 import {
   buildMercadoPagoProviderEventId,
   isMercadoPagoPaymentId,
@@ -196,6 +197,7 @@ async function notifyWebhookFailure(orderId?: string) {
 }
 
 export async function handleMercadoPagoWebhook(request: Request): Promise<WebhookResult> {
+  const requestId = getCorrelationId(request);
   const url = new URL(request.url);
   const payload = await readWebhookBody(request);
   if (!payload.ok) return { status: payload.status, body: { ok: false, message: payload.message } };
@@ -212,6 +214,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
   }
 
   if (!isValidWebhookSignature(request, paymentId)) {
+    logEvent("warn", "payment.webhook.signature_rejected", { request_id: requestId });
     return { status: 401, body: { ok: false, message: "Firma invalida." } };
   }
 
@@ -223,9 +226,10 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       providerPaymentId: paymentId,
       raw: safeWebhookEvent(body)
     });
-  } catch {
-    console.error("[mercadopago.webhook.audit]", {
-      message: "No pudimos registrar el evento antes de procesarlo.",
+  } catch (error) {
+    logEvent("error", "payment.webhook.audit_failed", {
+      request_id: requestId,
+      reason: errorCode(error),
       payment_id_present: Boolean(paymentId)
     });
     return { status: 503, body: { ok: false, received: false, message: "No pudimos registrar la notificacion." } };
@@ -322,6 +326,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         status: "PAID"
       });
       await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
+      logEvent("info", "payment.webhook.approved", { request_id: requestId, order_id: orderId });
       return { status: 200, body: { ok: true, received: true, status: "PAID", orderId } };
     }
 
@@ -335,6 +340,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
         actorEmail: "Mercado Pago webhook"
       });
       await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
+      logEvent("info", "payment.webhook.refunded", { request_id: requestId, order_id: orderId });
       return { status: 200, body: { ok: true, received: true, status: "REFUNDED", orderId } };
     }
 
@@ -367,6 +373,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
     return { status: 200, body: { ok: true, received: true, status: paymentStatus, orderId } };
   } catch (error) {
+    logEvent("error", "payment.webhook.failed", { request_id: requestId, reason: errorCode(error) });
     if (error instanceof MercadoPagoNotConfiguredError) {
       await updatePaymentEvent(eventId, { status: "FAILED", errorMessage: error.message }).catch(() => undefined);
       await notifyWebhookFailure().catch(() => undefined);
