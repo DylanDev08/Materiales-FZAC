@@ -62,10 +62,34 @@ if (!/revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_ver
   failures.push("La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE publico." );
 }
 
-const finalHardening = migrations.find(({ file }) => file === "20260812010000_database_integrity_hardening.sql")?.sql ?? "";
-if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(finalHardening)
-  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(finalHardening)) {
+if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(allSql)
+  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(allSql)) {
   failures.push("Los eventos de busqueda conservan un camino de escritura publica." );
+}
+
+function lastMatchIndex(pattern) {
+  let last = -1;
+  for (const match of normalizedSql.matchAll(pattern)) last = match.index ?? last;
+  return last;
+}
+
+const paymentsSelectGrant = lastMatchIndex(/grant\s+select\s+on\s+(?:table\s+)?public\.payments\s+to\s+authenticated/g);
+const paymentsSelectRevoke = lastMatchIndex(/revoke\s+select\s+on\s+(?:table\s+)?public\.payments\s+from\s+authenticated/g);
+if (paymentsSelectGrant > paymentsSelectRevoke || paymentsSelectRevoke < 0) {
+  failures.push("El estado final de migraciones debe revocar SELECT directo de payments a authenticated.");
+}
+
+for (const table of ["payments", "inventory_movements"]) {
+  const publicationAdd = lastMatchIndex(new RegExp(`alter\\s+publication\\s+supabase_realtime\\s+add\\s+table\\s+public\\.${table}`, "g"));
+  const publicationDrop = lastMatchIndex(new RegExp(`alter\\s+publication\\s+supabase_realtime\\s+drop\\s+table\\s+public\\.${table}`, "g"));
+  if (publicationAdd > publicationDrop || publicationDrop < 0) {
+    failures.push(`${table}: no debe quedar publicado en Supabase Realtime.`);
+  }
+}
+
+if (!normalizedSql.includes("private.is_public_catalog_entry")
+  || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.product_supplier_sources\s+from\s+anon/i.test(allSql)) {
+  failures.push("El estado final no demuestra aislamiento de proveedor, costo y margen del catalogo publico.");
 }
 
 const approveRoute = await readFile(path.join(root, "app/api/admin/orders/[id]/approve/route.ts"), "utf8");
