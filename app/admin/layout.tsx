@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireAdminMfa } from "@/lib/auth/require-admin";
 
 export const metadata: Metadata = {
   robots: {
@@ -13,6 +13,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  await requireAdminMfa();
   return children;
 }

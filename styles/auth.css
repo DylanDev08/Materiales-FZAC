@@ -263,6 +263,63 @@
   font-weight: 850;
 }
 
+.admin-mfa-page {
+  min-height: 100dvh;
+}
+
+.admin-mfa-card {
+  max-width: 620px;
+}
+
+.admin-mfa-icon {
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(244, 196, 0, 0.42);
+  border-radius: 16px;
+  background: rgba(244, 196, 0, 0.1);
+  color: var(--color-yellow);
+}
+
+.admin-mfa-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.admin-mfa-stack .btn {
+  min-height: 48px;
+}
+
+.admin-mfa-status,
+.admin-mfa-stack .notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-mfa-qr {
+  width: min(240px, 100%);
+  aspect-ratio: 1;
+  justify-self: center;
+  border: 10px solid #fff;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.admin-mfa-secret {
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+  color: var(--color-yellow);
+  text-align: center;
+  user-select: all;
+}
+
 @media (max-width: 520px) {
   .auth-page {
     place-items: start center;
