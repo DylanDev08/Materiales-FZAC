@@ -18,9 +18,9 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
@@ -94,7 +94,7 @@ async function existingCardPaymentResponse(paymentId: string, orderId: string) {
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "checkout-card"), 4, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "checkout-card"), 4, 60_000);
   if (!limit.ok) {
     return jsonError("Demasiados intentos de pago. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   }
@@ -104,8 +104,10 @@ export async function POST(request: Request) {
   try {
     const payload = checkoutCardCreateSchema.parse(body.data);
     const identity = payload.checkout.customer.email;
-    const purchaseLimit = rateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000);
-    const paymentLimit = rateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000);
+    const [purchaseLimit, paymentLimit] = await Promise.all([
+      distributedRateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000),
+      distributedRateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000)
+    ]);
     const blocked = !purchaseLimit.ok ? purchaseLimit : !paymentLimit.ok ? paymentLimit : null;
     if (blocked) {
       return jsonError("Alcanzaste el límite de intentos de pago. Esperá unos minutos.", 429, retryAfterHeaders(blocked));

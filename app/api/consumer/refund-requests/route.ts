@@ -6,7 +6,7 @@ import { isResendConfigured, sendTransactionalEmail } from "@/lib/email/resend";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath, getSiteUrl } from "@/lib/utils/env";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { distributedRateLimit, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { isTrustedMutationRequest } from "@/lib/utils/request-security";
 import {
   assertSafeText,
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     return jsonError("La solicitud es demasiado extensa.", 413);
   }
 
-  const limit = rateLimit(getRequestKey(request, "consumer-refund-request"), 3, 15 * 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "consumer-refund-request"), 3, 15 * 60_000);
   if (!limit.ok) {
     return jsonError("Demasiadas solicitudes. Esperá unos minutos antes de volver a intentar.", 429, retryAfterHeaders(limit));
   }

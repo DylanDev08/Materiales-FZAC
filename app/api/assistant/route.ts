@@ -37,9 +37,9 @@ import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import {
   acquireRequestConcurrency,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
@@ -577,7 +577,7 @@ async function persistConversation(input: {
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "assistant"), 12, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "assistant"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas al asistente.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 16 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
@@ -592,7 +592,7 @@ export async function POST(request: Request) {
 
   const user = await getCurrentUser();
   const identity = user?.id ?? `visitor:${payload.visitorId ?? getRequestKey(request, "anonymous")}`;
-  const identityLimit = rateLimitIdentity("assistant", identity, user?.id ? 30 : 15, 10 * 60_000);
+  const identityLimit = await distributedRateLimitIdentity("assistant", identity, user?.id ? 30 : 15, 10 * 60_000);
   if (!identityLimit.ok) {
     return jsonError("Alcanzaste el límite de consultas del asistente. Esperá unos minutos.", 429, retryAfterHeaders(identityLimit));
   }

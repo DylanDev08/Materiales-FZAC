@@ -4,9 +4,9 @@ import { quoteDeliveryForAddress } from "@/lib/shipping/quote";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
@@ -31,7 +31,7 @@ const addressSchema = z
   .refine((value) => !Object.values(value).some((item) => hasSqlMeta(item)), "La dirección contiene caracteres no permitidos.");
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "shipping-quote"), 12, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "shipping-quote"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiadas cotizaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 8 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const payload = addressSchema.parse(body.data);
     const user = await getCurrentUser();
     if (user?.id) {
-      const identityLimit = rateLimitIdentity("shipping-quote", user.id, 18, 10 * 60_000);
+      const identityLimit = await distributedRateLimitIdentity("shipping-quote", user.id, 18, 10 * 60_000);
       if (!identityLimit.ok) {
         return jsonError(
           "Alcanzaste el límite de cotizaciones. Esperá unos minutos para volver a intentar.",

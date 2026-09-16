@@ -8,20 +8,21 @@ import {
   ShippingQuoteError
 } from "@/lib/db/orders";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
+import { errorCode, getCorrelationId, logEvent } from "@/lib/observability/logger";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
 import { checkoutCreateSchema } from "@/lib/validations/checkout";
 
-function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }) {
-  if (process.env.NODE_ENV === "production") return;
-  console.info("[checkout.legacy]", {
+function logCheckoutResult(result: { order_id?: string; orderId?: string; payment_method?: string; redirect_url?: string | null }, requestId: string) {
+  logEvent("info", "checkout.legacy_created", {
+    request_id: requestId,
     payment_method: result.payment_method ?? "-",
     order_id: result.order_id ?? result.orderId ?? null,
     redirect_url_exists: Boolean(result.redirect_url)
@@ -29,7 +30,8 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "checkout"), 8, 60_000);
+  const requestId = getCorrelationId(request);
+  const limit = await distributedRateLimit(getRequestKey(request, "checkout"), 8, 60_000);
   if (!limit.ok) {
     return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = checkoutCreateSchema.parse(body.data);
-    const identityLimit = rateLimitIdentity("checkout-purchase", payload.customer.email, 8, 10 * 60_000);
+    const identityLimit = await distributedRateLimitIdentity("checkout-purchase", payload.customer.email, 8, 10 * 60_000);
     if (!identityLimit.ok) {
       return jsonError("Alcanzaste el límite de intentos de compra. Esperá unos minutos.", 429, retryAfterHeaders(identityLimit));
     }
@@ -56,12 +58,13 @@ export async function POST(request: Request) {
 
     try {
       const result = await createCheckout(payload);
-      logCheckoutResult(result);
+      logCheckoutResult(result, requestId);
       return Response.json(result, { status: 201 });
     } finally {
       slot.release();
     }
   } catch (error) {
+    logEvent("warn", "checkout.legacy_failed", { request_id: requestId, reason: errorCode(error) });
     if (error instanceof ZodError) {
       return jsonError(error.issues[0]?.message ?? "Datos de checkout invalidos.", 422);
     }
