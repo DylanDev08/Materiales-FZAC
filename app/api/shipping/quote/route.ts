@@ -10,7 +10,7 @@ import {
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
-import { hasSqlMeta } from "@/lib/validations/security";
+import { hasUnsafeUserContent } from "@/lib/validations/security";
 
 const addressSchema = z
   .object({
@@ -28,7 +28,8 @@ const addressSchema = z
     postalCode: z.string().trim().max(30).optional(),
     notes: z.string().trim().max(240).optional()
   })
-  .refine((value) => !Object.values(value).some((item) => hasSqlMeta(item)), "La dirección contiene caracteres no permitidos.");
+  .strict("La solicitud contiene campos no permitidos.")
+  .refine((value) => !Object.values(value).some((item) => hasUnsafeUserContent(item)), "La dirección contiene caracteres no permitidos.");
 
 export async function POST(request: Request) {
   const limit = await distributedRateLimit(getRequestKey(request, "shipping-quote"), 12, 60_000);
@@ -39,15 +40,15 @@ export async function POST(request: Request) {
   try {
     const payload = addressSchema.parse(body.data);
     const user = await getCurrentUser();
-    if (user?.id) {
-      const identityLimit = await distributedRateLimitIdentity("shipping-quote", user.id, 18, 10 * 60_000);
-      if (!identityLimit.ok) {
-        return jsonError(
-          "Alcanzaste el límite de cotizaciones. Esperá unos minutos para volver a intentar.",
-          429,
-          retryAfterHeaders(identityLimit)
-        );
-      }
+    if (!user?.id) return jsonError("Iniciá sesión para cotizar un envío.", 401);
+
+    const identityLimit = await distributedRateLimitIdentity("shipping-quote", user.id, 18, 10 * 60_000);
+    if (!identityLimit.ok) {
+      return jsonError(
+        "Alcanzaste el límite de cotizaciones. Esperá unos minutos para volver a intentar.",
+        429,
+        retryAfterHeaders(identityLimit)
+      );
     }
 
     const slot = acquireRequestConcurrency(request, {

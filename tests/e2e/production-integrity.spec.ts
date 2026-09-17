@@ -65,6 +65,16 @@ test.describe("Integridad productiva pura", () => {
       shipping_method: "DELIVERY",
       address_snapshot: { street: "Cordoba", number: "1200", city: "Rosario", province: "Santa Fe" }
     }).success).toBe(true);
+    expect(checkoutCreateSchema.safeParse({
+      ...validCheckout,
+      shipping_method: "DELIVERY",
+      address_snapshot: { street: "aaaa", number: "999999", city: "xx", province: "yy" }
+    }).success).toBe(false);
+    expect(checkoutCreateSchema.safeParse({
+      ...validCheckout,
+      shipping_method: "DELIVERY",
+      address_snapshot: { street: "<script>alert(1)</script>", number: "1200", city: "Rosario", province: "Santa Fe" }
+    }).success).toBe(false);
   });
 
   test("DTO publico de pagos omite IDs y payloads privados", () => {

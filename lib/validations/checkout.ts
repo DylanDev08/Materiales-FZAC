@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { hasSqlMeta, isSafeUserNote, isValidArgentinePhone, normalizeUserNote } from "@/lib/validations/security";
+import { hasUnsafeUserContent, isSafeUserNote, isValidArgentinePhone, normalizeUserNote } from "@/lib/validations/security";
 import type { PaymentFlow, PaymentMethod, PaymentProvider } from "@/types/domain";
 
 const safeString = (label: string, min = 0, max = 500) =>
@@ -8,7 +8,7 @@ const safeString = (label: string, min = 0, max = 500) =>
     .trim()
     .min(min)
     .max(max)
-    .refine((value) => !hasSqlMeta(value), `${label} contiene caracteres no permitidos.`);
+    .refine((value) => !hasUnsafeUserContent(value), `${label} contiene caracteres no permitidos.`);
 
 const phoneSchema = z
   .string()
@@ -77,6 +77,45 @@ function addressIsComplete(value: { street?: string; number?: string; city?: str
   return Boolean(value.street?.trim() && value.number?.trim() && value.city?.trim() && value.province?.trim());
 }
 
+function addressLooksValid(value: { street?: string; number?: string; city?: string; province?: string }) {
+  const streetLetters = value.street?.normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase() ?? "";
+  const number = value.number?.trim() ?? "";
+  const cityLetters = value.city?.normalize("NFD").replace(/[^a-z]/gi, "") ?? "";
+  const provinceLetters = value.province?.normalize("NFD").replace(/[^a-z]/gi, "") ?? "";
+  return (
+    streetLetters.length >= 3 &&
+    new Set(streetLetters).size >= 2 &&
+    /^[0-9A-Za-z\s/-]{1,30}$/.test(number) &&
+    (!/^\d+$/.test(number) || Number(number) <= 99_999) &&
+    cityLetters.length >= 2 &&
+    provinceLetters.length >= 2
+  );
+}
+
+function validateDeliveryAddressValue(
+  shippingMethod: "PICKUP" | "DELIVERY",
+  address: { street?: string; number?: string; city?: string; province?: string },
+  context: z.RefinementCtx,
+  path: string
+) {
+  if (shippingMethod !== "DELIVERY") return;
+  if (!addressIsComplete(address)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [path],
+      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
+    });
+    return;
+  }
+  if (!addressLooksValid(address)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [path],
+      message: "Ingresa una direccion valida para cotizar envio."
+    });
+  }
+}
+
 const checkoutBaseSchema = z.object({
   items: z
     .array(checkoutItemSchema)
@@ -101,13 +140,7 @@ const checkoutBaseSchema = z.object({
 export const checkoutStockSchema = checkoutBaseSchema.pick({ items: true });
 
 export const checkoutSchema = checkoutBaseSchema.superRefine((value, context) => {
-  if (value.shippingMethod === "DELIVERY" && !addressIsComplete(value.address)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["address"],
-      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
-    });
-  }
+  validateDeliveryAddressValue(value.shippingMethod, value.address, context, "address");
 });
 
 const checkoutCreateFieldsSchema = z.object({
@@ -152,13 +185,7 @@ function validateCreateAddress(
   value: Pick<z.infer<typeof checkoutCreateFieldsSchema>, "shipping_method" | "address_snapshot">,
   context: z.RefinementCtx
 ) {
-  if (value.shipping_method === "DELIVERY" && !addressIsComplete(value.address_snapshot)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["address_snapshot"],
-      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
-    });
-  }
+  validateDeliveryAddressValue(value.shipping_method, value.address_snapshot, context, "address_snapshot");
 }
 
 export const checkoutCreateSchema = checkoutCreateFieldsSchema

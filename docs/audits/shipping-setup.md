@@ -1,46 +1,80 @@
 # Configuración segura de Google Maps y envíos
 
-Estado verificado el 15 de septiembre de 2026.
+Estado verificado el 17 de septiembre de 2026.
 
-## Estado de producción
+## Estado comprobado
 
-- La clave de navegador está separada en `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` y se usa únicamente para Places/autocomplete.
-- La clave server está separada en `GOOGLE_MAPS_SERVER_KEY` y no se incorpora al bundle público.
-- La llamada server-side a Routes API llega a Google, pero Google la rechaza porque la credencial tiene una restricción de HTTP referrer (`API_KEY_HTTP_REFERRER_BLOCKED`).
-- La tarifa comercial no está configurada. No se activó ningún importe supuesto.
-- Retiro permanece en $0.
-- Delivery responde `422`, monto `0`, impide continuar al pago y ofrece retiro o coordinación por WhatsApp mientras falte una cotización real.
+- El navegador usa exclusivamente `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` para
+  Maps JavaScript API y el widget legacy `google.maps.places.Autocomplete`.
+- El backend usa exclusivamente `GOOGLE_MAPS_SERVER_KEY` para Routes API.
+- Una prueba controlada contra Render devolvió una distancia positiva desde
+  Routes API sin filtrar credenciales. Esto confirma que la server key llega al
+  proceso y que Google acepta la llamada desde el egreso actual de Render.
+- La tarifa comercial productiva no está completa o no es válida. Delivery falla
+  cerrado con `422`, monto cero y alternativa de retiro/WhatsApp.
+- El código no llama a Google cuando falta cualquier componente de la tarifa.
+- El checkout vuelve a calcular productos, subtotal, distancia, envío y total en
+  servidor antes de crear la orden o iniciar Mercado Pago.
 
-## Corrección manual de la clave server
+## Restricciones esperadas
 
-Proyecto Google Cloud: `fzac-manejo-de-obras`.
+### Server key
 
-1. Abrir Google Cloud Console → **APIs & Services** → **Credentials**.
-2. Identificar la credencial que Render usa como `GOOGLE_MAPS_SERVER_KEY`. No modificar la clave browser.
-3. En **Application restrictions**, quitar **HTTP referrers**.
-4. Si Render dispone de IP de salida fija, elegir **IP addresses** y registrar exclusivamente esa IP. Si el servicio no dispone de egreso estático, dejar temporalmente **None** y compensar con la restricción estricta de API del paso siguiente.
-5. En **API restrictions**, elegir **Restrict key** y permitir únicamente **Routes API**.
-6. Confirmar que Routes API esté habilitada y que el proyecto tenga facturación válida.
-7. Guardar sin copiar ni registrar la clave en tickets, documentación o logs.
-8. Volver a probar `POST /api/shipping/quote` con una dirección completa de Rosario. El error de credencial debe desaparecer; mientras la tarifa siga vacía, la respuesta correcta continúa siendo `422` y monto `0`, pero puede incluir la distancia verificada.
+- Application restriction: **IP addresses**.
+- Egresos declarados por el propietario: los dos CIDR de Render documentados en
+  el panel de Google Cloud.
+- API restriction: **Routes API** únicamente.
+- Variable en Render: `GOOGLE_MAPS_SERVER_KEY`, `sync: false`.
 
-La browser key debe conservar restricciones HTTP referrer para el dominio de producción y desarrollo autorizado, y limitarse a Maps JavaScript API/Places API según el uso real. Nunca debe reutilizarse como server key.
+Las restricciones exactas del panel Google Cloud requieren validación manual del
+propietario; el repositorio no tiene acceso administrativo a esa consola.
 
-## Tarifa comercial pendiente
+### Browser key
 
-Variables preparadas:
+- Application restriction: **HTTP referrers / Websites**.
+- Referers actuales:
+  - `http://localhost:*/*`
+  - `http://127.0.0.1:*/*`
+  - `https://materiales-fzac-8xmp.onrender.com/*`
+- Cuando los dominios estén realmente activos, agregar:
+  - `https://materialesfzac.com/*`
+  - `https://www.materialesfzac.com/*`
+- API restrictions actuales necesarias por el código:
+  - **Maps JavaScript API**
+  - **Places API**, porque se usa el widget legacy `Autocomplete`
 
-- `FZAC_SHIPPING_BASE_PRICE`: pendiente de aprobación.
-- `FZAC_SHIPPING_PRICE_PER_KM`: pendiente de aprobación.
-- `FZAC_SHIPPING_MIN_PRICE`: pendiente de aprobación.
-- `FZAC_SHIPPING_ROUND_TO`: valor técnico actual `10`; revisar junto con la tarifa.
-- `FZAC_SHIPPING_MAX_KM`: valor técnico actual `30`; requiere confirmación comercial antes de habilitar delivery.
-- `FZAC_STORE_ADDRESS`: `Hermana Paula 3164, Rosario, Santa Fe, Argentina`.
+No habilitar Places API (New) por suposición. Solo será necesaria al migrar al
+widget nuevo `PlaceAutocompleteElement`.
 
-Fórmula ya implementada, pero inactiva hasta definir base y precio por kilómetro:
+## Tarifa comercial
+
+La cotización exige las cinco variables siguientes; ninguna tiene fallback
+comercial silencioso:
+
+- `FZAC_SHIPPING_BASE_PRICE`
+- `FZAC_SHIPPING_PRICE_PER_KM`
+- `FZAC_SHIPPING_MIN_PRICE`
+- `FZAC_SHIPPING_ROUND_TO`
+- `FZAC_SHIPPING_MAX_KM`
+
+La fórmula implementada es:
 
 ```text
 importe = redondear_hacia_arriba(max(mínimo, base + distancia_km × precio_por_km), redondeo)
 ```
 
-No deben cargarse importes de ejemplo en Render. Después de recibir los cinco valores aprobados, cargarlos como variables privadas, desplegar y probar retiro, dirección válida, dirección inválida, timeout, fuera de radio y error de Google antes de habilitar compras con delivery.
+Los valores deben ser finitos y no negativos; redondeo y radio deben ser mayores
+que cero. Distancia cero, fuera de radio, NaN, infinito o desbordes fallan cerrado.
+No cargar valores de ejemplo en Render.
+
+## Procedimiento manual de activación
+
+1. Completar las cinco variables con la tarifa comercial aprobada.
+2. Confirmar `FZAC_STORE_ADDRESS` en Render.
+3. Verificar las restricciones de ambas claves en Google Cloud.
+4. Desplegar mediante PR aprobado; no editar `main` directamente.
+5. Iniciar sesión con una cuenta QA.
+6. Probar retiro, dirección de Rosario, dirección incompleta, fuera de radio y
+   timeout simulado.
+7. Confirmar que el total persistido coincide con el recálculo server-side.
+8. Revisar métricas y cuotas de Routes API sin copiar credenciales a logs.

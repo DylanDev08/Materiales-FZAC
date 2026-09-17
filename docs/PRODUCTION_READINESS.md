@@ -160,8 +160,9 @@ instancias.
   Places/Autocomplete.
 - La key server debe permanecer en Render, restringida a las APIs necesarias y,
   si la plataforma ofrece una IP de salida estable, también por IP.
-- La clave server observada anteriormente fue rechazada por restricciones de
-  referrer al intentar uso server-side. Debe separarse de la browser key.
+- La server key ya alcanza Routes API desde Render y devolvió distancia real en
+  una prueba controlada. Las restricciones exactas de IP/API deben confirmarse
+  manualmente en Google Cloud.
 - No se activó una tarifa inventada. Sin fórmula comercial completa el endpoint
   falla cerrado y el checkout ofrece retiro/coordinación en lugar de cobrar un
   envío falso.
