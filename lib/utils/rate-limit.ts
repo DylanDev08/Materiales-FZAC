@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { checkDistributedRateLimit } from "@/lib/utils/distributed-rate-limit";
 
 type Bucket = {
   count: number;
@@ -13,6 +14,7 @@ export type RateLimitResult = {
   resetAt: number;
   retryAfter: number;
   blockedBy?: "ip" | "identity";
+  backend?: "memory" | "upstash";
 };
 
 type ConcurrencyBucket = {
@@ -48,6 +50,10 @@ const MAX_BUCKETS = 5_000;
 const MAX_CONCURRENCY_BUCKETS = 2_000;
 let checksSinceSweep = 0;
 let concurrencyChecksSinceSweep = 0;
+let warnedMissingDistributedBackend = false;
+let warnedDistributedBackendFailure = false;
+
+const DISTRIBUTED_TIMEOUT_MS = 1_200;
 
 function sweepBuckets(now: number) {
   for (const [key, bucket] of buckets) {
@@ -99,7 +105,7 @@ export function rateLimit(key: string, limit = 30, windowMs = 60_000): RateLimit
   if (!current || current.resetAt < now) {
     const resetAt = now + normalizedWindow;
     buckets.set(key, { count: 1, resetAt });
-    return { ok: true, remaining: normalizedLimit - 1, resetAt, retryAfter: 0 };
+    return { ok: true, remaining: normalizedLimit - 1, resetAt, retryAfter: 0, backend: "memory" };
   }
 
   current.count += 1;
@@ -109,8 +115,69 @@ export function rateLimit(key: string, limit = 30, windowMs = 60_000): RateLimit
     ok: current.count <= normalizedLimit,
     remaining: Math.max(0, normalizedLimit - current.count),
     resetAt: current.resetAt,
-    retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1_000))
+    retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1_000)),
+    backend: "memory"
   };
+}
+
+type DistributedRateLimitDependencies = {
+  fetch?: typeof fetch;
+  now?: () => number;
+  url?: string;
+  token?: string;
+  timeoutMs?: number;
+};
+
+function distributedConfig(dependencies?: DistributedRateLimitDependencies) {
+  const url = dependencies?.url ?? process.env.UPSTASH_REDIS_REST_URL?.trim() ?? "";
+  const token = dependencies?.token ?? process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ?? "";
+  if (!url || !token || !/^https:\/\//i.test(url)) return null;
+  return { url: url.replace(/\/+$/, ""), token };
+}
+
+function warnMissingDistributedBackend() {
+  if (warnedMissingDistributedBackend) return;
+  warnedMissingDistributedBackend = true;
+  console.warn(
+    "[rate-limit] UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN no configurados; se usa fallback local no global."
+  );
+}
+
+function warnDistributedBackendFailure() {
+  if (warnedDistributedBackendFailure) return;
+  warnedDistributedBackendFailure = true;
+  console.warn("[rate-limit] El backend distribuido no respondio; se usa fallback local temporal.");
+}
+
+export async function distributedRateLimit(
+  key: string,
+  limit = 30,
+  windowMs = 60_000,
+  dependencies?: DistributedRateLimitDependencies
+): Promise<RateLimitResult> {
+  const config = distributedConfig(dependencies);
+  if (!config) {
+    warnMissingDistributedBackend();
+    return rateLimit(key, limit, windowMs);
+  }
+
+  const normalizedLimit = safeLimit(limit, 30);
+  const normalizedWindow = safeWindow(windowMs, 60_000);
+  const redisKey = `fzac:ratelimit:${identityHash(key)}`;
+  const distributed = await checkDistributedRateLimit({
+    url: config.url,
+    token: config.token,
+    redisKey,
+    limit: normalizedLimit,
+    windowMs: normalizedWindow,
+    timeoutMs: dependencies?.timeoutMs ?? DISTRIBUTED_TIMEOUT_MS,
+    now: dependencies?.now,
+    fetch: dependencies?.fetch
+  });
+  if (distributed) return distributed;
+
+  warnDistributedBackendFailure();
+  return rateLimit(key, normalizedLimit, normalizedWindow);
 }
 
 export function rateLimitRequest(request: Request, options: RequestRateLimitOptions): RateLimitResult {
@@ -138,6 +205,10 @@ export function rateLimitRequest(request: Request, options: RequestRateLimitOpti
 
 export function rateLimitIdentity(scope: string, identity: string, limit = 30, windowMs = 60_000) {
   return rateLimit(`${scope}:identity:${identityHash(identity)}`, limit, windowMs);
+}
+
+export function distributedRateLimitIdentity(scope: string, identity: string, limit = 30, windowMs = 60_000) {
+  return distributedRateLimit(`${scope}:identity:${identityHash(identity)}`, limit, windowMs);
 }
 
 function acquireConcurrencyBucket(key: string, max: number, leaseMs: number): ConcurrencyLease {

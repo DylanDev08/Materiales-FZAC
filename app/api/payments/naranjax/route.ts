@@ -8,7 +8,8 @@ export async function GET(request: Request) {
   return Response.json({
     provider: "NARANJAX",
     enabled: isNaranjaXEnabled(),
-    message: isNaranjaXEnabled() ? "Naranja X listo para integrar con credenciales oficiales." : "Naranja X estara disponible proximamente."
+    integrationStatus: "NOT_IMPLEMENTED",
+    message: "Naranja X no esta disponible como medio de pago."
   });
 }
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   if (!limit.ok) return jsonError("Demasiados intentos. Esperá un momento.", 429, retryAfterHeaders(limit));
   try {
     const result = await createNaranjaXPaymentIntent();
-    return Response.json(result);
+    return Response.json(result, { status: 501 });
   } catch {
     return jsonError("No pudimos iniciar Naranja X.", 400);
   }

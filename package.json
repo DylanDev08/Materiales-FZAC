@@ -47,7 +47,7 @@
     "test:load": "node scripts/load-smoke.mjs",
     "qa:cleanup": "node --env-file-if-exists=.env scripts/cleanup-qa-orders.mjs",
     "test:e2e": "playwright test",
-    "test": "node --test tests/unit/*.test.mjs",
+    "test": "node --experimental-strip-types --test tests/unit/*.test.mjs",
     "db:types": "pnpm dlx supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
     "db:push": "pnpm dlx supabase db push",
     "db:seed": "pnpm dlx supabase db reset --linked"

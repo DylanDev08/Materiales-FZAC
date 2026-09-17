@@ -26,7 +26,8 @@ export default function robots(): MetadataRoute.Robots {
         "/login",
         "/registro",
         "/recuperar",
-        "/restablecer"
+        "/restablecer",
+        "/seguridad-admin"
       ]
     },
     sitemap: `${siteUrl}/sitemap.xml`,

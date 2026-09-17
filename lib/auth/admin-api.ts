@@ -1,9 +1,10 @@
 import "server-only";
 
 import { getApiAdmin } from "@/lib/auth/api-guards";
+import { getCorrelationId, logEvent } from "@/lib/observability/logger";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { distributedRateLimit, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 type AdminApiOptions = {
   scope: string;
@@ -15,8 +16,10 @@ export async function getAdminApiContext(
   request: Request,
   { scope, limit = 60, windowMs = 60_000 }: AdminApiOptions
 ) {
-  const requestLimit = rateLimit(getRequestKey(request, scope), limit, windowMs);
+  const requestId = getCorrelationId(request);
+  const requestLimit = await distributedRateLimit(getRequestKey(request, scope), limit, windowMs);
   if (!requestLimit.ok) {
+    logEvent("warn", "admin.request_rate_limited", { request_id: requestId, scope });
     return {
       ok: false as const,
       response: jsonError(
@@ -32,11 +35,12 @@ export async function getAdminApiContext(
 
   const admin = getSupabaseAdminClient();
   if (!admin) {
+    logEvent("error", "admin.backend_unavailable", { request_id: requestId, scope });
     return {
       ok: false as const,
       response: jsonError("El servicio administrativo no está disponible en este momento.", 503)
     };
   }
 
-  return { ok: true as const, profile, admin };
+  return { ok: true as const, profile, admin, requestId };
 }

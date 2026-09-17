@@ -4,7 +4,7 @@ import { enqueueAssistantReview } from "@/lib/assistant/quality";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { distributedRateLimit, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 const schema = z.object({
@@ -30,7 +30,7 @@ function intentFromMetadata(metadata: unknown): AssistantIntent {
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 4 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
-  const limit = rateLimit(getRequestKey(request, "assistant-feedback"), 20, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "assistant-feedback"), 20, 60_000);
   if (!limit.ok) return jsonError("Demasiadas valoraciones.", 429, retryAfterHeaders(limit));
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("No pudimos validar la valoracion.", 422);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getUserProfile } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { toPublicPaymentSummary } from "@/lib/payments/dto";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
@@ -30,7 +31,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     admin.from("order_items").select("*").eq("order_id", order.id).order("created_at", { ascending: true }),
     admin
       .from("payments")
-      .select("id,order_id,provider,status,amount,currency,provider_preference_id,provider_payment_id,created_at,updated_at")
+      .select("provider,status,amount,currency,updated_at")
       .eq("order_id", order.id)
       .maybeSingle(),
     admin.from("purchase_tickets").select("*").eq("order_id", order.id).maybeSingle()
@@ -44,7 +45,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     order: {
       ...order,
       items: items ?? [],
-      payment: payment ?? null,
+      payment: toPublicPaymentSummary(payment as Record<string, unknown> | null),
       ticket: ticket ? { ...ticket, items: ticketItems ?? [] } : null
     }
   });

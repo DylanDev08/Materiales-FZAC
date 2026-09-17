@@ -14,8 +14,9 @@ import {
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { distributedRateLimit, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { errorCode, getCorrelationId, logEvent } from "@/lib/observability/logger";
 
 const paramsSchema = z.object({ id: z.string().uuid("Pago invalido.") });
 const bodySchema = z.object({
@@ -60,12 +61,13 @@ async function createRefundFailureNotification(paymentId: string, orderId: strin
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const requestId = getCorrelationId(request);
   const mutation = validateJsonMutationRequest(request, 8 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const profile = await getApiAdmin();
   if (!profile) return jsonError("No autorizado.", 403);
 
-  const limit = rateLimit(`${getRequestKey(request, "admin-refund")}:${profile.id}`, 4, 60_000);
+  const limit = await distributedRateLimit(`${getRequestKey(request, "admin-refund")}:${profile.id}`, 4, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos de reembolso. Espera un minuto.", 429, retryAfterHeaders(limit));
 
   const admin = getSupabaseAdminClient();
@@ -151,6 +153,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       message: "Reembolso procesado correctamente. El stock y el comprobante fueron actualizados."
     });
   } catch (error) {
+    logEvent("error", "admin.refund_failed", {
+      request_id: requestId,
+      order_id: affectedOrderId,
+      reason: errorCode(error),
+      provider_refund_confirmed: providerRefundConfirmed
+    });
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos de reembolso invalidos.", 422);
     if (providerRefundConfirmed && affectedOrderId) {
       try {

@@ -5,8 +5,9 @@ const root = process.cwd();
 const sourceRoots = ["app", "components", "lib"];
 const publicFiles = ["README.md", ".env.example", ".github", "docs", "scripts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
-const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|RESEND_API_KEY|ASSISTANT_LLM_API_KEY|MARKET_PRICE_FEED_TOKENS_JSON|MARKET_PRICE_CRON_SECRET/;
-const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}|re_[A-Za-z0-9_]{20,}|sbp_[A-Za-z0-9_]{20,}|rnd_[A-Za-z0-9_]{20,}/;
+const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|RESEND_API_KEY|ASSISTANT_LLM_API_KEY|MARKET_PRICE_FEED_TOKENS_JSON|MARKET_PRICE_CRON_SECRET|GOOGLE_MAPS_SERVER_KEY/;
+const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}|re_[A-Za-z0-9_]{20,}|sbp_[A-Za-z0-9_]{20,}|rnd_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{20,}/;
+const legacyGoogleEnvNames = /GOOGLE_MAPS_SERVER_API_KEY|GOOGLE_MAPS_API_KEY|GOOGLE_DISTANCE_MATRIX_KEY|NEXT_PUBLIC_GOOGLE_MAPS_API_KEY|NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY/;
 const failures = [];
 const criticalJsonMutationRoutes = [
   "app/api/auth/login/route.ts",
@@ -47,6 +48,9 @@ for (const sourceRoot of sourceRoots) {
     if (/^[\s\r\n]*["']use client["'];/.test(content) && secretNames.test(content)) {
       failures.push(`${file}: un modulo cliente referencia el nombre de un secreto.`);
     }
+    if (legacyGoogleEnvNames.test(content)) {
+      failures.push(`${file}: usa un alias legacy de Google Maps; debe usar la clave canonica browser o server.`);
+    }
   }
 }
 
@@ -84,6 +88,30 @@ if (await exists("package-lock.json")) {
 const renderConfig = await readFile(path.join(root, "render.yaml"), "utf8").catch(() => "");
 if (/\bnpm\s+(?:ci|install|run)\b|\bnpx\b/.test(renderConfig)) {
   failures.push("render.yaml: el deploy debe usar pnpm de forma exclusiva.");
+}
+if (!/- key:\s*GOOGLE_MAPS_SERVER_KEY\s*\r?\n\s+sync:\s*false/.test(renderConfig)) {
+  failures.push("render.yaml: GOOGLE_MAPS_SERVER_KEY debe declararse como secreto sync:false.");
+}
+if (!/- key:\s*NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY\s*\r?\n\s+sync:\s*false/.test(renderConfig)) {
+  failures.push("render.yaml: falta declarar la browser key de Google Maps sin versionar su valor.");
+}
+if (legacyGoogleEnvNames.test(renderConfig)) {
+  failures.push("render.yaml: no debe declarar aliases legacy de Google Maps.");
+}
+
+const envExample = await readFile(path.join(root, ".env.example"), "utf8").catch(() => "");
+if (legacyGoogleEnvNames.test(envExample)) {
+  failures.push(".env.example: no debe recomendar aliases legacy de Google Maps.");
+}
+
+const shippingServer = await readFile(path.join(root, "lib/shipping/quote.ts"), "utf8").catch(() => "");
+if (!shippingServer.startsWith('import "server-only"') || !shippingServer.includes('getEnv("GOOGLE_MAPS_SERVER_KEY")')) {
+  failures.push("lib/shipping/quote.ts: la cotizacion debe permanecer server-only y usar la server key canonica.");
+}
+
+const checkoutClient = await readFile(path.join(root, "components/checkout/checkout-form.tsx"), "utf8").catch(() => "");
+if (!checkoutClient.includes("NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY") || checkoutClient.includes("GOOGLE_MAPS_SERVER_KEY")) {
+  failures.push("components/checkout/checkout-form.tsx: Places debe usar solo la browser key publica canonica.");
 }
 
 const dockerConfig = await readFile(path.join(root, "Dockerfile"), "utf8").catch(() => "");

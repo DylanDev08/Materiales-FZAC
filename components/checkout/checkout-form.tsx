@@ -90,8 +90,7 @@ type GoogleMapsWindow = typeof window & {
   };
 };
 
-const GOOGLE_MAPS_BROWSER_KEY =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const GOOGLE_MAPS_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || "";
 const GOOGLE_MAPS_SCRIPT_ID = "fzac-google-maps-places";
 
 const checkoutSteps: Array<{ id: CheckoutStep; label: string }> = [

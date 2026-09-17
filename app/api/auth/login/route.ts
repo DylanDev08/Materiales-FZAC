@@ -6,9 +6,9 @@ import { jsonError } from "@/lib/utils/api";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import {
   acquireRequestConcurrency,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
@@ -33,14 +33,14 @@ function loginErrorResponse(error: { message?: string; code?: string } | null | 
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "auth-login"), 8, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "auth-login"), 8, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 4 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
 
   try {
     const payload = loginSchema.parse(body.data);
-    const emailLimit = rateLimitIdentity("auth-login", payload.email, 6, 5 * 60_000);
+    const emailLimit = await distributedRateLimitIdentity("auth-login", payload.email, 6, 5 * 60_000);
     if (!emailLimit.ok) return jsonError("Demasiados intentos para esta cuenta. Esperá unos minutos.", 429, retryAfterHeaders(emailLimit));
     const slot = acquireRequestConcurrency(request, {
       scope: "auth-login",

@@ -6,6 +6,7 @@ import { invalidateAssistantCatalogCache } from "@/lib/assistant/catalog-intelli
 import { isTrustedMutationRequest, validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { duplicateReason } from "@/lib/products/identity";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { errorCode, logEvent } from "@/lib/observability/logger";
 
 const productIdSchema = z.string().uuid("Producto inválido.");
 
@@ -33,7 +34,10 @@ export async function GET(request: Request) {
   const { admin } = context;
 
   const { data, error } = await admin.from("products").select("*").order("created_at", { ascending: false });
-  if (error) return jsonError("No pudimos cargar productos.", 400);
+  if (error) {
+    logEvent("error", "admin.products_read_failed", { request_id: context.requestId, reason: errorCode(error) });
+    return jsonError("No pudimos cargar productos.", 400);
+  }
   return Response.json({ products: data ?? [] });
 }
 
@@ -66,6 +70,7 @@ export async function POST(request: Request) {
 
     return Response.json({ product: data }, { status: 201 });
   } catch (error) {
+    logEvent("error", "admin.product_create_failed", { request_id: context.requestId, reason: errorCode(error) });
     return productValidationError(error) ?? jsonError("No pudimos crear el producto.", 500);
   }
 }
@@ -106,6 +111,7 @@ export async function PATCH(request: Request) {
 
     return Response.json({ product: data });
   } catch (error) {
+    logEvent("error", "admin.product_update_failed", { request_id: context.requestId, reason: errorCode(error) });
     return productValidationError(error) ?? jsonError("No pudimos actualizar el producto.", 500);
   }
 }
@@ -126,7 +132,10 @@ export async function DELETE(request: Request) {
     .eq("active", true)
     .select("id,name")
     .maybeSingle();
-  if (error) return jsonError("No pudimos desactivar el producto.", 400);
+  if (error) {
+    logEvent("error", "admin.product_deactivate_failed", { request_id: context.requestId, reason: errorCode(error) });
+    return jsonError("No pudimos desactivar el producto.", 400);
+  }
   if (!data) return jsonError("El producto no existe o ya estaba desactivado.", 409);
   invalidateAssistantCatalogCache();
 
