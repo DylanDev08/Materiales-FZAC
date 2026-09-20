@@ -197,15 +197,19 @@ export const checkoutCreateSchema = checkoutCreateFieldsSchema
 export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
   .extend({
     payment_flow: z.literal("CARD").optional(),
-    card: z.object({
-      token: safeString("Token de tarjeta", 8, 220),
-      payment_method_id: safeString("Medio de pago", 2, 60),
-      issuer_id: safeString("Banco emisor", 0, 80).optional(),
-      installments: z.coerce.number().int().min(1).max(24),
-      identification_type: safeString("Tipo de documento", 2, 20),
-      identification_number: safeString("Documento", 5, 20),
-      cardholder_email: z.string().trim().email("Ingresá un email válido.").max(160)
-    })
+    card: z
+      .object({
+        token: safeString("Token de tarjeta", 8, 220),
+        payment_method_id: safeString("Medio de pago", 2, 60),
+        issuer_id: safeString("Banco emisor", 0, 80).optional(),
+        installments: z.coerce.number().int().min(1).max(24),
+        identification_type: safeString("Tipo de documento", 2, 20),
+        identification_number: safeString("Documento", 5, 20),
+        cardholder_email: z.string().trim().email("Ingresá un email válido.").max(160)
+      })
+      .strict("No envíes datos de tarjeta sin tokenizar.")
+  })
+  .strict("La solicitud contiene campos no permitidos.")
   })
   .superRefine(validateCreateAddress)
   .transform((value) => ({
