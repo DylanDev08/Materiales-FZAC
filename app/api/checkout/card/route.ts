@@ -183,13 +183,17 @@ export async function POST(request: Request) {
         } catch {
           const admin = getSupabaseAdminClient();
           if (admin) {
-            await admin.from("notifications").insert({
-              target_role: "ADMIN",
-              type: "PAYMENT_RECONCILIATION_REQUIRED",
-              title: "Pago aprobado para conciliar",
-              message: `Mercado Pago aprobó el pago del pedido ${orderId.slice(0, 8).toUpperCase()}, pero la finalización local quedó pendiente. No volver a cobrar.`,
-              link_to: `/admin/pagos?order=${orderId}`
-            }).catch(() => undefined);
+            try {
+              await admin.from("notifications").insert({
+                target_role: "ADMIN",
+                type: "PAYMENT_RECONCILIATION_REQUIRED",
+                title: "Pago aprobado para conciliar",
+                message: `Mercado Pago aprobó el pago del pedido ${orderId.slice(0, 8).toUpperCase()}, pero la finalización local quedó pendiente. No volver a cobrar.`,
+                link_to: `/admin/pagos?order=${orderId}`
+              });
+            } catch {
+              // The API response still prevents the buyer from retrying a confirmed charge blindly.
+            }
           }
           return Response.json(
             {
