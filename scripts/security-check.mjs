@@ -55,8 +55,22 @@ for (const sourceRoot of sourceRoots) {
 }
 
 for (const file of criticalJsonMutationRoutes) {
-  const content = await readFile(path.join(root, file), "utf8").catch(() => "");
-  if (!content.includes("validateJsonMutationRequest") && !content.includes("readLimitedJson")) {
+  const routeContent = await readFile(path.join(root, file), "utf8").catch(() => "");
+  let validationContent = routeContent;
+
+  if (!routeContent.includes("validateJsonMutationRequest") && !routeContent.includes("readLimitedJson")) {
+    const delegatedPost = routeContent.match(/export\s*\{\s*POST\s*\}\s*from\s*["']([^"']+)["']/);
+    if (delegatedPost?.[1]?.startsWith(".")) {
+      const delegatedBase = path.resolve(root, path.dirname(file), delegatedPost[1]);
+      const delegatedCandidates = [`${delegatedBase}.ts`, path.join(delegatedBase, "route.ts")];
+      for (const candidate of delegatedCandidates) {
+        validationContent = await readFile(candidate, "utf8").catch(() => "");
+        if (validationContent) break;
+      }
+    }
+  }
+
+  if (!validationContent.includes("validateJsonMutationRequest") && !validationContent.includes("readLimitedJson")) {
     failures.push(`${file}: falta validar origen, tipo y tamano del cuerpo JSON.`);
   }
 }
