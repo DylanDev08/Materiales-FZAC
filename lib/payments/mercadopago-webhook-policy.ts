@@ -8,8 +8,8 @@ export function isMercadoPagoPaymentId(value: string) {
 
 export function mercadoPagoWebhookAction(status: string): MercadoPagoWebhookAction {
   if (status === "approved") return "CONFIRM";
-  if (status === "partially_refunded") return "MANUAL_REVIEW";
-  if (status === "refunded" || status === "charged_back") return "REFUND";
+  if (status === "partially_refunded" || status === "charged_back") return "MANUAL_REVIEW";
+  if (status === "refunded") return "REFUND";
   return "UPDATE";
 }
 
