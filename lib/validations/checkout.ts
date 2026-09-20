@@ -210,7 +210,6 @@ export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
       .strict("No envíes datos de tarjeta sin tokenizar.")
   })
   .strict("La solicitud contiene campos no permitidos.")
-  })
   .superRefine(validateCreateAddress)
   .transform((value) => ({
     checkout: checkoutCreateTransform({ ...value, payment_flow: "CARD" }),
