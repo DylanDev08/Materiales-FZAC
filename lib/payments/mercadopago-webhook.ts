@@ -311,10 +311,24 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     }
 
     if (action === "MANUAL_REVIEW") {
+      const reviewReason =
+        status === "charged_back"
+          ? "Contracargo pendiente de conciliacion manual; el stock no se repone automaticamente."
+          : "Reembolso parcial pendiente de conciliacion manual; el stock no se modifica automaticamente.";
+
+      await admin
+        .from("payments")
+        .update({
+          provider_payment_id: providerId,
+          raw: safePayment,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", localPayment.id);
+
       await updatePaymentEvent(eventId, {
-        status: "FAILED",
+        status: "PROCESSED",
         orderId,
-        errorMessage: "Reembolso parcial pendiente de conciliacion manual."
+        errorMessage: reviewReason
       }).catch(() => undefined);
       await notifyWebhookFailure(orderId).catch(() => undefined);
       return { status: 200, body: { ok: true, received: true, manual_review: true } };
