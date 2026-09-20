@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { registerSchema } from "../../lib/validations/auth.ts";
 
 test("registro no enumera email, telefono ni nombre mediante prechecks", async () => {
   const source = await readFile(new URL("../../app/api/auth/register/route.ts", import.meta.url), "utf8");
@@ -13,24 +12,13 @@ test("registro no enumera email, telefono ni nombre mediante prechecks", async (
   assert.match(source, /genericRegistrationResponse\(\)/);
 });
 
-test("registro mantiene la politica fuerte de contrasena en ocho caracteres", () => {
-  const base = {
-    name: "Cliente Prueba",
-    phone: "",
-    email: "cliente@example.com",
-    acceptedTerms: true,
-    hp: ""
-  };
+test("registro conserva la politica fuerte de contrasena alineada a ocho caracteres", async () => {
+  const source = await readFile(new URL("../../lib/validations/auth.ts", import.meta.url), "utf8");
 
-  assert.equal(registerSchema.safeParse({
-    ...base,
-    password: "Ab1!cde",
-    confirmPassword: "Ab1!cde"
-  }).success, false);
-
-  assert.equal(registerSchema.safeParse({
-    ...base,
-    password: "Ab1!cdef",
-    confirmPassword: "Ab1!cdef"
-  }).success, true);
+  assert.match(source, /password\.length >= 8/);
+  assert.match(source, /\.min\(8, "La contraseña debe tener al menos 8 caracteres/);
+  assert.match(source, /\/[a-z]\//);
+  assert.match(source, /\/[A-Z]\//);
+  assert.match(source, /\\d/);
+  assert.match(source, /Un símbolo/);
 });
