@@ -24,8 +24,14 @@ function escapeHtml(value: string) {
 
 function safeActionUrl(value: string) {
   const url = new URL(value);
-  if (!['https:', 'http:'].includes(url.protocol)) throw new Error("Enlace de autenticacion invalido.");
-  return url.toString();
+  if (url.protocol === "https:") return url.toString();
+  if (
+    url.protocol === "http:" &&
+    ["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname)
+  ) {
+    return url.toString();
+  }
+  throw new Error("Enlace de autenticacion invalido.");
 }
 
 function authEmailLayout(input: { title: string; preheader: string; copy: string; actionLabel: string; actionUrl: string }) {
