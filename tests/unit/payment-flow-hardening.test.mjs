@@ -53,3 +53,19 @@ test("emails de accion solo permiten HTTPS fuera del desarrollo local", async ()
   assert.match(text, /localhost/);
   assert.match(text, /throw new Error\("Enlace de autenticacion invalido\."\)/);
 });
+
+
+test("checkout de tarjeta rechaza campos no tokenizados", async () => {
+  const text = await source("../../lib/validations/checkout.ts");
+  assert.match(text, /strict\("No envíes datos de tarjeta sin tokenizar\."\)/);
+  assert.match(text, /strict\("La solicitud contiene campos no permitidos\."\)/);
+});
+
+test("reembolso valida moneda y relee el estado del proveedor antes de finalizar localmente", async () => {
+  const text = await source("../../app/api/admin/payments/[id]/refund/route.ts");
+  assert.match(text, /amount,currency,provider_payment_id/);
+  assert.match(text, /providerCurrency/);
+  assert.match(text, /providerCurrency !== localCurrency/);
+  assert.match(text, /providerPayment = await getMercadoPagoPayment/);
+  assert.match(text, /REFUND_PENDING_PROVIDER_RECONCILIATION/);
+});
