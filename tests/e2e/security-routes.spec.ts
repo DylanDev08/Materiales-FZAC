@@ -287,6 +287,8 @@ test.describe("Politica del webhook Mercado Pago", () => {
     expect(mercadoPagoWebhookAction("refunded")).toBe("REFUND");
     expect(paymentStatusFromMercadoPago("refunded")).toBe("REFUNDED");
     expect(orderStatusFromMercadoPago("refunded")).toBe("CANCELLED");
+    expect(mercadoPagoWebhookAction("partially_refunded")).toBe("MANUAL_REVIEW");
+    expect(mercadoPagoWebhookAction("charged_back")).toBe("MANUAL_REVIEW");
   });
 
   test("valida monto, moneda y ultimo identificador de reembolso", () => {
