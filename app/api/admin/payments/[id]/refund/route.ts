@@ -81,7 +81,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const payload = bodySchema.parse(await request.json());
     const { data: payment, error: paymentError } = await admin
       .from("payments")
-      .select("id,order_id,provider,status,amount,provider_payment_id")
+      .select("id,order_id,provider,status,amount,currency,provider_payment_id")
       .eq("id", params.id)
       .maybeSingle();
 
@@ -107,7 +107,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     let providerPayment = await getMercadoPagoPayment(String(payment.provider_payment_id));
     const externalReference = String(providerPayment.external_reference ?? "");
     const providerAmount = Number(providerPayment.transaction_amount ?? payment.amount);
-    if (externalReference !== String(order.id) || Math.abs(providerAmount - Number(payment.amount)) > 0.01) {
+    const providerCurrency = String(providerPayment.currency_id ?? "").trim().toUpperCase();
+    const localCurrency = String(payment.currency ?? "").trim().toUpperCase();
+    if (
+      externalReference !== String(order.id) ||
+      Math.abs(providerAmount - Number(payment.amount)) > 0.01 ||
+      !providerCurrency ||
+      providerCurrency !== localCurrency
+    ) {
       return jsonError("El pago de Mercado Pago no coincide con el pedido seleccionado.", 409);
     }
     if (!paymentLiveModeMatchesEnvironment(providerPayment.live_mode)) {
