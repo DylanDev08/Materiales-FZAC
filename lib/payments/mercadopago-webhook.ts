@@ -244,10 +244,12 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     return { status: 200, body: { ok: true, received: true, duplicate: true } };
   }
 
+  let processingOrderId = "";
   try {
     const payment = await getMercadoPagoPayment(paymentId);
     const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
     const orderId = String(payment.external_reference || metadata.order_id || "");
+    processingOrderId = orderId;
     const status = String(payment.status ?? "");
     const action = mercadoPagoWebhookAction(status);
     const safePayment = sanitizeMercadoPagoPayment(payment);
@@ -384,7 +386,7 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       status: "FAILED",
       errorMessage: error instanceof Error ? error.message.slice(0, 500) : "No pudimos procesar el webhook."
     }).catch(() => undefined);
-    await notifyWebhookFailure().catch(() => undefined);
+    await notifyWebhookFailure(processingOrderId || undefined).catch(() => undefined);
     return { status: 503, body: { ok: false, received: true, message: "No pudimos procesar el webhook." } };
   }
 }
