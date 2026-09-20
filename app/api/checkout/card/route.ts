@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { getCurrentUser } from "@/lib/auth/get-user";
 import {
   CheckoutAuthRequiredError,
   CheckoutIdempotencyError,
@@ -103,7 +104,13 @@ export async function POST(request: Request) {
 
   try {
     const payload = checkoutCardCreateSchema.parse(body.data);
-    const identity = payload.checkout.customer.email;
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.email) return jsonError("Iniciá sesión para continuar con el pago.", 401);
+    if (currentUser.email.trim().toLowerCase() !== payload.checkout.customer.email.trim().toLowerCase()) {
+      return jsonError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
+    }
+
+    const identity = currentUser.id;
     const [purchaseLimit, paymentLimit] = await Promise.all([
       distributedRateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000),
       distributedRateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000)
@@ -165,13 +172,37 @@ export async function POST(request: Request) {
       const status = String(payment.status ?? "pending");
       const safePayment = sanitizeMercadoPagoPayment(payment);
       if (status === "approved") {
-        await confirmApprovedPayment({
-          orderId,
-          provider: "MERCADOPAGO",
-          providerPaymentId: payment.id ? String(payment.id) : null,
-          raw: safePayment,
-          status: "PAID"
-        });
+        try {
+          await confirmApprovedPayment({
+            orderId,
+            provider: "MERCADOPAGO",
+            providerPaymentId: payment.id ? String(payment.id) : null,
+            raw: safePayment,
+            status: "PAID"
+          });
+        } catch {
+          const admin = getSupabaseAdminClient();
+          if (admin) {
+            await admin.from("notifications").insert({
+              target_role: "ADMIN",
+              type: "PAYMENT_RECONCILIATION_REQUIRED",
+              title: "Pago aprobado para conciliar",
+              message: `Mercado Pago aprobó el pago del pedido ${orderId.slice(0, 8).toUpperCase()}, pero la finalización local quedó pendiente. No volver a cobrar.`,
+              link_to: `/admin/pagos?order=${orderId}`
+            }).catch(() => undefined);
+          }
+          return Response.json(
+            {
+              ok: true,
+              orderId,
+              status: "approved",
+              reconciliationRequired: true,
+              redirectUrl: `/pago/pendiente?order_id=${encodeURIComponent(orderId)}&reconciliation=1`,
+              message: "Mercado Pago aprobó el pago. Estamos conciliando el pedido; no vuelvas a pagarlo."
+            },
+            { status: 202 }
+          );
+        }
       } else {
         await persistPaymentStatus(orderId, payment);
       }
