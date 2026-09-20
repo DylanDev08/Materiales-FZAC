@@ -28,28 +28,6 @@ function genericRegistrationResponse() {
   return Response.json({ target: "/login?registered=true", message: genericRegistrationMessage });
 }
 
-async function findRegistrationDuplicate(input: { email: string; name: string; phone?: string | null }) {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return null;
-
-  const checks = [
-    admin.from("profiles").select("id").eq("email", input.email).limit(1).maybeSingle(),
-    admin.from("profiles").select("id").ilike("full_name", input.name.trim()).limit(1).maybeSingle()
-  ];
-  if (input.phone) checks.push(admin.from("profiles").select("id").eq("phone", input.phone).limit(1).maybeSingle());
-
-  const [emailResult, nameResult, phoneResult] = await Promise.all(checks);
-  if (emailResult?.data) return "email" as const;
-  if (nameResult?.data) return "name" as const;
-  if (phoneResult?.data) return "phone" as const;
-  return null;
-}
-
-function duplicateMessage(kind: "email" | "name" | "phone") {
-  if (kind === "email") return "Ya existe una cuenta registrada con ese email. Probá iniciar sesión o recuperar el acceso.";
-  if (kind === "phone") return "Ya existe una cuenta registrada con ese teléfono. Usá otro número o recuperá tu cuenta.";
-  return "Ya existe una cuenta registrada con ese nombre. Revisá tus datos o comunicate con FZAC si necesitás ayuda.";
-}
 
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 8 * 1024);
@@ -65,8 +43,6 @@ export async function POST(request: Request) {
     const siteUrl = getRequestSiteUrl(request);
     const admin = getSupabaseAdminClient();
     const legalAcceptance = createLegalAcceptance("REGISTER_EMAIL");
-    const duplicate = await findRegistrationDuplicate({ email: payload.email, name: payload.name, phone: normalizedPhone });
-    if (duplicate) return jsonError(duplicateMessage(duplicate), 409);
 
     let user = null;
     const resendSignup = await createSignupWithResend({
