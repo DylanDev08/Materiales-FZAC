@@ -124,10 +124,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           providerPaymentId: String(payment.provider_payment_id),
           idempotencyKey: `fzac-refund-${payment.id}`
         });
-        providerRefundId = refund.id;
-        providerPayment = { ...providerPayment, refund: refund.raw, status: "refunded" };
+        // A successful provider mutation must never be retried blindly even if the subsequent read is delayed.
+        providerRefundConfirmed = true;
+        providerPayment = await getMercadoPagoPayment(String(payment.provider_payment_id));
+        providerRefundId = refund.id ?? refundIdFromPayment(providerPayment);
+        if (String(providerPayment.status) !== "refunded") {
+          throw new Error("REFUND_PENDING_PROVIDER_RECONCILIATION");
+        }
       } catch (error) {
         if (error instanceof MercadoPagoRefundError && /already|4296/i.test(error.code)) {
+          providerRefundConfirmed = true;
           providerPayment = await getMercadoPagoPayment(String(payment.provider_payment_id));
           providerRefundId = refundIdFromPayment(providerPayment);
           if (String(providerPayment.status) !== "refunded") throw error;
@@ -135,9 +141,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           throw error;
         }
       }
+    } else {
+      providerRefundConfirmed = true;
     }
-
-    providerRefundConfirmed = String(providerPayment.status) === "refunded";
 
     await finalizeRefundedPayment({
       paymentId: String(payment.id),
