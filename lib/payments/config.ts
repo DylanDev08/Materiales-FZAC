@@ -102,7 +102,7 @@ export function isTestPaymentEnv() {
 export const isMercadoPagoTestMode = isTestPaymentEnv;
 
 export function paymentLiveModeMatchesEnvironment(liveMode: unknown) {
-  if (typeof liveMode !== "boolean") return true;
+  if (typeof liveMode !== "boolean") return false;
   return getPaymentConfig().paymentsEnv === "production" ? liveMode : !liveMode;
 }
 
