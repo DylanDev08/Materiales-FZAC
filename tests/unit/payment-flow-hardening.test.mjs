@@ -69,3 +69,17 @@ test("reembolso valida moneda y relee el estado del proveedor antes de finalizar
   assert.match(text, /providerPayment = await getMercadoPagoPayment/);
   assert.match(text, /REFUND_PENDING_PROVIDER_RECONCILIATION/);
 });
+
+
+test("Checkout Pro no devuelve éxito sin una URL segura del entorno", async () => {
+  const text = await source("../../lib/payments/mercadopago.ts");
+  assert.match(text, /if \(!redirectUrl\)/);
+  assert.match(text, /URL sandbox valida/);
+  assert.match(text, /if \(!redirectUrl\) return null/);
+});
+
+test("webhook toma el identificador del recurso de pago y no el id del evento", async () => {
+  const text = await source("../../lib/payments/mercadopago-webhook.ts");
+  assert.match(text, /String\(data\?\.id \?\? ""\)/);
+  assert.doesNotMatch(text, /String\(body\.id \?\? ""\)/);
+});
