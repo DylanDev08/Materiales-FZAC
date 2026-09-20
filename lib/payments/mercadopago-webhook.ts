@@ -58,7 +58,6 @@ function extractPaymentId(url: URL, body: Record<string, unknown>) {
     url.searchParams.get("data.id") ||
     url.searchParams.get("id") ||
     String(data?.id ?? "") ||
-    String(body.id ?? "") ||
     resource ||
     ""
   ).trim();
