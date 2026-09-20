@@ -171,12 +171,26 @@ export async function POST(request: Request) {
 
       const status = String(payment.status ?? "pending");
       const safePayment = sanitizeMercadoPagoPayment(payment);
+      const providerPaymentId = payment.id ? String(payment.id) : "";
       if (status === "approved") {
+        if (!providerPaymentId) {
+          return Response.json(
+            {
+              ok: true,
+              orderId,
+              status: "approved",
+              reconciliationRequired: true,
+              redirectUrl: `/pago/pendiente?order_id=${encodeURIComponent(orderId)}&reconciliation=1`,
+              message: "Mercado Pago aprobó el pago, pero falta identificarlo para conciliarlo. No vuelvas a pagarlo."
+            },
+            { status: 202 }
+          );
+        }
         try {
           await confirmApprovedPayment({
             orderId,
             provider: "MERCADOPAGO",
-            providerPaymentId: payment.id ? String(payment.id) : null,
+            providerPaymentId,
             raw: safePayment,
             status: "PAID"
           });
