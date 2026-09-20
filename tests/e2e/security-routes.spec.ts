@@ -198,14 +198,14 @@ test.describe("Firma Mercado Pago aislada", () => {
     })).toBe(false);
   });
 
-  test("test puede operar sin secret y una firma inválida se rechaza si hay secret", () => {
+  test("test también requiere secret y una firma inválida se rechaza", () => {
     expect(validateMercadoPagoSignature({
       webhookSecret: "",
       paymentsEnv: "test",
       dataId: "123",
       xSignature: null,
       xRequestId: null
-    })).toBe(true);
+    })).toBe(false);
     expect(validateMercadoPagoSignature({
       webhookSecret: "secret-local",
       paymentsEnv: "test",
