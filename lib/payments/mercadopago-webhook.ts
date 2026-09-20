@@ -67,16 +67,18 @@ function extractPaymentId(url: URL, body: Record<string, unknown>) {
 function isValidWebhookSignature(request: Request, dataId: string) {
   const { webhookSecret, paymentsEnv } = getMercadoPagoConfig();
   if (!webhookSecret) {
-    if (paymentsEnv === "production") {
+    const deployedRuntime = process.env.NODE_ENV === "production";
+    if (paymentsEnv === "production" || deployedRuntime) {
       console.error("[mercadopago.webhook.security]", {
-        message: "MERCADOPAGO_WEBHOOK_SECRET no esta configurado en produccion.",
-        data_id_present: Boolean(dataId)
+        message: "Webhook rechazado porque falta configurar la firma secreta de Mercado Pago.",
+        data_id_present: Boolean(dataId),
+        payments_env: paymentsEnv
       });
       return false;
     }
 
     console.warn("[mercadopago.webhook.security]", {
-      message: "Webhook sin firma permitido solo en entorno de prueba.",
+      message: "Webhook sin firma permitido solamente en desarrollo local.",
       data_id_present: Boolean(dataId)
     });
     return true;
