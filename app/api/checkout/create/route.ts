@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { getCurrentUser } from "@/lib/auth/get-user";
 import {
   CheckoutAuthRequiredError,
   CheckoutIdempotencyError,
@@ -38,13 +39,19 @@ export async function POST(request: Request) {
 
   try {
     const payload = checkoutCreateSchema.parse(body.data);
-    const identityLimit = await distributedRateLimitIdentity("checkout-purchase", payload.customer.email, 8, 10 * 60_000);
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.email) return jsonError("Iniciá sesión para continuar con la compra.", 401);
+    if (currentUser.email.trim().toLowerCase() !== payload.customer.email.trim().toLowerCase()) {
+      return jsonError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
+    }
+
+    const identityLimit = await distributedRateLimitIdentity("checkout-purchase", currentUser.id, 8, 10 * 60_000);
     if (!identityLimit.ok) {
       return jsonError("Alcanzaste el límite de intentos de compra. Esperá unos minutos.", 429, retryAfterHeaders(identityLimit));
     }
     const slot = acquireRequestConcurrency(request, {
       scope: "checkout-purchase",
-      identity: payload.customer.email,
+      identity: currentUser.id,
       maxGlobal: 8,
       maxPerIp: 2,
       maxPerIdentity: 1,
