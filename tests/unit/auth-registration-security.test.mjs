@@ -17,8 +17,10 @@ test("registro conserva la politica fuerte de contrasena alineada a ocho caracte
 
   assert.match(source, /password\.length >= 8/);
   assert.match(source, /\.min\(8, "La contraseña debe tener al menos 8 caracteres/);
-  assert.match(source, /\/[a-z]\//);
-  assert.match(source, /\/[A-Z]\//);
-  assert.match(source, /\\d/);
-  assert.match(source, /Un símbolo/);
+  assert.match(source, /id: "lowercase"/);
+  assert.match(source, /id: "uppercase"/);
+  assert.match(source, /id: "number"/);
+  assert.match(source, /id: "symbol"/);
+  assert.match(source, /id: "common"/);
+  assert.match(source, /id: "personal"/);
 });
