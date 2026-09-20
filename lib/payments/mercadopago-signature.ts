@@ -18,7 +18,7 @@ function parseSignature(value: string | null) {
 }
 
 export function validateMercadoPagoSignature(input: SignatureInput) {
-  if (!input.webhookSecret) return input.paymentsEnv !== "production";
+  if (!input.webhookSecret) return false;
   if (!input.xSignature || !input.xRequestId || !input.dataId) return false;
 
   const signature = parseSignature(input.xSignature);
@@ -26,7 +26,7 @@ export function validateMercadoPagoSignature(input: SignatureInput) {
   const v1 = signature.v1;
   if (!ts || !v1 || !/^[a-f0-9]+$/i.test(v1)) return false;
 
-  const manifest = `id:${input.dataId};request-id:${input.xRequestId};ts:${ts};`;
+  const manifest = `id:${input.dataId.toLowerCase()};request-id:${input.xRequestId};ts:${ts};`;
   const expected = crypto.createHmac("sha256", input.webhookSecret).update(manifest).digest("hex");
   if (expected.length !== v1.length) return false;
   return crypto.timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(v1, "utf8"));
