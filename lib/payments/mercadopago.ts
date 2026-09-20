@@ -374,6 +374,13 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     })) as { id?: string; init_point?: string; sandbox_init_point?: string };
   const testMode = isTestPaymentEnv();
   const redirectUrl = preferenceRedirectUrl(data);
+  if (!redirectUrl) {
+    throw new Error(
+      testMode
+        ? "El proveedor de pago no devolvio una URL sandbox valida."
+        : "El proveedor de pago no devolvio una URL valida."
+    );
+  }
   const createdLogContext = safePreferenceLogContext({
     orderId: input.orderId,
     paymentId: input.paymentId,
@@ -418,6 +425,7 @@ export async function getMercadoPagoPreference(preferenceId: string) {
   } | null;
   if (!data) return null;
   const redirectUrl = preferenceRedirectUrl(data);
+  if (!redirectUrl) return null;
 
   return {
     preference_id: data.id ?? "",
