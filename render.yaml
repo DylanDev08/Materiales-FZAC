@@ -15,6 +15,10 @@ services:
         value: production
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
       - key: SEO_INDEXING_ENABLED
         value: "false"
       - key: GOOGLE_SITE_VERIFICATION
