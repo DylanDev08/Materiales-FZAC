@@ -40,6 +40,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (mode === "login" && searchParams.get("auth_error") === "true") {
       return "No pudimos completar el acceso. Volvé a intentarlo desde esta pantalla.";
     }
+    if (mode === "register" && searchParams.get("oauth_terms_required") === "true") {
+      return "Para crear tu cuenta con Google, aceptá términos y privacidad y volvé a continuar con Google.";
+    }
     return "";
   });
   const [messageTone, setMessageTone] = useState<"info" | "success" | "error">(
