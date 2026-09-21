@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { rateLimitIdentity } from "@/lib/utils/rate-limit";
+import { distributedRateLimitIdentity } from "@/lib/utils/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendWhatsAppText } from "@/lib/whatsapp/client";
 import { getWhatsAppConfig } from "@/lib/whatsapp/config";
@@ -60,7 +60,7 @@ export async function processWhatsAppMessage(message: WhatsAppInboundMessage): P
   const config = getWhatsAppConfig();
   const reference = privatePhoneReference(message.from, config.appSecret);
   if (!reference || !message.id) return "INVALID";
-  const rate = rateLimitIdentity("whatsapp-webhook", reference.hash, 18, 60_000);
+  const rate = await distributedRateLimitIdentity("whatsapp-webhook", reference.hash, 18, 60_000);
   if (!rate.ok) return "RATE_LIMITED";
   const admin = getSupabaseAdminClient();
   if (!admin) return "UNAVAILABLE";
