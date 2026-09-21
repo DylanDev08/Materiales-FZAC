@@ -5,8 +5,8 @@ import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
@@ -21,7 +21,7 @@ const cartSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "cart-read"), 90, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "cart-read"), 90, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas al carrito.", 429, retryAfterHeaders(limit));
 
   const user = await getCurrentUser();
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "cart-sync"), 30, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "cart-sync"), 30, 60_000);
   if (!limit.ok) return jsonError("Demasiadas actualizaciones del carrito.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 48 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdminClient();
   if (!user || !admin) return Response.json({ ok: true, synced: false });
 
-  const identityLimit = rateLimitIdentity("cart-sync", user.id, 45, 5 * 60_000);
+  const identityLimit = await distributedRateLimitIdentity("cart-sync", user.id, 45, 5 * 60_000);
   if (!identityLimit.ok) {
     return jsonError("Hiciste demasiados cambios en el carrito. Esperá un momento.", 429, retryAfterHeaders(identityLimit));
   }
