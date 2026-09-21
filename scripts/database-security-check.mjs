@@ -68,8 +68,10 @@ if (!archiveRevokes) {
 }
 
 const searchInsertGrant = lastMatchIndex(/grant\s+(?:insert|all(?:\s+privileges)?)\b[\s\S]{0,100}on\s+(?:table\s+)?public\.search_events[\s\S]{0,100}to\s+(?:anon|authenticated)/g);
-const searchInsertRevoke = lastMatchIndex(/revoke\s+insert(?:,\s*update,\s*delete)?\s+on\s+(?:table\s+)?public\.search_events\s+from\s+anon,\s*authenticated/g);
-if (searchInsertGrant > searchInsertRevoke || searchInsertRevoke < 0) {
+const searchAnonRevoke = lastMatchIndex(/revoke\s+all(?:\s+privileges)?\s+on\s+(?:table\s+)?public\.search_events\s+from\s+anon/g);
+const searchAuthRevoke = lastMatchIndex(/revoke\s+insert,\s*update,\s*delete(?:,\s*truncate,\s*references,\s*trigger)?\s+on\s+(?:table\s+)?public\.search_events\s+from\s+authenticated/g);
+const searchFinalRevoke = Math.min(searchAnonRevoke, searchAuthRevoke);
+if (searchAnonRevoke < 0 || searchAuthRevoke < 0 || searchInsertGrant > searchFinalRevoke) {
   failures.push("Los eventos de busqueda conservan un camino de escritura publica." );
 }
 
