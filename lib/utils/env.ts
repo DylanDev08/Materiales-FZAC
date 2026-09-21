@@ -10,7 +10,7 @@ export function hasRealValue(value: string | undefined): value is string {
 }
 
 export function getSiteUrl() {
-  return getEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
+  return getEnv("FZAC_PUBLIC_SITE_URL") || getEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
 }
 
 function isLocalUrl(value: string) {
