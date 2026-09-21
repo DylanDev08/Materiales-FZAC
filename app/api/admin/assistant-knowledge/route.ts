@@ -1,13 +1,13 @@
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { assistantKnowledgeSchema } from "@/lib/validations/assistant-knowledge";
 import { invalidateFzacKnowledgeCache } from "@/lib/assistant/knowledge";
 
 async function guard(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "admin-assistant-knowledge"), 80, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "admin-assistant-knowledge"), 80, 60_000);
   if (!limit.ok) return { error: jsonError("Demasiadas solicitudes.", 429, retryAfterHeaders(limit)) };
   const profile = await getApiAdmin();
   if (!profile) return { error: jsonError("No autorizado.", 401) };
