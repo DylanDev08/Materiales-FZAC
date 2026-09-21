@@ -29,12 +29,16 @@ export function isTrustedMutationRequest(request: Request) {
     const originUrl = new URL(origin);
     const requestUrl = new URL(request.url);
     const requestHost = request.headers.get("host")?.split(",")[0]?.trim() || requestUrl.host;
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
 
     // Normal same-origin traffic remains valid on Render and local development.
     if (originUrl.host === requestHost) return true;
 
-    // Vercel can proxy /api/* to Render while the browser remains on the FZAC origin.
-    // Only exact, explicitly configured origins are accepted here.
+    // Reverse proxies such as Vercel preserve the public host in x-forwarded-host.
+    // Browser cross-site requests are already rejected above by Fetch Metadata.
+    if (forwardedHost && originUrl.host === forwardedHost) return true;
+
+    // Final custom domains can also be pinned explicitly as an exact allowlist.
     return getTrustedAppOrigins().has(originUrl.origin);
   } catch {
     return false;
