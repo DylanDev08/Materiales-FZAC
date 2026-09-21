@@ -4,12 +4,12 @@ import { getApiAdmin } from "@/lib/auth/api-guards";
 import { applyMarketPriceSuggestion, getMarketPriceAdminData, saveMarketObservation } from "@/lib/market-pricing/service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { marketPricePayloadSchema } from "@/lib/validations/market-pricing";
 
 async function guard(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "admin-market-prices"), 60, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "admin-market-prices"), 60, 60_000);
   if (!limit.ok) return { error: jsonError("Demasiadas solicitudes.", 429, retryAfterHeaders(limit)) };
   const profile = await getApiAdmin();
   if (!profile) return { error: jsonError("No autorizado.", 401) };
