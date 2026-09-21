@@ -144,7 +144,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     } catch (authError) {
       setMessage(authError instanceof Error ? authError.message : "No pudimos conectar con el servidor.");
       setMessageTone("error");
-      if (authError instanceof Error && /confirmar el email|falta confirmar/i.test(authError.message)) {
+      if (mode === "login" && normalizedEmail) {
         setNeedsConfirmation(true);
       }
     } finally {
