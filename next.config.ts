@@ -6,7 +6,7 @@ const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fza
 const isRenderDeployment = Boolean(process.env.RENDER_EXTERNAL_HOSTNAME);
 
 function getApiProxyOrigin() {
-  const raw = process.env.API_PROXY_ORIGIN?.trim();
+  const raw = process.env.API_PROXY_ORIGIN?.trim() || (process.env.VERCEL === "1" ? "https://materiales-fzac.onrender.com" : "");
   if (!raw) return "";
 
   const url = new URL(raw);
