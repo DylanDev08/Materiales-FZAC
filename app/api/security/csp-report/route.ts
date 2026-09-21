@@ -1,10 +1,10 @@
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { sanitizeCspReport } from "@/lib/security/csp-report";
 
 const MAX_REPORT_BYTES = 16_384;
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "csp-report"), 30, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "csp-report"), 30, 60_000);
   if (!limit.ok) {
     return new Response(null, { status: 429, headers: retryAfterHeaders(limit) });
   }
