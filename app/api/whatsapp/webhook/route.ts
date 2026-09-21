@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jsonError } from "@/lib/utils/api";
-import { rateLimitRequest, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { distributedRateLimit, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { getWhatsAppConfig } from "@/lib/whatsapp/config";
 import { parseWhatsAppPayload } from "@/lib/whatsapp/message-parser";
 import { verifyMetaSignature, verifyWebhookToken } from "@/lib/whatsapp/security";
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const config = getWhatsAppConfig();
-  const limit = rateLimitRequest(request, { scope: "whatsapp-webhook", limit: 120, windowMs: 60_000 });
+  const limit = await distributedRateLimit(getRequestKey(request, "whatsapp-webhook"), 120, 60_000);
   if (!limit.ok) return jsonError("Demasiados eventos.", 429, retryAfterHeaders(limit));
 
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
