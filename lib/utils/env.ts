@@ -10,7 +10,7 @@ export function hasRealValue(value: string | undefined): value is string {
 }
 
 export function getSiteUrl() {
-  return getEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
+  return getEnv("FZAC_PUBLIC_SITE_URL") || getEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
 }
 
 function isLocalUrl(value: string) {
@@ -48,7 +48,7 @@ export function getAdminEmails() {
 export function getAdminConsolePath() {
   const configured = getEnv("ADMIN_CONSOLE_PATH");
   const path = configured.startsWith("/") ? configured : `/${configured}`;
-  return path.length > 1 ? path.replace(/\/+$/, "") : "/fzac-admin-crs-2026";
+  return path.length > 1 ? path.replace(/\\/+$/, "") : "/fzac-admin-crs-2026";
 }
 
 export function isConfigured(name: string) {
