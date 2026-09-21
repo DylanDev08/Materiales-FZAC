@@ -2,14 +2,14 @@ import { ZodError } from "zod";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { financialMovementSchema, voidFinancialMovementSchema } from "@/lib/validations/admin";
 
 async function context(request: Request, scope: string, limitValue: number) {
   const profile = await getApiAdmin();
   if (!profile) return { response: jsonError("No autorizado.", 403) };
-  const limit = rateLimit(`${getRequestKey(request, scope)}:${profile.id}`, limitValue, 60_000);
+  const limit = await distributedRateLimit(`${getRequestKey(request, scope)}:${profile.id}`, limitValue, 60_000);
   if (!limit.ok) return { response: jsonError("Demasiadas operaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit)) };
   const admin = getSupabaseAdminClient();
   if (!admin) return { response: jsonError("Backend administrativo no disponible.", 503) };
