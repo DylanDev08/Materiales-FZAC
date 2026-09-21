@@ -3,7 +3,7 @@ import { getUserProfile } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { toPublicPaymentSummary } from "@/lib/payments/dto";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 const paramsSchema = z.object({
   id: z.string().uuid("Orden invalida.")
@@ -12,7 +12,7 @@ const paramsSchema = z.object({
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const profile = await getUserProfile();
   if (!profile) return jsonError("Necesitas iniciar sesion.", 401);
-  const limit = rateLimit(`${getRequestKey(request, "account-order-read")}:${profile.id}`, 45, 60_000);
+  const limit = await distributedRateLimit(`${getRequestKey(request, "account-order-read")}:${profile.id}`, 45, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas. Esperá un momento.", 429, retryAfterHeaders(limit));
 
   const admin = getSupabaseAdminClient();
