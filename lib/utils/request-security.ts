@@ -1,14 +1,41 @@
+function normalizeHttpOrigin(value: string | undefined) {
+  if (!value?.trim()) return "";
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+function getTrustedAppOrigins() {
+  const configured = [
+    process.env.FZAC_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    ...(process.env.TRUSTED_APP_ORIGINS ?? "").split(",")
+  ];
+
+  return new Set(configured.map(normalizeHttpOrigin).filter(Boolean));
+}
+
 export function isTrustedMutationRequest(request: Request) {
   if (request.headers.get("sec-fetch-site") === "cross-site") return false;
 
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
+  const origin = normalizeHttpOrigin(request.headers.get("origin") ?? undefined);
+  if (!origin) return !request.headers.get("origin");
 
   try {
     const originUrl = new URL(origin);
-    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-    const requestHost = forwardedHost || request.headers.get("host") || new URL(request.url).host;
-    return originUrl.host === requestHost;
+    const requestUrl = new URL(request.url);
+    const requestHost = request.headers.get("host")?.split(",")[0]?.trim() || requestUrl.host;
+
+    // Normal same-origin traffic remains valid on Render and local development.
+    if (originUrl.host === requestHost) return true;
+
+    // Vercel can proxy /api/* to Render while the browser remains on the FZAC origin.
+    // Only exact, explicitly configured origins are accepted here.
+    return getTrustedAppOrigins().has(originUrl.origin);
   } catch {
     return false;
   }
