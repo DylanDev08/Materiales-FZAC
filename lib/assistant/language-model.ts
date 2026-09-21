@@ -1,5 +1,8 @@
 import "server-only";
 
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
 import { assessAssistantInput, redactAssistantSensitiveText } from "@/lib/assistant/safety";
 
 type GroundedLanguageInput = {
@@ -29,6 +32,44 @@ function allowedHosts() {
       .map((host) => host.trim().toLowerCase())
       .filter(Boolean)
   );
+}
+
+function isPrivateAddress(address: string) {
+  const normalized = address.toLowerCase();
+  if (
+    normalized === "::1" ||
+    normalized === "::" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    /^(fe8|fe9|fea|feb)/.test(normalized)
+  ) {
+    return true;
+  }
+
+  const ipv4 = normalized.startsWith("::ffff:") ? normalized.slice(7) : normalized;
+  const parts = ipv4.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  return parts[0] === 0
+    || parts[0] === 10
+    || parts[0] === 127
+    || parts[0] >= 224
+    || (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+    || (parts[0] === 169 && parts[1] === 254)
+    || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+    || (parts[0] === 192 && parts[1] === 168)
+    || (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19));
+}
+
+async function endpointResolvesPublic(hostname: string) {
+  if (isIP(hostname) !== 0 || hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local")) {
+    return false;
+  }
+  try {
+    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    return addresses.length > 0 && addresses.every(({ address }) => !isPrivateAddress(address));
+  } catch {
+    return false;
+  }
 }
 
 function numericTokens(value: string) {
@@ -94,7 +135,14 @@ export async function refineGroundedAssistantAnswer(input: GroundedLanguageInput
   } catch {
     return { text: groundedDraft, used: false, reason: "NOT_CONFIGURED" };
   }
-  if (endpoint.protocol !== "https:" || !allowedHosts().has(endpoint.hostname.toLowerCase())) {
+  if (
+    endpoint.protocol !== "https:" ||
+    endpoint.username ||
+    endpoint.password ||
+    (endpoint.port && endpoint.port !== "443") ||
+    !allowedHosts().has(endpoint.hostname.toLowerCase()) ||
+    !(await endpointResolvesPublic(endpoint.hostname.toLowerCase()))
+  ) {
     return { text: groundedDraft, used: false, reason: "NOT_CONFIGURED" };
   }
 
