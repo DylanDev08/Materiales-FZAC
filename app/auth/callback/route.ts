@@ -25,8 +25,15 @@ export async function GET(request: Request) {
   const hasLegalAcceptance = authUser?.user_metadata?.legal_terms_accepted === true;
 
   if (authUser && !legalRegistration && !hasLegalAcceptance) {
-    await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/registro?oauth_terms_required=true", siteUrl));
+    const admin = getSupabaseAdminClient();
+    const { data: existingProfile } = admin
+      ? await admin.from("profiles").select("id").eq("id", authUser.id).maybeSingle()
+      : { data: null };
+
+    if (!existingProfile) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL("/registro?oauth_terms_required=true", siteUrl));
+    }
   }
 
   if (legalRegistration && authUser && !hasLegalAcceptance) {
