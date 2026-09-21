@@ -1,10 +1,10 @@
 import { getUserProfile } from "@/lib/auth/get-user";
 import { getAccountOverview } from "@/lib/db/account";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 export async function GET(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "account-summary"), 30, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "account-summary"), 30, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas de cuenta.", 429, retryAfterHeaders(limit));
 
   const profile = await getUserProfile();
