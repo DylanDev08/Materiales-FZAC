@@ -3,7 +3,7 @@ import { buildAssistantQualityAnalytics } from "@/lib/assistant/quality-analytic
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { isSafePlainText } from "@/lib/validations/security";
 
@@ -14,7 +14,7 @@ const updateSchema = z.object({
 });
 
 async function guard(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "admin-assistant-quality"), 60, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "admin-assistant-quality"), 60, 60_000);
   if (!limit.ok) return { error: jsonError("Demasiadas solicitudes.", 429, retryAfterHeaders(limit)) };
   const profile = await getApiAdmin();
   if (!profile) return { error: jsonError("No autorizado.", 401) };
