@@ -4,8 +4,8 @@ import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
   getRequestKey,
-  rateLimit,
-  rateLimitIdentity,
+  distributedRateLimit,
+  distributedRateLimitIdentity,
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
@@ -13,11 +13,11 @@ import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 1_024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
-  const limit = rateLimit(getRequestKey(request, "admin-market-price-sync"), 5, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "admin-market-price-sync"), 5, 60_000);
   if (!limit.ok) return jsonError("Esperá antes de volver a sincronizar.", 429, retryAfterHeaders(limit));
   const profile = await getApiAdmin();
   if (!profile) return jsonError("No autorizado.", 401);
-  const identityLimit = rateLimitIdentity("admin-market-price-sync", profile.id, 2, 5 * 60_000);
+  const identityLimit = await distributedRateLimitIdentity("admin-market-price-sync", profile.id, 2, 5 * 60_000);
   if (!identityLimit.ok) return jsonError("Esperá antes de iniciar otra sincronización.", 429, retryAfterHeaders(identityLimit));
   const slot = acquireRequestConcurrency(request, {
     scope: "market-price-sync",
