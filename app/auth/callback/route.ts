@@ -20,32 +20,38 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(new URL("/login?auth_error=true", siteUrl));
 
-  if (legalRegistration) {
+  const { data } = await supabase.auth.getUser();
+  const authUser = data.user;
+  const hasLegalAcceptance = authUser?.user_metadata?.legal_terms_accepted === true;
+
+  if (authUser && !legalRegistration && !hasLegalAcceptance) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(new URL("/registro?oauth_terms_required=true", siteUrl));
+  }
+
+  if (legalRegistration && authUser && !hasLegalAcceptance) {
     const legalAcceptance = createLegalAcceptance("REGISTER_GOOGLE");
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
-      await supabase.auth.updateUser({
-        data: {
-          ...data.user.user_metadata,
-          ...legalAcceptanceUserMetadata(legalAcceptance)
-        }
-      });
-      const admin = getSupabaseAdminClient();
-      if (admin) {
-        await admin.from("admin_audit_logs").insert({
-          actor_email: data.user.email ?? null,
-          actor_role: isAdminEmail(data.user.email) ? "ADMIN" : "CUSTOMER",
-          action: "LEGAL_ACCEPTANCE_RECORDED",
-          entity: "profiles",
-          entity_id: data.user.id,
-          message: "Aceptación de términos y privacidad durante el registro con Google.",
-          metadata: legalAcceptance
-        });
+    await supabase.auth.updateUser({
+      data: {
+        ...authUser.user_metadata,
+        ...legalAcceptanceUserMetadata(legalAcceptance)
       }
+    });
+    const admin = getSupabaseAdminClient();
+    if (admin) {
+      await admin.from("admin_audit_logs").insert({
+        actor_email: authUser.email ?? null,
+        actor_role: isAdminEmail(authUser.email) ? "ADMIN" : "CUSTOMER",
+        action: "LEGAL_ACCEPTANCE_RECORDED",
+        entity: "profiles",
+        entity_id: authUser.id,
+        message: "Aceptación de términos y privacidad durante el registro con Google.",
+        metadata: legalAcceptance
+      });
     }
   }
 
-  const profile = await syncUserProfileOnLogin();
+  const profile = await syncUserProfileOnLogin(authUser);
   const target = next === "/restablecer" ? next : profile?.role === "ADMIN" ? getAdminConsolePath() : next;
   return NextResponse.redirect(new URL(target, siteUrl));
 }
