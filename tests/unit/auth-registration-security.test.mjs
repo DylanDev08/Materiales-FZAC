@@ -24,3 +24,13 @@ test("registro conserva la politica fuerte de contrasena alineada a ocho caracte
   assert.match(source, /id: "common"/);
   assert.match(source, /id: "personal"/);
 });
+
+
+test("login no revela si la cuenta existe o si falta confirmar el email", async () => {
+  const source = await readFile(new URL("../../app/api/auth/login/route.ts", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /EMAIL_NOT_CONFIRMED/);
+  assert.doesNotMatch(source, /Tu cuenta existe/);
+  assert.match(source, /code: "AUTH_FAILED"/);
+  assert.match(source, /confirmá tu email/);
+});
