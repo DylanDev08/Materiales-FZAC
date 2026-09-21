@@ -18,7 +18,7 @@ El navegador sigue consumiendo rutas relativas `/api/*`. Vercel las reenvia al b
 
 ### Vercel
 
-- `API_PROXY_ORIGIN`: origen HTTPS del backend, sin `/api`.
+- `API_PROXY_ORIGIN`: origen HTTPS del backend, sin `/api`. Si no se define, los deploys en Vercel usan temporalmente `https://materiales-fzac.onrender.com`; el dominio `api.<dominio-fzac>` lo sobreescribe al hacer el cutover.
 - `NEXT_PUBLIC_SITE_URL`: URL publica del frontend.
 - `FZAC_PUBLIC_SITE_URL`: misma URL publica; se usa como canonica en codigo server-side cuando exista.
 - Variables `NEXT_PUBLIC_*` que ya use el frontend.
@@ -32,7 +32,7 @@ El navegador sigue consumiendo rutas relativas `/api/*`. Vercel las reenvia al b
 
 ## Secretos: no mover al navegador
 
-Estas variables deben permanecer server-side y no deben convertirse a `NEXT_PUBLIC_*`:
+Estas variables deben permanecer server-side y no deben convertirse a `NEXT_PUBLIC_*`. Como el proyecto actual usa Server Components/SSR para admin, cuenta, checkout y Auth, las que esos flujos consumen deben existir también como secretos cifrados en Vercel mientras se despliegue el mismo Next completo:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_SERVER_API_KEY`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_DISTANCE_MATRIX_KEY`
@@ -112,4 +112,4 @@ No crear registros con destinos inventados. Cuando el dominio final este definid
 
 ## Disponibilidad
 
-El frontend en Vercel evita que la primera pantalla dependa del arranque del Web Service de Render. Un Render Free puede suspenderse por inactividad; para un backend siempre activo se requiere un plan de Render sin suspension. Ese cambio de plan implica costo y no debe hacerse automaticamente.
+El frontend en Vercel evita que la primera pantalla dependa del arranque del Web Service de Render. Las rutas `/api/*` sí dependen del backend y pueden sufrir cold start mientras Render siga en Free. Un Render Free puede suspenderse por inactividad; para un backend siempre activo se requiere un plan de Render sin suspension. Ese cambio de plan implica costo y no debe hacerse automaticamente.
