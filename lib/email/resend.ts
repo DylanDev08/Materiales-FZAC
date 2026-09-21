@@ -21,11 +21,13 @@ export function getResendConfig() {
   const apiKey = getEnv("RESEND_API_KEY");
   const fromEmail = getEnv("RESEND_FROM_EMAIL");
   const fromName = getEnv("RESEND_FROM_NAME") || "Materiales FZAC";
+  const onboardingSender = fromEmail.trim().toLowerCase().endsWith("@resend.dev");
+  const productionSafeSender = process.env.NODE_ENV !== "production" || !onboardingSender;
   return {
     apiKey,
     fromEmail,
     fromName,
-    configured: hasRealValue(apiKey) && hasRealValue(fromEmail)
+    configured: hasRealValue(apiKey) && hasRealValue(fromEmail) && productionSafeSender
   };
 }
 
