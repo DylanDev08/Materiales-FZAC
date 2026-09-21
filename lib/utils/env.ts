@@ -9,8 +9,25 @@ export function hasRealValue(value: string | undefined): value is string {
   return !PLACEHOLDER_PATTERN.test(value.trim());
 }
 
+function getVercelSiteUrl() {
+  const raw = getEnv("VERCEL_PROJECT_PRODUCTION_URL") || getEnv("VERCEL_URL");
+  if (!raw) return "";
+
+  try {
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return new URL(candidate).origin;
+  } catch {
+    return "";
+  }
+}
+
 export function getSiteUrl() {
-  return getEnv("FZAC_PUBLIC_SITE_URL") || getEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
+  return (
+    getEnv("FZAC_PUBLIC_SITE_URL") ||
+    getEnv("NEXT_PUBLIC_SITE_URL") ||
+    getVercelSiteUrl() ||
+    "http://localhost:3000"
+  );
 }
 
 function isLocalUrl(value: string) {
