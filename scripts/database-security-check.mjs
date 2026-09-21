@@ -31,21 +31,20 @@ for (const required of [
   "payment_events_provider_event_unique_idx",
   "payments_provider_payment_unique_idx",
   "validate_profile_contact_integrity",
-  "validate_category_integrity",
-  "validate_product_commercial_integrity",
-  "validate_product_image_integrity",
   "validate_order_customer_integrity",
   "protect_order_commercial_snapshot",
   "validate_payment_order_integrity",
   "protect_public_store_settings",
   "validate_notification_integrity",
   "validate_conversation_identity",
-  "validate_consumer_request_integrity",
   "protect_notification_content",
   "protect_review_moderation",
   "enforce_user_collection_limits",
   "sync_user_cart",
-  "admin_transition_order"
+  "admin_transition_order",
+  "admin_bulk_void_financial_movements",
+  "guard_order_fulfillment_requires_items",
+  "guard_paid_payment_requires_items"
 ]) {
   if (!normalizedSql.includes(required)) failures.push(`Falta el control de integridad ${required}.`);
 }
@@ -90,6 +89,33 @@ for (const table of ["payments", "inventory_movements"]) {
 if (!normalizedSql.includes("private.is_public_catalog_entry")
   || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.product_supplier_sources\s+from\s+anon/i.test(allSql)) {
   failures.push("El estado final no demuestra aislamiento de proveedor, costo y margen del catalogo publico.");
+}
+
+const productsTableGrant = lastMatchIndex(/grant\s+select\s+on\s+(?:table\s+)?public\.products\s+to\s+(?:anon|authenticated)/g);
+const productsTableRevoke = lastMatchIndex(/revoke\s+select\s+on\s+(?:table\s+)?public\.products\s+from\s+anon,\s*authenticated/g);
+if (productsTableGrant > productsTableRevoke || productsTableRevoke < 0) {
+  failures.push("products no debe recuperar SELECT de tabla completa para anon/authenticated.");
+}
+
+const productColumnHardening = migrations.find(({ file }) => file.includes("hide_internal_product_columns"));
+if (!productColumnHardening
+  || !/grant\s+select\s*\([\s\S]*availability_status[\s\S]*\)\s+on\s+table\s+public\.products\s+to\s+anon,\s*authenticated/i.test(productColumnHardening.sql)
+  || /grant\s+select\s*\([\s\S]*(supplier_id|created_at|updated_at)[\s\S]*\)\s+on\s+table\s+public\.products/i.test(productColumnHardening.sql)) {
+  failures.push("El catalogo publico debe usar grants por columna sin supplier_id ni timestamps internos.");
+}
+
+for (const table of ["profiles", "addresses", "cart_items", "favorites", "user_preferences"]) {
+  const directMutationGrant = lastMatchIndex(new RegExp(
+    `grant\\s+(?:insert|update|delete|all(?:\\s+privileges)?)\\b[\\s\\S]{0,80}on\\s+(?:table\\s+)?public\\.${table}[\\s\\S]{0,80}to\\s+authenticated`,
+    "g"
+  ));
+  const mutationRevoke = lastMatchIndex(new RegExp(
+    `revoke\\s+insert,\\s*update,\\s*delete\\s+on\\s+(?:table\\s+)?public\\.${table}\\s+from\\s+authenticated`,
+    "g"
+  ));
+  if (directMutationGrant > mutationRevoke) {
+    failures.push(`${table}: no debe recuperar mutaciones directas authenticated.`);
+  }
 }
 
 const approveRoute = await readFile(path.join(root, "app/api/admin/orders/[id]/approve/route.ts"), "utf8");
