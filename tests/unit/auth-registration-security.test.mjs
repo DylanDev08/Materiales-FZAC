@@ -34,3 +34,12 @@ test("login no revela si la cuenta existe o si falta confirmar el email", async 
   assert.match(source, /code: "AUTH_FAILED"/);
   assert.match(source, /confirmá tu email/);
 });
+
+
+test("Resend no considera onboarding@resend.dev un remitente productivo", async () => {
+  const source = await readFile(new URL("../../lib/email/resend.ts", import.meta.url), "utf8");
+
+  assert.match(source, /endsWith\("@resend\.dev"\)/);
+  assert.match(source, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(source, /productionSafeSender/);
+});
