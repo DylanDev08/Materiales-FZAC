@@ -1,6 +1,5 @@
 import { z, ZodError } from "zod";
 import { requestPasswordRecoveryEmail } from "@/lib/auth/email-auth";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
 import { distributedRateLimit, distributedRateLimitIdentity, getRequestKey, retryAfterHeaders } from "@/lib/utils/rate-limit";
@@ -23,13 +22,10 @@ export async function POST(request: Request) {
     const payload = recoverSchema.parse(await request.json());
     const emailLimit = await distributedRateLimitIdentity("auth-recover", payload.email, 3, 30 * 60_000);
     if (!emailLimit.ok) return Response.json({ ok: true, message: genericMessage });
-    const admin = getSupabaseAdminClient();
-    if (!admin) return Response.json({ ok: true, message: genericMessage });
-
-    const { data: profile } = await admin.from("profiles").select("id,full_name").eq("email", payload.email).maybeSingle();
-    if (!profile) return Response.json({ ok: true, message: genericMessage });
-
-    await requestPasswordRecoveryEmail({ email: payload.email, name: profile.full_name, siteUrl: getRequestSiteUrl(request) }).catch(() => undefined);
+    await requestPasswordRecoveryEmail({
+      email: payload.email,
+      siteUrl: getRequestSiteUrl(request)
+    }).catch(() => undefined);
     return Response.json({ ok: true, message: genericMessage });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Email invalido.", 422);
