@@ -11,6 +11,7 @@ import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
 import { errorCode, getCorrelationId, logEvent } from "@/lib/observability/logger";
+import { distributedRateLimit, getRequestKey } from "@/lib/utils/rate-limit";
 import {
   buildMercadoPagoProviderEventId,
   isMercadoPagoPaymentId,
@@ -199,6 +200,18 @@ async function notifyWebhookFailure(orderId?: string) {
 
 export async function handleMercadoPagoWebhook(request: Request): Promise<WebhookResult> {
   const requestId = getCorrelationId(request);
+  const requestLimit = await distributedRateLimit(getRequestKey(request, "mercadopago-webhook"), 180, 60_000);
+  if (!requestLimit.ok) {
+    return {
+      status: 429,
+      body: {
+        ok: false,
+        received: false,
+        message: "Demasiadas notificaciones."
+      }
+    };
+  }
+
   const url = new URL(request.url);
   const payload = await readWebhookBody(request);
   if (!payload.ok) return { status: payload.status, body: { ok: false, message: payload.message } };
