@@ -2,7 +2,7 @@ import { ZodError, z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { isSafePlainText, isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
 
@@ -57,7 +57,7 @@ function row(userId: string, payload: z.infer<typeof addressSchema>) {
 }
 
 async function context(request: Request, scope: string) {
-  const limit = rateLimit(getRequestKey(request, scope), 20, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, scope), 20, 60_000);
   if (!limit.ok) return { response: jsonError("Demasiadas actualizaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit)) };
   const user = await getCurrentUser();
   if (!user) return { response: jsonError("Necesitás iniciar sesión.", 401) };
