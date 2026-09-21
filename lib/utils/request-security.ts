@@ -1,3 +1,5 @@
+import { getRequestSiteUrl } from "@/lib/utils/env";
+
 export function isTrustedMutationRequest(request: Request) {
   if (request.headers.get("sec-fetch-site") === "cross-site") return false;
 
@@ -6,9 +8,8 @@ export function isTrustedMutationRequest(request: Request) {
 
   try {
     const originUrl = new URL(origin);
-    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-    const requestHost = forwardedHost || request.headers.get("host") || new URL(request.url).host;
-    return originUrl.host === requestHost;
+    const trustedOrigin = new URL(getRequestSiteUrl(request));
+    return originUrl.origin === trustedOrigin.origin;
   } catch {
     return false;
   }
