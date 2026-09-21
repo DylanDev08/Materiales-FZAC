@@ -5,7 +5,7 @@ import { isResendConfigured, sendTransactionalEmail } from "@/lib/email/resend";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getSiteUrl } from "@/lib/utils/env";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { isTrustedMutationRequest } from "@/lib/utils/request-security";
 import { isSafeUserNote, normalizeUserNote } from "@/lib/validations/security";
 
@@ -34,7 +34,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const profile = await getApiAdmin();
   if (!profile) return jsonError("No autorizado.", 403);
 
-  const limit = rateLimit(`${getRequestKey(request, "admin-consumer-request")}:${profile.id}`, 20, 60_000);
+  const limit = await distributedRateLimit(`${getRequestKey(request, "admin-consumer-request")}:${profile.id}`, 20, 60_000);
   if (!limit.ok) return jsonError("Demasiados cambios seguidos. Esperá un minuto.", 429, retryAfterHeaders(limit));
 
   const admin = getSupabaseAdminClient();
