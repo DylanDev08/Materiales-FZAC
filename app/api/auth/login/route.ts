@@ -16,20 +16,17 @@ import { loginSchema } from "@/lib/validations/auth";
 
 function loginErrorResponse(error: { message?: string; code?: string } | null | undefined) {
   const message = `${error?.message ?? ""} ${error?.code ?? ""}`;
-  if (/email.*not.*confirm|not.*confirm|email_not_confirmed/i.test(message)) {
-    return Response.json(
-      {
-        ok: false,
-        code: "EMAIL_NOT_CONFIRMED",
-        message: "Tu cuenta existe, pero falta confirmar el email. Abrí el enlace de Fortaleza Construcciones antes de iniciar sesión."
-      },
-      { status: 403 }
-    );
-  }
   if (/rate limit|too many|over_email_send_rate_limit/i.test(message)) {
-    return jsonError("Hay demasiados intentos de email en este momento. Esperá unos minutos y volvé a probar.", 429);
+    return jsonError("Hay demasiados intentos de ingreso en este momento. Esperá unos minutos y volvé a probar.", 429);
   }
-  return jsonError("No pudimos iniciar sesión. Revisá tus datos.", 401);
+  return Response.json(
+    {
+      ok: false,
+      code: "AUTH_FAILED",
+      message: "No pudimos iniciar sesión. Revisá tus datos o, si recién te registraste, confirmá tu email."
+    },
+    { status: 401 }
+  );
 }
 
 export async function POST(request: Request) {
