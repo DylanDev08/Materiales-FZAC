@@ -162,7 +162,37 @@ export async function proxy(request: NextRequest) {
     }
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  let invalidRefreshToken = false;
+
+  try {
+    const authResult = await supabase.auth.getUser();
+    user = authResult.data.user;
+    invalidRefreshToken = /invalid refresh token|refresh token not found/i.test(authResult.error?.message ?? "");
+  } catch (error) {
+    invalidRefreshToken =
+      error instanceof Error && /invalid refresh token|refresh token not found/i.test(error.message);
+    if (!invalidRefreshToken) throw error;
+  }
+
+  if (invalidRefreshToken) {
+    const authCookies = request.cookies
+      .getAll()
+      .filter(({ name }) => /^sb-.*-auth-token(?:\.\d+)?$/.test(name));
+
+    if (requiresAuthenticatedPage) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+      const redirect = NextResponse.redirect(url);
+      authCookies.forEach(({ name }) => redirect.cookies.set({ name, value: "", path: "/", maxAge: 0 }));
+      return applySecurityHeaders(redirect, true, true);
+    }
+
+    authCookies.forEach(({ name }) => response.cookies.set({ name, value: "", path: "/", maxAge: 0 }));
+  }
+
   if (requiresAuthenticatedPage && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
