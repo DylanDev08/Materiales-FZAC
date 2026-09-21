@@ -1,8 +1,8 @@
 import { jsonError } from "@/lib/utils/api";
-import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 export async function GET(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "payment-capabilities"), 60, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "payment-capabilities"), 60, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas. Esperá un momento.", 429, retryAfterHeaders(limit));
   return Response.json({
     provider: "CONFIGURED_PAYMENT_PROVIDER",
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "payment-capabilities-post"), 12, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "payment-capabilities-post"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiadas solicitudes. Esperá un momento.", 429, retryAfterHeaders(limit));
   return Response.json(
     {
