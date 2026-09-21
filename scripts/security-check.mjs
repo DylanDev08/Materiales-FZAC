@@ -112,6 +112,12 @@ if (!/- key:\s*NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY\s*\r?\n\s+sync:\s*false/.test
 if (legacyGoogleEnvNames.test(renderConfig)) {
   failures.push("render.yaml: no debe declarar aliases legacy de Google Maps.");
 }
+if (!/- key:\s*UPSTASH_REDIS_REST_URL\s*\r?\n\s+sync:\s*false/.test(renderConfig)) {
+  failures.push("render.yaml: UPSTASH_REDIS_REST_URL must be declared as sync:false.");
+}
+if (!/- key:\s*UPSTASH_REDIS_REST_TOKEN\s*\r?\n\s+sync:\s*false/.test(renderConfig)) {
+  failures.push("render.yaml: UPSTASH_REDIS_REST_TOKEN must be declared as sync:false.");
+}
 
 const envExample = await readFile(path.join(root, ".env.example"), "utf8").catch(() => "");
 if (legacyGoogleEnvNames.test(envExample)) {
