@@ -5,8 +5,8 @@ const root = process.cwd();
 const sourceRoots = ["app", "components", "lib"];
 const publicFiles = ["README.md", ".env.example", ".github", "docs", "scripts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
-const secretNames = /SUPABASE_SERVICE_ROLE_KEY|MERCADOPAGO_ACCESS_TOKEN|MERCADOPAGO_WEBHOOK_SECRET|RESEND_API_KEY|ASSISTANT_LLM_API_KEY|MARKET_PRICE_FEED_TOKENS_JSON|MARKET_PRICE_CRON_SECRET/;
-const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}|re_[A-Za-z0-9_]{20,}|sbp_[A-Za-z0-9_]{20,}|rnd_[A-Za-z0-9_]{20,}/;
+const secretNames = /SUPABASE_SERVICE_ROLE_KEY|DATABASE_URL|DIRECT_URL|MERCADOPAGO_(?:ACCESS_TOKEN|CHECKOUT_PRO_ACCESS_TOKEN|PRODUCTION_ACCESS_TOKEN|CARD_ACCESS_TOKEN|PRODUCTION_CARD_ACCESS_TOKEN|WEBHOOK_SECRET|TEST_WEBHOOK_SECRET|PRODUCTION_WEBHOOK_SECRET)|RESEND_API_KEY|ASSISTANT_LLM_API_KEY|MARKET_PRICE_FEED_TOKENS_JSON|MARKET_PRICE_CRON_SECRET|GOOGLE_MAPS_(?:SERVER_KEY|SERVER_API_KEY)|GOOGLE_DISTANCE_MATRIX_KEY|WHATSAPP_(?:VERIFY_TOKEN|ACCESS_TOKEN|APP_SECRET)|NARANJAX_CLIENT_SECRET/;
+const secretValues = /APP_USR-[A-Za-z0-9-]{20,}|TEST-[A-Za-z0-9-]{20,}|re_[A-Za-z0-9_]{20,}|sbp_[A-Za-z0-9_]{20,}|sb_secret_[A-Za-z0-9_-]{20,}|rnd_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|EAA[A-Za-z0-9]{30,}/;
 const failures = [];
 const criticalJsonMutationRoutes = [
   "app/api/auth/login/route.ts",
@@ -60,6 +60,11 @@ for (const file of criticalJsonMutationRoutes) {
 const legacyCheckout = await readFile(path.join(root, "app/api/checkout/route.ts"), "utf8");
 if (/safeParse[\s\S]{0,300}rawPayload/.test(legacyCheckout)) {
   failures.push("app/api/checkout/route.ts: no debe continuar con un payload que falle el schema.");
+}
+
+const envExample = await readFile(path.join(root, ".env.example"), "utf8").catch(() => "");
+if (/^NEXT_PUBLIC_\w*(?:SERVICE_ROLE|ACCESS_TOKEN|WEBHOOK_SECRET|CLIENT_SECRET|APP_SECRET|SERVER_KEY|PRIVATE_KEY)\w*=/gim.test(envExample)) {
+  failures.push(".env.example: un secreto de servidor no debe declararse como NEXT_PUBLIC_*.");
 }
 
 for (const entry of publicFiles) {
