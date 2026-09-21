@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const rawAdminPath = process.env.ADMIN_CONSOLE_PATH?.trim() || "/fzac-admin-crs-2026";
-const normalizedAdminPath = rawAdminPath.replace(/^\\/+|\\/+$/g, "");
+const normalizedAdminPath = rawAdminPath.replace(/^\/+|\/+$/g, "");
 const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fzac-admin-crs-2026";
 const isRenderDeployment = Boolean(process.env.RENDER_EXTERNAL_HOSTNAME);
 
