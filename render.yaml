@@ -17,6 +17,10 @@ services:
         value: "1"
       - key: SEO_INDEXING_ENABLED
         value: "false"
+      - key: FZAC_PUBLIC_SITE_URL
+        sync: false
+      - key: TRUSTED_APP_ORIGINS
+        sync: false
       - key: GOOGLE_SITE_VERIFICATION
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_URL
