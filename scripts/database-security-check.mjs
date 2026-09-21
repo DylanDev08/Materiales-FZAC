@@ -18,7 +18,10 @@ for (const { sql } of migrations) {
   }
 }
 
+const removedLegacyTables = new Set(["product_images"]);
+
 for (const table of createdTables) {
+  if (removedLegacyTables.has(table)) continue;
   const forcePattern = new RegExp(
     `alter\\s+table\\s+(?:if\\s+exists\\s+)?public\\."?${table}"?\\s+force\\s+row\\s+level\\s+security`,
     "i"
@@ -57,12 +60,16 @@ if (/grant\s+execute\s+on\s+function\s+public\.(finalize_paid_order|finalize_ref
   failures.push("Una RPC financiera sensible concede EXECUTE a un rol publico." );
 }
 
-if (!/revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_version\(\)\s+from\s+public,\s*anon,\s*authenticated/i.test(allSql)) {
+const archiveRevokes = ["public", "anon", "authenticated"].every((role) =>
+  new RegExp(`revoke\\s+execute\\s+on\\s+function\\s+public\\.archive_assistant_knowledge_version\\(\\)\\s+from\\s+${role}`, "i").test(allSql)
+);
+if (!archiveRevokes) {
   failures.push("La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE publico." );
 }
 
-if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(allSql)
-  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(allSql)) {
+const searchInsertGrant = lastMatchIndex(/grant\s+(?:insert|all(?:\s+privileges)?)\b[\s\S]{0,100}on\s+(?:table\s+)?public\.search_events[\s\S]{0,100}to\s+(?:anon|authenticated)/g);
+const searchInsertRevoke = lastMatchIndex(/revoke\s+insert(?:,\s*update,\s*delete)?\s+on\s+(?:table\s+)?public\.search_events\s+from\s+anon,\s*authenticated/g);
+if (searchInsertGrant > searchInsertRevoke || searchInsertRevoke < 0) {
   failures.push("Los eventos de busqueda conservan un camino de escritura publica." );
 }
 
