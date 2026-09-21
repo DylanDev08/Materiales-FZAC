@@ -3,7 +3,6 @@ import "server-only";
 import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
@@ -175,7 +174,7 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
 }
 
 export const getCategories = cache(async function getCategories() {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
   const { data, error } = await supabase
@@ -190,7 +189,7 @@ export const getCategories = cache(async function getCategories() {
 });
 
 export async function getCatalogFacets(): Promise<CatalogFacets> {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   if (!supabase) {
     const publicProducts = applyFallbackFilters(fallbackProducts, { limit: 500 });
     return {
@@ -227,7 +226,7 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
 }
 
 export async function getProducts(filters: ProductFilters = {}) {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   if (!supabase) return applyFallbackFilters(fallbackProducts, filters);
 
   const [supplierIds, categories] = await Promise.all([getPublicSupplierIds(), getCategories()]);
@@ -290,7 +289,7 @@ export async function getProducts(filters: ProductFilters = {}) {
 }
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string) {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseAdminClient();
   if (!supabase) {
     return applyFallbackFilters(fallbackProducts, { limit: 500 }).find((product) => product.slug === slug) ?? null;
   }
