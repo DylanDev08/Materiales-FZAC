@@ -1,11 +1,11 @@
 import { ZodError } from "zod";
 import { inspectCheckoutStock } from "@/lib/db/orders";
 import { jsonError } from "@/lib/utils/api";
-import { acquireRequestConcurrency, getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
+import { acquireRequestConcurrency, getRequestKey, distributedRateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
 
 export async function POST(request: Request) {
-  const limit = rateLimit(getRequestKey(request, "cart-validate"), 30, 60_000);
+  const limit = await distributedRateLimit(getRequestKey(request, "cart-validate"), 30, 60_000);
   if (!limit.ok) return jsonError("Demasiadas validaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 48 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
