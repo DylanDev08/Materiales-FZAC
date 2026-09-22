@@ -217,6 +217,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setMessageTone("error");
       setMessage(error instanceof Error ? error.message : "No pudimos reenviar el enlace.");
     } finally {
+      if (turnstileEnabled) setCaptchaResetKey((current) => current + 1);
       setResending(false);
     }
   }
@@ -400,7 +401,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         {message ? <p className={`notice notice--${messageTone === "error" ? "danger" : messageTone}`}>{message}</p> : null}
 
         {mode === "login" && needsConfirmation ? (
-          <button className="auth-resend-button" type="button" onClick={resendConfirmation} disabled={resending || !normalizedEmail}>
+          <button
+            className="auth-resend-button"
+            type="button"
+            onClick={resendConfirmation}
+            disabled={resending || !normalizedEmail || (turnstileEnabled && !captchaToken)}
+          >
             {resending ? <Loader2 size={17} className="spin" /> : <MailCheck size={17} />}
             {resending ? "Enviando enlace" : "Reenviar email de confirmación"}
           </button>
