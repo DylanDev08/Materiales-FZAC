@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type AdminMfaState = {
   available: boolean;
@@ -45,4 +46,12 @@ export async function getAdminMfaState(): Promise<AdminMfaState> {
 export async function hasAdminAal2() {
   const state = await getAdminMfaState();
   return state.available && state.currentLevel === "aal2";
+}
+
+export async function isAdminMfaEnforcementReady() {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return false;
+
+  const { error } = await admin.rpc("pre_domain_security_status");
+  return !error;
 }
