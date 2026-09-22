@@ -667,6 +667,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       { label: "Ticket promedio", value: currency(averageTicket), helper: `Promedio de la ${selectedPeriodName}` },
       { label: "Clientes nuevos", value: String(profiles?.length ?? 0), helper: "Altas del mes" },
       { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} bajo stock` },
+      { label: "Productos bajo stock", value: String(lowStock.length), helper: `${noStock.length} sin stock` },
       { label: "Productos sin stock", value: String(noStock.length), helper: "Reponer primero" },
       { label: "Tickets emitidos", value: String(selectedTicketRows.length), helper: `Tickets de la ${selectedPeriodName}` },
       { label: "Chats pendientes", value: String(chats?.length ?? 0), helper: "AI o soporte humano" }
