@@ -45,7 +45,10 @@ for (const required of [
   "protect_review_moderation",
   "enforce_user_collection_limits",
   "sync_user_cart",
-  "admin_transition_order"
+  "admin_transition_order",
+  "consume_security_rate_limit",
+  "pre_domain_security_status",
+  "users_legacy_credentials_must_remain_null"
 ]) {
   if (!normalizedSql.includes(required)) failures.push(`Falta el control de integridad ${required}.`);
 }
