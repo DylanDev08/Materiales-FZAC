@@ -7,6 +7,7 @@ import {
   InsufficientStockError,
   ShippingQuoteError
 } from "@/lib/db/orders";
+import { getCurrentUser } from "@/lib/auth/get-user";
 import { MercadoPagoNotConfiguredError } from "@/lib/payments/config";
 import {
   createMercadoPagoCardPayment,
@@ -103,7 +104,12 @@ export async function POST(request: Request) {
 
   try {
     const payload = checkoutCardCreateSchema.parse(body.data);
-    const identity = payload.checkout.customer.email;
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.id || !currentUser.email) return jsonError("Necesitás iniciar sesión para comprar.", 401);
+    if (currentUser.email.trim().toLowerCase() !== payload.checkout.customer.email.trim().toLowerCase()) {
+      return jsonError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
+    }
+    const identity = currentUser.id;
     const purchaseLimit = rateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000);
     const paymentLimit = rateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000);
     const blocked = !purchaseLimit.ok ? purchaseLimit : !paymentLimit.ok ? paymentLimit : null;
