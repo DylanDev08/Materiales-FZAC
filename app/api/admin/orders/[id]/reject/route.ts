@@ -1,8 +1,8 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { z } from "zod";
 import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
-import { withApiTelemetry } from "@/lib/observability/request";
 
 const paramsSchema = z.object({ id: z.string().uuid("Orden invalida.") });
 const bodySchema = z.object({
@@ -52,6 +52,6 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 }
 
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) { {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return withApiTelemetry("admin.order.reject", request, () => handlePost(request, context));
 }
