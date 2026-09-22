@@ -71,6 +71,11 @@ for (const file of ["app/api/checkout/create/route.ts", "app/api/checkout/card/r
   }
 }
 
+const registerRoute = await readFile(path.join(root, "app/api/auth/register/route.ts"), "utf8");
+if (/findRegistrationDuplicate|duplicateMessage/.test(registerRoute)) {
+  failures.push("app/api/auth/register/route.ts: el alta publica no debe revelar si email, telefono o nombre ya existen.");
+}
+
 const envExample = await readFile(path.join(root, ".env.example"), "utf8").catch(() => "");
 if (/^NEXT_PUBLIC_\w*(?:SERVICE_ROLE|ACCESS_TOKEN|WEBHOOK_SECRET|CLIENT_SECRET|APP_SECRET|SERVER_KEY|PRIVATE_KEY)\w*=/gim.test(envExample)) {
   failures.push(".env.example: un secreto de servidor no debe declararse como NEXT_PUBLIC_*.");
