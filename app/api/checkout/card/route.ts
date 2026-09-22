@@ -174,20 +174,26 @@ async function handlePost(request: Request) {
       const resumed = await existingCardPaymentResponse(paymentId, orderId);
       if (resumed) return resumed;
 
-      const payment = await createMercadoPagoCardPayment({
-        orderId,
-        amount: total,
-        description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
-        token: payload.card.token,
-        paymentMethodId: payload.card.payment_method_id,
-        issuerId: payload.card.issuer_id,
-        installments: payload.card.installments,
-        payer: {
-          email: payload.card.cardholder_email,
-          identificationType: payload.card.identification_type,
-          identificationNumber: payload.card.identification_number
-        }
-      });
+      let payment: Record<string, unknown>;
+      try {
+        payment = await createMercadoPagoCardPayment({
+          orderId,
+          amount: total,
+          description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
+          token: payload.card.token,
+          paymentMethodId: payload.card.payment_method_id,
+          issuerId: payload.card.issuer_id,
+          installments: payload.card.installments,
+          payer: {
+            email: payload.card.cardholder_email,
+            identificationType: payload.card.identification_type,
+            identificationNumber: payload.card.identification_number
+          }
+        });
+      } catch (error) {
+        await releaseOrderStockReservation(orderId, "CARD_PAYMENT_CREATE_FAILED").catch(() => undefined);
+        throw error;
+      }
 
       const status = String(payment.status ?? "pending");
       const safePayment = sanitizeMercadoPagoPayment(payment);
