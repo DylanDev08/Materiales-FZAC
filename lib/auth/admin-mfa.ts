@@ -9,6 +9,10 @@ export type AdminMfaState = {
   verifiedTotpFactors: number;
 };
 
+function normalizeAal(value: unknown): "aal1" | "aal2" | null {
+  return value === "aal1" || value === "aal2" ? value : null;
+}
+
 export async function getAdminMfaState(): Promise<AdminMfaState> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
@@ -32,8 +36,8 @@ export async function getAdminMfaState(): Promise<AdminMfaState> {
 
   return {
     available: true,
-    currentLevel: aalResult.data.currentLevel ?? null,
-    nextLevel: aalResult.data.nextLevel ?? null,
+    currentLevel: normalizeAal(aalResult.data.currentLevel),
+    nextLevel: normalizeAal(aalResult.data.nextLevel),
     verifiedTotpFactors
   };
 }
