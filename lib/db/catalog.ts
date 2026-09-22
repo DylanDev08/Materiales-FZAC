@@ -5,6 +5,7 @@ import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
+import { applyAvailableStockToProducts } from "@/lib/inventory/reservations";
 import { sanitizeSearchTerm } from "@/lib/validations/security";
 import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
 
@@ -286,7 +287,7 @@ export async function getProducts(filters: ProductFilters = {}) {
 
   const { data, error } = await query;
   if (error) return [];
-  return (data ?? []).map(normalizeProduct);
+  return applyAvailableStockToProducts((data ?? []).map(normalizeProduct));
 }
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string) {
@@ -308,7 +309,8 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
     .maybeSingle();
 
   if (error || !data) return null;
-  return normalizeProduct(data);
+  const [product] = await applyAvailableStockToProducts([normalizeProduct(data)]);
+  return product ?? null;
 });
 
 export async function getRelatedProducts(product: Product) {
