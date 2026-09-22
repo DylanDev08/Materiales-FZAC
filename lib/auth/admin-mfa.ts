@@ -52,6 +52,6 @@ export async function isAdminMfaEnforcementReady() {
   const admin = getSupabaseAdminClient();
   if (!admin) return false;
 
-  const { error } = await admin.rpc("pre_domain_security_status");
-  return !error;
+  const { data, error } = await admin.rpc("admin_mfa_enforcement_status");
+  return !error && data === true;
 }
