@@ -7,9 +7,11 @@ import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-li
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { normalizeEmail } from "@/lib/validations/auth";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 const recoverSchema = z.object({
-  email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail)
+  email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
+  captchaToken: z.string().max(4096).optional()
 });
 
 const genericMessage = "Si existe una cuenta con ese email, vas a recibir un link de recuperación de Materiales FZAC.";
@@ -22,6 +24,13 @@ export async function POST(request: Request) {
 
   try {
     const payload = recoverSchema.parse(await request.json());
+    const captcha = await verifyTurnstileToken(payload.captchaToken, "recover");
+    if (!captcha.ok) {
+      return jsonError(
+        captcha.unavailable ? "La verificación anti-bot no está disponible. Reintentá en un momento." : "Completá la verificación anti-bot.",
+        captcha.unavailable ? 503 : 403
+      );
+    }
     const distributed = await distributedRateLimitRequest(request, {
       scope: "auth-recover",
       limit: 5,
