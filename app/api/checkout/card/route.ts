@@ -1,6 +1,6 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { ZodError } from "zod";
 import {
-import { withApiTelemetry } from "@/lib/observability/request";
   CheckoutAuthRequiredError,
   CheckoutIdempotencyError,
   CheckoutIntegrityError,
@@ -256,6 +256,6 @@ async function handlePost(request: Request) {
 }
 
 
-export async function POST(request: Request) { {
+export async function POST(request: Request) {
   return withApiTelemetry("checkout.card", request, () => handlePost(request));
 }
