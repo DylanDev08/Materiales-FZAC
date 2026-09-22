@@ -5,6 +5,7 @@ import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { normalizeEmail } from "@/lib/validations/auth";
 
 const recoverSchema = z.object({
@@ -21,6 +22,17 @@ export async function POST(request: Request) {
 
   try {
     const payload = recoverSchema.parse(await request.json());
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "auth-recover",
+      limit: 5,
+      windowMs: 60_000,
+      identity: payload.email,
+      identityLimit: 3,
+      identityWindowMs: 30 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Demasiadas solicitudes. Esperá unos minutos.", 429, distributedRetryHeaders(distributed));
+    }
     const admin = getSupabaseAdminClient();
     if (!admin) return Response.json({ ok: true, message: genericMessage });
 
