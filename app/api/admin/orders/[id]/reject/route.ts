@@ -2,13 +2,14 @@ import { z } from "zod";
 import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { withApiTelemetry } from "@/lib/observability/request";
 
 const paramsSchema = z.object({ id: z.string().uuid("Orden invalida.") });
 const bodySchema = z.object({
   reason: z.string().trim().min(3, "Indicá un motivo.").max(240)
 });
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePost(request: Request, context: { params: Promise<{ id: string }> }) {
   const mutation = validateJsonMutationRequest(request, 4 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const access = await getAdminApiContext(request, { scope: "admin-order-reject", limit: 12 });
@@ -48,4 +49,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     status: String((data as { status?: string } | null)?.status ?? "CANCELLED"),
     message: "Compra rechazada. No se descuenta stock."
   });
+}
+
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) { {
+  return withApiTelemetry("admin.order.reject", request, () => handlePost(request, context));
 }
