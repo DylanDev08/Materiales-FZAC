@@ -48,6 +48,7 @@ for (const required of [
   "admin_transition_order",
   "consume_security_rate_limit",
   "pre_domain_security_status",
+  "admin_mfa_enforcement_status",
   "users_legacy_credentials_must_remain_null"
 ]) {
   if (!normalizedSql.includes(required)) failures.push(`Falta el control de integridad ${required}.`);
@@ -82,4 +83,10 @@ if (failures.length) {
   process.exitCode = 1;
 } else {
   process.stdout.write(`Database security check OK: ${createdTables.size} public tables require FORCE RLS.\n`);
+}
+
+const mfaActivation = migrations.find(({ file }) => file === "20260922171000_enable_admin_mfa.sql")?.sql ?? "";
+if (!/auth\.jwt\(\)->>'aal'[\s\S]{0,160}=\s*'aal2'/i.test(mfaActivation)
+  || !/private\.is_admin\(\)/i.test(mfaActivation)) {
+  failures.push("La migracion de activacion MFA no exige AAL2 junto con el rol admin.");
 }
