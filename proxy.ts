@@ -78,12 +78,14 @@ export async function proxy(request: NextRequest) {
     "/login",
     "/registro",
     "/recuperar",
-    "/restablecer"
+    "/restablecer",
+    "/seguridad/admin-mfa"
   ].some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
   const requiresAuthenticatedPage =
     request.nextUrl.pathname === "/checkout" ||
     request.nextUrl.pathname === "/cuenta" ||
-    request.nextUrl.pathname.startsWith("/cuenta/");
+    request.nextUrl.pathname.startsWith("/cuenta/") ||
+    request.nextUrl.pathname === "/seguridad/admin-mfa";
   const isSensitivePath =
     isConsolePath ||
     isPrivatePagePath ||
