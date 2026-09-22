@@ -17,6 +17,7 @@ import {
 } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
@@ -59,6 +60,10 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
 
   const existingRaw = existing?.raw && typeof existing.raw === "object" ? existing.raw as Record<string, unknown> : {};
   const now = new Date().toISOString();
+
+  if (mapped === "FAILED" || mapped === "EXPIRED") {
+    await releaseOrderStockReservation(orderId, `MERCADOPAGO_${mapped}`);
+  }
   const { error: paymentUpdateError } = await admin
     .from("payments")
     .update({
