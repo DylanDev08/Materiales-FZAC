@@ -130,8 +130,9 @@ begin
     raise exception 'SERVICE_ROLE_REQUIRED';
   end if;
 
-  select count(*)::integer filter (where "password" is not null),
-         count(*)::integer filter (where "refreshToken" is not null)
+  select
+    (count(*) filter (where "password" is not null))::integer,
+    (count(*) filter (where "refreshToken" is not null))::integer
   into v_legacy_passwords, v_legacy_refresh
   from public.users;
 
