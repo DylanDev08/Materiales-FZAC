@@ -15,7 +15,6 @@ const criticalJsonMutationRoutes = [
   "app/api/auth/reset-password/route.ts",
   "app/api/cart/route.ts",
   "app/api/cart/validate/route.ts",
-  "app/api/checkout/route.ts",
   "app/api/checkout/create/route.ts",
   "app/api/checkout/card/route.ts",
   "app/api/shipping/quote/route.ts",
@@ -58,8 +57,18 @@ for (const file of criticalJsonMutationRoutes) {
 }
 
 const legacyCheckout = await readFile(path.join(root, "app/api/checkout/route.ts"), "utf8");
-if (/safeParse[\s\S]{0,300}rawPayload/.test(legacyCheckout)) {
-  failures.push("app/api/checkout/route.ts: no debe continuar con un payload que falle el schema.");
+if (!/export\s*\{\s*POST\s*\}\s*from\s*["']\.\/create\/route["']/.test(legacyCheckout)) {
+  failures.push("app/api/checkout/route.ts: el endpoint legacy debe delegar al handler canonico /api/checkout/create.");
+}
+
+for (const file of ["app/api/checkout/create/route.ts", "app/api/checkout/card/route.ts"]) {
+  const content = await readFile(path.join(root, file), "utf8");
+  if (!content.includes("getCurrentUser")) {
+    failures.push(`${file}: el rate limit de compra debe derivarse de la sesion autenticada.`);
+  }
+  if (/rateLimitIdentity\([^\n]+payload(?:\.checkout)?\.customer\.email/.test(content)) {
+    failures.push(`${file}: no usar email controlado por el cliente como identidad de rate limit.`);
+  }
 }
 
 const envExample = await readFile(path.join(root, ".env.example"), "utf8").catch(() => "");
