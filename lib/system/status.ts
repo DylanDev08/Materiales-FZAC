@@ -323,6 +323,24 @@ export async function getSystemStatus() {
         : "No pudimos verificar la consistencia operativa de pagos."
     },
     {
+      area: "Pagos",
+      label: "Pagos demorados",
+      ...(integrity && integrity.stale_pending_orders === 0
+        ? status("success", "Sin demorados")
+        : integrity
+          ? status("warning", `${integrity.stale_pending_orders} para revisar`)
+          : status("warning", "Sin lectura")),
+      detail: integrity?.stale_pending_orders
+        ? "Hay órdenes en PENDING_PAYMENT con más de 2 horas. Revisar antes de cancelarlas; no se modifican automáticamente."
+        : "No hay órdenes de pago pendientes por más de 2 horas."
+    },
+    {
+      area: "Comercio",
+      label: "Reserva temporal de stock",
+      ...status("warning", "Pendiente de implementar"),
+      detail: "El checkout revalida stock al crear y al cobrar, pero todavía no bloquea unidades durante la ventana de pago. Requiere política de expiración antes de tráfico alto."
+    },
+    {
       area: "Comercio",
       label: "Pedidos activos incompletos",
       ...(integrity && integrity.active_orders_without_items === 0
