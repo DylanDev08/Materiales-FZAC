@@ -46,6 +46,11 @@ export async function GET(request: Request) {
   }
 
   const profile = await syncUserProfileOnLogin();
-  const target = next === "/restablecer" ? next : profile?.role === "ADMIN" ? getAdminConsolePath() : next;
+  const target =
+    next === "/restablecer"
+      ? next
+      : profile?.role === "ADMIN"
+        ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
+        : next;
   return NextResponse.redirect(new URL(target, siteUrl));
 }
