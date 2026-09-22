@@ -1,7 +1,7 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { z, ZodError } from "zod";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import {
-import { withApiTelemetry } from "@/lib/observability/request";
   createMercadoPagoRefund,
   getMercadoPagoPayment,
   MercadoPagoRefundError
@@ -190,6 +190,6 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
 }
 
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) { {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return withApiTelemetry("admin.payment.refund", request, () => handlePost(request, context));
 }
