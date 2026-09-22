@@ -1,8 +1,7 @@
 const required = [
   "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN",
   "NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY",
-  "MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET",
-  "NEXT_PUBLIC_SITE_URL"
+  "MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET"
 ];
 
 function value(name) {
@@ -14,9 +13,19 @@ function configured(name) {
   return Boolean(current) && !/^<.*>$/.test(current);
 }
 
+function siteUrlValue() {
+  return value("FZAC_PUBLIC_SITE_URL") || value("NEXT_PUBLIC_SITE_URL");
+}
+
 const missing = required.filter((name) => !configured(name));
 const problems = [];
 
+if (value("PAYMENTS_ENABLED").toLowerCase() !== "true" && value("PAYMENT_ENABLED").toLowerCase() !== "true") {
+  problems.push("PAYMENTS_ENABLED debe estar habilitado.");
+}
+if ((value("PAYMENTS_PROVIDER") || "mercadopago").toLowerCase() !== "mercadopago") {
+  problems.push("PAYMENTS_PROVIDER debe ser mercadopago.");
+}
 if (value("PAYMENTS_ENV").toLowerCase() !== "production") {
   problems.push("PAYMENTS_ENV debe ser production.");
 }
@@ -25,15 +34,15 @@ if (value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() !== "true") {
 }
 
 try {
-  const siteUrl = new URL(value("NEXT_PUBLIC_SITE_URL"));
+  const siteUrl = new URL(siteUrlValue());
   if (
     siteUrl.protocol !== "https:" ||
     ["localhost", "127.0.0.1", "0.0.0.0"].includes(siteUrl.hostname)
   ) {
-    problems.push("NEXT_PUBLIC_SITE_URL debe ser una URL HTTPS publica.");
+    problems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL debe ser una URL HTTPS publica.");
   }
 } catch {
-  problems.push("NEXT_PUBLIC_SITE_URL no es una URL valida.");
+  problems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL no contiene una URL valida.");
 }
 
 if (missing.length || problems.length) {
