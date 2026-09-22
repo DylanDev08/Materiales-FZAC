@@ -12,6 +12,7 @@ import {
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { loginSchema } from "@/lib/validations/auth";
 
 function loginErrorResponse(error: { message?: string; code?: string } | null | undefined) {
@@ -40,6 +41,17 @@ export async function POST(request: Request) {
 
   try {
     const payload = loginSchema.parse(body.data);
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "auth-login",
+      limit: 8,
+      windowMs: 60_000,
+      identity: payload.email,
+      identityLimit: 6,
+      identityWindowMs: 5 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Demasiados intentos. Esperá unos minutos.", 429, distributedRetryHeaders(distributed));
+    }
     const emailLimit = rateLimitIdentity("auth-login", payload.email, 6, 5 * 60_000);
     if (!emailLimit.ok) return jsonError("Demasiados intentos para esta cuenta. Esperá unos minutos.", 429, retryAfterHeaders(emailLimit));
     const slot = acquireRequestConcurrency(request, {
