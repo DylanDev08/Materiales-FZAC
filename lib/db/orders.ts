@@ -462,10 +462,14 @@ async function resumeCheckoutByIdempotencyKey(
       throw new Error("El proveedor de pago no devolvió una URL válida.");
     }
 
-    await admin
+    const { error: preferencePersistError } = await admin
       .from("payments")
       .update({ provider_preference_id: preference.preference_id, updated_at: new Date().toISOString() })
       .eq("id", payment.id);
+    if (preferencePersistError) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_PERSIST_FAILED").catch(() => undefined);
+      throw new Error("No pudimos asociar la preferencia de pago al pedido.");
+    }
   }
 
   return checkoutSuccessResponse({
@@ -799,10 +803,14 @@ export async function createCheckout(input: unknown) {
       throw new Error("El proveedor de pago no devolvió una URL válida.");
     }
 
-    await admin
+    const { error: preferencePersistError } = await admin
       .from("payments")
       .update({ provider_preference_id: preference.preference_id, updated_at: new Date().toISOString() })
       .eq("order_id", order.id);
+    if (preferencePersistError) {
+      await releaseOrderStockReservation(order.id, "PREFERENCE_PERSIST_FAILED").catch(() => undefined);
+      throw new Error("No pudimos asociar la preferencia de pago al pedido.");
+    }
 
     return checkoutSuccessResponse({
       orderId: order.id,
