@@ -1,5 +1,15 @@
 # Salida productiva FZAC: pagos, ARCA y revisión legal
 
+## 0. Identidad comercial confirmada
+
+Datos disponibles para configuración comercial:
+
+- Marca: **FZACONSTRUCCIONES / FZAC**
+- Nombre comercial: **Fortaleza Construcciones**
+- CUIT informado: **20-36454125-3**
+
+La **razón social fiscal exacta** todavía debe confirmarse contra ARCA antes de completar `FZAC_LEGAL_NAME` o emitir documentación fiscal. El CUIT y los nombres comerciales pueden utilizarse en identidad interna/comercial sin asumir que alguno de ellos sea la denominación fiscal registrada.
+
 Fecha de preparación técnica: 2026-08-21
 
 Este documento organiza el traspaso al contador y al profesional legal. No reemplaza su dictamen ni autoriza por sí solo la emisión de comprobantes fiscales.

@@ -339,30 +339,50 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     }
 
     const paymentStatus = paymentStatusFromMercadoPago(status);
-    await admin
+    const now = new Date().toISOString();
+    const { error: paymentUpdateError } = await admin
       .from("payments")
       .update({
         status: paymentStatus,
         provider_payment_id: providerId,
         raw: safePayment,
-        updated_at: new Date().toISOString()
+        updated_at: now
       })
       .eq("order_id", orderId);
+    if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
 
     if (paymentStatus !== "PENDING") {
-      await admin
+      const nextOrderStatus = orderStatusFromMercadoPago(status);
+      const cancelling = nextOrderStatus === "CANCELLED";
+      const { error: orderUpdateError } = await admin
         .from("orders")
-        .update({ status: orderStatusFromMercadoPago(status), updated_at: new Date().toISOString() })
+        .update({
+          status: nextOrderStatus,
+          updated_at: now,
+          ...(cancelling
+            ? {
+                cancellation_reason: `Mercado Pago: ${status || paymentStatus}`,
+                cancelled_at: now
+              }
+            : {})
+        })
         .eq("id", orderId);
+      if (orderUpdateError) throw new Error("ORDER_STATUS_PERSIST_FAILED");
     }
 
-    await admin.from("notifications").insert({
+    const { error: notificationError } = await admin.from("notifications").insert({
       target_role: "ADMIN",
       type: paymentStatus === "FAILED" ? "PAYMENT_REJECTED" : "PAYMENT_PENDING",
       title: paymentStatus === "FAILED" ? "Pago rechazado" : "Pago pendiente",
       message: `Mercado Pago informo estado ${status || "pendiente"} para el pedido ${orderId.slice(0, 8).toUpperCase()}.`,
       link_to: `${getAdminConsolePath()}/pedidos?order=${orderId}`
     });
+    if (notificationError) {
+      console.error("[mercadopago.webhook.notification]", {
+        message: "No pudimos crear la notificacion administrativa.",
+        order_reference: orderId.slice(0, 8).toUpperCase()
+      });
+    }
 
     await updatePaymentEvent(eventId, { status: "PROCESSED", orderId });
     return { status: 200, body: { ok: true, received: true, status: paymentStatus, orderId } };

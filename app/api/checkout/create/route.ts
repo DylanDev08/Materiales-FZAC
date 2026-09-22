@@ -1,3 +1,4 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { ZodError } from "zod";
 import {
   CheckoutAuthRequiredError,
@@ -29,7 +30,7 @@ function logCheckoutResult(result: { order_id?: string; orderId?: string; paymen
   });
 }
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-create"), 8, 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 64 * 1024);
@@ -144,4 +145,9 @@ export async function POST(request: Request) {
     }
     return jsonError("No pudimos crear el checkout. Revisá los datos e intentá nuevamente.", 400);
   }
+}
+
+
+export async function POST(request: Request) {
+  return withApiTelemetry("checkout.create", request, () => handlePost(request));
 }

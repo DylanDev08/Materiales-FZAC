@@ -202,7 +202,7 @@ function AdminTaskCenter({
     },
     {
       label: "Bajo stock",
-      value: numericMetric(metrics, "Productos sin stock"),
+      value: numericMetric(metrics, "Productos bajo stock"),
       href: `${adminPath}/inventario`,
       icon: PackageCheck,
       helper: "Reponer productos sin disponibilidad antes de vender."
@@ -439,6 +439,7 @@ export async function AdminDashboard({ period }: { period?: string }) {
           <span>Ticket promedio: {averageTicket.value}</span>
           <span>Proveedores: {supplierOutstanding.value}</span>
           <span>Stock activo: {getMetric(metrics, "Productos activos").value}</span>
+          <span>Bajo stock: {getMetric(metrics, "Productos bajo stock").value}</span>
           <span>Sin stock: {getMetric(metrics, "Productos sin stock").value}</span>
           <span>Usuarios: {getMetric(metrics, "Usuarios registrados").value}</span>
         </section>

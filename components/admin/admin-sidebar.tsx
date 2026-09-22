@@ -79,7 +79,7 @@ const linkGroups = [
     title: "Configuracion",
     links: [
       { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
-      { path: "/pagos/eventos", label: "Comprobantes de pago", icon: Activity },
+      { path: "/pagos/eventos", label: "Eventos de pago", icon: Activity },
       { path: "/sistema", label: "Estado del sistema", icon: ShieldCheck },
       { path: "/apariencia", label: "Apariencia", icon: Palette },
       { path: "/ajustes", label: "Ajustes", icon: Settings },

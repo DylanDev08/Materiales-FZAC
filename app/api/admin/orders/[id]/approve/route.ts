@@ -1,3 +1,4 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { z } from "zod";
 import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
@@ -5,7 +6,7 @@ import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 
 const paramsSchema = z.object({ id: z.string().uuid("Orden invalida.") });
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePost(request: Request, context: { params: Promise<{ id: string }> }) {
   const mutation = validateJsonMutationRequest(request, 2 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const access = await getAdminApiContext(request, { scope: "admin-order-approve", limit: 12 });
@@ -39,4 +40,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     status: String((data as { status?: string } | null)?.status ?? "PENDING_PAYMENT"),
     message: "Compra aprobada. Ya puede continuar el flujo de pago."
   });
+}
+
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  return withApiTelemetry("admin.order.approve", request, () => handlePost(request, context));
 }

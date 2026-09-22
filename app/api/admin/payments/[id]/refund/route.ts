@@ -1,3 +1,4 @@
+import { withApiTelemetry } from "@/lib/observability/request";
 import { z, ZodError } from "zod";
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import {
@@ -59,7 +60,7 @@ async function createRefundFailureNotification(paymentId: string, orderId: strin
   });
 }
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePost(request: Request, context: { params: Promise<{ id: string }> }) {
   const mutation = validateJsonMutationRequest(request, 8 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
   const profile = await getApiAdmin();
@@ -186,4 +187,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     return jsonError("No pudimos completar el reembolso. No vuelvas a intentarlo hasta revisar el pago.", 500);
   }
+}
+
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  return withApiTelemetry("admin.payment.refund", request, () => handlePost(request, context));
 }

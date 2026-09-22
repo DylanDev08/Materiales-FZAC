@@ -49,10 +49,19 @@ function siteUrlState(siteUrl: string) {
 
 type DatabaseIntegrityStatus = {
   orders_without_items: number;
+  active_orders_without_items: number;
+  legacy_cancelled_orders_without_items: number;
   duplicate_idempotency_keys: number;
   negative_stock_products: number;
+  orders_multiple_payments: number;
+  provider_payment_duplicates: number;
+  stale_pending_orders: number;
+  stuck_payment_events: number;
+  paid_order_mismatches: number;
   atomic_checkout_function: boolean;
+  finalize_payment_function: boolean;
   idempotency_unique_index: boolean;
+  provider_payment_unique_index: boolean;
   profile_privilege_guard: boolean;
 };
 
@@ -275,6 +284,14 @@ export async function getSystemStatus() {
     },
     {
       area: "Seguridad",
+      label: "Finalización de pagos",
+      ...(integrity?.finalize_payment_function ? status("success", "Atómica") : status("danger", "No verificada")),
+      detail: integrity?.finalize_payment_function
+        ? "Pago aprobado, stock, ticket e inventario se finalizan dentro de una transición protegida."
+        : "No pudimos verificar la función atómica de confirmación de pagos."
+    },
+    {
+      area: "Seguridad",
       label: "Idempotencia en base",
       ...(integrity?.idempotency_unique_index && integrity.duplicate_idempotency_keys === 0
         ? status("success", "Protegida")
@@ -284,16 +301,38 @@ export async function getSystemStatus() {
         : "No pudimos consultar la protección contra pedidos duplicados."
     },
     {
-      area: "Comercio",
-      label: "Pedidos incompletos",
-      ...(integrity && integrity.orders_without_items === 0
-        ? status("success", "Sin errores")
+      area: "Seguridad",
+      label: "Unicidad de pagos externos",
+      ...(integrity?.provider_payment_unique_index && integrity.provider_payment_duplicates === 0
+        ? status("success", "Protegida")
+        : status("danger", "Revisar")),
+      detail: integrity
+        ? `${integrity.provider_payment_duplicates} IDs de proveedor duplicados. Índice único ${integrity.provider_payment_unique_index ? "activo" : "inactivo"}.`
+        : "No pudimos verificar la unicidad de pagos externos."
+    },
+    {
+      area: "Seguridad",
+      label: "Consistencia pago ↔ orden",
+      ...(integrity && integrity.orders_multiple_payments === 0 && integrity.paid_order_mismatches === 0 && integrity.stuck_payment_events === 0
+        ? status("success", "Consistente")
         : integrity
-          ? status("danger", `${integrity.orders_without_items} para revisar`)
+          ? status("danger", "Revisar")
           : status("warning", "Sin lectura")),
-      detail: integrity?.orders_without_items
-        ? "Son registros históricos sin productos. No se eliminan automáticamente para preservar la auditoría."
-        : "Los pedidos nuevos conservan su detalle de productos."
+      detail: integrity
+        ? `Órdenes con múltiples pagos: ${integrity.orders_multiple_payments}. Pagos aprobados desalineados: ${integrity.paid_order_mismatches}. Eventos trabados: ${integrity.stuck_payment_events}.`
+        : "No pudimos verificar la consistencia operativa de pagos."
+    },
+    {
+      area: "Comercio",
+      label: "Pedidos activos incompletos",
+      ...(integrity && integrity.active_orders_without_items === 0
+        ? status("success", "Sin errores actuales")
+        : integrity
+          ? status("danger", `${integrity.active_orders_without_items} para revisar`)
+          : status("warning", "Sin lectura")),
+      detail: integrity
+        ? `Activos sin productos: ${integrity.active_orders_without_items}. Históricos cancelados preservados: ${integrity.legacy_cancelled_orders_without_items}.`
+        : "No pudimos verificar el detalle de pedidos."
     },
     {
       area: "Seguridad",
