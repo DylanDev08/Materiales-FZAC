@@ -9,76 +9,57 @@ function configured(name) {
   return Boolean(current) && !/^<.*>$/.test(current);
 }
 
-function publicHttps(name) {
+function siteUrlValue() {
+  return value("FZAC_PUBLIC_SITE_URL") || value("NEXT_PUBLIC_SITE_URL");
+}
+
+function publicHttpsUrl(raw) {
   try {
-    const url = new URL(value(name));
+    const url = new URL(raw);
     return url.protocol === "https:" && !["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname);
   } catch {
     return false;
   }
 }
 
+const paymentProductionRequested =
+  value("PAYMENTS_ENV").toLowerCase() === "production" ||
+  value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() === "true";
+
+const shippingConfigured =
+  (configured("GOOGLE_MAPS_SERVER_KEY") ||
+    configured("GOOGLE_MAPS_SERVER_API_KEY") ||
+    configured("GOOGLE_DISTANCE_MATRIX_KEY")) &&
+  configured("FZAC_SHIPPING_BASE_PRICE") &&
+  configured("FZAC_SHIPPING_PRICE_PER_KM");
+
 const checks = [
   {
+    severity: "blocker",
     area: "Sitio",
-    requirement: "NEXT_PUBLIC_SITE_URL usa HTTPS publico",
-    ok: publicHttps("NEXT_PUBLIC_SITE_URL")
+    requirement: "URL publica canonica usa HTTPS",
+    ok: publicHttpsUrl(siteUrlValue())
   },
   {
-    area: "SEO",
-    requirement: "Indexacion habilitada solo con URL publica final",
-    ok:
-      value("SEO_INDEXING_ENABLED").toLowerCase() === "true" &&
-      publicHttps("NEXT_PUBLIC_SITE_URL")
-  },
-  {
+    severity: "blocker",
     area: "Supabase",
     requirement: "Configuracion publica disponible",
     ok: configured("NEXT_PUBLIC_SUPABASE_URL") && configured("NEXT_PUBLIC_SUPABASE_ANON_KEY")
   },
   {
+    severity: "blocker",
     area: "Supabase",
     requirement: "Service role solo servidor disponible",
     ok: configured("SUPABASE_SERVICE_ROLE_KEY")
   },
   {
-    area: "Pagos",
-    requirement: "Proveedor Mercado Pago habilitado",
-    ok:
-      value("PAYMENTS_ENABLED").toLowerCase() === "true" &&
-      value("PAYMENTS_PROVIDER").toLowerCase() === "mercadopago"
-  },
-  {
-    area: "Pagos",
-    requirement: "Token exclusivo de produccion disponible",
-    ok: configured("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN")
-  },
-  {
-    area: "Pagos",
-    requirement: "Public Key exclusiva de produccion disponible",
-    ok: configured("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY")
-  },
-  {
-    area: "Pagos",
-    requirement: "Webhook productivo firmado disponible",
-    ok: configured("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET")
-  },
-  {
-    area: "Pagos",
-    requirement: "Activacion productiva confirmada",
-    ok: value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() === "true"
-  },
-  {
+    severity: "blocker",
     area: "Auth",
     requirement: "Administradores configurados en servidor",
     ok: configured("ADMIN_EMAILS") || configured("ADMIN_EMAIL")
   },
   {
-    area: "Email",
-    requirement: "Resend y remitente configurados",
-    ok: configured("RESEND_API_KEY") && configured("RESEND_FROM_EMAIL")
-  },
-  {
+    severity: "blocker",
     area: "Legal",
     requirement: "Razon social, CUIT y domicilio comercial configurados",
     ok:
@@ -87,25 +68,76 @@ const checks = [
       configured("FZAC_LEGAL_ADDRESS")
   },
   {
+    severity: "blocker",
     area: "Consumidor",
-    requirement: "Horario de atencion al consumidor publicado",
+    requirement: "Horario de atencion al consumidor configurado",
     ok: configured("FZAC_CUSTOMER_SERVICE_HOURS")
   },
   {
-    area: "Fiscal",
-    requirement: "Proveedor fiscal configurado",
+    severity: paymentProductionRequested ? "blocker" : "warning",
+    area: "Pagos",
+    requirement: "Mercado Pago productivo explicitamente habilitado",
     ok:
-      value("FISCAL_INVOICING_ENABLED").toLowerCase() === "true" &&
+      value("PAYMENTS_ENABLED").toLowerCase() === "true" &&
+      value("PAYMENTS_PROVIDER").toLowerCase() === "mercadopago" &&
+      value("PAYMENTS_ENV").toLowerCase() === "production" &&
+      value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() === "true"
+  },
+  {
+    severity: paymentProductionRequested ? "blocker" : "warning",
+    area: "Pagos",
+    requirement: "Credenciales y webhook exclusivos de produccion disponibles",
+    ok:
+      configured("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN") &&
+      configured("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY") &&
+      configured("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET")
+  },
+  {
+    severity: "warning",
+    area: "Envios",
+    requirement: "Cotizacion automatica por Google Routes y tarifa configurada",
+    ok: shippingConfigured
+  },
+  {
+    severity: "warning",
+    area: "Email",
+    requirement: "Resend y remitente propio configurados",
+    ok: configured("RESEND_API_KEY") && configured("RESEND_FROM_EMAIL")
+  },
+  {
+    severity: "warning",
+    area: "SEO",
+    requirement: "Indexacion habilitada con URL publica final",
+    ok:
+      value("SEO_INDEXING_ENABLED").toLowerCase() === "true" &&
+      publicHttpsUrl(siteUrlValue())
+  },
+  {
+    severity: "warning",
+    area: "Fiscal",
+    requirement: "Proveedor fiscal configurado cuando la facturacion fiscal esta habilitada",
+    ok:
+      value("FISCAL_INVOICING_ENABLED").toLowerCase() !== "true" ||
       configured("FISCAL_INVOICING_PROVIDER")
   }
 ];
 
-const failed = checks.filter((check) => !check.ok);
+const blockers = checks.filter((check) => check.severity === "blocker" && !check.ok);
+const warnings = checks.filter((check) => check.severity === "warning" && !check.ok);
+
 for (const check of checks) {
-  console.log(`${check.ok ? "OK" : "PENDING"} [${check.area}] ${check.requirement}`);
+  const status = check.ok ? "OK" : check.severity === "blocker" ? "BLOCKER" : "PENDING";
+  console.log(`${status} [${check.area}] ${check.requirement}`);
 }
 
-console.log(`Production readiness: ${checks.length - failed.length}/${checks.length} controles completos.`);
+console.log(
+  `Launch readiness: ${checks.length - blockers.length - warnings.length}/${checks.length} controles completos; ${blockers.length} bloqueantes; ${warnings.length} pendientes no bloqueantes.`
+);
+console.log(
+  paymentProductionRequested
+    ? "Modo cobros productivos solicitado: los controles de Mercado Pago son bloqueantes."
+    : "Cobros productivos no activados: Mercado Pago real queda pendiente sin bloquear el deploy tecnico."
+);
 console.log("No se mostraron valores de variables ni credenciales.");
 
-if (strict && failed.length) process.exitCode = 1;
+if (strict && blockers.length) process.exitCode = 1;
