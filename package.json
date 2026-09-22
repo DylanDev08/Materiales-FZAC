@@ -50,7 +50,8 @@
     "test": "node --test tests/unit/*.test.mjs",
     "db:types": "pnpm dlx supabase gen types typescript --project-id gooxgjzetziwnxhuymmx > types/supabase.ts",
     "db:push": "pnpm dlx supabase db push",
-    "db:seed": "pnpm dlx supabase db reset --linked"
+    "db:seed": "pnpm dlx supabase db reset --linked",
+    "release:audit": "node --env-file-if-exists=.env scripts/production-readiness.mjs --strict"
   },
   "dependencies": {
     "@emnapi/core": "1.11.2",
