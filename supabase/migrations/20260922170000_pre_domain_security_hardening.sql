@@ -1,5 +1,7 @@
--- Pre-domain security hardening: admin MFA enforcement, distributed throttling,
+-- Pre-domain security hardening phase 1: distributed throttling,
 -- legacy credential purge and FORCE RLS on retained legacy tables.
+-- MFA enforcement is activated by a separate migration only after the frontend
+-- with the TOTP enrollment screen is live in production.
 
 create table if not exists public.security_rate_limits (
   scope text not null,
@@ -80,18 +82,6 @@ revoke execute on function public.consume_security_rate_limit(text, text, intege
   from public, anon, authenticated;
 grant execute on function public.consume_security_rate_limit(text, text, integer, integer)
   to service_role;
-
--- Admin privilege now also requires a verified second factor in the current JWT.
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-set search_path = ''
-as $$
-  select
-    coalesce((select auth.jwt()->>'aal'), 'aal1') = 'aal2'
-    and private.is_admin();
-$$;
 
 -- Retained Prisma-era tables must not be reachable without an explicit privileged role.
 alter table if exists public.users force row level security;
