@@ -50,20 +50,37 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
   const status = String(payment.status ?? "");
   const mapped = paymentStatus(status);
   const safePayment = sanitizeMercadoPagoPayment(payment);
-  const { data: existing } = await admin.from("payments").select("raw").eq("order_id", orderId).maybeSingle();
+  const { data: existing, error: existingError } = await admin
+    .from("payments")
+    .select("raw")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (existingError) throw new Error("PAYMENT_STATUS_READ_FAILED");
+
   const existingRaw = existing?.raw && typeof existing.raw === "object" ? existing.raw as Record<string, unknown> : {};
-  await admin
+  const now = new Date().toISOString();
+  const { error: paymentUpdateError } = await admin
     .from("payments")
     .update({
       status: mapped,
       provider_payment_id: payment.id ? String(payment.id) : null,
       raw: { ...existingRaw, provider_status: status, provider_payment: safePayment },
-      updated_at: new Date().toISOString()
+      updated_at: now
     })
     .eq("order_id", orderId);
+  if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
 
   if (mapped === "FAILED" || mapped === "EXPIRED") {
-    await admin.from("orders").update({ status: "CANCELLED", updated_at: new Date().toISOString() }).eq("id", orderId);
+    const { error: orderUpdateError } = await admin
+      .from("orders")
+      .update({
+        status: "CANCELLED",
+        cancellation_reason: `Mercado Pago: ${status || mapped}`,
+        cancelled_at: now,
+        updated_at: now
+      })
+      .eq("id", orderId);
+    if (orderUpdateError) throw new Error("ORDER_STATUS_PERSIST_FAILED");
   }
 }
 
