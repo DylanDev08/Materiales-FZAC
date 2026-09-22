@@ -437,20 +437,30 @@ async function resumeCheckoutByIdempotencyKey(
       quantity: Number(item.quantity ?? 1)
     }));
 
-    preference = await createMercadoPagoPreference({
-      orderId: order.id,
-      paymentId: payment.id,
-      customer: {
-        name: String(order.customer_name),
-        email: String(order.customer_email),
-        phone: String(order.customer_phone)
-      },
-      items,
-      shippingCost: Number(order.shipping_cost ?? 0),
-      total: Number(order.total ?? payment.amount ?? 0),
-      expiresAt: reservationExpiresAt,
-      idempotencyKey: preferenceRequestIdempotencyKey(idempotencyKey, reservationExpiresAt)
-    });
+    try {
+      preference = await createMercadoPagoPreference({
+        orderId: order.id,
+        paymentId: payment.id,
+        customer: {
+          name: String(order.customer_name),
+          email: String(order.customer_email),
+          phone: String(order.customer_phone)
+        },
+        items,
+        shippingCost: Number(order.shipping_cost ?? 0),
+        total: Number(order.total ?? payment.amount ?? 0),
+        expiresAt: reservationExpiresAt,
+        idempotencyKey: preferenceRequestIdempotencyKey(idempotencyKey, reservationExpiresAt)
+      });
+    } catch (error) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_CREATE_FAILED").catch(() => undefined);
+      throw error;
+    }
+
+    if (!preference?.redirect_url) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_URL_MISSING").catch(() => undefined);
+      throw new Error("El proveedor de pago no devolvió una URL válida.");
+    }
 
     await admin
       .from("payments")
