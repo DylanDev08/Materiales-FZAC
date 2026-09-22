@@ -17,13 +17,13 @@ Para activar Mercado Pago productivo deben existir, en el mismo despliegue:
 - `MERCADOPAGO_PRODUCTION_ACCESS_TOKEN`
 - `NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY`
 - `MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET`
-- `NEXT_PUBLIC_SITE_URL` con HTTPS público
+- `FZAC_PUBLIC_SITE_URL` o `NEXT_PUBLIC_SITE_URL` con HTTPS público
 
-La URL actual de Render es HTTPS y puede utilizarse técnicamente para el alta inicial. Un dominio propio sigue siendo recomendable antes de campañas, SEO definitivo y comunicaciones comerciales.
+La URL pública canónica temporal es `https://materiales-fzac-391o.vercel.app`. El proxy `/api/*` deriva al backend canónico de Render. Cuando exista el dominio propio, reemplazar esta URL en callbacks, webhooks, canonical y configuraciones externas antes de habilitar SEO.
 
 El webhook productivo debe apuntar a:
 
-`https://materiales-fzac-8xmp.onrender.com/api/webhooks/mercadopago`
+`https://materiales-fzac-391o.vercel.app/api/webhooks/mercadopago`
 
 Evento mínimo: `Pagos`. La clave secreta debe obtenerse de la pestaña productiva del webhook y no debe reutilizarse desde sandbox.
 
