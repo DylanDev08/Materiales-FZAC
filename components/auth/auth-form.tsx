@@ -7,6 +7,7 @@ import { CheckCircle, Eye, EyeOff, Loader2, LogIn, MailCheck, ShieldCheck } from
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { safeInternalPath } from "@/lib/utils/navigation";
 import { normalizeEmail, passwordChecks } from "@/lib/validations/auth";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { isValidArgentinePhone, limitPhoneInput, normalizeArgentinePhone, normalizePhoneDigits } from "@/lib/validations/security";
 
 type AuthFieldErrors = Partial<Record<"name" | "phone" | "email" | "password" | "confirmPassword" | "acceptedTerms", string>>;
@@ -47,7 +48,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   );
   const [needsConfirmation, setNeedsConfirmation] = useState(mode === "login" && searchParams.get("registered") === "true");
   const [resending, setResending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
 
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
   const checks = useMemo(() => passwordChecks(password, normalizedEmail, name), [password, normalizedEmail, name]);
@@ -81,6 +85,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       password !== password.trim()
     ) {
       errors.password = "La contraseña debe tener mayúscula, minúscula, número y símbolo.";
+    }
+
+    if (turnstileEnabled && !captchaToken) {
+      setMessage("Completá la verificación anti-bot antes de continuar.");
+      setMessageTone("error");
+      return false;
     }
 
     if (mode === "register") {
@@ -127,8 +137,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           mode === "login"
-            ? { email: normalizedEmail, password, hp }
-            : { name, phone: phone.trim() ? normalizeArgentinePhone(phone) : "", email: normalizedEmail, password, confirmPassword, acceptedTerms, hp }
+            ? { email: normalizedEmail, password, hp, captchaToken }
+            : { name, phone: phone.trim() ? normalizeArgentinePhone(phone) : "", email: normalizedEmail, password, confirmPassword, acceptedTerms, hp, captchaToken }
         )
       });
       const data = (await response.json()) as { target?: string; message?: string; code?: string };
@@ -148,6 +158,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         setNeedsConfirmation(true);
       }
     } finally {
+      if (turnstileEnabled) setCaptchaResetKey((current) => current + 1);
       setLoading(false);
       submitInFlightRef.current = false;
     }
@@ -196,7 +207,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       const response = await fetch("/api/auth/resend-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail })
+        body: JSON.stringify({ email: normalizedEmail, captchaToken })
       });
       const data = (await response.json()) as { message?: string };
       if (!response.ok) throw new Error(data.message || "No pudimos reenviar el enlace.");
@@ -375,7 +386,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               </label>
             </>
           ) : null}
-          <button className="btn" type="submit" disabled={loading || successLocked}>
+          {turnstileEnabled ? <TurnstileWidget action={mode === "login" ? "login" : "register"} onToken={setCaptchaToken} resetKey={captchaResetKey} /> : null}
+          <button className="btn" type="submit" disabled={loading || successLocked || (turnstileEnabled && !captchaToken)}>
             {loading ? <Loader2 size={18} /> : null}
             {loading ? "Validando..." : mode === "login" ? "Ingresar" : "Registrarme"}
           </button>
