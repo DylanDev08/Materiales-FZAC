@@ -27,6 +27,7 @@ import {
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { checkoutCardCreateSchema } from "@/lib/validations/checkout";
 
 function paymentStatus(status: string) {
@@ -133,6 +134,17 @@ async function handlePost(request: Request) {
       return jsonError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
     }
     const identity = currentUser.id;
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "checkout-card-payment",
+      limit: 4,
+      windowMs: 60_000,
+      identity,
+      identityLimit: 5,
+      identityWindowMs: 15 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Alcanzaste el límite de intentos de pago. Esperá unos minutos.", 429, distributedRetryHeaders(distributed));
+    }
     const purchaseLimit = rateLimitIdentity("checkout-purchase", identity, 8, 10 * 60_000);
     const paymentLimit = rateLimitIdentity("checkout-card-payment", identity, 5, 15 * 60_000);
     const blocked = !purchaseLimit.ok ? purchaseLimit : !paymentLimit.ok ? paymentLimit : null;
