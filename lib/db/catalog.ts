@@ -287,7 +287,15 @@ export async function getProducts(filters: ProductFilters = {}) {
 
   const { data, error } = await query;
   if (error) return [];
-  return applyAvailableStockToProducts((data ?? []).map(normalizeProduct));
+
+  let products = await applyAvailableStockToProducts((data ?? []).map(normalizeProduct));
+  if (filters.inStock) {
+    products = products.filter((product) => product.availability_status === "IN_STOCK" && product.stock > 0);
+  }
+  if (filters.availability) {
+    products = products.filter((product) => product.availability_status === filters.availability);
+  }
+  return products;
 }
 
 export const getProductBySlug = cache(async function getProductBySlug(slug: string) {
