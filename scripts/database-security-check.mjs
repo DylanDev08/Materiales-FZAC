@@ -78,15 +78,16 @@ if (!approveRoute.includes('rpc("admin_transition_order"') || !rejectRoute.inclu
   failures.push("Las transiciones administrativas de pedidos no usan la RPC atomica." );
 }
 
-if (failures.length) {
-  failures.forEach((failure) => process.stderr.write(`${failure}\n`));
-  process.exitCode = 1;
-} else {
-  process.stdout.write(`Database security check OK: ${createdTables.size} public tables require FORCE RLS.\n`);
-}
 
 const mfaActivation = migrations.find(({ file }) => file === "20260922171000_enable_admin_mfa.sql")?.sql ?? "";
 if (!/auth\.jwt\(\)->>'aal'[\s\S]{0,160}=\s*'aal2'/i.test(mfaActivation)
   || !/private\.is_admin\(\)/i.test(mfaActivation)) {
   failures.push("La migracion de activacion MFA no exige AAL2 junto con el rol admin.");
+}
+
+if (failures.length) {
+  failures.forEach((failure) => process.stderr.write(`${failure}\n`));
+  process.exitCode = 1;
+} else {
+  process.stdout.write(`Database security check OK: ${createdTables.size} public tables require FORCE RLS.\n`);
 }
