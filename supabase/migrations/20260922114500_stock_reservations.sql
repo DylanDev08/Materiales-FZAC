@@ -19,6 +19,7 @@ create table if not exists public.stock_reservations (
 );
 
 alter table public.stock_reservations enable row level security;
+alter table public.stock_reservations force row level security;
 
 revoke all on table public.stock_reservations from public, anon, authenticated;
 grant select, insert, update, delete on table public.stock_reservations to service_role;
