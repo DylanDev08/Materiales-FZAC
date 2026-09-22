@@ -57,8 +57,8 @@ as $$
   where p.id = any(coalesce(p_product_ids, '{}'::uuid[]));
 $$;
 
-revoke execute on function public.get_product_available_stock(uuid[]) from public;
-grant execute on function public.get_product_available_stock(uuid[]) to anon, authenticated, service_role;
+revoke execute on function public.get_product_available_stock(uuid[]) from public, anon, authenticated;
+grant execute on function public.get_product_available_stock(uuid[]) to service_role;
 
 create or replace function public.release_order_stock_reservation(
   p_order_id uuid,
