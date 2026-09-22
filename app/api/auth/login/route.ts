@@ -12,7 +12,9 @@ import {
   retryAfterHeaders
 } from "@/lib/utils/rate-limit";
 import { readLimitedJson } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { loginSchema } from "@/lib/validations/auth";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 function loginErrorResponse(error: { message?: string; code?: string } | null | undefined) {
   const message = `${error?.message ?? ""} ${error?.code ?? ""}`;
@@ -40,6 +42,24 @@ export async function POST(request: Request) {
 
   try {
     const payload = loginSchema.parse(body.data);
+    const captcha = await verifyTurnstileToken(payload.captchaToken, "login");
+    if (!captcha.ok) {
+      return jsonError(
+        captcha.unavailable ? "La verificación anti-bot no está disponible. Reintentá en un momento." : "Completá la verificación anti-bot.",
+        captcha.unavailable ? 503 : 403
+      );
+    }
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "auth-login",
+      limit: 8,
+      windowMs: 60_000,
+      identity: payload.email,
+      identityLimit: 6,
+      identityWindowMs: 5 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Demasiados intentos. Esperá unos minutos.", 429, distributedRetryHeaders(distributed));
+    }
     const emailLimit = rateLimitIdentity("auth-login", payload.email, 6, 5 * 60_000);
     if (!emailLimit.ok) return jsonError("Demasiados intentos para esta cuenta. Esperá unos minutos.", 429, retryAfterHeaders(emailLimit));
     const slot = acquireRequestConcurrency(request, {
@@ -64,7 +84,10 @@ export async function POST(request: Request) {
       if (error || !data.user?.email) return loginErrorResponse(error);
 
       await syncUserProfileOnLogin(data.user);
-      return Response.json({ target: isAdminEmail(data.user.email) ? getAdminConsolePath() : "/cuenta" });
+      const target = isAdminEmail(data.user.email)
+        ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
+        : "/cuenta";
+      return Response.json({ target });
     } finally {
       slot.release();
     }

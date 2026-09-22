@@ -282,3 +282,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+.admin-mfa-panel { max-width: 620px; }
+.admin-mfa-state { display:flex; align-items:center; gap:.75rem; padding:1rem 0; }
+.admin-mfa-enroll { display:grid; gap:1rem; justify-items:center; }
+.admin-mfa-qr { width:min(280px,100%); aspect-ratio:1; padding:12px; border-radius:16px; background:#fff; }
+.admin-mfa-secret { width:100%; display:grid; gap:.35rem; }
+.admin-mfa-secret span { color:var(--muted); font-size:.82rem; }
+.admin-mfa-secret code { overflow-wrap:anywhere; padding:.8rem; border-radius:10px; background:rgba(255,255,255,.05); }
+.admin-mfa-form { display:grid; gap:1rem; }
+.admin-mfa-help { color:var(--muted); font-size:.82rem; line-height:1.5; }
+.auth-turnstile { min-height:65px; display:flex; justify-content:center; margin:.5rem 0; }

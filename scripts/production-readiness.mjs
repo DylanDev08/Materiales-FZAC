@@ -22,6 +22,12 @@ function publicHttpsUrl(raw) {
   }
 }
 
+function finalPublicDomain(raw) {
+  if (!publicHttpsUrl(raw)) return false;
+  const host = new URL(raw).hostname.toLowerCase();
+  return !host.endsWith(".vercel.app") && !host.endsWith(".onrender.com");
+}
+
 const paymentProductionRequested =
   value("PAYMENTS_ENV").toLowerCase() === "production" ||
   value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() === "true";
@@ -42,6 +48,12 @@ const checks = [
   },
   {
     severity: "blocker",
+    area: "Sitio",
+    requirement: "Dominio publico definitivo configurado",
+    ok: finalPublicDomain(siteUrlValue())
+  },
+  {
+    severity: "blocker",
     area: "Supabase",
     requirement: "Configuracion publica disponible",
     ok: configured("NEXT_PUBLIC_SUPABASE_URL") && configured("NEXT_PUBLIC_SUPABASE_ANON_KEY")
@@ -57,6 +69,12 @@ const checks = [
     area: "Auth",
     requirement: "Administradores configurados en servidor",
     ok: configured("ADMIN_EMAILS") || configured("ADMIN_EMAIL")
+  },
+  {
+    severity: "blocker",
+    area: "Seguridad",
+    requirement: "Cloudflare Turnstile configurado en cliente y servidor",
+    ok: configured("NEXT_PUBLIC_TURNSTILE_SITE_KEY") && configured("TURNSTILE_SECRET_KEY")
   },
   {
     severity: "blocker",

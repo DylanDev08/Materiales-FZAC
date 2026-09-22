@@ -4,10 +4,13 @@ import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { normalizeEmail } from "@/lib/validations/auth";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 const schema = z.object({
-  email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail)
+  email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
+  captchaToken: z.string().max(4096).optional()
 });
 
 const genericMessage = "Si la cuenta está pendiente, vas a recibir un nuevo enlace de Fortaleza Construcciones.";
@@ -20,6 +23,21 @@ export async function POST(request: Request) {
 
   try {
     const payload = schema.parse(await request.json());
+    const captcha = await verifyTurnstileToken(payload.captchaToken, "login");
+    if (!captcha.ok) {
+      return Response.json({ ok: true, message: genericMessage });
+    }
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "auth-resend-confirmation",
+      limit: 3,
+      windowMs: 15 * 60_000,
+      identity: payload.email,
+      identityLimit: 2,
+      identityWindowMs: 30 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Esperá unos minutos antes de solicitar otro enlace.", 429, distributedRetryHeaders(distributed));
+    }
     const emailLimit = rateLimit(`auth-resend-confirmation-email:${payload.email}`, 2, 30 * 60_000);
     if (!emailLimit.ok) return Response.json({ ok: true, message: genericMessage });
 

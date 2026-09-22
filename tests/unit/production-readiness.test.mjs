@@ -10,6 +10,8 @@ const baseEnv = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   ADMIN_EMAILS: "admin@example.com",
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: "test-site-key",
+  TURNSTILE_SECRET_KEY: "test-secret-key",
   FZAC_LEGAL_NAME: "Fortaleza Construcciones",
   FZAC_CUIT: "30-00000000-0",
   FZAC_LEGAL_ADDRESS: "Rosario, Santa Fe",

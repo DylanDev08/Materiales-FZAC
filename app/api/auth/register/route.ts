@@ -8,8 +8,10 @@ import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { registerSchema } from "@/lib/validations/auth";
 import { normalizeArgentinePhone } from "@/lib/validations/security";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 function authErrorMessage(message: string) {
   if (/rate limit|too many|over_email_send_rate_limit/i.test(message)) {
@@ -36,6 +38,24 @@ export async function POST(request: Request) {
 
   try {
     const payload = registerSchema.parse(await request.json());
+    const captcha = await verifyTurnstileToken(payload.captchaToken, "register");
+    if (!captcha.ok) {
+      return jsonError(
+        captcha.unavailable ? "La verificación anti-bot no está disponible. Reintentá en un momento." : "Completá la verificación anti-bot.",
+        captcha.unavailable ? 503 : 403
+      );
+    }
+    const distributed = await distributedRateLimitRequest(request, {
+      scope: "auth-register",
+      limit: 5,
+      windowMs: 60_000,
+      identity: payload.email,
+      identityLimit: 3,
+      identityWindowMs: 30 * 60_000
+    });
+    if (!distributed.ok) {
+      return jsonError("Demasiados intentos de registro. Esperá antes de reintentar.", 429, distributedRetryHeaders(distributed));
+    }
     const normalizedPhone = payload.phone ? normalizeArgentinePhone(payload.phone) : "";
     const emailLimit = rateLimit(`auth-register-email:${payload.email}`, 3, 30 * 60_000);
     if (!emailLimit.ok) return jsonError("Ya procesamos una solicitud para este email. Revisá tu casilla o esperá antes de reintentar.", 429, retryAfterHeaders(emailLimit));

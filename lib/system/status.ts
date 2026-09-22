@@ -78,6 +78,23 @@ async function getDatabaseIntegrityStatus() {
   return data as DatabaseIntegrityStatus;
 }
 
+
+type PreDomainSecurityStatus = {
+  legacy_passwords_remaining: number;
+  legacy_refresh_tokens_remaining: number;
+  rate_limit_rows: number;
+  admin_profiles: number;
+  admin_verified_totp_factors: number;
+};
+
+async function getPreDomainSecurityStatus() {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+  const { data, error } = await admin.rpc("pre_domain_security_status");
+  if (error || !data || typeof data !== "object") return null;
+  return data as PreDomainSecurityStatus;
+}
+
 type CatalogOperationalStatus = {
   activeProducts: number;
   readyProducts: number;
@@ -146,7 +163,14 @@ export async function getSystemStatus() {
   const seoEnabled = isSeoIndexingEnabled();
   const legalIdentity = getStoreLegalIdentity();
   const whatsapp = getWhatsAppConfig();
-  const [integrity, catalog] = await Promise.all([getDatabaseIntegrityStatus(), getCatalogOperationalStatus()]);
+  const [integrity, catalog, security] = await Promise.all([
+    getDatabaseIntegrityStatus(),
+    getCatalogOperationalStatus(),
+    getPreDomainSecurityStatus()
+  ]);
+  const turnstileConfigured =
+    hasRealValue(getEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY")) &&
+    hasRealValue(getEnv("TURNSTILE_SECRET_KEY"));
 
   const items: SystemStatusItem[] = [
     {
@@ -278,6 +302,46 @@ export async function getSystemStatus() {
       label: "Administradores",
       ...configured(hasRealValue(getEnv("ADMIN_EMAILS") || getEnv("ADMIN_EMAIL"))),
       detail: "El rol admin se valida por emails autorizados desde servidor."
+    },
+    {
+      area: "Seguridad",
+      label: "MFA administrativo",
+      ...(security
+        ? security.admin_profiles > 0 && security.admin_verified_totp_factors >= security.admin_profiles
+          ? status("success", "AAL2 obligatorio")
+          : status("warning", "Obligatorio · enrolamiento pendiente")
+        : status("warning", "Sin lectura")),
+      detail: security
+        ? `TOTP verificado en ${security.admin_verified_totp_factors} de ${security.admin_profiles} perfiles admin. Sin AAL2 el panel y las policies administrativas quedan bloqueados.`
+        : "La aplicación exige AAL2, pero no pudimos leer el estado de factores."
+    },
+    {
+      area: "Seguridad",
+      label: "Rate limiting distribuido",
+      ...(security ? status("success", "PostgreSQL atómico") : status("warning", "Sin lectura")),
+      detail: security
+        ? "Login, registro, recuperación, checkout y APIs admin combinan límites locales y contadores distribuidos server-side."
+        : "No pudimos verificar el limitador distribuido."
+    },
+    {
+      area: "Seguridad",
+      label: "Credenciales legacy",
+      ...(security && security.legacy_passwords_remaining === 0 && security.legacy_refresh_tokens_remaining === 0
+        ? status("success", "Purgadas")
+        : security
+          ? status("danger", "Revisar")
+          : status("warning", "Sin lectura")),
+      detail: security
+        ? `Hashes legacy restantes: ${security.legacy_passwords_remaining}. Refresh tokens legacy restantes: ${security.legacy_refresh_tokens_remaining}.`
+        : "No pudimos verificar la purga del esquema Prisma heredado."
+    },
+    {
+      area: "Seguridad",
+      label: "Protección anti-bot",
+      ...(turnstileConfigured ? status("success", "Turnstile activo") : status("warning", "Claves pendientes")),
+      detail: turnstileConfigured
+        ? "Login, registro y recuperación validan desafío server-side."
+        : "El código ya está integrado; cargar NEXT_PUBLIC_TURNSTILE_SITE_KEY y TURNSTILE_SECRET_KEY para activarlo."
     },
     {
       area: "Seguridad",

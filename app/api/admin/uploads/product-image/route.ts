@@ -1,18 +1,15 @@
+import sharp from "sharp";
 import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { jsonError } from "@/lib/utils/api";
 import { isTrustedMutationRequest } from "@/lib/utils/request-security";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_PIXELS = 36_000_000;
+const MAX_IMAGE_DIMENSION = 6000;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function getBucketName() {
   return process.env.SUPABASE_PRODUCT_IMAGES_BUCKET?.trim() || "product-images";
-}
-
-function extensionFor(file: File) {
-  if (file.type === "image/png") return "png";
-  if (file.type === "image/webp") return "webp";
-  return "jpg";
 }
 
 function hasExpectedImageSignature(bytes: Uint8Array, type: string) {
@@ -44,14 +41,38 @@ export async function POST(request: Request) {
   if (file.size > MAX_IMAGE_SIZE) return jsonError("La imagen supera 5 MB.", 413);
 
   const bucket = getBucketName();
-  const path = `products/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const path = `products/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.webp`;
   const bytes = await file.arrayBuffer();
   if (!hasExpectedImageSignature(new Uint8Array(bytes.slice(0, 16)), file.type)) {
     return jsonError("El contenido del archivo no coincide con una imagen válida.", 422);
   }
-  const { error } = await admin.storage.from(bucket).upload(path, bytes, {
+
+  let safeImage: Buffer;
+  try {
+    const pipeline = sharp(Buffer.from(bytes), {
+      failOn: "error",
+      limitInputPixels: MAX_IMAGE_PIXELS
+    });
+    const metadata = await pipeline.metadata();
+    if (!metadata.width || !metadata.height || metadata.width > MAX_IMAGE_DIMENSION || metadata.height > MAX_IMAGE_DIMENSION) {
+      return jsonError("La imagen supera las dimensiones permitidas.", 422);
+    }
+    safeImage = await pipeline
+      .rotate()
+      .resize({ width: 4096, height: 4096, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 86, effort: 4 })
+      .toBuffer();
+  } catch {
+    return jsonError("No pudimos decodificar la imagen de forma segura.", 422);
+  }
+
+  if (safeImage.byteLength > MAX_IMAGE_SIZE) {
+    return jsonError("La imagen optimizada supera 5 MB.", 413);
+  }
+
+  const { error } = await admin.storage.from(bucket).upload(path, safeImage, {
     cacheControl: "31536000",
-    contentType: file.type,
+    contentType: "image/webp",
     upsert: false
   });
 

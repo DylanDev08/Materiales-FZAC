@@ -71,7 +71,8 @@ const loginPasswordSchema = z
 export const loginSchema = z.object({
   email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
   password: loginPasswordSchema,
-  hp: z.string().max(0).optional()
+  hp: z.string().max(0).optional(),
+  captchaToken: z.string().max(4096).optional()
 });
 
 export const registerSchema = z
@@ -82,7 +83,8 @@ export const registerSchema = z
     password: passwordSchema,
     confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres."),
     acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar terminos y privacidad." }) }),
-    hp: z.string().max(0).optional()
+    hp: z.string().max(0).optional(),
+    captchaToken: z.string().max(4096).optional()
   })
   .superRefine((value, context) => {
     if (value.password !== value.confirmPassword) {
