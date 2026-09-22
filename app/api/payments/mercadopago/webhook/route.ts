@@ -1,5 +1,5 @@
-import { handleMercadoPagoWebhook } from "@/lib/payments/mercadopago-webhook";
 import { withApiTelemetry } from "@/lib/observability/request";
+import { handleMercadoPagoWebhook } from "@/lib/payments/mercadopago-webhook";
 
 async function handlePost(request: Request) {
   const result = await handleMercadoPagoWebhook(request);
@@ -7,6 +7,6 @@ async function handlePost(request: Request) {
 }
 
 
-export async function POST(request: Request) { {
+export async function POST(request: Request) {
   return withApiTelemetry("payments.webhook", request, () => handlePost(request));
 }
