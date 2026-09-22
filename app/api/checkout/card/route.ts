@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import {
+import { withApiTelemetry } from "@/lib/observability/request";
   CheckoutAuthRequiredError,
   CheckoutIdempotencyError,
   CheckoutIntegrityError,
@@ -94,7 +95,7 @@ async function existingCardPaymentResponse(paymentId: string, orderId: string) {
   );
 }
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   const limit = rateLimit(getRequestKey(request, "checkout-card"), 4, 60_000);
   if (!limit.ok) {
     return jsonError("Demasiados intentos de pago. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
@@ -252,4 +253,9 @@ export async function POST(request: Request) {
     }
     return jsonError("No pudimos procesar el pago con tarjeta.", 500);
   }
+}
+
+
+export async function POST(request: Request) { {
+  return withApiTelemetry("checkout.card", request, () => handlePost(request));
 }
