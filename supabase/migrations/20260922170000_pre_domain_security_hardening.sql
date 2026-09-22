@@ -124,6 +124,7 @@ declare
   v_legacy_passwords integer;
   v_legacy_refresh integer;
   v_rate_rows integer;
+  v_admin_profiles integer;
   v_admin_totp integer;
 begin
   if not public.request_is_service_role() then
@@ -139,6 +140,10 @@ begin
   select count(*)::integer into v_rate_rows
   from public.security_rate_limits;
 
+  select count(*)::integer into v_admin_profiles
+  from public.profiles
+  where role = 'ADMIN';
+
   select count(*)::integer into v_admin_totp
   from auth.mfa_factors f
   join public.profiles p on p.id = f.user_id
@@ -150,6 +155,7 @@ begin
     'legacy_passwords_remaining', v_legacy_passwords,
     'legacy_refresh_tokens_remaining', v_legacy_refresh,
     'rate_limit_rows', v_rate_rows,
+    'admin_profiles', v_admin_profiles,
     'admin_verified_totp_factors', v_admin_totp
   );
 end;
