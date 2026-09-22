@@ -17,6 +17,7 @@ import {
 } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
@@ -59,6 +60,10 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
 
   const existingRaw = existing?.raw && typeof existing.raw === "object" ? existing.raw as Record<string, unknown> : {};
   const now = new Date().toISOString();
+
+  if (mapped === "FAILED" || mapped === "EXPIRED") {
+    await releaseOrderStockReservation(orderId, `MERCADOPAGO_${mapped}`);
+  }
   const { error: paymentUpdateError } = await admin
     .from("payments")
     .update({
@@ -169,20 +174,26 @@ async function handlePost(request: Request) {
       const resumed = await existingCardPaymentResponse(paymentId, orderId);
       if (resumed) return resumed;
 
-      const payment = await createMercadoPagoCardPayment({
-        orderId,
-        amount: total,
-        description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
-        token: payload.card.token,
-        paymentMethodId: payload.card.payment_method_id,
-        issuerId: payload.card.issuer_id,
-        installments: payload.card.installments,
-        payer: {
-          email: payload.card.cardholder_email,
-          identificationType: payload.card.identification_type,
-          identificationNumber: payload.card.identification_number
-        }
-      });
+      let payment: Record<string, unknown>;
+      try {
+        payment = await createMercadoPagoCardPayment({
+          orderId,
+          amount: total,
+          description: `Compra Materiales FZAC ${orderId.slice(0, 8).toUpperCase()}`,
+          token: payload.card.token,
+          paymentMethodId: payload.card.payment_method_id,
+          issuerId: payload.card.issuer_id,
+          installments: payload.card.installments,
+          payer: {
+            email: payload.card.cardholder_email,
+            identificationType: payload.card.identification_type,
+            identificationNumber: payload.card.identification_number
+          }
+        });
+      } catch (error) {
+        await releaseOrderStockReservation(orderId, "CARD_PAYMENT_CREATE_FAILED").catch(() => undefined);
+        throw error;
+      }
 
       const status = String(payment.status ?? "pending");
       const safePayment = sanitizeMercadoPagoPayment(payment);

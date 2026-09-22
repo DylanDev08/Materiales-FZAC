@@ -58,8 +58,13 @@ type DatabaseIntegrityStatus = {
   stale_pending_orders: number;
   stuck_payment_events: number;
   paid_order_mismatches: number;
+  active_stock_reservations: number;
+  expired_active_reservations: number;
+  pending_mp_without_reservation: number;
   atomic_checkout_function: boolean;
   finalize_payment_function: boolean;
+  stock_reservation_function: boolean;
+  available_stock_function: boolean;
   idempotency_unique_index: boolean;
   provider_payment_unique_index: boolean;
   profile_privilege_guard: boolean;
@@ -337,8 +342,14 @@ export async function getSystemStatus() {
     {
       area: "Comercio",
       label: "Reserva temporal de stock",
-      ...status("warning", "Pendiente de implementar"),
-      detail: "El checkout revalida stock al crear y al cobrar, pero todavía no bloquea unidades durante la ventana de pago. Requiere política de expiración antes de tráfico alto."
+      ...(integrity?.stock_reservation_function && integrity.available_stock_function
+        ? integrity.expired_active_reservations === 0
+          ? status("success", "Activa · 30 min")
+          : status("warning", "Activa · limpiar expiradas")
+        : status("danger", "No verificada")),
+      detail: integrity
+        ? `Reservas activas: ${integrity.active_stock_reservations}. Filas expiradas pendientes de limpieza: ${integrity.expired_active_reservations}. Pagos Mercado Pago pendientes sin reserva vigente: ${integrity.pending_mp_without_reservation}.`
+        : "No pudimos verificar el sistema de reservas temporales."
     },
     {
       area: "Comercio",

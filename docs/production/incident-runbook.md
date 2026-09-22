@@ -67,9 +67,21 @@ La base tiene un índice único por `provider + provider_payment_id` para impedi
 5. Un reembolso completo debe restaurar stock mediante la transición atómica correspondiente.
 6. Si el valor físico y el sistema difieren, registrar el motivo del ajuste.
 
-### Riesgo conocido
+### Reserva temporal de stock
 
-El checkout valida y bloquea stock al crear la orden y vuelve a comprobarlo al finalizar el pago, pero las órdenes pendientes todavía no constituyen una reserva temporal de stock. Antes de tráfico alto conviene implementar reservas con expiración alineadas al vencimiento del checkout de Mercado Pago.
+Las compras online con Mercado Pago reservan stock lógicamente durante **30 minutos**:
+
+- el stock físico todavía no se descuenta;
+- el stock disponible al público es `stock físico - reservas activas`;
+- Checkout Pro vence junto con la reserva;
+- si el pago se aprueba, la reserva se consume y el stock físico se descuenta atómicamente;
+- si el pago falla, se cancela, expira o no puede crearse la preferencia, la reserva se libera;
+- si la reserva vence, deja de descontar disponibilidad aunque la fila todavía no haya sido marcada `EXPIRED`;
+- al reintentar un checkout vencido se intenta crear una reserva nueva solo si sigue habiendo disponibilidad.
+
+Transferencia y WhatsApp **no reservan stock indefinidamente**. Se vuelve a validar disponibilidad cuando corresponda avanzar el pedido.
+
+Si Mercado Pago confirmara excepcionalmente un pago después de vencida la reserva, `finalize_paid_order` vuelve a bloquear productos y valida disponibilidad real antes de descontar. Si ya no alcanza, el pedido requiere conciliación manual: no se fuerza stock negativo ni se simula que el proveedor no cobró.
 
 ## 5. Órdenes sin productos
 
@@ -133,7 +145,9 @@ Controles esperados:
 - IDs de pago externo duplicados: 0;
 - órdenes activas sin items: 0;
 - eventos de pago trabados: 0;
-- pagos aprobados con orden desalineada: 0.
+- pagos aprobados con orden desalineada: 0;
+- reservas activas vencidas pendientes de limpieza: idealmente 0;
+- toda orden nueva `PENDING_PAYMENT` de Mercado Pago debe tener reserva vigente, salvo históricos anteriores a esta migración.
 
 ## 9. Rollback de código
 

@@ -23,6 +23,7 @@ type PreferenceInput = {
   total: number;
   siteUrl?: string;
   idempotencyKey?: string;
+  expiresAt?: string | null;
 };
 
 type CardPaymentInput = {
@@ -305,6 +306,17 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
     });
   }
 
+  const expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
+  const now = new Date();
+  const preferenceTerm =
+    expiresAt && Number.isFinite(expiresAt.getTime()) && expiresAt.getTime() > now.getTime() + 60_000
+      ? {
+          expires: true,
+          expiration_date_from: now.toISOString(),
+          expiration_date_to: expiresAt.toISOString()
+        }
+      : {};
+
   const redirects = checkoutSiteUrl
     ? {
         back_urls: {
@@ -349,7 +361,8 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
         metadata: {
           order_id: input.orderId,
           source: "materiales-fzac-next"
-        }
+        },
+        ...preferenceTerm
       },
       requestOptions: { idempotencyKey: input.idempotencyKey || `fzac-pref-${input.orderId}` }
     })

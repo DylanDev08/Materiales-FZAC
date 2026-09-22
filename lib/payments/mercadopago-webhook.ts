@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import {
   MercadoPagoNotConfiguredError,
   getMercadoPagoConfig,
@@ -354,6 +355,10 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     if (paymentStatus !== "PENDING") {
       const nextOrderStatus = orderStatusFromMercadoPago(status);
       const cancelling = nextOrderStatus === "CANCELLED";
+
+      if (cancelling) {
+        await releaseOrderStockReservation(orderId, `MERCADOPAGO_${paymentStatus}`);
+      }
       const { error: orderUpdateError } = await admin
         .from("orders")
         .update({

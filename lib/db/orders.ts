@@ -10,6 +10,12 @@ import { isMercadoPagoConfigured, MercadoPagoNotConfiguredError } from "@/lib/pa
 import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { canPurchaseProduct } from "@/lib/products/availability";
+import {
+  applyAvailableStockToProducts,
+  getActiveOrderStockReservation,
+  releaseOrderStockReservation,
+  reserveOrderStock
+} from "@/lib/inventory/reservations";
 import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import {
@@ -185,6 +191,13 @@ function checkoutFingerprint(payload: CheckoutInput, userId: string, paymentMeth
   return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 }
 
+function preferenceRequestIdempotencyKey(checkoutKey: string, expiresAt?: string | null) {
+  return `fzac-pref-${createHash("sha256")
+    .update(`${checkoutKey}:${expiresAt ?? "no-expiry"}`)
+    .digest("hex")
+    .slice(0, 48)}`;
+}
+
 function checkoutSuccessResponse(input: {
   orderId: string;
   paymentId: string;
@@ -197,6 +210,7 @@ function checkoutSuccessResponse(input: {
   card?: boolean;
   message?: string;
   whatsappUrl?: string | null;
+  reservationExpiresAt?: string | null;
 }) {
   const paymentMethod =
     input.provider === "BANK_TRANSFER" ? "BANK_TRANSFER" : input.provider === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
@@ -228,6 +242,7 @@ function checkoutSuccessResponse(input: {
     ...(input.pending ? { pending: true } : {}),
     ...(input.card ? { card: true } : {}),
     ...(input.whatsappUrl ? { whatsapp_url: input.whatsappUrl, whatsappUrl: input.whatsappUrl } : {}),
+    ...(input.reservationExpiresAt ? { reservation_expires_at: input.reservationExpiresAt } : {}),
     total: input.total,
     provider: input.provider
   };
@@ -269,6 +284,8 @@ async function getProductsForItems(items: CheckoutInput["items"]) {
   } else {
     products = fallbackProducts.filter((product) => normalizedItems.some((item) => matchesItem(product, item)));
   }
+
+  if (admin) products = await applyAvailableStockToProducts(products);
 
   return { admin, products, items: normalizedItems };
 }
@@ -361,6 +378,30 @@ async function resumeCheckoutByIdempotencyKey(
     });
   }
 
+  let reservationExpiresAt: string | null = null;
+  let reservationRenewed = false;
+
+  if (provider === "MERCADOPAGO" && String(order.status) === "PENDING_PAYMENT") {
+    const currentReservation = await getActiveOrderStockReservation(String(order.id));
+    if (currentReservation.active) {
+      reservationExpiresAt = currentReservation.expiresAt;
+    } else {
+      try {
+        const renewed = await reserveOrderStock(String(order.id), 30);
+        reservationExpiresAt = renewed.expiresAt;
+        reservationRenewed = true;
+      } catch (error) {
+        if (error instanceof Error && error.message === "INSUFFICIENT_AVAILABLE_STOCK") {
+          throw new CheckoutIdempotencyError(
+            "IDEMPOTENCY_CONFLICT",
+            "La reserva anterior venció y el stock cambió. Revisá el carrito antes de volver a pagar."
+          );
+        }
+        throw error;
+      }
+    }
+  }
+
   if (paymentFlow === "CARD") {
     return checkoutSuccessResponse({
       orderId: order.id,
@@ -370,11 +411,12 @@ async function resumeCheckoutByIdempotencyKey(
       pending: true,
       card: true,
       total: Number(order.total ?? payment.amount ?? 0),
-      provider
+      provider,
+      reservationExpiresAt
     });
   }
 
-  let preference = payment.provider_preference_id
+  let preference = !reservationRenewed && payment.provider_preference_id
     ? await getMercadoPagoPreference(String(payment.provider_preference_id)).catch(() => null)
     : null;
 
@@ -395,24 +437,39 @@ async function resumeCheckoutByIdempotencyKey(
       quantity: Number(item.quantity ?? 1)
     }));
 
-    preference = await createMercadoPagoPreference({
-      orderId: order.id,
-      paymentId: payment.id,
-      customer: {
-        name: String(order.customer_name),
-        email: String(order.customer_email),
-        phone: String(order.customer_phone)
-      },
-      items,
-      shippingCost: Number(order.shipping_cost ?? 0),
-      total: Number(order.total ?? payment.amount ?? 0),
-      idempotencyKey
-    });
+    try {
+      preference = await createMercadoPagoPreference({
+        orderId: order.id,
+        paymentId: payment.id,
+        customer: {
+          name: String(order.customer_name),
+          email: String(order.customer_email),
+          phone: String(order.customer_phone)
+        },
+        items,
+        shippingCost: Number(order.shipping_cost ?? 0),
+        total: Number(order.total ?? payment.amount ?? 0),
+        expiresAt: reservationExpiresAt,
+        idempotencyKey: preferenceRequestIdempotencyKey(idempotencyKey, reservationExpiresAt)
+      });
+    } catch (error) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_CREATE_FAILED").catch(() => undefined);
+      throw error;
+    }
 
-    await admin
+    if (!preference?.redirect_url) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_URL_MISSING").catch(() => undefined);
+      throw new Error("El proveedor de pago no devolvió una URL válida.");
+    }
+
+    const { error: preferencePersistError } = await admin
       .from("payments")
       .update({ provider_preference_id: preference.preference_id, updated_at: new Date().toISOString() })
       .eq("id", payment.id);
+    if (preferencePersistError) {
+      await releaseOrderStockReservation(String(order.id), "PREFERENCE_PERSIST_FAILED").catch(() => undefined);
+      throw new Error("No pudimos asociar la preferencia de pago al pedido.");
+    }
   }
 
   return checkoutSuccessResponse({
@@ -423,7 +480,8 @@ async function resumeCheckoutByIdempotencyKey(
     preference,
     pending: !preference,
     total: Number(order.total ?? payment.amount ?? 0),
-    provider
+    provider,
+    reservationExpiresAt
   });
 }
 
@@ -627,6 +685,7 @@ export async function createCheckout(input: unknown) {
     created?: boolean;
     order_id?: string;
     payment_id?: string;
+    reservation_expires_at?: string | null;
   };
   if (!atomic.order_id || !atomic.payment_id) {
     throw new CheckoutIntegrityError(
@@ -657,6 +716,7 @@ export async function createCheckout(input: unknown) {
 
   const order = { id: atomic.order_id };
   const payment = { id: atomic.payment_id };
+  const reservationExpiresAt = atomic.reservation_expires_at ?? null;
 
   await notifyAdminNewOrder({ id: order.id, customerName: payload.customer.name, total });
 
@@ -715,27 +775,42 @@ export async function createCheckout(input: unknown) {
       pending: true,
       card: true,
       total,
-      provider
+      provider,
+      reservationExpiresAt
     });
   }
 
   if (provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
-    const preference = await createMercadoPagoPreference({
-      orderId: order.id,
-      paymentId: payment.id,
-      customer: payload.customer,
-      items: lines.map(({ product, quantity }) => ({ product, quantity })),
-      shippingCost: delivery,
-      total,
-      idempotencyKey
-    });
+    let preference: Awaited<ReturnType<typeof createMercadoPagoPreference>>;
+    try {
+      preference = await createMercadoPagoPreference({
+        orderId: order.id,
+        paymentId: payment.id,
+        customer: payload.customer,
+        items: lines.map(({ product, quantity }) => ({ product, quantity })),
+        shippingCost: delivery,
+        total,
+        expiresAt: reservationExpiresAt,
+        idempotencyKey: preferenceRequestIdempotencyKey(idempotencyKey, reservationExpiresAt)
+      });
+    } catch (error) {
+      await releaseOrderStockReservation(order.id, "PREFERENCE_CREATE_FAILED").catch(() => undefined);
+      throw error;
+    }
 
-    if (!preference?.redirect_url) throw new Error("El proveedor de pago no devolvió una URL válida.");
+    if (!preference?.redirect_url) {
+      await releaseOrderStockReservation(order.id, "PREFERENCE_URL_MISSING").catch(() => undefined);
+      throw new Error("El proveedor de pago no devolvió una URL válida.");
+    }
 
-    await admin
+    const { error: preferencePersistError } = await admin
       .from("payments")
       .update({ provider_preference_id: preference.preference_id, updated_at: new Date().toISOString() })
       .eq("order_id", order.id);
+    if (preferencePersistError) {
+      await releaseOrderStockReservation(order.id, "PREFERENCE_PERSIST_FAILED").catch(() => undefined);
+      throw new Error("No pudimos asociar la preferencia de pago al pedido.");
+    }
 
     return checkoutSuccessResponse({
       orderId: order.id,
@@ -744,7 +819,8 @@ export async function createCheckout(input: unknown) {
       requiresAdminApproval: false,
       preference,
       total,
-      provider
+      provider,
+      reservationExpiresAt
     });
   }
 

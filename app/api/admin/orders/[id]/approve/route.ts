@@ -29,16 +29,23 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     if (detail.includes("ORDER_NOT_AWAITING_APPROVAL")) {
       return jsonError("La orden no requiere aprobacion administrativa.", 422);
     }
+    if (detail.includes("INSUFFICIENT_AVAILABLE_STOCK")) {
+      return jsonError("No hay stock disponible suficiente para reservar esta compra. Revisá el pedido antes de aprobarlo.", 409);
+    }
     if (error.code === "PGRST202" || detail.includes("admin_transition_order")) {
       return jsonError("La base necesita aplicar la migracion de integridad antes de aprobar pedidos.", 503);
     }
     return jsonError("No pudimos aprobar la orden.", 409);
   }
 
+  const result = (data ?? {}) as { status?: string; reservation_expires_at?: string | null };
   return Response.json({
     ok: true,
-    status: String((data as { status?: string } | null)?.status ?? "PENDING_PAYMENT"),
-    message: "Compra aprobada. Ya puede continuar el flujo de pago."
+    status: String(result.status ?? "PENDING_PAYMENT"),
+    reservation_expires_at: result.reservation_expires_at ?? null,
+    message: result.reservation_expires_at
+      ? "Compra aprobada. El stock quedó reservado temporalmente para continuar el pago."
+      : "Compra aprobada. Ya puede continuar el flujo de pago."
   });
 }
 
