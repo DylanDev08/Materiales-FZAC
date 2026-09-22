@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { BadgeCheck, FileText, ShieldCheck } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
+import { getStoreLegalIdentity } from "@/lib/legal/store-identity";
 import type { OrderReceipt } from "@/lib/db/receipts";
 
 function dateValue(value: string) {
@@ -14,6 +15,8 @@ function dateValue(value: string) {
 }
 
 export function ReceiptTemplate({ receipt }: { receipt: NonNullable<OrderReceipt> }) {
+  const identity = getStoreLegalIdentity();
+
   return (
     <section className="receipt-template" aria-label="Comprobante FZAC">
       <div className="receipt-template__stamp">FZAC</div>
@@ -24,8 +27,10 @@ export function ReceiptTemplate({ receipt }: { receipt: NonNullable<OrderReceipt
           </span>
           <div>
             <span className="kicker">Comprobante de compra</span>
-            <h2>Fortaleza Construcciones</h2>
-            <p>Hermana Paula 3164, Rosario, Santa Fe</p>
+            <h2>{identity.commercialName}</h2>
+            <p>{identity.address}</p>
+            {identity.taxId ? <p>CUIT {identity.taxId}</p> : null}
+            {identity.legalName ? <p>Razón social: {identity.legalName}</p> : null}
           </div>
         </div>
         <div className="receipt-template__number">
