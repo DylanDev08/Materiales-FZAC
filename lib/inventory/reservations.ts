@@ -26,16 +26,16 @@ export async function getAvailableStockForProductIds(productIds: string[]) {
 
   if (error) return new Map<string, StockAvailability>();
 
-  return new Map(
-    (data ?? []).map((row: Record<string, unknown>) => [
-      String(row.product_id),
-      {
+  return new Map<string, StockAvailability>(
+    (data ?? []).map((row: Record<string, unknown>): [string, StockAvailability] => {
+      const value: StockAvailability = {
         productId: String(row.product_id),
         physicalStock: Number(row.physical_stock ?? 0),
         reservedStock: Number(row.reserved_stock ?? 0),
         availableStock: Number(row.available_stock ?? 0)
-      } satisfies StockAvailability
-    ])
+      };
+      return [value.productId, value];
+    })
   );
 }
 
@@ -44,21 +44,23 @@ export async function applyAvailableStockToProducts(products: Product[]) {
   const availability = await getAvailableStockForProductIds(products.map((product) => product.id));
   if (!availability.size) return products;
 
-  return products.map((product) => {
+  return products.map((product): Product => {
     const stock = availability.get(product.id);
     if (!stock) return product;
     const available = Math.max(0, stock.availableStock);
+    const availabilityStatus: Product["availability_status"] =
+      product.availability_status === "CONSULT"
+        ? "CONSULT"
+        : available > 0
+          ? product.availability_status === "OUT_OF_STOCK"
+            ? "OUT_OF_STOCK"
+            : "IN_STOCK"
+          : "OUT_OF_STOCK";
+
     return {
       ...product,
       stock: available,
-      availability_status:
-        product.availability_status === "CONSULT"
-          ? "CONSULT"
-          : available > 0
-            ? product.availability_status === "OUT_OF_STOCK"
-              ? "OUT_OF_STOCK"
-              : "IN_STOCK"
-            : "OUT_OF_STOCK"
+      availability_status: availabilityStatus
     };
   });
 }
