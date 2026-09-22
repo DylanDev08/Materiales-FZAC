@@ -14,6 +14,7 @@ import {
 import { readLimitedJson } from "@/lib/utils/request-security";
 import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { loginSchema } from "@/lib/validations/auth";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 function loginErrorResponse(error: { message?: string; code?: string } | null | undefined) {
   const message = `${error?.message ?? ""} ${error?.code ?? ""}`;
@@ -41,6 +42,13 @@ export async function POST(request: Request) {
 
   try {
     const payload = loginSchema.parse(body.data);
+    const captcha = await verifyTurnstileToken(payload.captchaToken, "login");
+    if (!captcha.ok) {
+      return jsonError(
+        captcha.unavailable ? "La verificación anti-bot no está disponible. Reintentá en un momento." : "Completá la verificación anti-bot.",
+        captcha.unavailable ? 503 : 403
+      );
+    }
     const distributed = await distributedRateLimitRequest(request, {
       scope: "auth-login",
       limit: 8,
