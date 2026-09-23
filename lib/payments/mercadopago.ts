@@ -85,6 +85,16 @@ export function sanitizeMercadoPagoPayment(payment: Record<string, unknown>) {
   const metadata = payment.metadata && typeof payment.metadata === "object"
     ? (payment.metadata as Record<string, unknown>)
     : {};
+  const feeDetails = Array.isArray(payment.fee_details)
+    ? payment.fee_details
+        .filter((fee): fee is Record<string, unknown> => Boolean(fee) && typeof fee === "object")
+        .map((fee) => ({
+          type: optionalString(fee.type),
+          fee_payer: optionalString(fee.fee_payer),
+          amount: optionalNumber(fee.amount)
+        }))
+        .filter((fee) => typeof fee.amount === "number")
+    : [];
   const refunds = Array.isArray(payment.refunds)
     ? payment.refunds
         .filter((refund): refund is Record<string, unknown> => Boolean(refund) && typeof refund === "object")
@@ -114,6 +124,7 @@ export function sanitizeMercadoPagoPayment(payment: Record<string, unknown>) {
       order_id: optionalString(metadata.order_id),
       source: optionalString(metadata.source)
     },
+    fee_details: feeDetails,
     refunds
   } satisfies Record<string, unknown>;
 }
