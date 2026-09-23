@@ -56,6 +56,7 @@ for (const required of [
   "get_product_available_stock",
   "consume_security_rate_limit",
   "pre_domain_security_status",
+  "apply_supplier_pricing_rule",
   "users_legacy_credentials_must_remain_null"
 ]) {
   if (!normalizedSql.includes(required)) failures.push(`Falta el control de integridad ${required}.`);
@@ -65,7 +66,7 @@ if (/create\s+policy[\s\S]{0,300}on\s+public\.(orders|payments|purchase_tickets|
   failures.push("Una tabla sensible contiene una policy de escritura WITH CHECK (true)." );
 }
 
-if (/grant\s+execute\s+on\s+function\s+public\.(finalize_paid_order|finalize_refunded_order|create_checkout_order|admin_transition_order)[\s\S]{0,120}\s+to\s+(public|anon|authenticated)/i.test(allSql)) {
+if (/grant\s+execute\s+on\s+function\s+public\.(finalize_paid_order|finalize_refunded_order|create_checkout_order|admin_transition_order|apply_supplier_pricing_rule)[\s\S]{0,120}\s+to\s+(public|anon|authenticated)/i.test(allSql)) {
   failures.push("Una RPC financiera sensible concede EXECUTE a un rol publico." );
 }
 
