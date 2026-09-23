@@ -48,8 +48,12 @@ export function getPaymentConfig() {
     checkoutProAccessToken: paymentsEnv === "production" ? productionAccessToken : testCheckoutAccessToken,
     checkoutProPublicKey: paymentsEnv === "production" ? productionPublicKey : testCheckoutPublicKey,
     cardPaymentsEnabled,
-    cardAccessToken: paymentsEnv === "production" ? productionCardAccessToken : getEnv("MERCADOPAGO_CARD_ACCESS_TOKEN"),
-    cardPublicKey: paymentsEnv === "production" ? productionCardPublicKey : getEnv("NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY"),
+    cardAccessToken: paymentsEnv === "production"
+      ? productionCardAccessToken || productionAccessToken
+      : getEnv("MERCADOPAGO_CARD_ACCESS_TOKEN") || testCheckoutAccessToken,
+    cardPublicKey: paymentsEnv === "production"
+      ? productionCardPublicKey || productionPublicKey
+      : getEnv("NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY") || testCheckoutPublicKey,
     productionAccessToken,
     productionPublicKey,
     productionCardAccessToken,
