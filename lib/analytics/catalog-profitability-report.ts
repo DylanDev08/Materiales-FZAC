@@ -40,7 +40,9 @@ export type CatalogProfitabilityReport = {
   coveredSalesRevenue: number;
   coveragePercent: number;
   estimatedSupplierCostForSales: number;
+  paymentProviderFees: number;
   estimatedGrossProfit: number;
+  estimatedContributionAfterFees: number;
   rows: CatalogProfitabilityRow[];
 };
 
@@ -68,6 +70,7 @@ type SourceRow = {
 
 type SupplierRow = { id: string; name: string; code: string };
 type OrderRow = { id: string };
+type PaymentRow = { order_id: string; raw: unknown };
 type OrderItemRow = {
   order_id: string;
   product_id: string | null;
@@ -79,6 +82,17 @@ type OrderItemRow = {
 function numeric(value: number | string | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function paymentFeeAmount(raw: unknown) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return 0;
+  const fees = (raw as Record<string, unknown>).fee_details;
+  if (!Array.isArray(fees)) return 0;
+  return fees.reduce((sum, fee) => {
+    if (!fee || typeof fee !== "object" || Array.isArray(fee)) return sum;
+    const amount = Number((fee as Record<string, unknown>).amount ?? 0);
+    return Number.isFinite(amount) && amount > 0 ? sum + amount : sum;
+  }, 0);
 }
 
 function startFor(period: ProfitabilityReportPeriod) {
@@ -125,7 +139,9 @@ export async function getCatalogProfitabilityReport(
     coveredSalesRevenue: 0,
     coveragePercent: 0,
     estimatedSupplierCostForSales: 0,
+    paymentProviderFees: 0,
     estimatedGrossProfit: 0,
+    estimatedContributionAfterFees: 0,
     rows: []
   };
   if (!admin) return empty;
@@ -160,15 +176,24 @@ export async function getCatalogProfitabilityReport(
 
     if (ordersResult.error) throw new Error(ordersResult.error.message);
     const orders = (ordersResult.data ?? []) as OrderRow[];
-    const items = orders.length
-      ? await readAll<OrderItemRow>((from, to) =>
-          admin
-            .from("order_items")
-            .select("order_id,product_id,quantity,unit_price,subtotal")
-            .in("order_id", orders.map((order) => order.id))
-            .range(from, to)
-        )
-      : [];
+    const [items, payments] = orders.length
+      ? await Promise.all([
+          readAll<OrderItemRow>((from, to) =>
+            admin
+              .from("order_items")
+              .select("order_id,product_id,quantity,unit_price,subtotal")
+              .in("order_id", orders.map((order) => order.id))
+              .range(from, to)
+          ),
+          readAll<PaymentRow>((from, to) =>
+            admin
+              .from("payments")
+              .select("order_id,raw")
+              .in("order_id", orders.map((order) => order.id))
+              .range(from, to)
+          )
+        ])
+      : [[], []] as [OrderItemRow[], PaymentRow[]];
 
     const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
     const sourceByProduct = new Map<string, SourceRow>();
@@ -256,6 +281,7 @@ export async function getCatalogProfitabilityReport(
       (sum, row) => sum + (row.estimatedGrossProfit ?? 0),
       0
     );
+    const paymentProviderFees = payments.reduce((sum, payment) => sum + paymentFeeAmount(payment.raw), 0);
 
     return {
       available: true,
@@ -272,7 +298,9 @@ export async function getCatalogProfitabilityReport(
       coveredSalesRevenue,
       coveragePercent: salesRevenue > 0 ? (coveredSalesRevenue / salesRevenue) * 100 : 0,
       estimatedSupplierCostForSales,
+      paymentProviderFees,
       estimatedGrossProfit,
+      estimatedContributionAfterFees: estimatedGrossProfit - paymentProviderFees,
       rows
     };
   } catch {
