@@ -69,11 +69,11 @@ if (/grant\s+execute\s+on\s+function\s+public\.(finalize_paid_order|finalize_ref
   failures.push("Una RPC financiera sensible concede EXECUTE a un rol publico." );
 }
 
-for (const role of ["public", "anon", "authenticated"]) {
-  const revokePattern = new RegExp(
-    `revoke\\\\s+execute\\\\s+on\\\\s+function\\\\s+public\\\\.archive_assistant_knowledge_version\\\\(\\\\)\\\\s+from\\\\s+${role}`,
-    "i"
-  );
+for (const [role, revokePattern] of [
+  ["public", /revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_version\(\)\s+from\s+public/i],
+  ["anon", /revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_version\(\)\s+from\s+anon/i],
+  ["authenticated", /revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_version\(\)\s+from\s+authenticated/i]
+]) {
   if (!revokePattern.test(allSql)) {
     failures.push(`La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE a ${role}.`);
   }
