@@ -133,7 +133,16 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
     if (path.startsWith("?")) return false;
     const href = normalizePath(`${normalizedAdminPath}${path}`);
     if (!path) return pathname === normalizedAdminPath;
-    return pathname === href || pathname.startsWith(`${href}/`);
+
+    const matchingHrefs = linkGroups
+      .flatMap((group) => group.links)
+      .map((link) => link.path)
+      .filter((candidate) => candidate && !candidate.startsWith("?") && !candidate.startsWith("public:"))
+      .map((candidate) => normalizePath(`${normalizedAdminPath}${candidate}`))
+      .filter((candidateHref) => pathname === candidateHref || pathname.startsWith(`${candidateHref}/`))
+      .sort((left, right) => right.length - left.length);
+
+    return href === matchingHrefs[0];
   }
 
   function toggleCollapsed() {
