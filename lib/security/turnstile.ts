@@ -32,7 +32,7 @@ export async function verifyTurnstileToken(token: string | null | undefined, exp
     const result = (await response.json()) as TurnstileResponse;
     if (!result.success) return { required: true, ok: false, unavailable: false };
 
-    if (expectedAction && result.action && result.action !== expectedAction) {
+    if (expectedAction && result.action !== expectedAction) {
       return { required: true, ok: false, unavailable: false };
     }
 
