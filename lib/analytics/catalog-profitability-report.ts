@@ -270,7 +270,7 @@ export async function getCatalogProfitabilityReport(
       unitsSold,
       salesRevenue,
       coveredSalesRevenue,
-      coveragePercent: salesRevenue > 0 ? (coveredSalesRevenue / salesRevenue) * 100 : 100,
+      coveragePercent: salesRevenue > 0 ? (coveredSalesRevenue / salesRevenue) * 100 : 0,
       estimatedSupplierCostForSales,
       estimatedGrossProfit,
       rows
