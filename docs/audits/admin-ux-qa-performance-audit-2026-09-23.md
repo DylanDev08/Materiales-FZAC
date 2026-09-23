@@ -1,7 +1,9 @@
 # Auditoría UX, QA y performance del panel admin
 
-Fecha: 2026-09-23  
-Rama: `codex/admin-qa-performance-20260923`  
+Fecha: 2026-09-23
+
+Rama: `codex/admin-qa-performance-20260923`
+
 Base: `origin/main` en `403b4ef575a6a2c7397ccf566005d8bdad320472`
 
 ## Alcance
