@@ -20,6 +20,8 @@ export default async function Icon() {
           borderRadius: "14px"
         }}
       >
+        {/* next/image is not supported inside next/og ImageResponse output. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={source} alt="" width={64} height={64} style={{ objectFit: "contain" }} />
       </div>
     ),
