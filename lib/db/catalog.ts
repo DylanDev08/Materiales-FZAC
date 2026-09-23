@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { applyAvailableStockToProducts } from "@/lib/inventory/reservations";
@@ -25,7 +24,6 @@ export type ProductFilters = {
 };
 
 export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "pintura-impermeabilizacion"] as const;
-const PUBLIC_SUPPLIER_CODES = ["LA-YESERA-ROSARINA", "UNIVERSO-PINTURAS-SRL"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
@@ -50,17 +48,6 @@ function catalogSearchTerms(input: string) {
     .join(" ");
   return aliased === search ? [search] : [search, aliased];
 }
-
-const getPublicSupplierIds = cache(async () => {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return [];
-  const { data, error } = await admin
-    .from("suppliers")
-    .select("id")
-    .in("code", [...PUBLIC_SUPPLIER_CODES])
-    .eq("active", true)
-  return error ? [] : (data ?? []).map((row) => String(row.id));
-});
 
 export type CatalogFacets = {
   brands: string[];
@@ -201,17 +188,14 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
     };
   }
 
-  const supplierIds = await getPublicSupplierIds();
-  if (!supplierIds.length) return { brands: [] };
-
   const categories = await getCategories();
+  if (!categories.length) return { brands: [] };
   const rows: Array<{ brand: string | null }> = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from("products")
       .select("brand")
       .eq("active", true)
-      .in("supplier_id", supplierIds)
       .in("category_id", categories.map((category) => category.id))
       .order("id")
       .range(from, from + 999);
@@ -231,8 +215,8 @@ export async function getProducts(filters: ProductFilters = {}) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return applyFallbackFilters(fallbackProducts, filters);
 
-  const [supplierIds, categories] = await Promise.all([getPublicSupplierIds(), getCategories()]);
-  if (!supplierIds.length || !categories.length) return [];
+  const categories = await getCategories();
+  if (!categories.length) return [];
 
   const limit = Math.max(1, Math.min(filters.limit ?? 48, 250));
   const offset = Math.max(0, filters.offset ?? 0);
@@ -241,7 +225,6 @@ export async function getProducts(filters: ProductFilters = {}) {
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
     .eq("active", true)
-    .in("supplier_id", supplierIds)
     .in("category_id", categories.map((category) => category.id))
     .range(offset, offset + limit - 1);
 
@@ -304,15 +287,14 @@ export const getProductBySlug = cache(async function getProductBySlug(slug: stri
     return applyFallbackFilters(fallbackProducts, { limit: 500 }).find((product) => product.slug === slug) ?? null;
   }
 
-  const [supplierIds, categories] = await Promise.all([getPublicSupplierIds(), getCategories()]);
-  if (!supplierIds.length || !categories.length) return null;
+  const categories = await getCategories();
+  if (!categories.length) return null;
 
   const { data, error } = await supabase
     .from("products")
     .select(PUBLIC_PRODUCT_SELECT)
     .eq("slug", slug)
     .eq("active", true)
-    .in("supplier_id", supplierIds)
     .in("category_id", categories.map((category) => category.id))
     .maybeSingle();
 
