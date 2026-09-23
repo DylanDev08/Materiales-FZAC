@@ -124,7 +124,9 @@ export default async function Page({
               <th>Costo proveedor</th>
               <th>Precio FZAC</th>
               <th>Ganancia/u.</th>
-              <th>Margen</th>
+              <th>Margen config.</th>
+              <th>Markup real</th>
+              <th>Stock</th>
               <th>Cant. vendida</th>
               <th>Ventas</th>
               <th>Ganancia estimada</th>
@@ -139,7 +141,9 @@ export default async function Page({
                 <td>{row.supplierPrice === null ? "Sin costo" : currency(row.supplierPrice)}</td>
                 <td>{currency(row.ecommercePrice)}</td>
                 <td>{row.unitGrossProfit === null ? "-" : currency(row.unitGrossProfit)}</td>
+                <td>{percent(row.configuredMarginPercent)}</td>
                 <td>{percent(row.markupPercent)}</td>
+                <td>{row.stock}</td>
                 <td>{row.unitsSold}</td>
                 <td>{currency(row.salesRevenue)}</td>
                 <td>{row.estimatedGrossProfit === null ? "-" : currency(row.estimatedGrossProfit)}</td>
