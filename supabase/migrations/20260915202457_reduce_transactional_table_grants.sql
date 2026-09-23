@@ -1,0 +1,37 @@
+revoke all privileges on table public.orders from anon;
+revoke all privileges on table public.order_items from anon;
+revoke all privileges on table public.payments from anon;
+revoke all privileges on table public.payment_events from anon;
+revoke all privileges on table public.purchase_tickets from anon;
+revoke all privileges on table public.purchase_ticket_items from anon;
+revoke all privileges on table public.inventory_movements from anon;
+revoke all privileges on table public.admin_audit_logs from anon;
+revoke all privileges on table public.financial_movements from anon;
+revoke all privileges on table public.suppliers from anon;
+revoke all privileges on table public.purchase_orders from anon;
+revoke all privileges on table public.purchase_order_items from anon;
+revoke all privileges on table public.supplier_invoices from anon;
+revoke all privileges on table public.supplier_payments from anon;
+revoke all privileges on table public.product_supplier_sources from anon;
+revoke all privileges on table public.market_price_observations from anon;
+revoke all privileges on table public.market_price_sources from anon;
+revoke all privileges on table public.market_price_sync_runs from anon;
+
+revoke insert, update, delete, truncate, references, trigger on table public.orders from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.order_items from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.payments from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.payment_events from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.purchase_tickets from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.purchase_ticket_items from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.inventory_movements from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.admin_audit_logs from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.financial_movements from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.suppliers from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.purchase_orders from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.purchase_order_items from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.supplier_invoices from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.supplier_payments from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.product_supplier_sources from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.market_price_observations from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.market_price_sources from authenticated;
+revoke insert, update, delete, truncate, references, trigger on table public.market_price_sync_runs from authenticated;;\n

@@ -36,3 +36,4 @@ create index if not exists purchase_ticket_items_ticket_id_idx
 
 create index if not exists purchase_ticket_items_product_id_idx
   on public.purchase_ticket_items (product_id);
+;\n

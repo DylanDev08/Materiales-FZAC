@@ -16,3 +16,5 @@ alter table public.chat_messages enable row level security;
 alter table public.chat_messages force row level security;
 
 commit;
+
+;\n

@@ -1,0 +1,9 @@
+
+alter table public.admin_audit_logs validate constraint admin_audit_logs_content_check;
+alter table public.chat_messages validate constraint chat_messages_content_check;
+alter table public.order_items validate constraint order_items_snapshot_amount_check;
+alter table public.payment_events validate constraint payment_events_content_check;
+alter table public.product_views validate constraint product_views_session_check;
+alter table public.purchase_ticket_items validate constraint purchase_ticket_items_amount_check;
+alter table public.search_events validate constraint search_events_content_check;
+;\n

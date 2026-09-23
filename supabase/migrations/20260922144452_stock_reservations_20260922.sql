@@ -1142,3 +1142,4 @@ $$;
 
 revoke execute on function public.checkout_integrity_status() from public, anon, authenticated;
 grant execute on function public.checkout_integrity_status() to service_role;
+;\n

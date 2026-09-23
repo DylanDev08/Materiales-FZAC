@@ -68,9 +68,9 @@ alter table public.chat_messages force row level security;
 
 -- Writes stay server-side. Existing owner/admin policies keep WhatsApp rows private
 -- because they have no user_id and use a server-only visitor identifier.
-revoke all on table public.chat_conversations from anon, authenticated;
-revoke all on table public.chat_messages from anon, authenticated;
-grant select on table public.chat_conversations to authenticated;
-grant select on table public.chat_messages to authenticated;
+revoke insert, update, delete on table public.chat_conversations from anon, authenticated;
+revoke insert, update, delete on table public.chat_messages from anon, authenticated;
 
 commit;
+
+;\n

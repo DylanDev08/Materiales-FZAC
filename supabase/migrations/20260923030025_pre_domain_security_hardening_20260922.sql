@@ -163,3 +163,4 @@ $$;
 
 revoke execute on function public.pre_domain_security_status() from public, anon, authenticated;
 grant execute on function public.pre_domain_security_status() to service_role;
+;\n
