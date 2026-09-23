@@ -1,0 +1,30 @@
+-- Cover every remaining public-schema foreign key reported by Supabase Performance Advisor.
+-- Index-only migration: no data or application behavior changes.
+
+create index if not exists assistant_feedback_conversation_id_fk_idx on public.assistant_feedback (conversation_id);
+create index if not exists assistant_feedback_user_id_fk_idx on public.assistant_feedback (user_id);
+create index if not exists assistant_knowledge_created_by_fk_idx on public.assistant_knowledge (created_by);
+create index if not exists assistant_knowledge_updated_by_fk_idx on public.assistant_knowledge (updated_by);
+create index if not exists assistant_knowledge_versions_changed_by_fk_idx on public.assistant_knowledge_versions (changed_by);
+create index if not exists assistant_review_queue_reviewed_by_fk_idx on public.assistant_review_queue (reviewed_by);
+create index if not exists assistant_review_queue_user_message_id_fk_idx on public.assistant_review_queue (user_message_id);
+create index if not exists consumer_refund_requests_resolved_by_fk_idx on public.consumer_refund_requests (resolved_by);
+create index if not exists financial_movements_created_by_fk_idx on public.financial_movements (created_by);
+create index if not exists financial_movements_voided_by_fk_idx on public.financial_movements (voided_by);
+create index if not exists inventory_movements_created_by_fk_idx on public.inventory_movements (created_by);
+create index if not exists market_price_observations_created_by_fk_idx on public.market_price_observations (created_by);
+create index if not exists market_price_sources_created_by_fk_idx on public.market_price_sources (created_by);
+create index if not exists market_price_sources_updated_by_fk_idx on public.market_price_sources (updated_by);
+create index if not exists market_price_sync_runs_source_id_fk_idx on public.market_price_sync_runs (source_id);
+create index if not exists orders_cancelled_by_fk_idx on public.orders (cancelled_by);
+create index if not exists purchase_orders_cancelled_by_fk_idx on public.purchase_orders (cancelled_by);
+create index if not exists purchase_orders_created_by_fk_idx on public.purchase_orders (created_by);
+create index if not exists purchase_orders_ordered_by_fk_idx on public.purchase_orders (ordered_by);
+create index if not exists purchase_orders_received_by_fk_idx on public.purchase_orders (received_by);
+create index if not exists search_events_user_id_fk_idx on public.search_events (user_id);
+create index if not exists supplier_invoices_created_by_fk_idx on public.supplier_invoices (created_by);
+create index if not exists supplier_invoices_voided_by_fk_idx on public.supplier_invoices (voided_by);
+create index if not exists supplier_payments_created_by_fk_idx on public.supplier_payments (created_by);
+create index if not exists supplier_payments_voided_by_fk_idx on public.supplier_payments (voided_by);
+create index if not exists suppliers_created_by_fk_idx on public.suppliers (created_by);
+create index if not exists suppliers_updated_by_fk_idx on public.suppliers (updated_by);
