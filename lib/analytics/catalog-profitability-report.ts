@@ -37,6 +37,8 @@ export type CatalogProfitabilityReport = {
   productsWithoutImage: number;
   unitsSold: number;
   salesRevenue: number;
+  coveredSalesRevenue: number;
+  coveragePercent: number;
   estimatedSupplierCostForSales: number;
   estimatedGrossProfit: number;
   rows: CatalogProfitabilityRow[];
@@ -120,6 +122,8 @@ export async function getCatalogProfitabilityReport(
     productsWithoutImage: 0,
     unitsSold: 0,
     salesRevenue: 0,
+    coveredSalesRevenue: 0,
+    coveragePercent: 0,
     estimatedSupplierCostForSales: 0,
     estimatedGrossProfit: 0,
     rows: []
@@ -242,8 +246,14 @@ export async function getCatalogProfitabilityReport(
     const productsWithSupplierCost = allRows.filter((row) => row.supplierPrice !== null).length;
     const unitsSold = allRows.reduce((sum, row) => sum + row.unitsSold, 0);
     const salesRevenue = allRows.reduce((sum, row) => sum + row.salesRevenue, 0);
-    const estimatedSupplierCostForSales = allRows.reduce(
+    const coveredRows = allRows.filter((row) => row.estimatedSupplierCostForSales !== null);
+    const coveredSalesRevenue = coveredRows.reduce((sum, row) => sum + row.salesRevenue, 0);
+    const estimatedSupplierCostForSales = coveredRows.reduce(
       (sum, row) => sum + (row.estimatedSupplierCostForSales ?? 0),
+      0
+    );
+    const estimatedGrossProfit = coveredRows.reduce(
+      (sum, row) => sum + (row.estimatedGrossProfit ?? 0),
       0
     );
 
@@ -259,8 +269,10 @@ export async function getCatalogProfitabilityReport(
       productsWithoutImage: allRows.filter((row) => !row.hasImage).length,
       unitsSold,
       salesRevenue,
+      coveredSalesRevenue,
+      coveragePercent: salesRevenue > 0 ? (coveredSalesRevenue / salesRevenue) * 100 : 100,
       estimatedSupplierCostForSales,
-      estimatedGrossProfit: salesRevenue - estimatedSupplierCostForSales,
+      estimatedGrossProfit,
       rows
     };
   } catch {
