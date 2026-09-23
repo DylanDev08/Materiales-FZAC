@@ -10,10 +10,20 @@ import { hasRealValue } from "@/lib/utils/env";
 import { getWhatsAppConfig } from "@/lib/whatsapp/config";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET(request: Request) {
   const context = await getAdminApiContext(request, { scope: "admin-environment-health", limit: 30 });
-  if (!context.ok) return context.response;
+  if (!context.ok) {
+    const headers = new Headers(context.response.headers);
+    headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    return new Response(context.response.body, {
+      status: context.response.status,
+      statusText: context.response.statusText,
+      headers
+    });
+  }
 
   const supabase = getSupabaseConfig();
   const mercadoPago = getMercadoPagoEnvironmentState();
