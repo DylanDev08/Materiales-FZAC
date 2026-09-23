@@ -146,6 +146,10 @@ services:
       - key: WHATSAPP_BOT_DRY_RUN
         value: "true"
       - key: NEXT_PUBLIC_FZAC_EMAIL
+      - key: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
         value: fortalezaconstruccionesrosario@gmail.com
       - key: FZAC_EMAIL
         value: fortalezaconstruccionesrosario@gmail.com
