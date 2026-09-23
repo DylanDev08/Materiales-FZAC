@@ -52,7 +52,8 @@ const linkGroups = [
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
       { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
-      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign }
+      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
+      { path: "/rentabilidad/reporte", label: "Reportes PDF", icon: FileText }
     ]
   },
   {
