@@ -15,6 +15,8 @@ También puede usarse el dominio raíz para la tienda; lo importante es mantener
 
 ## Orden de cambio
 
+> **Guardia de rollout:** antes de aplicar la migración `20260922170000_pre_domain_security_hardening.sql`, verificar que el deploy productivo de Vercel ya incluya `/seguridad/admin-mfa`. La migración hace AAL2 obligatorio en RLS y no debe adelantarse al frontend de enrolamiento.
+
 1. Asociar el dominio de tienda al proyecto Vercel canónico.
 2. Asociar `api.<dominio>` al servicio Render canónico si se usará subdominio API.
 3. Esperar TLS válido.
