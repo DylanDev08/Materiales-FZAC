@@ -1,8 +1,9 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ImageOff, PackageSearch, Save, Search, Trash2, UploadCloud } from "lucide-react";
+import { AlertTriangle, ArchiveX, CheckCircle2, ChevronLeft, ChevronRight, ImageOff, PackageSearch, Save, Search, UploadCloud } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
+import { paginateAdminRows } from "@/lib/admin/table-view";
 import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
 import { duplicateReason } from "@/lib/products/identity";
@@ -57,6 +58,7 @@ const emptyProduct: ProductForm = {
 };
 
 type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK" | "INACTIVE";
+const catalogPageSize = 18;
 
 function productForm(product: Product): ProductForm {
   return {
@@ -102,6 +104,9 @@ export function AdminProductsManager({
   const [query, setQuery] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
   const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [deactivationTarget, setDeactivationTarget] = useState<string | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
@@ -125,7 +130,7 @@ export function AdminProductsManager({
       readiness: active.length ? Math.round((ready.length / active.length) * 100) : 0
     };
   }, [categoryIds, rows]);
-  const visibleRows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es-AR");
     return sortedRows.filter((product) => {
       const issues = getProductIssues(product, categoryIds);
@@ -147,6 +152,7 @@ export function AdminProductsManager({
       return matchesQuery && matchesFilter && matchesSupplier;
     });
   }, [catalogFilter, categoryById, categoryIds, query, sortedRows, supplierFilter]);
+  const { currentPage, totalPages, rows: visibleRows } = paginateAdminRows(filteredRows, catalogPage, catalogPageSize);
   const duplicateWarning = useMemo(
     () => form.name.trim() && form.slug.trim() && form.sku.trim() ? duplicateReason(form, rows) : null,
     [form, rows]
@@ -200,13 +206,19 @@ export function AdminProductsManager({
   }
 
   async function deactivate(product: Product) {
+    if (deactivatingId) return;
+    setDeactivatingId(product.id);
     setMessage("");
-    const response = await fetch(`/api/admin/products?id=${product.id}`, { method: "DELETE" });
-    if (response.ok) {
+    try {
+      const response = await fetch(`/api/admin/products?id=${product.id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("No pudimos desactivar el producto.");
       setRows((current) => current.filter((item) => item.id !== product.id));
-      setMessage("Producto desactivado.");
-    } else {
+      setDeactivationTarget(null);
+      setMessage(`“${product.name}” quedó desactivado y ya no se muestra en el catálogo.`);
+    } catch {
       setMessage("No pudimos desactivar el producto.");
+    } finally {
+      setDeactivatingId(null);
     }
   }
 
@@ -433,13 +445,13 @@ export function AdminProductsManager({
             <input
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => { setQuery(event.target.value); setCatalogPage(1); }}
               placeholder="Buscar por nombre, SKU, marca o categoria"
             />
           </label>
           <label className="admin-catalog-filter">
             <span>Estado</span>
-            <select value={catalogFilter} onChange={(event) => setCatalogFilter(event.target.value as CatalogFilter)}>
+            <select value={catalogFilter} onChange={(event) => { setCatalogFilter(event.target.value as CatalogFilter); setCatalogPage(1); }}>
               <option value="ALL">Todos</option>
               <option value="READY">Listos para vender</option>
               <option value="ATTENTION">Requieren revision</option>
@@ -450,13 +462,13 @@ export function AdminProductsManager({
           </label>
           <label className="admin-catalog-filter">
             <span>Proveedor</span>
-            <select value={supplierFilter} onChange={(event) => setSupplierFilter(event.target.value)}>
+            <select value={supplierFilter} onChange={(event) => { setSupplierFilter(event.target.value); setCatalogPage(1); }}>
               <option value="ALL">Todos</option>
               {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </label>
         </div>
-        <div className="admin-table-wrap">
+        <div className="admin-table-wrap admin-product-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
@@ -475,12 +487,12 @@ export function AdminProductsManager({
                 const availability = getProductAvailabilityStatus(product);
                 return (
                 <tr key={product.id}>
-                  <td>{product.name}</td>
-                  <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
-                  <td>{currency(product.price)}</td>
-                  <td>{availability === "CONSULT" ? "A consultar" : product.stock}</td>
-                  <td>{product.supplier?.name ?? suppliers.find((supplier) => supplier.id === product.supplier_id)?.name ?? "Sin asignar"}</td>
-                  <td>
+                  <td data-label="Producto">{product.name}</td>
+                  <td data-label="Categoría">{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoría pendiente"}</td>
+                  <td data-label="Precio venta">{currency(product.price)}</td>
+                  <td data-label="Stock">{availability === "CONSULT" ? "A consultar" : product.stock}</td>
+                  <td data-label="Proveedor">{product.supplier?.name ?? suppliers.find((supplier) => supplier.id === product.supplier_id)?.name ?? "Sin asignar"}</td>
+                  <td data-label="Estado">
                     {!product.active ? (
                       <span className="status-pill">Inactivo</span>
                     ) : availability === "CONSULT" ? (
@@ -493,26 +505,31 @@ export function AdminProductsManager({
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Acciones">
                     <div className="admin-actions">
                       <button className="btn btn--ghost" type="button" onClick={() => setForm(productForm(product))}>
                         Editar
                       </button>
-                      <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>
-                        <Trash2 size={16} />
-                      </button>
+                      {deactivationTarget === product.id ? <>
+                        <button className="btn btn--ghost" type="button" disabled={deactivatingId === product.id} onClick={() => setDeactivationTarget(null)}>Cancelar</button>
+                        <button className="btn btn--danger" type="button" disabled={deactivatingId === product.id} onClick={() => void deactivate(product)}>
+                          <ArchiveX size={16} /> {deactivatingId === product.id ? "Desactivando…" : "Confirmar"}
+                        </button>
+                      </> : <button className="btn btn--ghost admin-product-deactivate" type="button" onClick={() => setDeactivationTarget(product.id)} aria-label={`Desactivar ${product.name}`}>
+                        <ArchiveX size={16} /> Desactivar
+                      </button>}
                     </div>
                   </td>
                 </tr>
                 );
               })}
-              {visibleRows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
                     <div className="admin-catalog-empty">
                       <PackageSearch size={24} />
                       <strong>No encontramos productos con estos filtros.</strong>
-                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setSupplierFilter("ALL"); }}>
+                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setSupplierFilter("ALL"); setCatalogPage(1); }}>
                         Limpiar filtros
                       </button>
                     </div>
@@ -522,6 +539,14 @@ export function AdminProductsManager({
             </tbody>
           </table>
         </div>
+        {filteredRows.length ? <footer className="admin-pagination">
+          <span>Mostrando {(currentPage - 1) * catalogPageSize + 1} a {Math.min(currentPage * catalogPageSize, filteredRows.length)} de {filteredRows.length}</span>
+          <div>
+            <button type="button" disabled={currentPage <= 1} onClick={() => setCatalogPage((value) => Math.max(1, value - 1))}><ChevronLeft size={15} /> Anterior</button>
+            <strong aria-label={`Página ${currentPage} de ${totalPages}`}>{currentPage}</strong>
+            <button type="button" disabled={currentPage >= totalPages} onClick={() => setCatalogPage((value) => Math.min(totalPages, value + 1))}>Siguiente <ChevronRight size={15} /></button>
+          </div>
+        </footer> : null}
       </section>
       ) : null}
     </>

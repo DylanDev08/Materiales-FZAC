@@ -278,17 +278,20 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
         <div className="admin-toolbar admin-toolbar--users">
           <label className="admin-search">
             <Search size={17} />
+            <span className="sr-only">Buscar clientes</span>
             <input
+              type="search"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar usuario, email o telefono..."
+              placeholder="Buscar usuario, email o teléfono..."
             />
           </label>
           <label className="admin-select-label">
             <SlidersHorizontal size={16} />
+            <span className="sr-only">Filtrar clientes</span>
             <select
               value={filter}
               onChange={(event) => {
@@ -305,11 +308,11 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
               <option value="frequent">Clientes frecuentes</option>
             </select>
           </label>
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="recent">Mas recientes</option>
-            <option value="orders">Mas compras</option>
-            <option value="spent">Mas gasto</option>
-            <option value="login">Ultimo acceso</option>
+          <select aria-label="Ordenar clientes" value={sort} onChange={(event) => setSort(event.target.value)}>
+            <option value="recent">Más recientes</option>
+            <option value="orders">Más compras</option>
+            <option value="spent">Más gasto</option>
+            <option value="login">Último acceso</option>
           </select>
           <div className="admin-table-actions">
             <button className="btn btn--ghost" type="button" onClick={clearFilters} disabled={!search && filter === "all" && sort === "recent"}>

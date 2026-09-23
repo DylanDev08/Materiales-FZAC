@@ -3,13 +3,13 @@ import { AdminInteractiveTable } from "@/components/admin/admin-interactive-tabl
 
 function adminTableDescription(title: string) {
   const normalized = title.toLowerCase();
-  if (normalized.includes("pago")) return "Control de cobros, transferencias, Mercado Pago y comprobantes sin datos tecnicos expuestos.";
-  if (normalized.includes("ticket")) return "Tickets y comprobantes generados segun estado real de pago y aprobacion.";
+  if (normalized.includes("pago")) return "Control de cobros, transferencias, Mercado Pago y comprobantes sin datos técnicos expuestos.";
+  if (normalized.includes("ticket")) return "Tickets y comprobantes generados según el estado real del pago y su aprobación.";
   if (normalized.includes("chat")) return "Conversaciones y solicitudes que requieren seguimiento de FZAC.";
-  if (normalized.includes("categoria")) return "Organizacion del catalogo para que el cliente encuentre materiales rapido.";
-  if (normalized.includes("ajuste")) return "Configuracion operativa del e-commerce.";
+  if (normalized.includes("categoría") || normalized.includes("categoria")) return "Organización del catálogo para que el cliente encuentre materiales rápido.";
+  if (normalized.includes("ajuste")) return "Configuración operativa del e-commerce.";
   if (normalized.includes("arrepentimiento")) return "Solicitudes de consumidores, seguimiento y resolución sin ejecutar reembolsos automáticos.";
-  return "Listado administrativo con filtros, busqueda, exportacion y detalle seguro.";
+  return "Listado administrativo con filtros, búsqueda, exportación y detalle seguro.";
 }
 
 export function AdminDataTable({

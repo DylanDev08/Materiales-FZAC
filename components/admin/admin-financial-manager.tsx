@@ -305,7 +305,7 @@ export function AdminFinancialManager({
             <button className="btn btn--ghost" type="button" onClick={exportVisibleCsv} disabled={!visibleRows.length}>
               <Download size={16} /> Exportar CSV
             </button>
-            <button className="btn btn--danger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading}>
+            <button className="btn btn--ghost admin-finance-maintenance-trigger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading} aria-expanded={bulkOpen} aria-controls="finance-maintenance-panel">
               <ShieldAlert size={16} /> Mantenimiento
             </button>
           </div>
@@ -340,7 +340,7 @@ export function AdminFinancialManager({
       ) : null}
 
       {bulkOpen ? (
-        <section className="admin-finance-maintenance" aria-labelledby="finance-maintenance-title" aria-live="polite">
+        <section className="admin-finance-maintenance" id="finance-maintenance-panel" aria-labelledby="finance-maintenance-title" aria-live="polite">
           <header>
             <ShieldAlert size={22} />
             <div>

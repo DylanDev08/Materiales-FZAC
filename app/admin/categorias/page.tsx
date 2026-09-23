@@ -11,5 +11,5 @@ export default async function Page() {
     Orden: category.sort_order ?? 0
   }));
 
-  return <AdminDataTable title="Categorias" columns={["Nombre", "Slug", "Activa", "Orden"]} rows={rows} />;
+  return <AdminDataTable title="Categorías" columns={["Nombre", "Slug", "Activa", "Orden"]} rows={rows} />;
 }

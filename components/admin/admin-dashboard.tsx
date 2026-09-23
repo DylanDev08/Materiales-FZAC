@@ -1,17 +1,11 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { ArrowDownRight, CreditCard, Landmark, MessageCircle, PackageCheck, ReceiptText, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
+import { ArrowDownRight, CircleX, CreditCard, Landmark, MessageCircle, PackageCheck, PackageX, ReceiptText, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
 import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { buildAdminAttentionTasks, numericDashboardMetric, type AdminAttentionTask, type DashboardMetric } from "@/lib/admin/dashboard-attention";
 import { getAdminDashboardData } from "@/lib/db/admin";
 import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
 import { getAdminConsolePath } from "@/lib/utils/env";
-
-type DashboardMetric = {
-  label: string;
-  value: string;
-  helper: string;
-};
 
 type StatusSegment = {
   label: string;
@@ -46,19 +40,8 @@ function getMetric(metrics: DashboardMetric[], label: string): DashboardMetric {
   return metrics.find((metric) => metric.label === label) ?? { label, value: "0", helper: "Sin datos" };
 }
 
-function numericMetric(metrics: DashboardMetric[], label: string) {
-  const raw = getMetric(metrics, label).value;
-  const parsed = Number(String(raw).replace(/[^\d.-]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function plus(value: string) {
   return value.startsWith("+") ? value : `+${value}`;
-}
-
-function segmentWidth(value: number, total: number) {
-  if (!total) return 0;
-  return Math.max(4, Math.round((value / total) * 100));
 }
 
 function chartPoints(values: number[], width = 520, height = 230) {
@@ -151,22 +134,24 @@ function AdminModelLineChart({ labels, title, series }: { labels: string[]; titl
         {[0, 104, 208, 312, 416, 520].map((x) => (
           <line key={x} x1={x} x2={x} y1="0" y2="250" stroke="rgba(255,255,255,0.035)" />
         ))}
-        {series.map((item) => (
-          <g key={item.label}>
+        {series.map((item) => {
+          const points = chartPoints(item.values);
+          const coordinates = points.split(" ");
+          return <g key={item.label}>
             <polyline
               fill="none"
-              points={chartPoints(item.values)}
+              points={points}
               stroke={item.color}
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="4"
             />
             {item.values.map((_, index) => {
-              const [x, y] = chartPoints(item.values).split(" ")[index].split(",");
+              const [x, y] = coordinates[index].split(",");
               return <circle cx={x} cy={y} fill={item.color} key={`${item.label}-${index}`} r="5" />;
             })}
-          </g>
-        ))}
+          </g>;
+        })}
       </svg>
       <div className="admin-model-chart__axis" aria-hidden="true">
         {labels.map((label) => (
@@ -185,50 +170,21 @@ function AdminTaskCenter({
   paymentsReady: boolean;
 }) {
   const adminPath = getAdminConsolePath();
-  const tasks = [
-    {
-      label: "Pedidos pendientes",
-      value: numericMetric(metrics, "Pedidos pendientes"),
-      href: `${adminPath}/pedidos`,
-      icon: ShoppingBag,
-      helper: "Revisar compras nuevas y coordinar entrega o retiro."
-    },
-    {
-      label: "Pagos pendientes",
-      value: numericMetric(metrics, "Pagos pendientes"),
-      href: `${adminPath}/pagos`,
-      icon: CreditCard,
-      helper: "Controlar cobros en espera, transferencias y rechazos."
-    },
-    {
-      label: "Bajo stock",
-      value: numericMetric(metrics, "Productos bajo stock"),
-      href: `${adminPath}/inventario`,
-      icon: PackageCheck,
-      helper: "Reponer productos sin disponibilidad antes de vender."
-    },
-    {
-      label: "Cuentas vencidas",
-      value: numericMetric(metrics, "Cuentas vencidas"),
-      href: `${adminPath}/cuentas-proveedores`,
-      icon: ReceiptText,
-      helper: "Revisar facturas vencidas y registrar pagos pendientes."
-    },
-    {
-      label: "Chats pendientes",
-      value: numericMetric(metrics, "Chats pendientes"),
-      href: `${adminPath}/chats`,
-      icon: MessageCircle,
-      helper: "Responder consultas que el asistente no resolvió."
-    },
-    {
-      label: "Sistema",
-      value: paymentsReady ? 0 : 1,
-      href: `${adminPath}/sistema`,
-      icon: Settings,
-      helper: "Verificar Mercado Pago, Resend, Supabase y webhook."
-    }
-  ];
+  const taskIcons: Record<AdminAttentionTask["key"], typeof ShoppingBag> = {
+    "pending-orders": ShoppingBag,
+    "pending-payments": CreditCard,
+    "rejected-payments": CircleX,
+    "out-of-stock": PackageX,
+    "low-stock": PackageCheck,
+    "overdue-suppliers": ReceiptText,
+    "pending-chats": MessageCircle,
+    system: Settings
+  };
+  const tasks = buildAdminAttentionTasks(metrics, paymentsReady).map((task) => ({
+    ...task,
+    href: `${adminPath}${task.route}`,
+    icon: taskIcons[task.key]
+  }));
   const activeTasks = tasks.filter((task) => task.value > 0);
 
   return (
@@ -283,18 +239,14 @@ export async function AdminDashboard({ period }: { period?: string }) {
   const supplierOutstanding = getMetric(metrics, "Saldo proveedores");
 
   const statusSegments: StatusSegment[] = [
-    { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
-    { label: "Coordinadas", value: numericMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
-    { label: "En proceso", value: numericMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
-    { label: "Pendientes", value: numericMetric(metrics, "Pedidos pendientes"), color: "#274060" },
-    { label: "En conflicto", value: numericMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
-    { label: "Rechazadas", value: numericMetric(metrics, "Pagos rechazados"), color: "#c2185b" },
-    { label: "Proxima zona", value: numericMetric(metrics, "Chats pendientes"), color: "#0057d9" }
+    { label: "Pedidos pagados", value: numericDashboardMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
+    { label: "Aprobación administrativa", value: numericDashboardMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
+    { label: "Pagos pendientes", value: numericDashboardMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
+    { label: "Pedidos pendientes", value: numericDashboardMetric(metrics, "Pedidos pendientes"), color: "#274060" },
+    { label: "Pagos rechazados", value: numericDashboardMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
+    { label: "Chats pendientes", value: numericDashboardMetric(metrics, "Chats pendientes"), color: "#0057d9" }
   ];
-  const statusTotal = statusSegments.reduce((sum, item) => sum + item.value, 0);
-  const visibleStatus = statusTotal
-    ? statusSegments
-    : [{ label: "Sin movimientos", value: 1, color: "#f4c400" }];
+  const visibleStatus = statusSegments.filter((item) => item.value > 0);
 
   const chartData = data.charts;
 
@@ -383,32 +335,18 @@ export async function AdminDashboard({ period }: { period?: string }) {
 
         <section className="admin-model-status">
           <header>
-            <h2>Estados de las ventas del mes</h2>
-            <strong>{statusTotal} ventas</strong>
+            <div><span className="kicker">Seguimiento operativo</span><h2>Señales del período</h2></div>
+            <strong>{visibleStatus.length} activas</strong>
           </header>
-          <div className="admin-model-status__bar" aria-hidden="true">
+          {visibleStatus.length ? <div className="admin-model-status__legend">
             {visibleStatus.map((item) => (
-              <span
-                key={item.label}
-                style={
-                  {
-                    "--status-color": item.color,
-                    "--status-width": `${segmentWidth(item.value, statusTotal || 1)}%`
-                  } as CSSProperties
-                }
-              />
-            ))}
-          </div>
-          <div className="admin-model-status__legend">
-            {statusSegments.map((item) => (
               <span key={item.label}>
                 <i style={{ background: item.color }} />
                 {item.label}
                 <strong>{item.value}</strong>
-                <small>{statusTotal ? `${Math.round((item.value / statusTotal) * 100)}%` : "0%"}</small>
               </span>
             ))}
-          </div>
+          </div> : <p className="admin-empty-state">No hay señales operativas pendientes para este período.</p>}
         </section>
 
         <div className="admin-model-charts">

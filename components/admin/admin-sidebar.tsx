@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
-  Bell,
   BrainCircuit,
   BookOpen,
   CreditCard,
@@ -39,7 +38,6 @@ const linkGroups = [
     title: "Resumen",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
-      { path: "?tab=notifications", label: "Notificaciones", icon: Bell },
       { path: "/logs", label: "Actividad", icon: Activity }
     ]
   },
@@ -62,13 +60,13 @@ const linkGroups = [
       { path: "/compras", label: "Compras y proveedores", icon: ShoppingBasket },
       { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
       { path: "/productos", label: "Productos", icon: Package },
-      { path: "/categorias", label: "Categorias", icon: Grid3X3 },
+      { path: "/categorias", label: "Categorías", icon: Grid3X3 },
       { path: "/auditoria-precios", label: "Auditoría de precios", icon: ShieldCheck },
       { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp }
     ]
   },
   {
-    title: "Atencion asistida",
+    title: "Atención asistida",
     links: [
       { path: "/chats", label: "Chats", icon: MessageCircle },
       { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit },
@@ -76,9 +74,9 @@ const linkGroups = [
     ]
   },
   {
-    title: "Configuracion",
+    title: "Configuración",
     links: [
-      { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
+      { path: "/documentacion", label: "Guía del panel", icon: BookOpen },
       { path: "/pagos/eventos", label: "Eventos de pago", icon: Activity },
       { path: "/sistema", label: "Estado del sistema", icon: ShieldCheck },
       { path: "/apariencia", label: "Apariencia", icon: Palette },
@@ -97,6 +95,8 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
   const normalizedAdminPath = normalizePath(adminPath);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -109,7 +109,9 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
     if (!mobileOpen) return;
 
     const previousOverflow = document.body.style.overflow;
+    const menuButton = menuButtonRef.current;
     document.body.style.overflow = "hidden";
+    const frame = window.requestAnimationFrame(() => sidebarRef.current?.querySelector<HTMLElement>("a")?.focus());
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setMobileOpen(false);
@@ -117,14 +119,16 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
 
     window.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
+      window.requestAnimationFrame(() => menuButton?.focus());
     };
   }, [mobileOpen]);
 
   function hrefFor(path: string) {
     if (path.startsWith("public:")) return path.replace("public:", "");
-    return path.startsWith("?") ? `${normalizedAdminPath}${path}` : `${normalizedAdminPath}${path}`;
+    return `${normalizedAdminPath}${path}`;
   }
 
   function isActive(path: string) {
@@ -146,6 +150,7 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
   return (
     <>
       <button
+        ref={menuButtonRef}
         className="admin-mobile-menu-button"
         type="button"
         aria-controls="admin-primary-navigation"
@@ -165,6 +170,7 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
         />
       ) : null}
       <aside
+        ref={sidebarRef}
         className={`admin-sidebar ${mobileOpen ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}
         id="admin-primary-navigation"
       >
@@ -177,34 +183,38 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
             <small>Panel comercial</small>
           </div>
         </Link>
-        <nav aria-label="Secciones de administracion">
+        <nav aria-label="Secciones de administración">
           {linkGroups.map((group) => (
             <div className="admin-sidebar__group" key={group.title}>
               <p>{group.title}</p>
-              {group.links.map(({ path, label, icon: Icon }) => (
-                <Link
-                  className={isActive(path) ? "active" : undefined}
-                  key={`${group.title}-${path || "dashboard"}`}
-                  href={hrefFor(path)}
-                  onClick={() => setMobileOpen(false)}
-                  title={collapsed ? label : undefined}
-                >
-                  <Icon size={18} />
-                  <span>{label}</span>
-                </Link>
-              ))}
+              {group.links.map(({ path, label, icon: Icon }) => {
+                const active = isActive(path);
+                return (
+                  <Link
+                    className={active ? "active" : undefined}
+                    aria-current={active ? "page" : undefined}
+                    key={`${group.title}-${path || "dashboard"}`}
+                    href={hrefFor(path)}
+                    onClick={() => setMobileOpen(false)}
+                    title={collapsed ? label : undefined}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
             </div>
           ))}
         </nav>
         <button
           className="admin-sidebar__collapse"
           type="button"
-          aria-label={collapsed ? "Expandir menu administrativo" : "Contraer menu administrativo"}
+          aria-label={collapsed ? "Expandir menú administrativo" : "Contraer menú administrativo"}
           aria-pressed={collapsed}
           onClick={toggleCollapsed}
         >
           {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          <span>{collapsed ? "Expandir menu" : "Contraer menu"}</span>
+          <span>{collapsed ? "Expandir menú" : "Contraer menú"}</span>
         </button>
       </aside>
     </>

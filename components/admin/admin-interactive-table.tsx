@@ -1,38 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Info, Search, X } from "lucide-react";
 import { AdminRefundAction } from "@/components/admin/admin-refund-action";
 import { AdminConsumerRequestAction } from "@/components/admin/admin-consumer-request-action";
+import {
+  adminCellText,
+  filterAdminRows,
+  paginateAdminRows,
+  type AdminTableRow
+} from "@/lib/admin/table-view";
 
-type AdminTableRow = Record<string, string | number | null | undefined>;
 type AdminTab = { label: string; match: (row: AdminTableRow) => boolean };
 
 const pageSize = 12;
-
-function cellText(value: string | number | null | undefined) {
-  return value === null || value === undefined || value === "" ? "-" : String(value);
-}
 
 function csvEscape(value: string) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
 function rowText(row: AdminTableRow) {
-  return Object.values(row).map(cellText).join(" ").toLowerCase();
-}
-
-function parseAdminDate(value: string) {
-  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (!match) return null;
-  const [, day, month, year] = match;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  return Object.values(row).map(adminCellText).join(" ").toLowerCase();
 }
 
 function tabOptionsFor(title: string): AdminTab[] {
   const normalized = title.toLowerCase();
   const includes = (word: string) => (row: AdminTableRow) => rowText(row).includes(word.toLowerCase());
-  const statusIncludes = (word: string) => (row: AdminTableRow) => cellText(row.Estado).toLowerCase().includes(word.toLowerCase());
+  const statusIncludes = (word: string) => (row: AdminTableRow) => adminCellText(row.Estado).toLowerCase().includes(word.toLowerCase());
 
   if (normalized.includes("ticket")) {
     return [
@@ -91,8 +85,8 @@ function documentKindFor(title: string) {
 }
 
 function firstValue(row: AdminTableRow, keys: string[]) {
-  const key = keys.find((candidate) => cellText(row[candidate]) !== "-");
-  return key ? cellText(row[key]) : "-";
+  const key = keys.find((candidate) => adminCellText(row[candidate]) !== "-");
+  return key ? adminCellText(row[key]) : "-";
 }
 
 function documentCopy(kind: ReturnType<typeof documentKindFor>) {
@@ -100,7 +94,7 @@ function documentCopy(kind: ReturnType<typeof documentKindFor>) {
     return {
       kicker: "Tickets FZAC",
       title: "Tickets generados por estado de pago",
-      text: "Cada ticket queda como respaldo operativo del pedido y toma el estado real del pago o aprobacion."
+      text: "Cada ticket queda como respaldo operativo del pedido y toma el estado real del pago o aprobación."
     };
   }
   if (kind === "receipt") {
@@ -133,6 +127,8 @@ export function AdminInteractiveTable({
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<AdminTableRow | null>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const statusColumn = columns.find((column) => ["Estado", "Estado del pago", "Activa"].includes(column));
   const dateColumn = columns.find((column) => ["Fecha", "Registro", "Ultimo acceso", "Recibido", "Procesado", "Actualizado"].includes(column));
   const documentKind = documentKindFor(title);
@@ -144,48 +140,69 @@ export function AdminInteractiveTable({
   }, [columns]);
   const filters = useMemo(() => {
     if (!statusColumn) return ["Todos"];
-    const values = Array.from(new Set(rows.map((row) => cellText(row[statusColumn])).filter((value) => value !== "-")));
+    const values = Array.from(new Set(rows.map((row) => adminCellText(row[statusColumn])).filter((value) => value !== "-")));
     return ["Todos", ...values.slice(0, 8)];
   }, [rows, statusColumn]);
-  const normalizedQuery = query.trim().toLowerCase();
+  const activeTabOption = useMemo(() => tabs.find((tab) => tab.label === activeTab), [activeTab, tabs]);
   const filteredRows = useMemo(
-    () =>
-      rows.filter((row) => {
-        const matchesQuery =
-          !normalizedQuery ||
-          columns.some((column) => cellText(row[column]).toLowerCase().includes(normalizedQuery));
-        const matchesFilter = activeFilter === "Todos" || !statusColumn || cellText(row[statusColumn]) === activeFilter;
-        const activeTabOption = tabs.find((tab) => tab.label === activeTab);
-        const matchesTab = !activeTabOption || activeTabOption.match(row);
-        const rowDate = dateColumn ? parseAdminDate(cellText(row[dateColumn])) : null;
-        const matchesDateFrom = !dateFrom || !rowDate || rowDate >= dateFrom;
-        const matchesDateTo = !dateTo || !rowDate || rowDate <= dateTo;
-        return matchesQuery && matchesFilter && matchesTab && matchesDateFrom && matchesDateTo;
-      }),
-    [activeFilter, activeTab, columns, dateColumn, dateFrom, dateTo, normalizedQuery, rows, statusColumn, tabs]
+    () => filterAdminRows(rows, {
+      columns,
+      query,
+      statusColumn,
+      status: activeFilter,
+      dateColumn,
+      dateFrom,
+      dateTo,
+      tabMatch: activeTabOption?.match
+    }),
+    [activeFilter, activeTabOption, columns, dateColumn, dateFrom, dateTo, query, rows, statusColumn]
   );
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const { currentPage, totalPages, rows: visibleRows } = paginateAdminRows(filteredRows, page, pageSize);
   const selectedTechnicalEntries = selectedRow
     ? Object.entries(selectedRow).filter(([key]) => !key.startsWith("__") && (technicalKey(key) || !visibleColumns.includes(key)))
     : [];
+
+  const closeDetails = useCallback(() => {
+    setSelectedRow(null);
+    window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+  }, []);
 
   useEffect(() => {
     if (!selectedRow) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const frame = window.requestAnimationFrame(() => drawerRef.current?.querySelector<HTMLElement>("button")?.focus());
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setSelectedRow(null);
+      if (event.key === "Escape") closeDetails();
+      if (event.key !== "Tab" || !drawerRef.current) return;
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     window.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [selectedRow]);
+  }, [closeDetails, selectedRow]);
+
+  function openDetails(row: AdminTableRow, trigger: HTMLElement) {
+    returnFocusRef.current = trigger;
+    setSelectedRow(row);
+  }
 
   function clearFilters() {
     setQuery("");
@@ -199,7 +216,7 @@ export function AdminInteractiveTable({
   function exportCsv() {
     const csv = [
       visibleColumns.map(csvEscape).join(","),
-      ...filteredRows.map((row) => visibleColumns.map((column) => csvEscape(cellText(row[column]))).join(","))
+      ...filteredRows.map((row) => visibleColumns.map((column) => csvEscape(adminCellText(row[column]))).join(","))
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -226,7 +243,7 @@ export function AdminInteractiveTable({
       <div className="admin-table-heading">
         <div>
           <span className="kicker">{title}</span>
-          <h2>{documentKind ? "Listado para control administrativo" : "Gestion simple"}</h2>
+          <h2>{documentKind ? "Listado para control administrativo" : "Registros y seguimiento"}</h2>
         </div>
         <span className="status-pill">{filteredRows.length} registros</span>
       </div>
@@ -234,7 +251,7 @@ export function AdminInteractiveTable({
       {documentKind ? (
         <p className="notice notice--info admin-document-retention">
           <strong>Registro protegido:</strong> limpiar la vista solo restablece filtros. Los tickets, pagos y comprobantes
-          no se borran; sus cambios de estado permanecen disponibles para control y auditoria.
+          no se borran; sus cambios de estado permanecen disponibles para control y auditoría.
         </p>
       ) : null}
 
@@ -259,23 +276,27 @@ export function AdminInteractiveTable({
       <div className="admin-table-controls admin-table-controls--advanced">
         <label className="admin-search">
           <Search size={18} />
+          <span className="sr-only">Buscar en {title}</span>
           <input
+            type="search"
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
               setPage(1);
             }}
-            placeholder="Buscar cliente, email, telefono, pedido o referencia..."
+            placeholder={`Buscar en ${title.toLocaleLowerCase("es-AR")}...`}
           />
         </label>
-        <label className="admin-date-filter">
-          Desde
-          <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-        </label>
-        <label className="admin-date-filter">
-          Hasta
-          <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-        </label>
+        {dateColumn ? <>
+          <label className="admin-date-filter">
+            Desde
+            <input type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} />
+          </label>
+          <label className="admin-date-filter">
+            Hasta
+            <input type="date" value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} />
+          </label>
+        </> : null}
         <div className="admin-table-actions">
           <button className="btn btn--ghost" type="button" onClick={clearFilters} disabled={!query && activeFilter === "Todos" && activeTab === "Todos" && !dateFrom && !dateTo}>
             <X size={16} /> Limpiar vista
@@ -304,7 +325,23 @@ export function AdminInteractiveTable({
         </div>
       ) : null}
 
-      <div className="admin-table-wrap">
+      {visibleRows.length ? <div className="admin-mobile-record-list" aria-label={`Registros de ${title}`}>
+        {visibleRows.map((row, index) => (
+          <article key={`${currentPage}-${index}`}>
+            <button type="button" onClick={(event) => openDetails(row, event.currentTarget)} aria-haspopup="dialog">
+              <strong>{adminCellText(row[visibleColumns[0]])}</strong>
+              <dl>
+                {visibleColumns.slice(1, 5).map((column) => (
+                  <div key={column}><dt>{column}</dt><dd>{adminCellText(row[column])}</dd></div>
+                ))}
+              </dl>
+              <span>Ver detalle <ChevronRight size={16} /></span>
+            </button>
+          </article>
+        ))}
+      </div> : null}
+
+      <div className="admin-table-wrap admin-table-wrap--responsive">
         <table className="admin-table">
           <thead>
             <tr>
@@ -314,41 +351,39 @@ export function AdminInteractiveTable({
             </tr>
           </thead>
           <tbody>
-            {visibleRows.length ? (
-              visibleRows.map((row, index) => (
+            {visibleRows.map((row, index) => (
                 <tr
                   key={index}
                   className="admin-table-row-clickable"
                   tabIndex={0}
                   aria-label={`Abrir detalle del registro ${index + 1}`}
-                  onClick={() => setSelectedRow(row)}
+                  aria-haspopup="dialog"
+                  onClick={(event) => openDetails(row, event.currentTarget)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      setSelectedRow(row);
+                      openDetails(row, event.currentTarget);
                     }
                   }}
                 >
                   {visibleColumns.map((column) => (
                     <td data-label={column} key={column}>
-                      {cellText(row[column])}
+                      {adminCellText(row[column])}
                     </td>
                   ))}
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={visibleColumns.length}>
-                  <div className="admin-empty-state">
-                    <Info size={18} />
-                    No hay registros para mostrar con estos filtros.
-                  </div>
-                </td>
-              </tr>
-            )}
+              ))}
           </tbody>
         </table>
       </div>
+
+      {!visibleRows.length ? (
+        <div className="admin-empty-state admin-empty-state--actionable" role="status">
+          <Info size={18} />
+          <span>{rows.length ? "No hay resultados para los filtros aplicados." : `Todavía no hay registros en ${title.toLocaleLowerCase("es-AR")}.`}</span>
+          {rows.length ? <button className="btn btn--ghost" type="button" onClick={clearFilters}>Limpiar filtros</button> : null}
+        </div>
+      ) : null}
 
       <footer className="admin-pagination">
         <span>
@@ -372,15 +407,15 @@ export function AdminInteractiveTable({
           className="admin-row-drawer-backdrop"
           type="button"
           aria-label="Cerrar detalle"
-          onClick={() => setSelectedRow(null)}
+          onClick={closeDetails}
         />
-        <aside className="admin-row-drawer" role="dialog" aria-modal="true" aria-label={`Detalle de ${title}`}>
+        <aside ref={drawerRef} className="admin-row-drawer" role="dialog" aria-modal="true" aria-label={`Detalle de ${title}`}>
           <header>
             <div>
               <span className="kicker">Detalle</span>
               <h2>{title}</h2>
             </div>
-            <button className="admin-icon-button" type="button" onClick={() => setSelectedRow(null)} aria-label="Cerrar detalle">
+            <button className="admin-icon-button" type="button" onClick={closeDetails} aria-label="Cerrar detalle">
               <X size={18} />
             </button>
           </header>
@@ -438,18 +473,18 @@ export function AdminInteractiveTable({
             {visibleColumns.map((column) => (
               <div key={column}>
                 <dt>{column}</dt>
-                <dd>{cellText(selectedRow[column])}</dd>
+                <dd>{adminCellText(selectedRow[column])}</dd>
               </div>
             ))}
           </dl>
           {selectedTechnicalEntries.length ? (
             <details className="admin-technical-details">
-              <summary>Informacion tecnica</summary>
+              <summary>Información técnica</summary>
               <dl>
                 {selectedTechnicalEntries.map(([key, value]) => (
                   <div key={key}>
                     <dt>{key}</dt>
-                    <dd>{cellText(value)}</dd>
+                    <dd>{adminCellText(value)}</dd>
                   </div>
                 ))}
               </dl>
