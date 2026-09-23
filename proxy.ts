@@ -123,7 +123,7 @@ export async function proxy(request: NextRequest) {
     if (blocked) {
       return applySecurityHeaders(
         NextResponse.json(
-          { ok: false, code: "RATE_LIMITED", message: "Hiciste demasiadas solicitudes. EsperÃ¡ un momento y volvÃ© a intentar." },
+          { ok: false, code: "RATE_LIMITED", message: "Hiciste demasiadas solicitudes. Esperá un momento y volvé a intentar." },
           { status: 429, headers: retryAfterHeaders(blocked) }
         ),
         false,
