@@ -15,6 +15,8 @@ const verificationSchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const limit = rateLimitRequest(request, { scope: "whatsapp-webhook-verify", limit: 30, windowMs: 60_000 });
+  if (!limit.ok) return jsonError("Demasiados intentos de verificación.", 429, retryAfterHeaders(limit));
   const config = getWhatsAppConfig();
   if (!config.canVerifyWebhook) return jsonError("Webhook no configurado.", 503);
   const query = Object.fromEntries(new URL(request.url).searchParams);
