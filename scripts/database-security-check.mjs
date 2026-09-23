@@ -13,8 +13,12 @@ const failures = [];
 
 const createdTables = new Set();
 for (const { sql } of migrations) {
-  for (const match of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\."?([a-z_][a-z0-9_]*)"?/gi)) {
-    createdTables.add(match[1].toLowerCase());
+  const operations = [...sql.matchAll(/\b(create|drop)\s+table\s+(?:if\s+(?:not\s+)?exists\s+)?public\.\"?([a-z_][a-z0-9_]*)\"?/gi)];
+  for (const operation of operations) {
+    const action = operation[1].toLowerCase();
+    const table = operation[2].toLowerCase();
+    if (action === "create") createdTables.add(table);
+    else createdTables.delete(table);
   }
 }
 
@@ -65,8 +69,14 @@ if (/grant\s+execute\s+on\s+function\s+public\.(finalize_paid_order|finalize_ref
   failures.push("Una RPC financiera sensible concede EXECUTE a un rol publico." );
 }
 
-if (!/revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_version\(\)\s+from\s+public,\s*anon,\s*authenticated/i.test(allSql)) {
-  failures.push("La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE publico." );
+for (const role of ["public", "anon", "authenticated"]) {
+  const revokePattern = new RegExp(
+    `revoke\\\\s+execute\\\\s+on\\\\s+function\\\\s+public\\\\.archive_assistant_knowledge_version\\\\(\\\\)\\\\s+from\\\\s+${role}`,
+    "i"
+  );
+  if (!revokePattern.test(allSql)) {
+    failures.push(`La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE a ${role}.`);
+  }
 }
 
 if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(allSql)
