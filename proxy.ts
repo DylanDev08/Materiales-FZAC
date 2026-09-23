@@ -64,6 +64,21 @@ function applySecurityHeaders(response: NextResponse, noIndex = false, noStore =
 }
 
 export async function proxy(request: NextRequest) {
+  const rawRequestPath = request.url.split("?", 1)[0] ?? request.url;
+  const malformedBackslashPath =
+    /%5c/i.test(rawRequestPath) ||
+    request.nextUrl.pathname.includes("\\") ||
+    /%5c/i.test(request.nextUrl.pathname);
+
+  if (malformedBackslashPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = request.nextUrl.pathname
+      .replace(/%5c/gi, "/")
+      .replace(/\\/g, "/")
+      .replace(/\/{2,}/g, "/");
+    return applySecurityHeaders(NextResponse.redirect(url, 308));
+  }
+
   let response = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
