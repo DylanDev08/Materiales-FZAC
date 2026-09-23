@@ -57,7 +57,7 @@
     "@emnapi/core": "1.11.2",
     "@emnapi/runtime": "1.11.2",
     "@mercadopago/sdk-react": "^1.0.7",
-    "@supabase/ssr": "^0.5.2",
+    "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.45.4",
     "lucide-react": "^0.468.0",
     "mercadopago": "^3.2.0",
