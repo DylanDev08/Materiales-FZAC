@@ -104,6 +104,8 @@ export default async function Page({
         <article><span>Sin imagen</span><strong>{report.productsWithoutImage}</strong></article>
         <article><span>Unidades vendidas</span><strong>{report.unitsSold}</strong></article>
         <article><span>Ventas del período</span><strong>{currency(report.salesRevenue)}</strong></article>
+        <article><span>Ventas con costo</span><strong>{currency(report.coveredSalesRevenue)}</strong></article>
+        <article><span>Cobertura de costo</span><strong>{percent(report.coveragePercent)}</strong></article>
         <article><span>Costo estimado vendido</span><strong>{currency(report.estimatedSupplierCostForSales)}</strong></article>
         <article><span>Ganancia bruta estimada</span><strong>{currency(report.estimatedGrossProfit)}</strong></article>
       </section>
@@ -159,8 +161,9 @@ export default async function Page({
       <footer className="profit-report-footer">
         <strong>Uso interno FZAC</strong>
         <p>
-          Ganancia estimada = ventas del período menos último costo proveedor disponible por unidad.
-          No reemplaza cierre contable ni contempla impuestos, comisiones financieras o gastos no cargados.
+          La ganancia estimada sólo incluye ventas con costo proveedor disponible. Las ventas sin costo quedan fuera
+          del cálculo de ganancia para evitar sobreestimaciones. No reemplaza cierre contable ni contempla impuestos,
+          comisiones financieras o gastos no cargados.
         </p>
       </footer>
     </main>
