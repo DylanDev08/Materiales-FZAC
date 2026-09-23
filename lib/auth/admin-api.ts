@@ -51,7 +51,11 @@ export async function getAdminApiContext(
   if (!admin) {
     return {
       ok: false as const,
-      response: jsonError("El servicio administrativo no está disponible en este momento.", 503)
+      response: jsonError(
+        "El servicio administrativo no está disponible en este momento.",
+        503,
+        { "Cache-Control": "private, no-store, max-age=0, must-revalidate" }
+      )
     };
   }
 
