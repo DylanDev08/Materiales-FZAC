@@ -10,6 +10,7 @@ import {
 import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
+import { rateLimitRequest } from "@/lib/utils/rate-limit";
 import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
 import {
   buildMercadoPagoProviderEventId,
@@ -197,6 +198,11 @@ async function notifyWebhookFailure(orderId?: string) {
 }
 
 export async function handleMercadoPagoWebhook(request: Request): Promise<WebhookResult> {
+  const limit = rateLimitRequest(request, { scope: "mercadopago-webhook", limit: 300, windowMs: 60_000 });
+  if (!limit.ok) {
+    return { status: 429, body: { ok: false, received: false, message: "Demasiadas notificaciones." } };
+  }
+
   const url = new URL(request.url);
   const payload = await readWebhookBody(request);
   if (!payload.ok) return { status: payload.status, body: { ok: false, message: payload.message } };
