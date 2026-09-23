@@ -30,22 +30,26 @@ for (const required of [
   "payments_provider_session_unique_idx",
   "payment_events_provider_event_unique_idx",
   "payments_provider_payment_unique_idx",
+  "protect_profile_security_fields",
   "validate_profile_contact_integrity",
-  "validate_category_integrity",
-  "validate_product_commercial_integrity",
-  "validate_product_image_integrity",
   "validate_order_customer_integrity",
   "protect_order_commercial_snapshot",
+  "guard_order_fulfillment_requires_items",
   "validate_payment_order_integrity",
+  "guard_paid_payment_requires_items",
   "protect_public_store_settings",
   "validate_notification_integrity",
   "validate_conversation_identity",
-  "validate_consumer_request_integrity",
   "protect_notification_content",
   "protect_review_moderation",
   "enforce_user_collection_limits",
   "sync_user_cart",
   "admin_transition_order",
+  "create_checkout_order",
+  "finalize_paid_order",
+  "reserve_order_stock",
+  "release_order_stock_reservation",
+  "get_product_available_stock",
   "consume_security_rate_limit",
   "pre_domain_security_status",
   "users_legacy_credentials_must_remain_null"
@@ -65,10 +69,13 @@ if (!/revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_ver
   failures.push("La funcion SECURITY DEFINER del conocimiento no revoca EXECUTE publico." );
 }
 
-const finalHardening = migrations.find(({ file }) => file === "20260812010000_database_integrity_hardening.sql")?.sql ?? "";
-if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(finalHardening)
-  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(finalHardening)) {
+if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(allSql)
+  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(allSql)) {
   failures.push("Los eventos de busqueda conservan un camino de escritura publica." );
+}
+
+if (/profiles_full_name_normalized_unique_idx/i.test(allSql)) {
+  failures.push("profiles: el nombre completo no debe ser una identidad unica; distintas personas pueden compartirlo.");
 }
 
 const approveRoute = await readFile(path.join(root, "app/api/admin/orders/[id]/approve/route.ts"), "utf8");
