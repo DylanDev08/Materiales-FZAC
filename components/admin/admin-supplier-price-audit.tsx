@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Download, ExternalLink, RefreshCw, RotateCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Download, ExternalLink, RefreshCw, RotateCw, Save, ShieldCheck, Zap } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import type { SupplierAuditStatus } from "@/lib/supplier-pricing/rules";
 
@@ -24,8 +24,26 @@ type AuditRow = {
   availabilityStatus: string;
   status: SupplierAuditStatus;
 };
+type PricingRule = {
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+  marginPercent: number | null;
+  thresholdAmount: number | null;
+  marginAboveThresholdPercent: number | null;
+  roundToWholePeso: boolean;
+};
+
+type PricingRuleDraft = {
+  marginPercent: string;
+  thresholdAmount: string;
+  marginAboveThresholdPercent: string;
+  roundToWholePeso: boolean;
+};
+
 type AuditResponse = {
   rows: AuditRow[];
+  pricingRules: PricingRule[];
   summary: {
     total: number; differences: number; wrongMargin: number; missingImage: number; missingDescription: number;
     missingSupplier: number; consult: number; missingSourceUrl: number; missingSourcePrice: number;
@@ -62,12 +80,20 @@ export function AdminSupplierPriceAudit() {
   const [supplier, setSupplier] = useState("ALL");
   const [status, setStatus] = useState("ISSUES");
   const [issue, setIssue] = useState("ALL");
+  const [ruleDrafts, setRuleDrafts] = useState<Record<string, PricingRuleDraft>>({});
+  const [savingRule, setSavingRule] = useState("");
 
   async function load() {
     setLoading(true);
     try {
       const result = await readResponse(await fetch("/api/admin/supplier-price-audit", { cache: "no-store" })) as unknown as AuditResponse;
       setData(result);
+      setRuleDrafts(Object.fromEntries((result.pricingRules ?? []).map((rule) => [rule.supplierCode, {
+        marginPercent: rule.marginPercent === null ? "" : String(rule.marginPercent),
+        thresholdAmount: rule.thresholdAmount === null ? "" : String(rule.thresholdAmount),
+        marginAboveThresholdPercent: rule.marginAboveThresholdPercent === null ? "" : String(rule.marginAboveThresholdPercent),
+        roundToWholePeso: rule.roundToWholePeso
+      }])));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No pudimos cargar la auditoría.");
     } finally {
@@ -79,7 +105,17 @@ export function AdminSupplierPriceAudit() {
     let active = true;
     void fetch("/api/admin/supplier-price-audit", { cache: "no-store" })
       .then(readResponse)
-      .then((result) => active && setData(result as unknown as AuditResponse))
+      .then((result) => {
+        if (!active) return;
+        const typed = result as unknown as AuditResponse;
+        setData(typed);
+        setRuleDrafts(Object.fromEntries((typed.pricingRules ?? []).map((rule) => [rule.supplierCode, {
+          marginPercent: rule.marginPercent === null ? "" : String(rule.marginPercent),
+          thresholdAmount: rule.thresholdAmount === null ? "" : String(rule.thresholdAmount),
+          marginAboveThresholdPercent: rule.marginAboveThresholdPercent === null ? "" : String(rule.marginAboveThresholdPercent),
+          roundToWholePeso: rule.roundToWholePeso
+        }])));
+      })
       .catch((error: unknown) => active && setNotice(error instanceof Error ? error.message : "No pudimos cargar la auditoría."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -95,6 +131,60 @@ export function AdminSupplierPriceAudit() {
     if (issue === "CONSULT" && row.availabilityStatus !== "CONSULT") return false;
     return true;
   }), [data, supplier, status, issue]);
+
+  function updateRuleDraft(supplierCode: string, patch: Partial<PricingRuleDraft>) {
+    setRuleDrafts((current) => ({
+      ...current,
+      [supplierCode]: { ...current[supplierCode], ...patch }
+    }));
+  }
+
+  async function savePricingRule(rule: PricingRule, applyNow: boolean) {
+    if (savingRule) return;
+    const draft = ruleDrafts[rule.supplierCode];
+    if (!draft) return;
+
+    const marginPercent = Number(draft.marginPercent);
+    const thresholdAmount = draft.thresholdAmount.trim() ? Number(draft.thresholdAmount) : null;
+    const marginAboveThresholdPercent = draft.marginAboveThresholdPercent.trim()
+      ? Number(draft.marginAboveThresholdPercent)
+      : null;
+
+    if (!Number.isFinite(marginPercent) || marginPercent < 0 || marginPercent > 200) {
+      setNotice("El margen base debe estar entre 0% y 200%.");
+      return;
+    }
+    if ((thresholdAmount === null) !== (marginAboveThresholdPercent === null)) {
+      setNotice("Umbral y margen superior deben configurarse juntos o dejarse ambos vacíos.");
+      return;
+    }
+    if (applyNow && !window.confirm(`Vas a recalcular todos los productos de ${rule.supplierName}. ¿Confirmás aplicar esta regla al catálogo?`)) {
+      return;
+    }
+
+    setSavingRule(rule.supplierCode);
+    setNotice("");
+    try {
+      const result = await readResponse(await fetch("/api/admin/supplier-price-audit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supplierCode: rule.supplierCode,
+          marginPercent,
+          thresholdAmount,
+          marginAboveThresholdPercent,
+          roundToWholePeso: draft.roundToWholePeso,
+          applyNow
+        })
+      }));
+      setNotice(typeof result.message === "string" ? result.message : "Regla comercial actualizada.");
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No pudimos actualizar la regla comercial.");
+    } finally {
+      setSavingRule("");
+    }
+  }
 
   async function recalculate(row: AuditRow) {
     if (workingId) return;
@@ -132,6 +222,74 @@ export function AdminSupplierPriceAudit() {
       <section className="admin-market-prices__guardrail">
         <ShieldCheck size={24} />
         <div><strong>Información comercial privada</strong><p>Los precios de origen y márgenes solo se entregan a esta ruta administradora. El catálogo público recibe únicamente el precio FZAC.</p></div>
+      </section>
+
+      <section className="admin-panel admin-supplier-audit__rules">
+        <header>
+          <div>
+            <span className="kicker">Reglas comerciales</span>
+            <h2>Margen por proveedor</h2>
+            <p>Guardá la regla primero. Aplicarla al catálogo es una acción separada y recalcula los precios activos del proveedor.</p>
+          </div>
+          <AlertTriangle size={21} />
+        </header>
+        <div className="admin-supplier-audit__rule-grid">
+          {(data?.pricingRules ?? []).map((rule) => {
+            const draft = ruleDrafts[rule.supplierCode];
+            if (!draft) return null;
+            const busy = savingRule === rule.supplierCode;
+            return (
+              <article className="admin-supplier-audit__rule-card" key={rule.supplierCode}>
+                <div>
+                  <strong>{rule.supplierName}</strong>
+                  <small>{rule.supplierCode}</small>
+                </div>
+                <label>
+                  Margen base %
+                  <input
+                    inputMode="decimal"
+                    value={draft.marginPercent}
+                    onChange={(event) => updateRuleDraft(rule.supplierCode, { marginPercent: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Umbral $ (opcional)
+                  <input
+                    inputMode="decimal"
+                    placeholder="Sin umbral"
+                    value={draft.thresholdAmount}
+                    onChange={(event) => updateRuleDraft(rule.supplierCode, { thresholdAmount: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Margen sobre umbral %
+                  <input
+                    inputMode="decimal"
+                    placeholder="Sin regla superior"
+                    value={draft.marginAboveThresholdPercent}
+                    onChange={(event) => updateRuleDraft(rule.supplierCode, { marginAboveThresholdPercent: event.target.value })}
+                  />
+                </label>
+                <label className="admin-supplier-audit__rounding">
+                  <input
+                    type="checkbox"
+                    checked={draft.roundToWholePeso}
+                    onChange={(event) => updateRuleDraft(rule.supplierCode, { roundToWholePeso: event.target.checked })}
+                  />
+                  Redondear al peso entero
+                </label>
+                <div className="admin-supplier-audit__rule-actions">
+                  <button className="btn btn--ghost" type="button" disabled={Boolean(savingRule)} onClick={() => void savePricingRule(rule, false)}>
+                    <Save size={16} /> {busy ? "Guardando..." : "Guardar regla"}
+                  </button>
+                  <button className="btn" type="button" disabled={Boolean(savingRule)} onClick={() => void savePricingRule(rule, true)}>
+                    <Zap size={16} /> {busy ? "Aplicando..." : "Aplicar al catálogo"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <div className="admin-market-prices__summary" aria-label="Resumen de auditoría">
