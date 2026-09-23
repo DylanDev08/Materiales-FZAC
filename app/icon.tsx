@@ -20,7 +20,6 @@ export default async function Icon() {
           borderRadius: "14px"
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={source} alt="" width={64} height={64} style={{ objectFit: "contain" }} />
       </div>
     ),
