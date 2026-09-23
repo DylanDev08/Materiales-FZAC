@@ -136,6 +136,20 @@ if (!proxyConfig.includes("script-src-attr 'none'")) {
   failures.push("proxy.ts: la CSP debe bloquear handlers inline con script-src-attr 'none'.");
 }
 
+if (!proxyConfig.includes("/api/whatsapp/webhook")) {
+  failures.push("proxy.ts: el webhook firmado de WhatsApp debe estar marcado como webhook externo.");
+}
+
+const whatsappWebhook = await readFile(path.join(root, "app/api/whatsapp/webhook/route.ts"), "utf8").catch(() => "");
+if (!whatsappWebhook.includes("verifyMetaSignature") || !whatsappWebhook.includes("rateLimitRequest")) {
+  failures.push("WhatsApp webhook: debe validar firma de Meta y aplicar rate limit propio.");
+}
+
+const turnstileGuard = await readFile(path.join(root, "lib/security/turnstile.ts"), "utf8").catch(() => "");
+if (!turnstileGuard.includes("if (!isTurnstileConfigured())")) {
+  failures.push("Turnstile: una configuracion parcial no debe bloquear login/registro.");
+}
+
 const requireAdmin = await readFile(path.join(root, "lib/auth/require-admin.ts"), "utf8").catch(() => "");
 const apiGuards = await readFile(path.join(root, "lib/auth/api-guards.ts"), "utf8").catch(() => "");
 const adminMfa = await readFile(path.join(root, "lib/auth/admin-mfa.ts"), "utf8").catch(() => "");
