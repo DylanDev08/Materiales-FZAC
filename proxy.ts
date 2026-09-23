@@ -114,7 +114,8 @@ export async function proxy(request: NextRequest) {
   const isApiRequest = request.nextUrl.pathname.startsWith("/api/");
   const isExternalWebhook =
     request.nextUrl.pathname === "/api/webhooks/mercadopago" ||
-    request.nextUrl.pathname === "/api/payments/mercadopago/webhook";
+    request.nextUrl.pathname === "/api/payments/mercadopago/webhook" ||
+    request.nextUrl.pathname === "/api/whatsapp/webhook";
 
   if (isApiRequest && !isExternalWebhook && request.method.toUpperCase() !== "OPTIONS") {
     const burstLimit = rateLimit(getRequestKey(request, "api-gateway-burst"), 30, 10_000);
