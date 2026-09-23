@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeDollarSign, CircleDollarSign, Gauge, ReceiptText } from "lucide-react";
+import { AlertTriangle, BadgeDollarSign, CircleDollarSign, FileDown, Gauge, ReceiptText } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import type { ProfitabilityOverview, ProfitabilityPeriod } from "@/lib/analytics/profitability";
 import { getAdminConsolePath } from "@/lib/utils/env";
@@ -21,13 +21,18 @@ export function AdminProfitability({ data }: { data: ProfitabilityOverview }) {
 
   return (
     <div className="admin-profitability">
-      <nav className="admin-profitability__periods" aria-label="Período de rentabilidad">
-        {(Object.keys(periodLabels) as ProfitabilityPeriod[]).map((period) => (
-          <Link className={period === data.period ? "is-active" : ""} href={`${adminPath}/rentabilidad?period=${period}`} key={period}>
-            {periodLabels[period]}
-          </Link>
-        ))}
-      </nav>
+      <div className="admin-profitability__toolbar">
+        <nav className="admin-profitability__periods" aria-label="Período de rentabilidad">
+          {(Object.keys(periodLabels) as ProfitabilityPeriod[]).map((period) => (
+            <Link className={period === data.period ? "is-active" : ""} href={`${adminPath}/rentabilidad?period=${period}`} key={period}>
+              {periodLabels[period]}
+            </Link>
+          ))}
+        </nav>
+        <Link className="btn admin-profitability__report-link" href={`${adminPath}/rentabilidad/reporte?period=${data.period}&scope=sold`}>
+          <FileDown size={17} /> Reporte PDF
+        </Link>
+      </div>
 
       {!data.available ? (
         <div className="notice notice--warning"><AlertTriangle size={18} /> No pudimos leer costos y ventas en este momento.</div>
