@@ -25,6 +25,7 @@ export function ProductCard({ product }: { product: Product }) {
   const purchasable = canPurchaseProduct(product);
   const cartEligible = canAddProductToCart(product);
   const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
+  const imageSrc = product.image_url?.trim() || "/logoFZAC.jpg";
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
@@ -49,7 +50,7 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="product-card">
       <Link className="product-card__media" href={`/producto/${product.slug}`} prefetch={false}>
         <Image
-          src={product.image_url}
+          src={imageSrc}
           alt={product.name}
           fill
           sizes="(max-width: 400px) 100vw, (max-width: 820px) 50vw, (max-width: 1200px) 25vw, 220px"
