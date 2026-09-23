@@ -70,7 +70,8 @@ if (!/revoke\s+execute\s+on\s+function\s+public\.archive_assistant_knowledge_ver
 }
 
 if (!/drop\s+policy\s+if\s+exists\s+"search events owner insert"/i.test(allSql)
-  || !/revoke\s+insert\s+on\s+table\s+public\.search_events\s+from\s+anon,\s*authenticated/i.test(allSql)) {
+  || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.search_events\s+from\s+anon/i.test(allSql)
+  || !/revoke\s+insert[\s\S]{0,120}on\s+table\s+public\.search_events\s+from\s+authenticated/i.test(allSql)) {
   failures.push("Los eventos de busqueda conservan un camino de escritura publica." );
 }
 
