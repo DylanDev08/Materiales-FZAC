@@ -107,7 +107,9 @@ export default async function Page({
         <article><span>Ventas con costo</span><strong>{currency(report.coveredSalesRevenue)}</strong></article>
         <article><span>Cobertura de costo</span><strong>{percent(report.coveragePercent)}</strong></article>
         <article><span>Costo estimado vendido</span><strong>{currency(report.estimatedSupplierCostForSales)}</strong></article>
+        <article><span>Comisiones de pago</span><strong>{currency(report.paymentProviderFees)}</strong></article>
         <article><span>Ganancia bruta estimada</span><strong>{currency(report.estimatedGrossProfit)}</strong></article>
+        <article><span>Después de comisiones</span><strong>{currency(report.estimatedContributionAfterFees)}</strong></article>
       </section>
 
       <section className="profit-report-context">
@@ -162,8 +164,8 @@ export default async function Page({
         <strong>Uso interno FZAC</strong>
         <p>
           La ganancia estimada sólo incluye ventas con costo proveedor disponible. Las ventas sin costo quedan fuera
-          del cálculo de ganancia para evitar sobreestimaciones. No reemplaza cierre contable ni contempla impuestos,
-          comisiones financieras o gastos no cargados.
+          del cálculo para evitar sobreestimaciones. Las comisiones del proveedor de pagos se descuentan cuando el
+          pago las informa. No reemplaza cierre contable ni contempla impuestos u otros gastos no cargados.
         </p>
       </footer>
     </main>
