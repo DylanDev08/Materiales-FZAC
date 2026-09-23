@@ -1,4 +1,5 @@
 const PLACEHOLDER_PATTERN = /^<.*>$/;
+const FZAC_PRODUCTION_SITE_URL = "https://www.fzacmateriales.store";
 
 export function getEnv(name: string): string {
   return process.env[name]?.trim() ?? "";
@@ -10,6 +11,10 @@ export function hasRealValue(value: string | undefined): value is string {
 }
 
 function getVercelSiteUrl() {
+  if (getEnv("VERCEL") === "1" && getEnv("VERCEL_ENV") === "production") {
+    return FZAC_PRODUCTION_SITE_URL;
+  }
+
   const raw = getEnv("VERCEL_PROJECT_PRODUCTION_URL") || getEnv("VERCEL_URL");
   if (!raw) return "";
 
