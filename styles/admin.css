@@ -8415,3 +8415,126 @@ body:has(.admin-page) .site-main {
     page-break-before: avoid;
   }
 }
+
+
+/* Reglas comerciales por proveedor. */
+.admin-supplier-audit__rules {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-supplier-audit__rules > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.admin-supplier-audit__rules > header h2 {
+  margin: 4px 0 5px;
+}
+
+.admin-supplier-audit__rules > header p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.admin-supplier-audit__rules > header svg {
+  color: var(--color-yellow);
+  flex: 0 0 auto;
+}
+
+.admin-supplier-audit__rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-supplier-audit__rule-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid var(--color-yellow-border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(244, 196, 0, 0.08), rgba(17, 17, 17, 0.96)),
+    #101010;
+  padding: 16px;
+}
+
+.admin-supplier-audit__rule-card > div:first-child {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-supplier-audit__rule-card > div:first-child strong {
+  color: var(--color-white);
+  font-size: 1rem;
+}
+
+.admin-supplier-audit__rule-card > div:first-child small {
+  color: var(--color-muted);
+}
+
+.admin-supplier-audit__rule-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.admin-supplier-audit__rule-card input[type="text"],
+.admin-supplier-audit__rule-card input:not([type]) {
+  min-width: 0;
+}
+
+.admin-supplier-audit__rounding {
+  grid-column: 1 / -1;
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px !important;
+  min-height: 38px;
+}
+
+.admin-supplier-audit__rounding input {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-supplier-audit__rule-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-supplier-audit__rule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-supplier-audit__rule-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-supplier-audit__rule-card > div:first-child,
+  .admin-supplier-audit__rounding,
+  .admin-supplier-audit__rule-actions {
+    grid-column: 1;
+  }
+
+  .admin-supplier-audit__rule-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
