@@ -1,59 +1,71 @@
 # Cutover a dominio definitivo — Materiales FZAC
 
-Este checklist se usa cuando el dominio real ya esté comprado y definido.
+Dominio definitivo registrado: `fzacmateriales.store`.
 
 ## Arquitectura objetivo
 
 ```text
-tienda.<dominio>  -> Vercel
-/api/*            -> rewrite same-origin
-api.<dominio>     -> Render
+https://fzacmateriales.store      -> Vercel (proyecto canónico materiales-fzac-391o)
+https://www.fzacmateriales.store  -> Vercel
+/api/*                            -> rewrite same-origin hacia Render
+Render backend                    -> https://materiales-fzac.onrender.com
 Supabase / Mercado Pago / Maps / Resend / Meta detrás del backend
 ```
 
-También puede usarse el dominio raíz para la tienda; lo importante es mantener un único origen público canónico.
+No se usa `api.fzacmateriales.store` durante este cutover: el frontend mantiene `/api/*` same-origin y Vercel lo deriva al Render canónico.
 
-## Orden de cambio
+## DNS objetivo en DonWeb
 
-> **Guardia de rollout:** antes de aplicar la migración `20260922170000_pre_domain_security_hardening.sql`, verificar que el deploy productivo de Vercel ya incluya `/seguridad/admin-mfa`. La migración hace AAL2 obligatorio en RLS y no debe adelantarse al frontend de enrolamiento.
+### Sitio
+- `A @ -> 76.76.21.21`
+- `CNAME www -> cname.vercel-dns-0.com`
+- Eliminar únicamente el `AAAA` del dominio raíz que apuntaba al hosting viejo.
+- Conservar NS/SOA y registros de correo de DonWeb.
 
-1. Asociar el dominio de tienda al proyecto Vercel canónico.
-2. Asociar `api.<dominio>` al servicio Render canónico si se usará subdominio API.
-3. Esperar TLS válido.
-4. Configurar en Vercel y Render:
-   - `FZAC_PUBLIC_SITE_URL=https://...`
-   - `NEXT_PUBLIC_SITE_URL=https://...`
-   - `TRUSTED_APP_ORIGINS=https://...`
-   - `API_PROXY_ORIGIN=https://api....` o Render HTTPS canónico.
-5. Configurar Turnstile para el hostname real:
-   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-   - `TURNSTILE_SECRET_KEY`
-6. Supabase Auth:
-   - Site URL = dominio real;
-   - redirect URLs = solo producción necesaria + desarrollo autorizado;
-   - verificar TOTP de todos los admins;
-   - activar Leaked Password Protection si el plan/configuración lo permite.
-7. Mercado Pago:
-   - success/pending/failure URLs al dominio real;
-   - webhook HTTPS productivo;
-   - secret de webhook del ambiente correcto.
-8. Google:
-   - browser key restringida al hostname real;
-   - redirect OAuth exacto;
-   - server key sin exposición al cliente.
-9. Resend:
-   - dominio verificado;
-   - SPF/DKIM correctos;
-   - remitente productivo.
-10. Meta/WhatsApp:
-   - webhook definitivo;
-   - verify token/app secret server-side.
-11. Ejecutar `pnpm release:audit`.
-12. Smoke test:
+### Resend
+- `TXT resend._domainkey` con la clave DKIM generada por Resend.
+- `MX send -> feedback-smtp.sa-east-1.amazonses.com`, prioridad 10.
+- `TXT send -> v=spf1 include:amazonses.com ~all`.
+- `CNAME rsend -> send.forge.rmta.net`.
+- El SPF raíz de DonWeb se conserva; el SPF de Resend vive en `send`.
+
+## Estado del cutover
+
+- [x] Dominio registrado en DonWeb.
+- [x] DNS web apuntado a Vercel.
+- [x] Registros DNS de Resend cargados.
+- [x] Backend Render preautoriza el origen temporal, raíz y `www`.
+- [x] MFA administrativo ya es requisito AAL2 a nivel aplicación/RLS.
+- [ ] Asociar `fzacmateriales.store` y `www.fzacmateriales.store` al proyecto Vercel canónico.
+- [ ] Esperar TLS válido en el dominio final.
+- [ ] Completar verificación SPF/DKIM en Resend.
+- [ ] Configurar remitente `no-reply@fzacmateriales.store`.
+- [ ] Cambiar `FZAC_PUBLIC_SITE_URL` y `NEXT_PUBLIC_SITE_URL` al dominio final cuando responda por HTTPS.
+- [ ] Supabase Auth: Site URL y redirect URLs del dominio final.
+- [ ] Verificar TOTP de todos los admins.
+- [ ] Configurar Turnstile para el hostname final.
+- [ ] Mercado Pago: callbacks/webhook de producción al dominio final.
+- [ ] Google: restricciones de browser key/OAuth al hostname final.
+- [ ] Ejecutar `pnpm release:audit`.
+- [ ] Smoke test completo.
+- [ ] Activar `SEO_INDEXING_ENABLED=true` recién al final.
+
+> Leaked Password Protection no se toma como bloqueante mientras el proyecto permanezca en el plan actual de Supabase y la opción no esté disponible.
+
+## Orden de cambio restante
+
+1. Asociar raíz + `www` al Vercel canónico.
+2. Confirmar resolución DNS y TLS.
+3. Terminar verificación Resend.
+4. Cambiar URL pública canónica y remitente de email.
+5. Ajustar Supabase Auth, Turnstile, Mercado Pago y Google al hostname real.
+6. Ejecutar auditoría de release.
+7. Smoke test:
    - home;
    - catálogo;
    - login;
    - registro;
+   - recuperación;
    - MFA admin;
    - carrito;
    - reserva de stock;
@@ -63,12 +75,13 @@ También puede usarse el dominio raíz para la tienda; lo importante es mantener
    - admin;
    - upload imagen;
    - mobile.
-13. Recién después activar `SEO_INDEXING_ENABLED=true`.
+8. Activar indexación SEO.
 
 ## No hacer
 
 - no apuntar DNS a proyectos Vercel duplicados;
-- no usar el Render legacy;
+- no usar Render legacy;
 - no copiar secretos a variables `NEXT_PUBLIC_*`;
-- no habilitar cobros productivos antes de verificar webhook y dominio;
-- no activar indexación mientras el dominio temporal siga siendo canónico.
+- no habilitar cobros productivos antes de verificar webhook, credenciales productivas y dominio;
+- no activar indexación mientras el dominio temporal siga siendo canónico;
+- no borrar MX/SPF/DKIM existentes de DonWeb que correspondan a su servicio de correo.
