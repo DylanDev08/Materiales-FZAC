@@ -14,8 +14,8 @@ export function isTurnstileConfigured() {
 }
 
 export async function verifyTurnstileToken(token: string | null | undefined, expectedAction?: string) {
+  if (!isTurnstileConfigured()) return { required: false, ok: true, unavailable: false };
   const secret = getEnv("TURNSTILE_SECRET_KEY");
-  if (!hasRealValue(secret)) return { required: false, ok: true, unavailable: false };
   if (!token || token.length > 4096) return { required: true, ok: false, unavailable: false };
 
   try {
