@@ -21,6 +21,8 @@ type AuditRow = {
   difference: number | null;
   missingImage: boolean;
   missingDescription: boolean;
+  manualReviewRequired: boolean;
+  manualReviewReason: string | null;
   availabilityStatus: string;
   status: SupplierAuditStatus;
 };
@@ -320,7 +322,7 @@ export function AdminSupplierPriceAudit() {
           <td>{row.expectedMargin === null ? "Manual" : `${row.expectedMargin}%`}<small>actual {row.currentMargin ?? "—"}%</small></td>
           <td>{currency(row.currentPrice)}</td>
           <td>{row.expectedPrice === null ? "Manual" : currency(row.expectedPrice)}<small>{row.difference === null ? "" : `Dif. ${currency(row.difference)}`}</small></td>
-          <td><span className={`status-pill status-pill--${row.status === "OK" ? "success" : "warning"}`}>{statusLabels[row.status]}</span>{row.missingImage ? <small>Sin imagen</small> : null}{row.missingDescription ? <small>Sin descripción</small> : null}</td>
+          <td><span className={`status-pill status-pill--${row.status === "OK" ? "success" : "warning"}`}>{statusLabels[row.status]}{row.manualReviewReason ? <small className="admin-supplier-audit__reason">{row.manualReviewReason}</small> : null}</span>{row.missingImage ? <small>Sin imagen</small> : null}{row.missingDescription ? <small>Sin descripción</small> : null}</td>
           <td><div className="admin-supplier-audit__actions">{row.sourceUrl ? <a className="btn btn--ghost" href={row.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} />Fuente</a> : null}<Link className="btn btn--ghost" href={`${adminPath}/productos`} >Editar</Link>{row.expectedPrice !== null && row.status !== "OK" ? <button className="btn btn--primary" type="button" disabled={Boolean(workingId)} onClick={() => void recalculate(row)}><RotateCw size={15} />{workingId === row.productId ? "Aplicando" : "Recalcular"}</button> : null}</div></td>
         </tr>)}</tbody></table></div> : null}
       </section>
