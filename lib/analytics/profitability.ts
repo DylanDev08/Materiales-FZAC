@@ -112,7 +112,7 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
     admin
       .from("purchase_orders")
       .select("id,created_at,ordered_at,received_at")
-      .in("status", ["ORDERED", "PARTIALLY_RECEIVED", "RECEIVED"])
+      .in("status", ["PARTIALLY_RECEIVED", "RECEIVED"])
       .order("created_at", { ascending: false })
       .limit(800),
     admin
