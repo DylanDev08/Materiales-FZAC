@@ -1,5 +1,8 @@
-const required = [
-  "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN",
+const credentialRequired = [
+  "MERCADOPAGO_PRODUCTION_ACCESS_TOKEN"
+];
+
+const releaseRequired = [
   "NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY",
   "MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET"
 ];
@@ -17,20 +20,18 @@ function siteUrlValue() {
   return value("FZAC_PUBLIC_SITE_URL") || value("NEXT_PUBLIC_SITE_URL");
 }
 
-const missing = required.filter((name) => !configured(name));
-const problems = [];
+const credentialMissing = credentialRequired.filter((name) => !configured(name));
+const releaseMissing = releaseRequired.filter((name) => !configured(name));
+const credentialProblems = [];
 
 if (value("PAYMENTS_ENABLED").toLowerCase() !== "true" && value("PAYMENT_ENABLED").toLowerCase() !== "true") {
-  problems.push("PAYMENTS_ENABLED debe estar habilitado.");
+  credentialProblems.push("PAYMENTS_ENABLED debe estar habilitado.");
 }
 if ((value("PAYMENTS_PROVIDER") || "mercadopago").toLowerCase() !== "mercadopago") {
-  problems.push("PAYMENTS_PROVIDER debe ser mercadopago.");
+  credentialProblems.push("PAYMENTS_PROVIDER debe ser mercadopago.");
 }
 if (value("PAYMENTS_ENV").toLowerCase() !== "production") {
-  problems.push("PAYMENTS_ENV debe ser production.");
-}
-if (value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() !== "true") {
-  problems.push("PAYMENTS_PRODUCTION_CONFIRMED debe ser true.");
+  credentialProblems.push("PAYMENTS_ENV debe ser production.");
 }
 
 try {
@@ -39,15 +40,15 @@ try {
     siteUrl.protocol !== "https:" ||
     ["localhost", "127.0.0.1", "0.0.0.0"].includes(siteUrl.hostname)
   ) {
-    problems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL debe ser una URL HTTPS publica.");
+    credentialProblems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL debe ser una URL HTTPS publica.");
   }
 } catch {
-  problems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL no contiene una URL valida.");
+  credentialProblems.push("FZAC_PUBLIC_SITE_URL o NEXT_PUBLIC_SITE_URL no contiene una URL valida.");
 }
 
-if (missing.length || problems.length) {
-  for (const name of missing) console.error(`PENDING: falta ${name}.`);
-  for (const problem of problems) console.error(`PENDING: ${problem}`);
+if (credentialMissing.length || credentialProblems.length) {
+  for (const name of credentialMissing) console.error(`PENDING: falta ${name}.`);
+  for (const problem of credentialProblems) console.error(`PENDING: ${problem}`);
   console.error("No se contacto a Mercado Pago ni se mostraron credenciales.");
   process.exit(1);
 }
@@ -80,9 +81,25 @@ try {
       console.error("La cuenta autenticada no corresponde al sitio de Mercado Pago Argentina.");
       process.exitCode = 1;
     } else {
-      console.log("Mercado Pago productivo: autenticacion valida para Argentina.");
+      console.log("Mercado Pago productivo: autenticacion server-side valida para Argentina.");
       console.log("Preflight no destructivo: no se crearon preferencias, pagos ni reembolsos.");
       console.log("No se mostraron tokens, claves publicas ni datos de la cuenta.");
+
+      for (const name of releaseMissing) {
+        console.warn(`RELEASE PENDING: falta ${name} en el entorno que corresponda.`);
+      }
+
+      if (value("PAYMENTS_PRODUCTION_CONFIRMED").toLowerCase() !== "true") {
+        console.log("SAFE GATE: PAYMENTS_PRODUCTION_CONFIRMED sigue desactivado. El preflight no habilita cobros.");
+      } else {
+        console.warn("ATENCION: PAYMENTS_PRODUCTION_CONFIRMED ya esta activo.");
+      }
+
+      if (value("MERCADOPAGO_CARD_ENABLED").toLowerCase() !== "true") {
+        console.log("SAFE GATE: MERCADOPAGO_CARD_ENABLED sigue desactivado.");
+      }
+
+      if (releaseMissing.length) process.exitCode = 2;
     }
   }
 } catch (error) {
