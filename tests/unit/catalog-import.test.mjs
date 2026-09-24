@@ -147,3 +147,30 @@ test("la auditoría conserva centavos de Universo y redondea Yesera", () => {
   assert.equal(expectedSupplierPrice("UNIVERSO-PINTURAS-SRL", 123.45), 123.45);
   assert.equal(expectedSupplierPrice("LA-YESERA-ROSARINA", 69600), 76560);
 });
+
+
+test("Universo manda precios fuente sospechosamente bajos a revisión manual", () => {
+  const [row] = parseUniversoProduct({
+    productId: "999",
+    productName: "Producto sospechoso",
+    link: "https://www.tiendauniverso.com.ar/producto-sospechoso/p",
+    brand: "Marca",
+    categories: ["/PINTURAS/ESMALTES/"],
+    description: "Producto de prueba.",
+    items: [{
+      itemId: "998",
+      nameComplete: "Producto sospechoso",
+      measurementUnit: "un",
+      images: [],
+      sellers: [{ commertialOffer: { Price: 49.05, AvailableQuantity: 0 } }]
+    }]
+  });
+  assert.equal(row.price_review_required, true);
+
+  const [decision] = classifyUniverso([row], {
+    products: [],
+    sources: [],
+    supplier: null
+  });
+  assert.equal(decision.decision, "REVIEW_PRICE");
+});
