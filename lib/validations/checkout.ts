@@ -52,6 +52,7 @@ const checkoutItemSchema = z
 
 const addressSchema = z
   .object({
+    placeId: safeString("Lugar de Google", 0, 256).optional(),
     street: safeString("Calle", 0, 120).optional(),
     number: safeString("Numero", 0, 30).optional(),
     apartment: safeString("Departamento", 0, 60).optional(),
@@ -62,6 +63,7 @@ const addressSchema = z
     notes: optionalSafeNote("Notas de dirección", 240)
   })
   .transform((value) => ({
+    placeId: value.placeId,
     street: value.street,
     number: value.number,
     apartment: value.apartment,
@@ -73,8 +75,14 @@ const addressSchema = z
 
 const checkoutAddressSchema = addressSchema.optional().transform((value) => value ?? {});
 
-function addressIsComplete(value: { street?: string; number?: string; city?: string; province?: string }) {
-  return Boolean(value.street?.trim() && value.number?.trim() && value.city?.trim() && value.province?.trim());
+function addressIsComplete(value: { placeId?: string; street?: string; number?: string; city?: string; province?: string }) {
+  return Boolean(
+    value.placeId?.trim()
+      && value.street?.trim()
+      && value.number?.trim()
+      && value.city?.trim()
+      && value.province?.trim()
+  );
 }
 
 const checkoutBaseSchema = z.object({
@@ -105,7 +113,7 @@ export const checkoutSchema = checkoutBaseSchema.superRefine((value, context) =>
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["address"],
-      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
+      message: "Seleccioná una dirección sugerida por Google y completá número, ciudad y provincia para cotizar el envío."
     });
   }
 });
@@ -156,7 +164,7 @@ function validateCreateAddress(
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["address_snapshot"],
-      message: "Completa direccion, numero, ciudad y provincia para cotizar envio."
+      message: "Seleccioná una dirección sugerida por Google y completá número, ciudad y provincia para cotizar el envío."
     });
   }
 }
