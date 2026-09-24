@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 
-const baseUrl = process.env.BASE_URL || "https://materiales-fzac-8xmp.onrender.com";
+const baseUrl = process.env.BASE_URL || "https://materiales-fzac.onrender.com";
 const qaProductId = process.env.QA_CHECKOUT_PRODUCT_ID || "";
 const qaCustomerEmail = process.env.QA_CHECKOUT_EMAIL || "";
 const mutatingCheckoutEnabled = process.env.RUN_MUTATING_CHECKOUT_TESTS === "true";
