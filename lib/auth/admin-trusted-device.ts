@@ -37,11 +37,14 @@ export async function hasTrustedAdminDevice(userId: string) {
 
   if (error || !data || data.user_agent_hash !== userAgentHash) return false;
 
-  await admin
-    .from("admin_trusted_devices")
-    .update({ last_used_at: now })
-    .eq("id", data.id)
-    .catch(() => undefined);
+  try {
+    await admin
+      .from("admin_trusted_devices")
+      .update({ last_used_at: now })
+      .eq("id", data.id);
+  } catch {
+    // Last-used bookkeeping must never block an otherwise valid trusted browser.
+  }
 
   return true;
 }
@@ -56,12 +59,15 @@ export async function createTrustedAdminDevice(userId: string, userAgent: string
   const expiresAt = new Date(Date.now() + ADMIN_TRUST_MAX_AGE_SECONDS * 1000).toISOString();
   const now = new Date().toISOString();
 
-  await admin
-    .from("admin_trusted_devices")
-    .delete()
-    .eq("user_id", userId)
-    .lt("expires_at", now)
-    .catch(() => undefined);
+  try {
+    await admin
+      .from("admin_trusted_devices")
+      .delete()
+      .eq("user_id", userId)
+      .lt("expires_at", now);
+  } catch {
+    // Expired-row cleanup is best effort.
+  }
 
   const { data, error } = await admin
     .from("admin_trusted_devices")
@@ -87,7 +93,11 @@ export async function createTrustedAdminDevice(userId: string, userAgent: string
   });
 
   if (auditError) {
-    await admin.from("admin_trusted_devices").delete().eq("id", data.id).catch(() => undefined);
+    try {
+      await admin.from("admin_trusted_devices").delete().eq("id", data.id);
+    } catch {
+      // The caller still receives failure and no cookie is issued.
+    }
     throw new Error("TRUSTED_DEVICE_AUDIT_FAILED");
   }
 
