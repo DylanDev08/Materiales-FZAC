@@ -8,6 +8,8 @@ import type { Product } from "@/types/domain";
 
 export function ProductDetail({ product, related }: { product: Product; related: Product[] }) {
   const gallery = [product.image_url, ...product.gallery].filter(Boolean);
+  const hasProductImage = gallery.length > 0;
+  const displayGallery = hasProductImage ? gallery : ["/logoFZAC.jpg"];
   const availabilityStatus = product.availability_status ?? (product.stock > 0 ? "IN_STOCK" : "OUT_OF_STOCK");
 
   return (
@@ -26,7 +28,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
         </nav>
 
         <div className="product-detail">
-          <ProductGallery name={product.name} images={gallery} />
+          <ProductGallery name={product.name} images={displayGallery} placeholder={!hasProductImage} />
 
           <ProductBuyBox product={product} />
         </div>
