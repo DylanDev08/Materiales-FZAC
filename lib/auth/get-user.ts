@@ -57,7 +57,7 @@ export const getUserProfile = cache(async (): Promise<SessionProfile | null> => 
 
   const { data } = await admin
     .from("profiles")
-    .select("id,email,full_name,phone,avatar_url")
+    .select("id,email,full_name,phone,avatar_url,role")
     .eq("id", user.id)
     .maybeSingle();
   if (!data) return fallback;
@@ -68,7 +68,7 @@ export const getUserProfile = cache(async (): Promise<SessionProfile | null> => 
     full_name: data.full_name ?? fallback.full_name,
     phone: data.phone ?? fallback.phone,
     avatar_url: data.avatar_url ?? fallback.avatar_url,
-    role: isAdminEmail(user.email) ? "ADMIN" : "USER"
+    role: data.role === "ADMIN" ? "ADMIN" : fallback.role
   };
 });
 
@@ -82,32 +82,37 @@ export async function syncUserProfileOnLogin(authUser?: User | null): Promise<Se
 
   const { data: existingProfile } = await admin
     .from("profiles")
-    .select("full_name,phone,avatar_url")
+    .select("full_name,phone,avatar_url,role")
     .eq("id", user.id)
     .maybeSingle();
   const now = new Date().toISOString();
+  const resolvedRole: UserRole = existingProfile?.role === "ADMIN" || fallback.role === "ADMIN" ? "ADMIN" : "USER";
   const payload = {
     id: user.id,
     email: user.email,
     full_name: existingProfile?.full_name ?? fallback.full_name,
     phone: existingProfile?.phone ?? fallback.phone,
     avatar_url: fallback.avatar_url ?? existingProfile?.avatar_url ?? null,
-    role: fallback.role,
+    role: resolvedRole,
     last_login_at: now,
     updated_at: now
   };
 
-  await admin.from("profiles").upsert(payload, { onConflict: "id" });
+  const writes = [admin.from("profiles").upsert(payload, { onConflict: "id" })];
 
-  if (fallback.role === "ADMIN") {
-    await admin.from("notifications").insert({
-      target_role: "ADMIN",
-      type: "ADMIN_LOGIN",
-      title: "Administrador logueado",
-      message: `${user.email} ingreso a FZAC.`,
-      link_to: `${getAdminConsolePath()}/clientes`
-    });
+  if (resolvedRole === "ADMIN") {
+    writes.push(
+      admin.from("notifications").insert({
+        target_role: "ADMIN",
+        type: "ADMIN_LOGIN",
+        title: "Administrador logueado",
+        message: `${user.email} ingreso a FZAC.`,
+        link_to: `${getAdminConsolePath()}/clientes`
+      })
+    );
   }
+
+  await Promise.all(writes);
 
   return {
     id: payload.id,
@@ -115,6 +120,6 @@ export async function syncUserProfileOnLogin(authUser?: User | null): Promise<Se
     full_name: payload.full_name,
     phone: payload.phone,
     avatar_url: payload.avatar_url,
-    role: fallback.role
+    role: resolvedRole
   };
 }
