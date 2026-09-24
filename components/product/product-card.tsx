@@ -25,6 +25,8 @@ export function ProductCard({ product }: { product: Product }) {
   const purchasable = canPurchaseProduct(product);
   const cartEligible = canAddProductToCart(product);
   const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
+  const hasImage = Boolean(product.image_url?.trim());
+  const imageSrc = hasImage ? product.image_url : "/logoFZAC.jpg";
   const hasProductImage = Boolean(product.image_url?.trim());
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
 
