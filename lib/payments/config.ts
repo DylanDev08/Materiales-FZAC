@@ -38,8 +38,8 @@ export function getPaymentConfig() {
   const testCheckoutPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_CHECKOUT_PRO_PUBLIC_KEY") || publicKey;
   const productionAccessToken = getEnv("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN");
   const productionPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY");
-  const productionCardAccessToken = getEnv("MERCADOPAGO_PRODUCTION_CARD_ACCESS_TOKEN");
-  const productionCardPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_CARD_PUBLIC_KEY");
+  const productionCardAccessToken = getEnv("MERCADOPAGO_PRODUCTION_CARD_ACCESS_TOKEN") || productionAccessToken;
+  const productionCardPublicKey = getEnv("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_CARD_PUBLIC_KEY") || productionPublicKey;
   const testWebhookSecret = getEnv("MERCADOPAGO_TEST_WEBHOOK_SECRET") || getEnv("MERCADOPAGO_WEBHOOK_SECRET");
   const productionWebhookSecret = getEnv("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET");
   return {
