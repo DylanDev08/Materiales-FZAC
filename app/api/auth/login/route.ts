@@ -1,5 +1,4 @@
 import { ZodError } from "zod";
-import { isAdminEmail } from "@/lib/auth/admin";
 import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
@@ -42,21 +41,23 @@ export async function POST(request: Request) {
 
   try {
     const payload = loginSchema.parse(body.data);
-    const captcha = await verifyTurnstileToken(payload.captchaToken, "login");
+    const [captcha, distributed] = await Promise.all([
+      verifyTurnstileToken(payload.captchaToken, "login"),
+      distributedRateLimitRequest(request, {
+        scope: "auth-login",
+        limit: 8,
+        windowMs: 60_000,
+        identity: payload.email,
+        identityLimit: 6,
+        identityWindowMs: 5 * 60_000
+      })
+    ]);
     if (!captcha.ok) {
       return jsonError(
         captcha.unavailable ? "La verificación anti-bot no está disponible. Reintentá en un momento." : "Completá la verificación anti-bot.",
         captcha.unavailable ? 503 : 403
       );
     }
-    const distributed = await distributedRateLimitRequest(request, {
-      scope: "auth-login",
-      limit: 8,
-      windowMs: 60_000,
-      identity: payload.email,
-      identityLimit: 6,
-      identityWindowMs: 5 * 60_000
-    });
     if (!distributed.ok) {
       return jsonError("Demasiados intentos. Esperá unos minutos.", 429, distributedRetryHeaders(distributed));
     }
@@ -83,8 +84,8 @@ export async function POST(request: Request) {
 
       if (error || !data.user?.email) return loginErrorResponse(error);
 
-      await syncUserProfileOnLogin(data.user);
-      const target = isAdminEmail(data.user.email)
+      const profile = await syncUserProfileOnLogin(data.user);
+      const target = profile?.role === "ADMIN"
         ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
         : "/cuenta";
       return Response.json({ target });
