@@ -87,7 +87,7 @@ async function readAll<T>(query: (from: number, to: number) => PromiseLike<{ dat
 
 async function auditData(admin: AdminClient) {
   const [products, suppliers, sources] = await Promise.all([
-    readAll<ProductRow>((from, to) => admin.from("products").select("id,name,sku,slug,price,supplier_id,image_url,description,availability_status,active").range(from, to)),
+    readAll<ProductRow>((from, to) => admin.from("products").select("id,name,sku,slug,price,supplier_id,image_url,description,availability_status,active").eq("active", true).range(from, to)),
     readAll<SupplierRow>((from, to) => admin.from("suppliers").select("id,name,code,pricing_margin_percent,pricing_threshold_amount,pricing_margin_above_threshold_percent,pricing_round_to_whole_peso").range(from, to)),
     readAll<SourceRow>((from, to) => admin.from("product_supplier_sources").select("product_id,supplier_id,source_product_id,source_url,original_price,margin_percent,manual_review_required,manual_review_reason").range(from, to))
   ]);
@@ -138,8 +138,9 @@ async function auditData(admin: AdminClient) {
     }];
   });
 
+  const activeSupplierCodes = new Set(rows.map((row) => row.supplierCode).filter((code): code is string => Boolean(code)));
   const pricingRules = suppliers
-    .filter((supplier) => supplierCodes.has(supplier.code))
+    .filter((supplier) => supplierCodes.has(supplier.code) && activeSupplierCodes.has(supplier.code))
     .map((supplier) => ({
       supplierId: supplier.id,
       supplierCode: supplier.code,
