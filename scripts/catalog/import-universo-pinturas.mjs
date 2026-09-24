@@ -106,6 +106,7 @@ function parseProduct(product) {
       .filter(Boolean);
     const originalPrice = Number(Number(offer.Price).toFixed(2));
     if (!originalName || !sourceUrl || !originalPrice) return [];
+    const priceReviewRequired = originalPrice < 1000;
     const parsed = {
       source: SOURCE,
       source_product_id: sourceProductId,
@@ -114,6 +115,10 @@ function parseProduct(product) {
       original_price: originalPrice,
       sale_price: originalPrice,
       margin_percent: 0,
+      price_review_required: priceReviewRequired,
+      price_review_reason: priceReviewRequired
+        ? "Precio fuente menor a ARS 1000 en Universo; revisar contra proveedor antes de publicar o recalcular."
+        : null,
       compare_price: null,
       source_image_url: imageUrls[0] ?? null,
       source_gallery_urls: imageUrls.slice(0, 6),
@@ -253,7 +258,9 @@ function classify(sourceRows, state) {
       slug: stableSlug,
       decision: exactMatches.length
         ? "SKIP_DUPLICATE"
-        : sourceRow.commercial_scope === "INCLUDE" ? "INSERT" : "REVIEW_CATEGORY",
+        : sourceRow.price_review_required
+          ? "REVIEW_PRICE"
+          : sourceRow.commercial_scope === "INCLUDE" ? "INSERT" : "REVIEW_CATEGORY",
       duplicate_candidates: exactMatches.map((match) => ({ id: match.product.id, name: match.product.name, reason: match.reason }))
     };
   });
@@ -310,7 +317,7 @@ async function applyImport(db, preview, state) {
     result.recovered += batch.filter((row) => row.decision === "RECOVER_IMPORTED").length;
   }
 
-  for (const row of preview.products.filter((item) => item.decision === "UPDATE_IMPORTED" && item.price_difference !== 0)) {
+  for (const row of preview.products.filter((item) => item.decision === "UPDATE_IMPORTED" && item.price_difference !== 0 && !item.price_review_required)) {
     const current = state.products.find((product) => product.id === row.existing_product_id);
     const response = await db.from("products").update({
       price: row.sale_price,
@@ -329,7 +336,7 @@ async function applyImport(db, preview, state) {
   }
 
   const provenance = preview.products.flatMap((row) => {
-    if (row.decision === "SKIP_DUPLICATE" || row.decision === "REVIEW_CATEGORY") {
+    if (row.decision === "SKIP_DUPLICATE" || row.decision === "REVIEW_CATEGORY" || row.decision === "REVIEW_PRICE") {
       result.skipped += 1;
       return [];
     }
@@ -349,6 +356,8 @@ async function applyImport(db, preview, state) {
       original_name: row.original_name,
       original_price: row.original_price,
       margin_percent: 0,
+      manual_review_required: Boolean(row.price_review_required),
+      manual_review_reason: row.price_review_reason ?? null,
       checked_at: new Date().toISOString()
     }];
   });
@@ -382,6 +391,7 @@ async function main() {
       recover_imported: products.filter((row) => row.decision === "RECOVER_IMPORTED").length,
       skip_duplicate: products.filter((row) => row.decision === "SKIP_DUPLICATE").length,
       review_category: products.filter((row) => row.decision === "REVIEW_CATEGORY").length,
+      review_price: products.filter((row) => row.decision === "REVIEW_PRICE").length,
       scope_include: products.filter((row) => row.commercial_scope === "INCLUDE").length,
       scope_review: products.filter((row) => row.commercial_scope === "REVIEW").length,
       missing_source_image: products.filter((row) => !row.source_image_url).length,
