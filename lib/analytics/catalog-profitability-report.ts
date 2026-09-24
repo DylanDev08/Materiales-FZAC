@@ -12,6 +12,7 @@ export type CatalogProfitabilityRow = {
   supplierName: string | null;
   supplierSource: string | null;
   supplierPrice: number | null;
+  costSource: "PURCHASE" | "SUPPLIER_SOURCE" | "NONE";
   configuredMarginPercent: number | null;
   ecommercePrice: number;
   unitGrossProfit: number | null;
@@ -69,6 +70,19 @@ type SourceRow = {
 };
 
 type SupplierRow = { id: string; name: string; code: string };
+type PurchaseOrderRow = {
+  id: string;
+  status: string | null;
+  received_at: string | null;
+  ordered_at: string | null;
+  created_at: string | null;
+};
+type PurchaseOrderItemRow = {
+  purchase_order_id: string;
+  product_id: string | null;
+  unit_cost: number | string | null;
+  created_at: string | null;
+};
 type OrderRow = { id: string };
 type PaymentRow = { order_id: string; raw: unknown };
 type OrderItemRow = {
@@ -148,7 +162,7 @@ export async function getCatalogProfitabilityReport(
 
   try {
     const paidStatuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"];
-    const [products, sources, suppliers, ordersResult] = await Promise.all([
+    const [products, sources, suppliers, purchaseOrders, purchaseOrderItems, ordersResult] = await Promise.all([
       readAll<ProductRow>((from, to) =>
         admin
           .from("products")
@@ -165,6 +179,18 @@ export async function getCatalogProfitabilityReport(
       ),
       readAll<SupplierRow>((from, to) =>
         admin.from("suppliers").select("id,name,code").range(from, to)
+      ),
+      readAll<PurchaseOrderRow>((from, to) =>
+        admin
+          .from("purchase_orders")
+          .select("id,status,received_at,ordered_at,created_at")
+          .range(from, to)
+      ),
+      readAll<PurchaseOrderItemRow>((from, to) =>
+        admin
+          .from("purchase_order_items")
+          .select("purchase_order_id,product_id,unit_cost,created_at")
+          .range(from, to)
       ),
       admin
         .from("orders")
@@ -196,6 +222,20 @@ export async function getCatalogProfitabilityReport(
       : [[], []] as [OrderItemRow[], PaymentRow[]];
 
     const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
+    const purchaseOrderById = new Map(purchaseOrders.map((order) => [order.id, order]));
+    const purchaseCostByProduct = new Map<string, { unitCost: number; date: number }>();
+    for (const item of purchaseOrderItems) {
+      if (!item.product_id) continue;
+      const order = purchaseOrderById.get(item.purchase_order_id);
+      if (!order) continue;
+      if (["CANCELLED", "CANCELED", "VOID"].includes(String(order.status ?? "").toUpperCase())) continue;
+      const unitCost = numeric(item.unit_cost);
+      if (unitCost <= 0) continue;
+      const date = Date.parse(order.received_at ?? order.ordered_at ?? item.created_at ?? order.created_at ?? "1970-01-01");
+      const current = purchaseCostByProduct.get(item.product_id);
+      if (!current || date >= current.date) purchaseCostByProduct.set(item.product_id, { unitCost, date });
+    }
+
     const sourceByProduct = new Map<string, SourceRow>();
     for (const source of sources) {
       const current = sourceByProduct.get(source.product_id);
@@ -218,7 +258,10 @@ export async function getCatalogProfitabilityReport(
     const allRows: CatalogProfitabilityRow[] = products.map((product) => {
       const source = sourceByProduct.get(product.id);
       const supplier = supplierById.get(source?.supplier_id ?? product.supplier_id ?? "");
-      const supplierPrice = source?.original_price == null ? null : numeric(source.original_price);
+      const purchaseCost = purchaseCostByProduct.get(product.id)?.unitCost ?? null;
+      const sourcePrice = source?.original_price == null ? null : numeric(source.original_price);
+      const supplierPrice = purchaseCost ?? sourcePrice;
+      const costSource = purchaseCost !== null ? "PURCHASE" : sourcePrice !== null ? "SUPPLIER_SOURCE" : "NONE";
       const ecommercePrice = numeric(product.price);
       const unitGrossProfit = supplierPrice && supplierPrice > 0 ? ecommercePrice - supplierPrice : null;
       const markupPercent = supplierPrice && supplierPrice > 0 && unitGrossProfit !== null
@@ -237,6 +280,7 @@ export async function getCatalogProfitabilityReport(
         supplierName: supplier?.name ?? null,
         supplierSource: source?.source ?? null,
         supplierPrice,
+        costSource,
         configuredMarginPercent: source?.margin_percent == null ? null : numeric(source.margin_percent),
         ecommercePrice,
         unitGrossProfit,
