@@ -280,6 +280,7 @@ export function CheckoutForm({
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
   const [placesReady, setPlacesReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
+  const [runtimeCardPublicKey, setRuntimeCardPublicKey] = useState(cardPublicKey);
   const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(cardPaymentsEnabled && Boolean(cardPublicKey.trim()));
   const [runtimePaymentsTestMode, setRuntimePaymentsTestMode] = useState(paymentsTestMode);
   const [loading, setLoading] = useState(false);
@@ -294,9 +295,11 @@ export function CheckoutForm({
     void fetch("/api/payments/mercadopago", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return;
-        const data = (await response.json()) as { cardEnabled?: boolean; environment?: "test" | "production" };
+        const data = (await response.json()) as { cardEnabled?: boolean; cardPublicKey?: string; environment?: "test" | "production" };
         if (!active) return;
-        const cardReady = Boolean(data.cardEnabled && cardPublicKey.trim());
+        const publicKey = String(data.cardPublicKey ?? cardPublicKey).trim();
+        const cardReady = Boolean(data.cardEnabled && publicKey);
+        setRuntimeCardPublicKey(publicKey);
         setRuntimeCardPaymentsEnabled(cardReady);
         if (data.environment) setRuntimePaymentsTestMode(data.environment === "test");
         if (!cardReady) {
@@ -1547,9 +1550,9 @@ export function CheckoutForm({
                 {info ? <p className="notice notice--success">{info}</p> : null}
                 {runtimeCardPaymentsEnabled && paymentMode === "CARD_BRICK" ? (
                   <MercadoPagoCardForm
-                    key={cardPublicKey || "mercadopago-card"}
+                    key={runtimeCardPublicKey || "mercadopago-card"}
                     amount={total}
-                    publicKey={cardPublicKey}
+                    publicKey={runtimeCardPublicKey}
                     customerEmail={customer.email}
                     disabled={!canSubmit}
                     onSubmit={startCardPayment}
