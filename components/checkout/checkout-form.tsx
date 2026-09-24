@@ -280,12 +280,39 @@ export function CheckoutForm({
   const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
   const [placesReady, setPlacesReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
+  const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(cardPaymentsEnabled && Boolean(cardPublicKey.trim()));
+  const [runtimePaymentsTestMode, setRuntimePaymentsTestMode] = useState(paymentsTestMode);
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const checkoutInFlightRef = useRef(false);
   const checkoutIntentRef = useRef("");
+  useEffect(() => {
+    let active = true;
+
+    void fetch("/api/payments/mercadopago", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = (await response.json()) as { cardEnabled?: boolean; environment?: "test" | "production" };
+        if (!active) return;
+        const cardReady = Boolean(data.cardEnabled && cardPublicKey.trim());
+        setRuntimeCardPaymentsEnabled(cardReady);
+        if (data.environment) setRuntimePaymentsTestMode(data.environment === "test");
+        if (!cardReady) {
+          setPaymentMode((current) => (current === "CARD_BRICK" ? "MERCADOPAGO" : current));
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setRuntimeCardPaymentsEnabled(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [cardPublicKey]);
+
   const helpHref = getWhatsAppHref("Hola FZAC, necesito ayuda con mi checkout antes de pagar.");
   const deliveryHref = getWhatsAppHref("Hola FZAC, quiero coordinar un envio antes de pagar.");
 
@@ -1418,7 +1445,7 @@ export function CheckoutForm({
 
             {step === "payment" ? (
               <>
-                {paymentsTestMode ? (
+                {runtimePaymentsTestMode ? (
                   <div className="payment-env-badge" aria-label="Entorno de prueba de pagos">
                     <strong>Entorno de prueba</strong>
                     <span>Usá un comprador TESTUSER de Mercado Pago. No se cobrará dinero real.</span>
@@ -1432,7 +1459,7 @@ export function CheckoutForm({
                   <small>La opción seleccionada define el botón final.</small>
                 </div>
                 <div className="payment-mode-grid" role="group" aria-label="Medio de pago">
-                  {cardPaymentsEnabled ? (
+                  {runtimeCardPaymentsEnabled ? (
                     <button
                       type="button"
                       className="payment-mode-button payment-mode-button--card"
@@ -1518,7 +1545,7 @@ export function CheckoutForm({
                 </div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
                 {info ? <p className="notice notice--success">{info}</p> : null}
-                {cardPaymentsEnabled && paymentMode === "CARD_BRICK" ? (
+                {runtimeCardPaymentsEnabled && paymentMode === "CARD_BRICK" ? (
                   <MercadoPagoCardForm
                     key={cardPublicKey || "mercadopago-card"}
                     amount={total}
