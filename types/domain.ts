@@ -65,6 +65,7 @@ export type CartLine = {
 };
 
 export type AddressPayload = {
+  placeId?: string;
   street?: string;
   number?: string;
   apartment?: string;
