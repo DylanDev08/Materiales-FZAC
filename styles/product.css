@@ -465,3 +465,24 @@
     border-left: 0;
   }
 }
+
+
+.product-gallery__placeholder {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid rgba(244, 196, 0, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.88);
+  color: #f4c400;
+  padding: 0 12px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
