@@ -17,23 +17,27 @@ import {
 } from "../../scripts/catalog/import-universo-pinturas.mjs";
 import { expectedPrice as expectedSupplierPrice } from "../../scripts/catalog/audit-supplier-price-parity.mjs";
 
-test("aplica 20% hasta 60000 y redondea una sola vez", () => {
-  assert.equal(salePrice(16100), 19320);
-  assert.equal(salePrice(19990), 23988);
-  assert.equal(salePrice(60000), 72000);
+test("aplica margenes comerciales moderados y redondea una sola vez", () => {
+  assert.equal(salePrice(16100), 18032);
+  assert.equal(salePrice(19990), 22389);
+  assert.equal(salePrice(20000), 22400);
+  assert.equal(salePrice(20000.01), 22000);
+  assert.equal(salePrice(60000), 66000);
 });
 
-test("aplica 10% cuando el precio proveedor supera 60000", () => {
+test("reduce margen a 8% en productos de mayor valor", () => {
   assert.equal(isAroProduct({ original_name: "ARO PARA DURLOCK 90 MM" }), true);
   assert.equal(isAroProduct({ original_name: "CLAVO PUNTA PARIS" }), false);
-  assert.equal(marginPercent({ original_price: 60000 }), 20);
-  assert.equal(marginPercent({ original_price: 60000.01 }), 10);
-  assert.equal(salePrice(10000, { original_name: "Aro de embutir" }), 12000);
-  assert.equal(salePrice(10000, { original_name: "Placa Durlock" }), 12000);
-  assert.equal(salePrice(135000), 148500);
-  assert.equal(salePrice(69600), 76560);
-  assert.equal(salePrice(96700), 106370);
-  assert.equal(salePrice(65000), 71500);
+  assert.equal(marginPercent({ original_price: 20000 }), 12);
+  assert.equal(marginPercent({ original_price: 20000.01 }), 10);
+  assert.equal(marginPercent({ original_price: 60000 }), 10);
+  assert.equal(marginPercent({ original_price: 60000.01 }), 8);
+  assert.equal(salePrice(10000, { original_name: "Aro de embutir" }), 11200);
+  assert.equal(salePrice(10000, { original_name: "Placa Durlock" }), 11200);
+  assert.equal(salePrice(135000), 145800);
+  assert.equal(salePrice(69600), 75168);
+  assert.equal(salePrice(96700), 104436);
+  assert.equal(salePrice(65000), 70200);
   assert.throws(() => salePrice(0), /Precio proveedor inválido/);
 });
 
@@ -66,7 +70,7 @@ test("un source_product_id ya importado se actualiza sin recalcular sobre el pre
     sources: [{ product_id: "p1", source_product_id: "42", original_price: 100 }]
   });
   assert.equal(decision.decision, "UPDATE_IMPORTED");
-  assert.equal(decision.sale_price, 120);
+  assert.equal(decision.sale_price, 112);
 });
 
 test("omite filas sin precio válido y conserva imagen faltante como null", () => {
@@ -76,7 +80,7 @@ test("omite filas sin precio válido y conserva imagen faltante como null", () =
   const withoutImage = `<div class="js-item-product" data-product-id="2"><div data-variants="[{&quot;price_number&quot;:100,&quot;is_visible&quot;:true}]"><a href="https://tienda.layeserarosarina.com.ar/productos/y/" title="Producto Y"></a>`;
   const [row] = parseProducts(withoutImage, new Map());
   assert.equal(row.source_image_url, null);
-  assert.equal(row.sale_price, 120);
+  assert.equal(row.sale_price, 112);
 });
 
 test("una respuesta fuente vacía produce un dataset vacío sin inventar productos", () => {
@@ -145,7 +149,7 @@ test("Universo deja categorías dudosas en preview y mantiene pinturas de obra",
 
 test("la auditoría conserva centavos de Universo y redondea Yesera", () => {
   assert.equal(expectedSupplierPrice("UNIVERSO-PINTURAS-SRL", 123.45), 123.45);
-  assert.equal(expectedSupplierPrice("LA-YESERA-ROSARINA", 69600), 76560);
+  assert.equal(expectedSupplierPrice("LA-YESERA-ROSARINA", 69600), 75168);
 });
 
 
