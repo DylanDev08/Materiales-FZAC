@@ -70,7 +70,7 @@ async function main() {
     image_url: row.products.image_url,
     supplier: row.products.suppliers?.name ?? null
   })).map((row) => {
-    const expected_margin_percent = row.original_price > 60_000 ? 10 : 20;
+    const expected_margin_percent = row.original_price > 60_000 ? 8 : 10;
     const expected_sale_price = Math.round(row.original_price * (1 + expected_margin_percent / 100));
     return {
       ...row,
@@ -89,8 +89,8 @@ async function main() {
   const summary = {
     products: products.length,
     exact_duplicates: Object.values(duplicates).reduce((total, rows) => total + rows.length, 0),
+    margin_8: products.filter((row) => row.expected_margin_percent === 8).length,
     margin_10: products.filter((row) => row.expected_margin_percent === 10).length,
-    margin_20: products.filter((row) => row.expected_margin_percent === 20).length,
     invalid_margin: products.filter((row) =>
       row.margin_percent !== row.expected_margin_percent || row.sale_price !== row.expected_sale_price
     ).length,

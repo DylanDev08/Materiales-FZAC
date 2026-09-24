@@ -17,9 +17,11 @@ export default async function Icon() {
           height: "64px",
           display: "flex",
           overflow: "hidden",
-          borderRadius: "14px"
+          borderRadius: "999px"
         }}
       >
+        {/* ImageResponse renders standard HTML and cannot use next/image here. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={source} alt="" width={64} height={64} style={{ objectFit: "contain" }} />
       </div>
     ),

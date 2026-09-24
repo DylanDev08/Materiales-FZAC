@@ -9,6 +9,10 @@ export type CatalogProfitabilityRow = {
   productId: string;
   name: string;
   sku: string;
+  unit: string;
+  categoryName: string | null;
+  categorySlug: string | null;
+  supplierId: string | null;
   supplierName: string | null;
   supplierSource: string | null;
   supplierPrice: number | null;
@@ -56,6 +60,8 @@ type ProductRow = {
   availability_status: string | null;
   image_url: string | null;
   supplier_id: string | null;
+  unit: string;
+  category: { name: string; slug: string } | Array<{ name: string; slug: string }> | null;
   active: boolean;
 };
 
@@ -166,7 +172,7 @@ export async function getCatalogProfitabilityReport(
       readAll<ProductRow>((from, to) =>
         admin
           .from("products")
-          .select("id,name,sku,price,stock,availability_status,image_url,supplier_id,active")
+          .select("id,name,sku,price,stock,availability_status,image_url,supplier_id,active,unit,category:categories(name,slug)")
           .eq("active", true)
           .order("name", { ascending: true })
           .range(from, to)
@@ -258,6 +264,7 @@ export async function getCatalogProfitabilityReport(
     const allRows: CatalogProfitabilityRow[] = products.map((product) => {
       const source = sourceByProduct.get(product.id);
       const supplier = supplierById.get(source?.supplier_id ?? product.supplier_id ?? "");
+      const category = Array.isArray(product.category) ? product.category[0] ?? null : product.category;
       const purchaseCost = purchaseCostByProduct.get(product.id)?.unitCost ?? null;
       const sourcePrice = source?.original_price == null ? null : numeric(source.original_price);
       const supplierPrice = purchaseCost ?? sourcePrice;
@@ -277,6 +284,10 @@ export async function getCatalogProfitabilityReport(
         productId: product.id,
         name: product.name,
         sku: product.sku,
+        unit: product.unit,
+        categoryName: category?.name ?? null,
+        categorySlug: category?.slug ?? null,
+        supplierId: supplier?.id ?? source?.supplier_id ?? product.supplier_id,
         supplierName: supplier?.name ?? null,
         supplierSource: source?.source ?? null,
         supplierPrice,

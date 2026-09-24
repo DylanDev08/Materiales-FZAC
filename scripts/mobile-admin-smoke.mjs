@@ -38,6 +38,11 @@ const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-mark
 const inventoryScreenshot = path.join(screenshotDirectory, "mobile-admin-inventory.png");
 const procurementScreenshot = path.join(screenshotDirectory, "mobile-admin-procurement.png");
 const supplierFinanceScreenshot = path.join(screenshotDirectory, "mobile-admin-supplier-finance.png");
+const supplierWorkspaceScreenshot = path.join(screenshotDirectory, "mobile-admin-suppliers.png");
+const reportScreenshot = path.join(screenshotDirectory, "mobile-admin-report.png");
+const reportPrintScreenshot = path.join(screenshotDirectory, "print-admin-report.png");
+const analyticsScreenshot = path.join(screenshotDirectory, "mobile-admin-analytics.png");
+const reportPdf = path.join(screenshotDirectory, "fzac-client-price-list-qa.pdf");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
@@ -61,6 +66,35 @@ const cleanupErrors = [];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function decodeBase32(value) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const normalized = value.toUpperCase().replace(/[^A-Z2-7]/g, "");
+  let bits = "";
+  for (const character of normalized) {
+    const index = alphabet.indexOf(character);
+    if (index < 0) throw new Error("The QA MFA secret is not valid base32.");
+    bits += index.toString(2).padStart(5, "0");
+  }
+  const bytes = [];
+  for (let offset = 0; offset + 8 <= bits.length; offset += 8) {
+    bytes.push(Number.parseInt(bits.slice(offset, offset + 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+function totpCode(secret, timestamp = Date.now()) {
+  const counter = BigInt(Math.floor(timestamp / 30_000));
+  const buffer = Buffer.alloc(8);
+  buffer.writeBigUInt64BE(counter);
+  const digest = crypto.createHmac("sha1", decodeBase32(secret)).update(buffer).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const binary = ((digest[offset] & 0x7f) << 24)
+    | ((digest[offset + 1] & 0xff) << 16)
+    | ((digest[offset + 2] & 0xff) << 8)
+    | (digest[offset + 3] & 0xff);
+  return String(binary % 1_000_000).padStart(6, "0");
 }
 
 async function waitForServer() {
@@ -186,8 +220,17 @@ try {
   await page.getByLabel(/^email$/i).fill(email);
   await page.locator("input[type='password']").fill(password);
   await page.getByRole("button", { name: /^ingresar$/i }).click();
-  await page.waitForURL((url) => url.pathname === adminPath, { timeout: 25_000 });
+  await page.waitForURL((url) => url.pathname === adminPath || url.pathname === "/seguridad/admin-mfa", { timeout: 25_000 });
+  if (new URL(page.url()).pathname === "/seguridad/admin-mfa") {
+    const secret = await page.locator(".admin-mfa-secret code").textContent({ timeout: 25_000 });
+    if (!secret) throw new Error("The isolated QA administrator did not receive an MFA enrollment secret.");
+    await page.getByLabel(/c[oó]digo de autenticaci[oó]n/i).fill(totpCode(secret));
+    await page.getByRole("button", { name: /activar mfa y entrar/i }).click();
+    await page.waitForURL((url) => url.pathname === adminPath, { timeout: 25_000 });
+  }
   await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
+  const privacyConsent = page.getByRole("button", { name: "Aceptar recomendadas" });
+  if (await privacyConsent.isVisible().catch(() => false)) await privacyConsent.click();
 
   const closedMetrics = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -580,6 +623,40 @@ try {
   await page.getByRole("button", { name: "Proveedores" }).click();
   await page.getByRole("heading", { name: "Nuevo proveedor" }).waitFor({ state: "visible" });
 
+  await page.goto(`${baseUrl}${adminPath}/proveedores`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-supplier-workspace").waitFor({ state: "visible", timeout: 25_000 });
+  const supplierWorkspaceMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-supplier-workspace button, .admin-supplier-workspace a, .admin-supplier-workspace input, .admin-supplier-workspace select"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(supplierWorkspaceMobileMetrics.documentWidth <= supplierWorkspaceMobileMetrics.viewport + 2, "Supplier workspace generates mobile horizontal overflow.");
+  assert(supplierWorkspaceMobileMetrics.undersizedActions === 0, "Supplier workspace contains undersized touch controls.");
+  await page.screenshot({ path: supplierWorkspaceScreenshot, fullPage: true });
+
+  await page.goto(`${baseUrl}${adminPath}/reportes?audience=customer&availability=available`, { waitUntil: "domcontentloaded" });
+  await page.locator(".catalog-report-builder").waitFor({ state: "visible", timeout: 25_000 });
+  const reportMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(reportMobileMetrics.documentWidth <= reportMobileMetrics.viewport + 2, "Catalog report generates mobile horizontal overflow.");
+  await page.screenshot({ path: reportScreenshot, fullPage: true });
+  await page.emulateMedia({ media: "print" });
+  await page.screenshot({ path: reportPrintScreenshot, fullPage: true });
+  await page.pdf({ path: reportPdf, format: "A4", printBackground: true });
+  await page.emulateMedia({ media: "screen" });
+
+  await page.goto(`${baseUrl}${adminPath}/analiticas`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-vercel-analytics").waitFor({ state: "visible", timeout: 25_000 });
+  const analyticsMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(analyticsMobileMetrics.documentWidth <= analyticsMobileMetrics.viewport + 2, "Analytics hub generates mobile horizontal overflow.");
+  await page.screenshot({ path: analyticsScreenshot, fullPage: true });
+
   await page.goto(`${baseUrl}${adminPath}/inventario`, { waitUntil: "domcontentloaded" });
   await page.locator(".admin-inventory").waitFor({ state: "visible", timeout: 25_000 });
   await page.locator(".admin-inventory__skeleton").waitFor({ state: "hidden", timeout: 25_000 });
@@ -667,6 +744,9 @@ try {
       procurementLifecycle: true,
       procurementIdempotency: true,
       supplierFinanceResponsive: true,
+      supplierWorkspaceResponsive: true,
+      catalogReportResponsive: true,
+      analyticsHubResponsive: true,
       supplierFinanceLifecycle: true,
       supplierFinanceIdempotency: true,
       sidebarDrawer: true,
@@ -683,6 +763,11 @@ try {
         path.relative(process.cwd(), inventoryScreenshot),
         path.relative(process.cwd(), procurementScreenshot),
         path.relative(process.cwd(), supplierFinanceScreenshot),
+        path.relative(process.cwd(), supplierWorkspaceScreenshot),
+        path.relative(process.cwd(), reportScreenshot),
+        path.relative(process.cwd(), reportPrintScreenshot),
+        path.relative(process.cwd(), analyticsScreenshot),
+        path.relative(process.cwd(), reportPdf),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot),
