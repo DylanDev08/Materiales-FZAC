@@ -143,7 +143,16 @@ export default async function Page({
               <tr key={row.productId}>
                 <td><strong>{row.name}</strong><small>{row.sku}</small></td>
                 <td>{row.supplierName ?? row.supplierSource ?? "Sin proveedor"}</td>
-                <td>{row.supplierPrice === null ? "Sin costo" : currency(row.supplierPrice)}</td>
+                <td>
+                  {row.supplierPrice === null ? (
+                    <span className="profit-report-cost-missing">
+                      <strong>Sin costo</strong>
+                      <Link className="profit-report-cost-action no-print" href={`${adminPath}/compras?product=${row.productId}`}>
+                        Cargar costo
+                      </Link>
+                    </span>
+                  ) : currency(row.supplierPrice)}
+                </td>
                 <td>{row.costSource === "PURCHASE" ? "Compra real" : row.costSource === "SUPPLIER_SOURCE" ? "Fuente proveedor" : "Sin costo"}</td>
                 <td>{currency(row.ecommercePrice)}</td>
                 <td>{row.unitGrossProfit === null ? "-" : currency(row.unitGrossProfit)}</td>
