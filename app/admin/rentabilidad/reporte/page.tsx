@@ -26,7 +26,7 @@ function normalizePeriod(value: string | undefined): ProfitabilityReportPeriod {
 }
 
 function normalizeScope(value: string | undefined): ProfitabilityReportScope {
-  return value === "all" || value === "sold" || value === "issues" ? value : "sold";
+  return value === "all" || value === "sold" || value === "issues" ? value : "all";
 }
 
 function percent(value: number | null) {
