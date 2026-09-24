@@ -11,6 +11,9 @@ export type ProcurementSupplier = {
   phone: string | null;
   tax_id: string | null;
   payment_terms: string | null;
+  website_url: string | null;
+  logo_url: string | null;
+  catalog_url: string | null;
   lead_time_days: number;
   notes: string | null;
   active: boolean;
