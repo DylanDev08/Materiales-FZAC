@@ -82,7 +82,7 @@ Auditoría general:
 ## Supabase y seguridad
 
 - Migración aplicada y reconciliada con el ledger remoto: `20260924152630_supplier_documents_and_profile.sql`.
-- Migración aditiva pendiente de despliegue: `20260924162000_supplier_documents_spreadsheet_formats.sql` para XLS/XLSX.
+- Migración aditiva aplicada y reconciliada con el ledger remoto: `20260924163646_supplier_documents_spreadsheet_formats.sql` para XLS/XLSX.
 - Tablas nuevas: `supplier_documents` y `supplier_document_items`.
 - Ambas tablas tienen RLS y FORCE RLS activos.
 - Solo `authenticated` admin puede leer; las escrituras se realizan server-side tras verificar admin + MFA.
