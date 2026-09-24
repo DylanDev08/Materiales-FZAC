@@ -76,7 +76,7 @@ services:
       - key: NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY
         sync: false
       - key: MERCADOPAGO_CARD_ENABLED
-        value: "false"
+        sync: false
       - key: MERCADOPAGO_CARD_ACCESS_TOKEN
         sync: false
       - key: NEXT_PUBLIC_MERCADOPAGO_CARD_PUBLIC_KEY
