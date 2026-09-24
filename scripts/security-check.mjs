@@ -186,6 +186,25 @@ for (const file of [
   }
 }
 
+const paymentService = await readFile(path.join(root, "lib/payments/payment-service.ts"), "utf8").catch(() => "");
+const cardCheckout = await readFile(path.join(root, "app/api/checkout/card/route.ts"), "utf8").catch(() => "");
+const mercadoPagoWebhook = await readFile(path.join(root, "lib/payments/mercadopago-webhook.ts"), "utf8").catch(() => "");
+const failedPaymentMigration = await readFile(
+  path.join(root, "supabase/migrations/20260924234844_finalize_failed_order_atomic.sql"),
+  "utf8"
+).catch(() => "");
+
+if (
+  !paymentService.includes("finalizeFailedPayment")
+  || !paymentService.includes('admin.rpc("finalize_failed_order"')
+  || !cardCheckout.includes("finalizeFailedPayment")
+  || !mercadoPagoWebhook.includes("finalizeFailedPayment")
+  || !failedPaymentMigration.includes("create or replace function public.finalize_failed_order")
+  || !failedPaymentMigration.includes("grant execute on function public.finalize_failed_order")
+) {
+  failures.push("Pagos: rechazos y expiraciones de Mercado Pago deben cerrarse mediante la RPC atomica finalize_failed_order.");
+}
+
 const productUpload = await readFile(path.join(root, "app/api/admin/uploads/product-image/route.ts"), "utf8").catch(() => "");
 if (!productUpload.includes('from "sharp"') || !productUpload.includes(".webp(") || !productUpload.includes("limitInputPixels")) {
   failures.push("Upload de productos: falta decodificar/re-encodear la imagen con limites de pixels.");
