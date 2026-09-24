@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     next === "/restablecer"
       ? next
       : profile?.role === "ADMIN"
-        ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
+        ? getAdminConsolePath()
         : next;
   return NextResponse.redirect(new URL(target, siteUrl));
 }
