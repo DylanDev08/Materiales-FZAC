@@ -44,8 +44,8 @@ export async function hasTrustedAdminDevice() {
 
   const expiresAt = new Date(data.expires_at);
   if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= now) {
-    await admin.from("admin_trusted_devices").delete().eq("id", data.id).catch(() => undefined);
-    cookieStore.delete(TRUSTED_DEVICE_COOKIE);
+    // La lectura puede ejecutarse desde Server Components, donde Next no permite
+    // mutar cookies. La limpieza física se hace al crear/revocar confianza.
     return false;
   }
 
@@ -54,8 +54,7 @@ export async function hasTrustedAdminDevice() {
     await admin
       .from("admin_trusted_devices")
       .update({ last_used_at: now.toISOString() })
-      .eq("id", data.id)
-      .catch(() => undefined);
+      .eq("id", data.id);
   }
 
   return true;
@@ -97,7 +96,7 @@ export async function createTrustedAdminDevice() {
   if (devices && devices.length > MAX_TRUSTED_DEVICES) {
     const staleIds = devices.slice(MAX_TRUSTED_DEVICES).map((device) => device.id);
     if (staleIds.length) {
-      await admin.from("admin_trusted_devices").delete().in("id", staleIds).catch(() => undefined);
+      await admin.from("admin_trusted_devices").delete().in("id", staleIds);
     }
   }
 
@@ -127,6 +126,5 @@ export async function revokeCurrentTrustedAdminDevice() {
     .from("admin_trusted_devices")
     .update({ revoked_at: new Date().toISOString() })
     .eq("user_id", user.id)
-    .eq("token_hash", sha256(token))
-    .catch(() => undefined);
+    .eq("token_hash", sha256(token));
 }
