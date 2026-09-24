@@ -285,7 +285,7 @@ function productPayload(row, categoryId, supplierId) {
     specifications: row.specifications,
     featured: false,
     on_sale: false,
-    active: true,
+    active: false,
     supplier_id: supplierId,
     availability_status: "CONSULT",
     updated_at: new Date().toISOString()
@@ -325,6 +325,7 @@ async function applyImport(db, preview, state) {
       on_sale: false,
       category_id: state.category.id,
       supplier_id: supplier.id,
+      active: false,
       updated_at: new Date().toISOString()
     }).eq("id", row.existing_product_id);
     if (response.error) {
@@ -378,8 +379,8 @@ async function main() {
     source_category_url: SOURCE_CATEGORY_URL,
     source_api: SOURCE_API_URL,
     source_requests: `Paginación pública acotada a ${PAGE_SIZE} productos por solicitud, pausa de 250 ms y máximo ${MAX_PRODUCTS}.`,
-    pricing_rule: "Precio FZAC igual al precio público vigente de Universo. Margen 0% hasta que FZAC apruebe una regla comercial específica.",
-    stock_rule: "La cantidad expuesta por VTEX no se importa porque puede estar limitada/capada. FZAC usa stock 0 y CONSULT hasta validación propia.",
+    pricing_rule: "Universo queda como catálogo de referencia interno, sin publicación en storefront ni margen comercial activo.",
+    stock_rule: "La cantidad expuesta por VTEX no se importa. Los productos de Universo permanecen inactivos y sólo sirven como referencia interna.",
     image_policy: "Imágenes autorizadas por el propietario de FZAC; se copian optimizadas a Storage propio antes de publicar la categoría.",
     summary: {
       source_reported_products: reportedTotal,
