@@ -93,9 +93,7 @@ export function isAroProduct(product = {}) {
 export function marginPercent(product = {}) {
   const sourcePrice = Number(product.original_price ?? product.source_price ?? product.price ?? 0);
   if (!Number.isFinite(sourcePrice) || sourcePrice <= 0) return 0;
-  if (sourcePrice <= 20_000) return 12;
-  if (sourcePrice <= 60_000) return 10;
-  return 8;
+  return sourcePrice > 60_000 ? 8 : 10;
 }
 
 export function salePrice(sourcePrice, product = {}) {
@@ -410,7 +408,7 @@ async function main() {
     source: SOURCE,
     source_category_url: SOURCE_CATEGORY_URL,
     source_requests: "Bounded Construcción en Seco, child-category and full-catalog pagination; supplemental rows require an explicit dry-construction product signal.",
-    pricing_rule: "Regla comercial conservadora: hasta $20.000 +12%; de $20.001 a $60.000 +10%; mayores a $60.000 +8%.",
+    pricing_rule: "Regla comercial conservadora: hasta $60.000 +10%; mayores a $60.000 +8%.",
     image_policy: "El propietario de FZAC autorizó el uso comercial. La copia optimizada a Storage se ejecuta con catalog:la-yesera:images:apply; no se permite hotlink permanente.",
     summary: {
       found: products.length,
