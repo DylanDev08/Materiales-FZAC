@@ -147,7 +147,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         setSuccessLocked(true);
         setMessageTone("success");
         setMessage(data.message || "Cuenta creada correctamente. Revisá tu email para continuar.");
-        window.setTimeout(() => router.push(data.target || "/login?registered=true"), 1400);
+        window.setTimeout(() => router.push(data.target || "/login?registered=true"), 450);
         return;
       }
       router.push(data.target && data.target !== "/cuenta" ? data.target : safeNext);
@@ -389,8 +389,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           ) : null}
           {turnstileEnabled ? <TurnstileWidget action={mode === "login" ? "login" : "register"} onToken={setCaptchaToken} resetKey={captchaResetKey} /> : null}
           <button className="btn" type="submit" disabled={loading || successLocked || (turnstileEnabled && !captchaToken)}>
-            {loading ? <Loader2 size={18} /> : null}
-            {loading ? "Validando..." : mode === "login" ? "Ingresar" : "Registrarme"}
+            {loading ? <Loader2 size={18} className="spin" /> : null}
+            {loading ? (mode === "login" ? "Ingresando..." : "Creando cuenta...") : mode === "login" ? "Ingresar" : "Registrarme"}
           </button>
         </form>
 
