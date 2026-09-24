@@ -126,6 +126,7 @@ export default async function Page({
               <th>Producto</th>
               <th>Proveedor</th>
               <th>Costo proveedor</th>
+              <th>Origen costo</th>
               <th>Precio FZAC</th>
               <th>Ganancia/u.</th>
               <th>Margen config.</th>
@@ -143,6 +144,7 @@ export default async function Page({
                 <td><strong>{row.name}</strong><small>{row.sku}</small></td>
                 <td>{row.supplierName ?? row.supplierSource ?? "Sin proveedor"}</td>
                 <td>{row.supplierPrice === null ? "Sin costo" : currency(row.supplierPrice)}</td>
+                <td>{row.costSource === "PURCHASE" ? "Compra real" : row.costSource === "SUPPLIER_SOURCE" ? "Fuente proveedor" : "Sin costo"}</td>
                 <td>{currency(row.ecommercePrice)}</td>
                 <td>{row.unitGrossProfit === null ? "-" : currency(row.unitGrossProfit)}</td>
                 <td>{percent(row.configuredMarginPercent)}</td>
@@ -163,8 +165,8 @@ export default async function Page({
       <footer className="profit-report-footer">
         <strong>Uso interno FZAC</strong>
         <p>
-          La ganancia estimada sólo incluye ventas con costo proveedor disponible. Las ventas sin costo quedan fuera
-          del cálculo para evitar sobreestimaciones. Las comisiones del proveedor de pagos se descuentan cuando el
+          El costo prioriza el último costo real registrado en compras. Si no existe una compra, usa el precio de fuente del proveedor como referencia.
+          La ganancia estimada sólo incluye ventas con algún costo disponible. Las ventas sin costo quedan fuera del cálculo para evitar sobreestimaciones. Las comisiones del proveedor de pagos se descuentan cuando el
           pago las informa. No reemplaza cierre contable ni contempla impuestos u otros gastos no cargados.
         </p>
       </footer>
