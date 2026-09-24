@@ -18,5 +18,5 @@ export async function GET(request: Request) {
     message: enabled
       ? "El proveedor de pago online esta configurado para operar server-side."
       : "El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion."
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }
