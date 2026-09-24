@@ -4,6 +4,8 @@ import { requireAdminIdentity } from "@/lib/auth/require-admin";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { safeInternalPath } from "@/lib/utils/navigation";
 import { privatePageMetadata } from "@/lib/seo/metadata";
+import { hasTrustedAdminDevice } from "@/lib/auth/trusted-device";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = privatePageMetadata(
   "Verificación administrativa",
@@ -21,6 +23,8 @@ export default async function Page({
   await requireAdminIdentity();
   const params = await searchParams;
   const nextPath = safeInternalPath(params.next, getAdminConsolePath());
+
+  if (await hasTrustedAdminDevice()) redirect(nextPath);
 
   return <AdminMfaGate nextPath={nextPath} />;
 }
