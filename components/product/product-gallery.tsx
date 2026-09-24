@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 
-export function ProductGallery({ name, images }: { name: string; images: string[] }) {
+export function ProductGallery({ name, images, placeholder = false }: { name: string; images: string[]; placeholder?: boolean }) {
   const gallery = useMemo(() => Array.from(new Set(images.filter(Boolean))).slice(0, 5), [images]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -48,7 +48,8 @@ export function ProductGallery({ name, images }: { name: string; images: string[
         onTouchStart={(event) => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
         onTouchEnd={handleTouchEnd}
       >
-        <Image src={selected} alt={name} fill sizes="(max-width: 900px) 100vw, 52vw" priority />
+        <Image src={selected} alt={placeholder ? `${name} - imagen pendiente` : name} fill sizes="(max-width: 900px) 100vw, 52vw" priority />
+        {placeholder ? <span className="product-gallery__placeholder">Imagen pendiente</span> : null}
         <span className="product-gallery__counter">{selectedIndex + 1} / {gallery.length}</span>
         <button className="product-gallery__zoom" type="button" onClick={() => setLightboxOpen(true)} aria-label={`Ampliar foto de ${name}`}>
           <Expand size={18} />
