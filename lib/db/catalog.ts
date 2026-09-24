@@ -232,7 +232,7 @@ export async function getProducts(filters: ProductFilters = {}) {
     const terms = catalogSearchTerms(filters.search).filter((term) => term.length >= 2);
     if (terms.length) {
       const categoryIds = categories
-        .filter((category) => terms.some((term) => [category.name, category.slug, category.description].join(" ").toLowerCase().includes(term)))
+        .filter((category) => terms.some((term) => [category.name, category.slug].join(" ").toLowerCase().includes(term)))
         .map((category) => category.id);
       const clauses = terms.flatMap((term) => [
         `name.ilike.%${term}%`,
@@ -349,7 +349,7 @@ async function loadProductSuggestions(search: string): Promise<ProductSuggestion
   const normalized = search.toLowerCase();
   const categorySuggestions = categories
     .filter((category) =>
-      [category.name, category.slug, category.description].join(" ").toLowerCase().includes(normalized)
+      [category.name, category.slug].join(" ").toLowerCase().includes(normalized)
     )
     .slice(0, 3)
     .map((category) => ({
