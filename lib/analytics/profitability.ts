@@ -223,3 +223,112 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
     products
   };
 }
+
+
+export type CatalogProfitabilityRow = {
+  productId: string;
+  name: string;
+  sku: string;
+  supplier: string | null;
+  supplierUnitCost: number | null;
+  salePrice: number;
+  unitProfit: number | null;
+  markupPercent: number | null;
+  stock: number;
+  availabilityStatus: string;
+};
+
+export type CatalogProfitabilityOverview = {
+  available: boolean;
+  activeProducts: number;
+  productsWithCost: number;
+  productsWithoutCost: number;
+  totalStock: number;
+  inventoryRetailValue: number;
+  inventorySupplierCost: number;
+  inventoryPotentialGrossProfit: number;
+  products: CatalogProfitabilityRow[];
+};
+
+export async function getCatalogProfitabilityOverview(): Promise<CatalogProfitabilityOverview> {
+  const admin = getSupabaseAdminClient();
+  const emptyCatalog: CatalogProfitabilityOverview = {
+    available: false,
+    activeProducts: 0,
+    productsWithCost: 0,
+    productsWithoutCost: 0,
+    totalStock: 0,
+    inventoryRetailValue: 0,
+    inventorySupplierCost: 0,
+    inventoryPotentialGrossProfit: 0,
+    products: []
+  };
+  if (!admin) return emptyCatalog;
+
+  const productsResult = await admin
+    .from("products")
+    .select("id,name,sku,price,stock,availability_status")
+    .eq("active", true)
+    .order("name", { ascending: true })
+    .limit(500);
+
+  if (productsResult.error) return emptyCatalog;
+
+  const products = productsResult.data ?? [];
+  const productIds = products.map((product) => product.id);
+  let sourceRows: Array<{
+    product_id: string;
+    source: string;
+    original_price: number | string;
+    margin_percent: number | string;
+    checked_at: string | null;
+  }> = [];
+
+  if (productIds.length) {
+    const sourceResult = await admin
+      .from("product_supplier_sources")
+      .select("product_id,source,original_price,margin_percent,checked_at")
+      .in("product_id", productIds)
+      .limit(500);
+    if (sourceResult.error) return emptyCatalog;
+    sourceRows = sourceResult.data ?? [];
+  }
+
+  const sourceByProduct = new Map(sourceRows.map((row) => [row.product_id, row]));
+  const rows: CatalogProfitabilityRow[] = products.map((product) => {
+    const source = sourceByProduct.get(product.id);
+    const salePrice = numeric(product.price);
+    const stock = Math.max(0, numeric(product.stock));
+    const supplierUnitCost = source ? numeric(source.original_price) : null;
+    const unitProfit = supplierUnitCost === null ? null : salePrice - supplierUnitCost;
+    const markupPercent = supplierUnitCost && supplierUnitCost > 0 && unitProfit !== null
+      ? (unitProfit / supplierUnitCost) * 100
+      : null;
+
+    return {
+      productId: product.id,
+      name: String(product.name ?? "Producto"),
+      sku: String(product.sku ?? "-"),
+      supplier: source?.source ?? null,
+      supplierUnitCost,
+      salePrice,
+      unitProfit,
+      markupPercent,
+      stock,
+      availabilityStatus: String(product.availability_status ?? "CONSULT")
+    };
+  });
+
+  const withCost = rows.filter((row) => row.supplierUnitCost !== null);
+  return {
+    available: true,
+    activeProducts: rows.length,
+    productsWithCost: withCost.length,
+    productsWithoutCost: rows.length - withCost.length,
+    totalStock: rows.reduce((sum, row) => sum + row.stock, 0),
+    inventoryRetailValue: rows.reduce((sum, row) => sum + row.salePrice * row.stock, 0),
+    inventorySupplierCost: withCost.reduce((sum, row) => sum + numeric(row.supplierUnitCost) * row.stock, 0),
+    inventoryPotentialGrossProfit: withCost.reduce((sum, row) => sum + numeric(row.unitProfit) * row.stock, 0),
+    products: rows
+  };
+}
