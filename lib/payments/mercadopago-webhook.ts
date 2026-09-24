@@ -1,14 +1,13 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import {
   MercadoPagoNotConfiguredError,
   getMercadoPagoConfig,
   paymentLiveModeMatchesEnvironment
 } from "@/lib/payments/config";
 import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payments/mercadopago";
-import { confirmApprovedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
+import { confirmApprovedPayment, finalizeFailedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import { getAdminConsolePath } from "@/lib/utils/env";
 import { rateLimitRequest } from "@/lib/utils/rate-limit";
 import { validateMercadoPagoSignature } from "@/lib/payments/mercadopago-signature";
@@ -16,7 +15,6 @@ import {
   buildMercadoPagoProviderEventId,
   isMercadoPagoPaymentId,
   mercadoPagoWebhookAction,
-  orderStatusFromMercadoPago,
   paymentAmountMatchesLocal,
   paymentStatusFromMercadoPago,
   providerRefundId,
@@ -346,39 +344,26 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     }
 
     const paymentStatus = paymentStatusFromMercadoPago(status);
-    const now = new Date().toISOString();
-    const { error: paymentUpdateError } = await admin
-      .from("payments")
-      .update({
-        status: paymentStatus,
-        provider_payment_id: providerId,
+
+    if (paymentStatus === "FAILED" || paymentStatus === "EXPIRED") {
+      await finalizeFailedPayment({
+        orderId,
+        providerPaymentId: providerId,
         raw: safePayment,
-        updated_at: now
-      })
-      .eq("order_id", orderId);
-    if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
-
-    if (paymentStatus !== "PENDING") {
-      const nextOrderStatus = orderStatusFromMercadoPago(status);
-      const cancelling = nextOrderStatus === "CANCELLED";
-
-      if (cancelling) {
-        await releaseOrderStockReservation(orderId, `MERCADOPAGO_${paymentStatus}`);
-      }
-      const { error: orderUpdateError } = await admin
-        .from("orders")
+        paymentStatus,
+        providerStatus: status
+      });
+    } else {
+      const { error: paymentUpdateError } = await admin
+        .from("payments")
         .update({
-          status: nextOrderStatus,
-          updated_at: now,
-          ...(cancelling
-            ? {
-                cancellation_reason: `Mercado Pago: ${status || paymentStatus}`,
-                cancelled_at: now
-              }
-            : {})
+          status: paymentStatus,
+          provider_payment_id: providerId,
+          raw: safePayment,
+          updated_at: new Date().toISOString()
         })
-        .eq("id", orderId);
-      if (orderUpdateError) throw new Error("ORDER_STATUS_PERSIST_FAILED");
+        .eq("order_id", orderId);
+      if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
     }
 
     const { error: notificationError } = await admin.from("notifications").insert({
