@@ -126,7 +126,7 @@ export function AdminSupplierDocuments({
           <label>Título<input maxLength={160} name="title" placeholder="Lista septiembre 2026" required /></label>
           <label>Tipo<select defaultValue="PRICE_LIST" name="kind"><option value="PRICE_LIST">Lista de precios</option><option value="CATALOG">Catálogo</option><option value="QUOTE">Cotización</option><option value="INVOICE">Factura</option><option value="OTHER">Otro</option></select></label>
           <label>Fecha del documento<input name="documentDate" type="date" /></label>
-          <label>PDF o CSV<input accept="application/pdf,.pdf,text/csv,.csv" name="file" required type="file" /></label>
+          <label>PDF, CSV o Excel<input accept="application/pdf,.pdf,text/csv,.csv,application/vnd.ms-excel,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" name="file" required type="file" /></label>
           <label>Notas<textarea maxLength={600} name="notes" rows={2} /></label>
           <button className="btn btn--primary" disabled={saving} type="submit"><FilePlus2 size={17} />Guardar privado</button>
         </form>
