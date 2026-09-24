@@ -83,6 +83,7 @@ type GoogleMapsWindow = typeof window & {
               types: string[];
             }>;
             formatted_address?: string;
+            place_id?: string;
           };
         };
       };
@@ -264,6 +265,7 @@ export function CheckoutForm({
   });
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("PICKUP");
   const [address, setAddress] = useState({
+    placeId: "",
     street: "",
     number: "",
     apartment: "",
@@ -369,6 +371,7 @@ export function CheckoutForm({
     customerFieldStates.email.status === "valid" &&
     customerFieldStates.phone.status === "valid";
   const addressValidated =
+    Boolean(address.placeId.trim()) &&
     addressFieldStates.street.status === "valid" &&
     addressFieldStates.number.status === "valid" &&
     addressFieldStates.city.status === "valid" &&
@@ -398,7 +401,11 @@ export function CheckoutForm({
   }
 
   function updateAddressField(field: keyof typeof address, value: string) {
-    setAddress((current) => ({ ...current, [field]: value }));
+    setAddress((current) => ({
+      ...current,
+      [field]: value,
+      ...(field !== "apartment" && field !== "notes" && field !== "placeId" ? { placeId: "" } : {})
+    }));
     setShippingQuote({ status: "idle" });
   }
 
@@ -462,7 +469,10 @@ export function CheckoutForm({
     }
 
     if (!addressComplete || !addressValidated) {
-      setShippingQuote({ status: "error", message: "Completá dirección, número, ciudad y provincia con datos válidos para cotizar el envío." });
+      setShippingQuote({
+        status: "error",
+        message: "Seleccioná una dirección de las sugerencias de Google Maps y completá número, ciudad y provincia."
+      });
       return false;
     }
 
@@ -584,12 +594,13 @@ export function CheckoutForm({
       if (!Autocomplete) return;
       const autocomplete = new Autocomplete(streetInputRef.current, {
         componentRestrictions: { country: "ar" },
-        fields: ["address_components", "formatted_address"],
+        fields: ["address_components", "formatted_address", "place_id"],
         types: ["address"]
       });
       listener = autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         const components = place.address_components;
+        const placeId = place.place_id?.trim() ?? "";
         const street = placePart(components, "route");
         const number = placePart(components, "street_number");
         const city =
@@ -599,6 +610,7 @@ export function CheckoutForm({
         const postalCode = placePart(components, "postal_code");
         setAddress((current) => ({
           ...current,
+          placeId,
           street: street || current.street,
           number: number || current.number,
           city: city || current.city || "Rosario",
@@ -658,7 +670,7 @@ export function CheckoutForm({
 
   function goToReview() {
     if (shippingMethod === "DELIVERY" && !addressValidated) {
-      setError("Completá dirección, número, ciudad y provincia con datos válidos.");
+      setError("Seleccioná una dirección sugerida por Google Maps y completá número, ciudad y provincia.");
       return;
     }
     if (addressFieldStates.notes.status === "invalid") {
