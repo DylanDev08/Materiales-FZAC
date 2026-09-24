@@ -4,7 +4,7 @@ const VERCEL_TEAM_SLUG = "dylans-projects-554f3008";
 const VERCEL_PROJECT_SLUG = "materiales-fzac-391o";
 
 export type VercelAnalyticsStatus = {
-  enabled: boolean;
+  instrumented: boolean;
   environment: string;
   deploymentUrl: string | null;
   gitCommitSha: string | null;
@@ -19,7 +19,7 @@ function safeDeploymentUrl(value: string | undefined) {
 
 export function getVercelAnalyticsStatus(): VercelAnalyticsStatus {
   return {
-    enabled: true,
+    instrumented: true,
     environment: process.env.VERCEL_ENV?.trim() || "local",
     deploymentUrl: safeDeploymentUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL),
     gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA?.trim() || process.env.RENDER_GIT_COMMIT?.trim() || null,
