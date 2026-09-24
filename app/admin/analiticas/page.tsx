@@ -25,19 +25,19 @@ export default async function Page() {
             <span className="kicker">Vercel Web Analytics</span>
             <h2>Medición instalada en toda la tienda</h2>
             <p>
-              Las visitas y páginas vistas se registran desde el layout principal. Los datos detallados permanecen en
+              La instrumentación está instalada en el layout principal. La recepción efectiva de eventos se confirma en
               el workspace privado de Vercel: el panel no replica tokens ni credenciales.
             </p>
           </div>
-          <span className="status-pill status-pill--success"><ShieldCheck size={16} />Instrumentación activa</span>
+          <span className="status-pill status-pill--success"><ShieldCheck size={16} />Instrumentación instalada</span>
         </section>
 
         <section className="admin-vercel-analytics__metrics" aria-label="Estado de Vercel Analytics">
           <article>
             <BarChart3 size={22} />
-            <span>Recolección</span>
-            <strong>{status.enabled ? "Activa" : "Inactiva"}</strong>
-            <small>Visitantes y páginas vistas</small>
+            <span>Instrumentación</span>
+            <strong>{status.instrumented ? "Instalada" : "No instalada"}</strong>
+            <small>La recepción de eventos se verifica en Vercel</small>
           </article>
           <article>
             <Activity size={22} />
@@ -67,7 +67,7 @@ export default async function Page() {
         </section>
 
         <p className="admin-vercel-analytics__note">
-          Vercel puede tardar unos segundos en reflejar las primeras visitas. Las métricas comerciales de ventas,
+          La presencia del componente no prueba por sí sola que Vercel ya recibió eventos. Confirmá las primeras visitas en el panel oficial. Las métricas comerciales de ventas,
           costos y margen siguen separadas en <Link href={`${adminPath}/rentabilidad`}>Rentabilidad</Link> para no mezclar
           tráfico con datos contables.
         </p>
