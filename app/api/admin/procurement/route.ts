@@ -126,16 +126,69 @@ export async function PATCH(request: Request) {
         .update({ status: "ORDERED", ordered_by: current.profile.id, ordered_at: now })
         .eq("id", payload.orderId).eq("status", "DRAFT").select("id,order_number").maybeSingle();
       if (error || !data) return jsonError("La orden no existe o ya fue enviada.", 409);
-      await current.admin.from("admin_audit_logs").insert({ actor_id: current.profile.id, actor_email: current.profile.email, actor_role: current.profile.role, action: "PURCHASE_ORDER_SENT", entity: "purchase_orders", entity_id: data.id, message: `Orden enviada al proveedor: ${data.order_number}` });
+
+      const audit = await current.admin.from("admin_audit_logs").insert({
+        actor_id: current.profile.id,
+        actor_email: current.profile.email,
+        actor_role: current.profile.role,
+        action: "PURCHASE_ORDER_SENT",
+        entity: "purchase_orders",
+        entity_id: data.id,
+        message: `Orden enviada al proveedor: ${data.order_number}`
+      });
+      if (audit.error) {
+        const rollback = await current.admin.from("purchase_orders")
+          .update({ status: "DRAFT", ordered_by: null, ordered_at: null })
+          .eq("id", data.id)
+          .eq("status", "ORDERED");
+        if (rollback.error) {
+          return jsonError("Falló la auditoría y no pudimos revertir el envío de la orden. Requiere revisión administrativa.", 500);
+        }
+        return jsonError("No pudimos registrar la auditoría. El envío de la orden fue revertido.", 503);
+      }
+
       return Response.json({ ok: true, status: "ORDERED" });
     }
 
     if (payload.action === "CANCEL_PURCHASE") {
+      const previous = await current.admin.from("purchase_orders")
+        .select("id,order_number,status,cancelled_by,cancelled_at,cancellation_reason")
+        .eq("id", payload.orderId)
+        .in("status", ["DRAFT", "ORDERED"])
+        .maybeSingle();
+      if (previous.error || !previous.data) return jsonError("La orden no puede cancelarse en su estado actual.", 409);
+
       const { data, error } = await current.admin.from("purchase_orders")
         .update({ status: "CANCELLED", cancelled_by: current.profile.id, cancelled_at: now, cancellation_reason: payload.reason })
         .eq("id", payload.orderId).in("status", ["DRAFT", "ORDERED"]).select("id,order_number").maybeSingle();
       if (error || !data) return jsonError("La orden no puede cancelarse en su estado actual.", 409);
-      await current.admin.from("admin_audit_logs").insert({ actor_id: current.profile.id, actor_email: current.profile.email, actor_role: current.profile.role, action: "PURCHASE_ORDER_CANCELLED", entity: "purchase_orders", entity_id: data.id, message: `Orden cancelada: ${data.order_number}`, metadata: { reason: payload.reason } });
+
+      const audit = await current.admin.from("admin_audit_logs").insert({
+        actor_id: current.profile.id,
+        actor_email: current.profile.email,
+        actor_role: current.profile.role,
+        action: "PURCHASE_ORDER_CANCELLED",
+        entity: "purchase_orders",
+        entity_id: data.id,
+        message: `Orden cancelada: ${data.order_number}`,
+        metadata: { reason: payload.reason }
+      });
+      if (audit.error) {
+        const rollback = await current.admin.from("purchase_orders")
+          .update({
+            status: previous.data.status,
+            cancelled_by: previous.data.cancelled_by,
+            cancelled_at: previous.data.cancelled_at,
+            cancellation_reason: previous.data.cancellation_reason
+          })
+          .eq("id", data.id)
+          .eq("status", "CANCELLED");
+        if (rollback.error) {
+          return jsonError("Falló la auditoría y no pudimos restaurar la orden cancelada. Requiere revisión administrativa.", 500);
+        }
+        return jsonError("No pudimos registrar la auditoría. La cancelación fue revertida.", 503);
+      }
+
       return Response.json({ ok: true, status: "CANCELLED" });
     }
 
