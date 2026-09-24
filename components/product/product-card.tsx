@@ -25,7 +25,8 @@ export function ProductCard({ product }: { product: Product }) {
   const purchasable = canPurchaseProduct(product);
   const cartEligible = canAddProductToCart(product);
   const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
-  const imageSrc = product.image_url?.trim() || "/logoFZAC.jpg";
+  const hasProductImage = Boolean(product.image_url?.trim());
+  const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
@@ -56,6 +57,7 @@ export function ProductCard({ product }: { product: Product }) {
           sizes="(max-width: 400px) 100vw, (max-width: 820px) 50vw, (max-width: 1200px) 25vw, 220px"
         />
         <div className="product-card__badges">
+          {!hasProductImage ? <span className="status-pill product-card__image-pending">Imagen pendiente</span> : null}
           {discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
           {purchasable && product.stock <= product.stock_minimum ? (
             <span className="status-pill status-pill--danger">Stock bajo</span>
