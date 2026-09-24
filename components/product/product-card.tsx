@@ -85,7 +85,15 @@ export function ProductCard({ product }: { product: Product }) {
           {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
         </div>
         <span className="product-card__unit">Precio por {product.unit}</span>
-        <span className={`product-card__stock ${availabilityStatus === "OUT_OF_STOCK" ? "product-card__stock--empty" : ""}`}>
+        <span
+          className={`product-card__stock ${
+            availabilityStatus === "OUT_OF_STOCK"
+              ? "product-card__stock--empty"
+              : availabilityStatus === "CONSULT"
+                ? "product-card__stock--consult"
+                : ""
+          }`}
+        >
           {availabilityLabel}
         </span>
         <span className="product-card__finance">
