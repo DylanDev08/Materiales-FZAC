@@ -2699,6 +2699,16 @@ export type Database = {
           order_number: string
         }[]
       }
+      finalize_failed_order: {
+        Args: {
+          p_order_id: string
+          p_payment_status: string
+          p_provider_payment_id: string
+          p_provider_status: string
+          p_raw: Json
+        }
+        Returns: Json
+      }
       finalize_paid_order: {
         Args: {
           p_order_id: string
