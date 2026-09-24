@@ -84,9 +84,7 @@ export async function POST(request: Request) {
       if (error || !data.user?.email) return loginErrorResponse(error);
 
       await syncUserProfileOnLogin(data.user);
-      const target = isAdminEmail(data.user.email)
-        ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
-        : "/cuenta";
+      const target = isAdminEmail(data.user.email) ? getAdminConsolePath() : "/cuenta";
       return Response.json({ target });
     } finally {
       slot.release();
