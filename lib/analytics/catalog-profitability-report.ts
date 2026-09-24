@@ -236,7 +236,7 @@ export async function getCatalogProfitabilityReport(
       if (!item.product_id) continue;
       const order = purchaseOrderById.get(item.purchase_order_id);
       if (!order) continue;
-      if (["CANCELLED", "CANCELED", "VOID"].includes(String(order.status ?? "").toUpperCase())) continue;
+      if (!["PARTIALLY_RECEIVED", "RECEIVED"].includes(String(order.status ?? "").toUpperCase())) continue;
       const unitCost = numeric(item.unit_cost);
       if (unitCost <= 0) continue;
       const date = Date.parse(order.received_at ?? order.ordered_at ?? item.created_at ?? order.created_at ?? "1970-01-01");
