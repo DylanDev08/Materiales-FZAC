@@ -140,7 +140,7 @@ function quoteCacheKey(address: AddressPayload) {
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   return createHash("sha256")
-    .update(JSON.stringify({ origin, destination: addressLine(address).toLowerCase(), tariff }))
+    .update(JSON.stringify({ origin, placeId: cleanAddressPart(address.placeId, 256), destination: addressLine(address).toLowerCase(), tariff }))
     .digest("hex");
 }
 
@@ -158,6 +158,18 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   const destination = addressLine(address);
+  const placeId = cleanAddressPart(address.placeId, 256);
+
+  if (!placeId) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("Seleccioná una dirección de las sugerencias de Google Maps antes de cotizar el envío."),
+      origin,
+      destination,
+      provider: "GOOGLE_ROUTES"
+    };
+  }
 
   if (!hasRealValue(key)) {
     return {
@@ -182,7 +194,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
       },
       body: JSON.stringify({
         origins: [{ waypoint: { address: origin } }],
-        destinations: [{ waypoint: { address: destination } }],
+        destinations: [{ waypoint: { placeId } }],
         travelMode: "DRIVE",
         routingPreference: "TRAFFIC_UNAWARE",
         languageCode: "es-AR",
