@@ -19,7 +19,7 @@ Base auditada: `origin/main` en `bd6838f41d864366563b7a1e66b1900a1343cbc2`
 ### Vercel Analytics
 
 - Dependencia `@vercel/analytics` fijada en `2.0.1`.
-- Componente `<Analytics />` instalado en el layout raíz para registrar navegación del e-commerce.
+- Componente `<Analytics />` instalado en el layout raíz. El admin lo presenta como instrumentación instalada; la recepción efectiva de eventos se confirma en el panel oficial de Vercel.
 - Nueva ruta administrativa `Analíticas` con entorno, SHA de despliegue y enlaces al panel oficial de Analytics y despliegues.
 - El panel aclara que el detalle permanece en Vercel para evitar exponer credenciales o inventar cifras.
 
@@ -29,10 +29,10 @@ Base auditada: `origin/main` en `bd6838f41d864366563b7a1e66b1900a1343cbc2`
 - Formularios de proveedor ampliados con `website_url`, `logo_url` y `catalog_url`, todos opcionales y restringidos a HTTPS.
 - Se copiaron a Storage propio y se vincularon los logos públicos oficiales de Yesera Rosarina y Universo Pinturas, con autorización comercial indicada por el propietario.
 - Se incorporaron sitio y catálogo oficiales de Yesera Rosarina y Universo Pinturas. No se inventaron datos faltantes de Urbe SRL o Maquinaria Sorrentos.
-- La carga de PDFs/CSV valida origen, rol admin + MFA, tipo, firma/contenido, tamaño máximo de 10 MB y proveedor existente.
+- La carga de PDF/CSV/XLS/XLSX valida origen, rol admin + MFA, tipo, firma/contenido, tamaño máximo de 10 MB y proveedor existente.
 - Los archivos viven en el bucket privado `supplier-documents`; no hay URLs públicas permanentes.
-- Cada documento admite filas verificadas manualmente para comparar precio proveedor con el precio FZAC vigente. Se guarda un snapshot del precio cliente para trazabilidad.
-- Las cargas y comparaciones quedan registradas en `admin_audit_logs`.
+- Cada documento admite filas verificadas manualmente para comparar precio proveedor con el precio FZAC vigente. Se guarda un snapshot del precio cliente para trazabilidad y el servidor rechaza vínculos con productos de otro proveedor.
+- Las cargas, comparaciones y altas/ediciones de proveedor exigen registro en `admin_audit_logs`; si la auditoría falla, la operación se revierte.
 
 ### Reportes PDF
 
@@ -81,11 +81,12 @@ Auditoría general:
 
 ## Supabase y seguridad
 
-- Migración aplicada: `20260924164000_supplier_documents_and_profile.sql`.
+- Migración aplicada y reconciliada con el ledger remoto: `20260924152630_supplier_documents_and_profile.sql`.
+- Migración aditiva pendiente de despliegue: `20260924162000_supplier_documents_spreadsheet_formats.sql` para XLS/XLSX.
 - Tablas nuevas: `supplier_documents` y `supplier_document_items`.
 - Ambas tablas tienen RLS y FORCE RLS activos.
 - Solo `authenticated` admin puede leer; las escrituras se realizan server-side tras verificar admin + MFA.
-- Bucket `supplier-documents`: privado, 10 MB, solo PDF/CSV.
+- Bucket `supplier-documents`: privado, 10 MB. Tras la migración aditiva admite PDF/CSV/XLS/XLSX.
 - El security check local confirmó 36 tablas públicas con FORCE RLS.
 - Las tres tablas cerradas sin policies (`_prisma_migrations`, `security_rate_limits`, `stock_reservations`) continúan cerradas intencionalmente.
 - Pendiente manual: Supabase Auth mantiene desactivada **Leaked Password Protection**. Debe activarse en Dashboard > Authentication > Password Security. Referencia: <https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection>.
