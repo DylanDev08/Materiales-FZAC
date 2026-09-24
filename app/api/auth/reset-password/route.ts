@@ -1,5 +1,7 @@
 import { ZodError } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isAdminEmail } from "@/lib/auth/admin";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
@@ -30,6 +32,17 @@ export async function POST(request: Request) {
 
     const { error } = await supabase.auth.updateUser({ password: payload.password });
     if (error) return jsonError("No pudimos actualizar la contraseña. Solicitá un enlace nuevo.", 400);
+
+    if (isAdminEmail(current.user.email)) {
+      const admin = getSupabaseAdminClient();
+      if (admin) {
+        await admin
+          .from("admin_trusted_devices")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("user_id", current.user.id)
+          .is("revoked_at", null);
+      }
+    }
 
     await supabase.auth.signOut({ scope: "global" });
     return Response.json({
