@@ -85,7 +85,6 @@ export function isMercadoPagoConfigured(use: MercadoPagoCredentialUse = "checkou
     config.provider.toLowerCase() === "mercadopago" &&
     hasRealValue(accessTokenForUse(use)) &&
     hasRealValue(config.siteUrl);
-  if (use === "card" && !hasRealValue(config.cardPublicKey)) return false;
   if (!baseConfigured) return false;
   if (config.paymentsEnv === "test") return true;
   if (!config.productionConfirmed) return false;
