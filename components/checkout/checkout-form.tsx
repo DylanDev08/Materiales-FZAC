@@ -297,7 +297,7 @@ export function CheckoutForm({
         if (!response.ok) return;
         const data = (await response.json()) as { cardEnabled?: boolean; cardPublicKey?: string; environment?: "test" | "production" };
         if (!active) return;
-        const publicKey = String(data.cardPublicKey ?? cardPublicKey).trim();
+        const publicKey = String(data.cardPublicKey || cardPublicKey).trim();
         const cardReady = Boolean(data.cardEnabled && publicKey);
         setRuntimeCardPublicKey(publicKey);
         setRuntimeCardPaymentsEnabled(cardReady);
