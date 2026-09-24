@@ -18,6 +18,7 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("Verificando la seguridad de tu sesión.");
   const [busy, setBusy] = useState(false);
+  const [rememberBrowser, setRememberBrowser] = useState(true);
 
   useEffect(() => {
     if (started.current) return;
@@ -125,8 +126,26 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
         return;
       }
 
+      let trusted = false;
+      if (rememberBrowser) {
+        try {
+          const trustResponse = await fetch("/api/auth/admin-mfa/trust", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ remember: true })
+          });
+          trusted = trustResponse.ok;
+        } catch {
+          trusted = false;
+        }
+      }
+
       setMode("ready");
-      setMessage("Segundo factor verificado. Entrando al panel…");
+      setMessage(
+        trusted
+          ? "Segundo factor verificado. Este navegador queda confiado por 7 días."
+          : "Segundo factor verificado. Entrando al panel…"
+      );
       router.replace(nextPath);
       router.refresh();
     } catch {
@@ -147,13 +166,13 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
           <div>
             <span className="kicker">Seguridad administrativa</span>
             <h1>Verificación en dos pasos</h1>
-            <p>El panel FZAC requiere contraseña o Google + un código TOTP para cada sesión administrativa.</p>
+            <p>El panel FZAC exige MFA en navegadores nuevos. Podés confiar este navegador durante 7 días para no ingresar el código en cada acceso.</p>
           </div>
         </div>
 
         <div className="auth-trust-line">
           <span><ShieldCheck size={16} /> MFA obligatorio</span>
-          <span><KeyRound size={16} /> Sesión AAL2</span>
+          <span><KeyRound size={16} /> Navegador confiable por 7 días</span>
         </div>
 
         {mode === "loading" ? (
@@ -192,6 +211,16 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
                 maxLength={8}
                 required
               />
+            </label>
+            <label className="field auth-terms">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={rememberBrowser}
+                  onChange={(event) => setRememberBrowser(event.target.checked)}
+                /> Confiar en este navegador durante 7 días
+              </span>
+              <small>Usalo sólo en un dispositivo propio. En otro navegador o al vencer el plazo se vuelve a pedir Authenticator.</small>
             </label>
             <button className="btn" type="submit" disabled={busy || code.length < 6}>
               {busy ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
