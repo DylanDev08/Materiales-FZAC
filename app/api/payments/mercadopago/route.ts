@@ -1,4 +1,4 @@
-import { isMercadoPagoConfigured, isPaymentsEnabled, isTestPaymentEnv } from "@/lib/payments/config";
+import { getPaymentConfig, isMercadoPagoConfigured, isPaymentsEnabled, isTestPaymentEnv } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
@@ -7,10 +7,12 @@ export async function GET(request: Request) {
   if (!limit.ok) return jsonError("Demasiadas consultas. Esperá un momento.", 429, retryAfterHeaders(limit));
   const enabled = isMercadoPagoConfigured();
   const cardEnabled = isMercadoPagoConfigured("card");
+  const config = getPaymentConfig();
   return Response.json({
     provider: "CONFIGURED_PAYMENT_PROVIDER",
     enabled,
     cardEnabled,
+    cardPublicKey: cardEnabled ? config.cardPublicKey : "",
     paymentsEnabled: isPaymentsEnabled(),
     environment: isTestPaymentEnv() ? "test" : "production",
     message: enabled
