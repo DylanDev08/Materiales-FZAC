@@ -29,6 +29,9 @@ type SupplierForm = {
   phone: string;
   taxId: string;
   paymentTerms: string;
+  websiteUrl: string;
+  logoUrl: string;
+  catalogUrl: string;
   leadTimeDays: string;
   notes: string;
   active: boolean;
@@ -42,6 +45,9 @@ const emptySupplier: SupplierForm = {
   phone: "",
   taxId: "",
   paymentTerms: "",
+  websiteUrl: "",
+  logoUrl: "",
+  catalogUrl: "",
   leadTimeDays: "7",
   notes: "",
   active: true
@@ -71,6 +77,9 @@ function supplierToForm(supplier: ProcurementSupplier): SupplierForm {
     phone: supplier.phone ?? "",
     taxId: supplier.tax_id ?? "",
     paymentTerms: supplier.payment_terms ?? "",
+    websiteUrl: supplier.website_url ?? "",
+    logoUrl: supplier.logo_url ?? "",
+    catalogUrl: supplier.catalog_url ?? "",
     leadTimeDays: String(supplier.lead_time_days),
     notes: supplier.notes ?? "",
     active: supplier.active
@@ -304,7 +313,25 @@ export function AdminProcurement({ adminPath, initialProductId }: { adminPath: s
       </form> : null}
 
       {tab === "SUPPLIERS" ? <section className="admin-procurement__supplier-layout">
-        <form className="admin-procurement__form" onSubmit={saveSupplier}><header><div><span className="kicker">Directorio privado</span><h2>{supplier.id ? "Editar proveedor" : "Nuevo proveedor"}</h2></div>{supplier.id ? <button className="btn btn--ghost" onClick={() => setSupplier(emptySupplier)} type="button">Nuevo</button> : null}</header><div className="admin-procurement__form-grid"><label>Código<input maxLength={40} onChange={(event) => setSupplier({ ...supplier, code: event.target.value.toUpperCase() })} required value={supplier.code} /></label><label>Razón social / nombre<input maxLength={140} onChange={(event) => setSupplier({ ...supplier, name: event.target.value })} required value={supplier.name} /></label><label>Contacto<input maxLength={120} onChange={(event) => setSupplier({ ...supplier, contactName: event.target.value })} value={supplier.contactName} /></label><label>CUIT<input inputMode="numeric" maxLength={20} onChange={(event) => setSupplier({ ...supplier, taxId: event.target.value })} value={supplier.taxId} /></label><label>Email<input maxLength={180} onChange={(event) => setSupplier({ ...supplier, email: event.target.value })} type="email" value={supplier.email} /></label><label>Teléfono<input inputMode="tel" maxLength={30} onChange={(event) => setSupplier({ ...supplier, phone: event.target.value })} value={supplier.phone} /></label><label>Plazo habitual (días)<input max="120" min="1" onChange={(event) => setSupplier({ ...supplier, leadTimeDays: event.target.value })} required type="number" value={supplier.leadTimeDays} /></label><label>Condiciones de pago<input maxLength={180} onChange={(event) => setSupplier({ ...supplier, paymentTerms: event.target.value })} value={supplier.paymentTerms} /></label></div><label>Notas<textarea maxLength={600} onChange={(event) => setSupplier({ ...supplier, notes: event.target.value })} rows={3} value={supplier.notes} /></label><label className="admin-procurement__check"><input checked={supplier.active} onChange={(event) => setSupplier({ ...supplier, active: event.target.checked })} type="checkbox" />Proveedor activo</label><footer><button className="btn btn--primary" disabled={saving} type="submit"><Building2 size={18} />Guardar proveedor</button></footer></form>
+        <form className="admin-procurement__form" onSubmit={saveSupplier}>
+          <header><div><span className="kicker">Directorio privado</span><h2>{supplier.id ? "Editar proveedor" : "Nuevo proveedor"}</h2></div>{supplier.id ? <button className="btn btn--ghost" onClick={() => setSupplier(emptySupplier)} type="button">Nuevo</button> : null}</header>
+          <div className="admin-procurement__form-grid">
+            <label>Código<input maxLength={40} onChange={(event) => setSupplier({ ...supplier, code: event.target.value.toUpperCase() })} required value={supplier.code} /></label>
+            <label>Razón social / nombre<input maxLength={140} onChange={(event) => setSupplier({ ...supplier, name: event.target.value })} required value={supplier.name} /></label>
+            <label>Contacto<input maxLength={120} onChange={(event) => setSupplier({ ...supplier, contactName: event.target.value })} value={supplier.contactName} /></label>
+            <label>CUIT<input inputMode="numeric" maxLength={20} onChange={(event) => setSupplier({ ...supplier, taxId: event.target.value })} value={supplier.taxId} /></label>
+            <label>Email<input maxLength={180} onChange={(event) => setSupplier({ ...supplier, email: event.target.value })} type="email" value={supplier.email} /></label>
+            <label>Teléfono<input inputMode="tel" maxLength={30} onChange={(event) => setSupplier({ ...supplier, phone: event.target.value })} value={supplier.phone} /></label>
+            <label>Sitio web HTTPS<input maxLength={500} onChange={(event) => setSupplier({ ...supplier, websiteUrl: event.target.value })} placeholder="https://..." type="url" value={supplier.websiteUrl} /></label>
+            <label>Logo HTTPS<input maxLength={500} onChange={(event) => setSupplier({ ...supplier, logoUrl: event.target.value })} placeholder="https://..." type="url" value={supplier.logoUrl} /></label>
+            <label>Catálogo público HTTPS<input maxLength={500} onChange={(event) => setSupplier({ ...supplier, catalogUrl: event.target.value })} placeholder="https://..." type="url" value={supplier.catalogUrl} /></label>
+            <label>Plazo habitual (días)<input max="120" min="1" onChange={(event) => setSupplier({ ...supplier, leadTimeDays: event.target.value })} required type="number" value={supplier.leadTimeDays} /></label>
+            <label>Condiciones de pago<input maxLength={180} onChange={(event) => setSupplier({ ...supplier, paymentTerms: event.target.value })} value={supplier.paymentTerms} /></label>
+          </div>
+          <label>Notas<textarea maxLength={600} onChange={(event) => setSupplier({ ...supplier, notes: event.target.value })} rows={3} value={supplier.notes} /></label>
+          <label className="admin-procurement__check"><input checked={supplier.active} onChange={(event) => setSupplier({ ...supplier, active: event.target.checked })} type="checkbox" />Proveedor activo</label>
+          <footer><button className="btn btn--primary" disabled={saving} type="submit"><Building2 size={18} />Guardar proveedor</button></footer>
+        </form>
         <div className="admin-procurement__suppliers"><header><span className="kicker">Proveedores</span><strong>{data.suppliers.length}</strong></header>{!data.suppliers.length ? <p className="admin-empty">No hay proveedores cargados.</p> : data.suppliers.map((item) => <button className={item.active ? "" : "is-inactive"} key={item.id} onClick={() => setSupplier(supplierToForm(item))} type="button"><span><strong>{item.name}</strong><small>{item.code} · {item.contact_name || "Sin contacto"}</small></span><em>{item.lead_time_days} días</em></button>)}</div>
       </section> : null}
     </> : null}
