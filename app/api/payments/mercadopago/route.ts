@@ -6,9 +6,11 @@ export async function GET(request: Request) {
   const limit = rateLimit(getRequestKey(request, "payment-provider-status"), 60, 60_000);
   if (!limit.ok) return jsonError("Demasiadas consultas. Esperá un momento.", 429, retryAfterHeaders(limit));
   const enabled = isMercadoPagoConfigured();
+  const cardEnabled = isMercadoPagoConfigured("card");
   return Response.json({
     provider: "CONFIGURED_PAYMENT_PROVIDER",
     enabled,
+    cardEnabled,
     paymentsEnabled: isPaymentsEnabled(),
     environment: isTestPaymentEnv() ? "test" : "production",
     message: enabled
