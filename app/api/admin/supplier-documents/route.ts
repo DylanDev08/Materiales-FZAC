@@ -18,6 +18,18 @@ const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const ALLOWED_TYPES = new Set([MIME_PDF, MIME_CSV, MIME_XLS, MIME_XLSX]);
 const documentIdSchema = z.string().uuid();
 
+function normalizedMimeType(file: File) {
+  const declared = file.type.trim().toLowerCase();
+  if (ALLOWED_TYPES.has(declared)) return declared;
+
+  const extension = file.name.trim().toLowerCase().split(".").pop();
+  if (extension === "pdf") return MIME_PDF;
+  if (extension === "csv") return MIME_CSV;
+  if (extension === "xls") return MIME_XLS;
+  if (extension === "xlsx") return MIME_XLSX;
+  return null;
+}
+
 function extensionFor(type: string) {
   if (type === MIME_PDF) return "pdf";
   if (type === MIME_XLS) return "xls";
@@ -86,7 +98,8 @@ export async function POST(request: Request) {
       const formData = await request.formData();
       const file = formData.get("file");
       if (!(file instanceof File)) return jsonError("Seleccioná un PDF, CSV o archivo de Excel.", 422);
-      if (!ALLOWED_TYPES.has(file.type)) return jsonError("Formato no permitido. Usá PDF, CSV, XLS o XLSX.", 422);
+      const mimeType = normalizedMimeType(file);
+      if (!mimeType) return jsonError("Formato no permitido. Usá PDF, CSV, XLS o XLSX.", 422);
       if (file.size < 1 || file.size > MAX_FILE_SIZE) return jsonError("El archivo debe pesar hasta 10 MB.", 413);
 
       const metadata = supplierDocumentMetadataSchema.parse({
@@ -100,12 +113,12 @@ export async function POST(request: Request) {
       if (supplier.error || !supplier.data) return jsonError("Proveedor inexistente.", 404);
 
       const bytes = new Uint8Array(await file.arrayBuffer());
-      if (!hasExpectedSignature(bytes, file.type)) return jsonError("El contenido no coincide con el formato declarado.", 422);
-      const extension = extensionFor(file.type);
+      if (!hasExpectedSignature(bytes, mimeType)) return jsonError("El contenido no coincide con el formato declarado.", 422);
+      const extension = extensionFor(mimeType);
       const storagePath = `suppliers/${metadata.supplierId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${extension}`;
       const upload = await context.admin.storage.from(BUCKET).upload(storagePath, bytes, {
         cacheControl: "3600",
-        contentType: file.type,
+        contentType: mimeType,
         upsert: false
       });
       if (upload.error) return jsonError("No pudimos guardar el archivo privado.", 503);
@@ -117,7 +130,7 @@ export async function POST(request: Request) {
         document_date: metadata.documentDate,
         file_name: safeFileName(file.name, extension),
         storage_path: storagePath,
-        mime_type: file.type,
+        mime_type: mimeType,
         size_bytes: file.size,
         notes: metadata.notes,
         created_by: context.profile.id
