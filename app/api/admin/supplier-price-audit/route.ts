@@ -30,6 +30,7 @@ type SupplierRow = {
 type SourceRow = {
   product_id: string; supplier_id: string; source_product_id: string; source_url: string | null;
   original_price: number | string | null; margin_percent: number | string | null;
+  manual_review_required: boolean; manual_review_reason: string | null;
 };
 
 const recalculateSchema = z.object({
@@ -88,7 +89,7 @@ async function auditData(admin: AdminClient) {
   const [products, suppliers, sources] = await Promise.all([
     readAll<ProductRow>((from, to) => admin.from("products").select("id,name,sku,slug,price,supplier_id,image_url,description,availability_status,active").range(from, to)),
     readAll<SupplierRow>((from, to) => admin.from("suppliers").select("id,name,code,pricing_margin_percent,pricing_threshold_amount,pricing_margin_above_threshold_percent,pricing_round_to_whole_peso").range(from, to)),
-    readAll<SourceRow>((from, to) => admin.from("product_supplier_sources").select("product_id,supplier_id,source_product_id,source_url,original_price,margin_percent").range(from, to))
+    readAll<SourceRow>((from, to) => admin.from("product_supplier_sources").select("product_id,supplier_id,source_product_id,source_url,original_price,margin_percent,manual_review_required,manual_review_reason").range(from, to))
   ]);
   const supplierById = new Map(suppliers.map((row) => [row.id, row]));
   const sourceByProduct = new Map(sources.map((row) => [row.product_id, row]));
@@ -104,7 +105,7 @@ async function auditData(admin: AdminClient) {
     const expectedMargin = expectedSupplierMargin(supplier?.code, originalPrice, rule);
     const expectedPrice = expectedSupplierPrice(supplier?.code, originalPrice, rule);
     const currentPrice = Number(product.price);
-    const status = supplierAuditStatus({
+    const status = source?.manual_review_required ? "MANUAL_REVIEW" : supplierAuditStatus({
       supplierName: supplier?.name ?? null,
       originalPrice,
       sourceUrl: source?.source_url ?? null,
@@ -126,6 +127,8 @@ async function auditData(admin: AdminClient) {
       expectedMargin,
       currentPrice,
       expectedPrice,
+      manualReviewRequired: Boolean(source?.manual_review_required),
+      manualReviewReason: source?.manual_review_reason ?? null,
       difference: expectedPrice === null ? null : Number((currentPrice - expectedPrice).toFixed(2)),
       missingImage: !String(product.image_url ?? "").trim(),
       missingDescription: !String(product.description ?? "").trim(),
@@ -182,8 +185,11 @@ export async function POST(request: Request) {
   const { admin, profile } = context;
 
   const { data: product } = await admin.from("products").select("id,name,price").eq("id", parsed.data.productId).maybeSingle();
-  const { data: source } = await admin.from("product_supplier_sources").select("supplier_id,original_price,margin_percent").eq("product_id", parsed.data.productId).maybeSingle();
+  const { data: source } = await admin.from("product_supplier_sources").select("supplier_id,original_price,margin_percent,manual_review_required,manual_review_reason").eq("product_id", parsed.data.productId).maybeSingle();
   if (!product || !source) return jsonError("El producto no tiene una fuente recalculable.", 404);
+  if (source.manual_review_required) {
+    return jsonError(source.manual_review_reason || "El precio fuente requiere revisión manual antes de recalcular.", 409);
+  }
   const { data: supplier } = await admin
     .from("suppliers")
     .select("name,code,pricing_margin_percent,pricing_threshold_amount,pricing_margin_above_threshold_percent,pricing_round_to_whole_peso")
