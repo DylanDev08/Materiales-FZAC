@@ -260,6 +260,12 @@
   display: none;
 }
 
+.product-card__image-pending {
+  border-color: rgba(244, 196, 0, 0.42);
+  background: rgba(10, 10, 10, 0.88);
+  color: #f4c400;
+}
+
 .product-card__media {
   position: relative;
   background:
