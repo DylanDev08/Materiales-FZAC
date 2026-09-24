@@ -5,6 +5,7 @@ import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-li
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { resetPasswordSchema } from "@/lib/validations/auth";
+import { revokeAllTrustedAdminDevices } from "@/lib/auth/trusted-device";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-reset-password"), 5, 60_000);
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
     const { error } = await supabase.auth.updateUser({ password: payload.password });
     if (error) return jsonError("No pudimos actualizar la contraseña. Solicitá un enlace nuevo.", 400);
 
+    await revokeAllTrustedAdminDevices(current.user.id);
     await supabase.auth.signOut({ scope: "global" });
     return Response.json({
       ok: true,
