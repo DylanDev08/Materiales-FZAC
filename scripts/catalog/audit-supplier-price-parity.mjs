@@ -41,7 +41,11 @@ async function readAll(queryFactory, pageSize = 1000) {
 export function expectedMargin(supplierCode, originalPrice) {
   const price = Number(originalPrice);
   if (!Number.isFinite(price) || price <= 0) return null;
-  if (supplierCode === YESERA_CODE) return price > 60_000 ? 10 : 20;
+  if (supplierCode === YESERA_CODE) {
+    if (price <= 20_000) return 12;
+    if (price <= 60_000) return 10;
+    return 8;
+  }
   if (supplierCode === UNIVERSO_CODE) return 0;
   return null;
 }
