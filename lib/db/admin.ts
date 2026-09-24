@@ -121,7 +121,12 @@ export async function getAdminProducts() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackProducts;
 
-  const { data, error } = await admin.from("products").select("*, supplier:suppliers(id,name)").order("created_at", { ascending: false }).limit(300);
+  const { data, error } = await admin
+    .from("products")
+    .select("*, supplier:suppliers(id,name)")
+    .eq("active", true)
+    .order("name", { ascending: true })
+    .limit(500);
   if (error) return [];
   return (data ?? []).map(normalizeProduct);
 }
