@@ -11,23 +11,43 @@ export const runtime = "nodejs";
 
 const BUCKET = "supplier-documents";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["application/pdf", "text/csv", "application/vnd.ms-excel"]);
+const MIME_PDF = "application/pdf";
+const MIME_CSV = "text/csv";
+const MIME_XLS = "application/vnd.ms-excel";
+const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const ALLOWED_TYPES = new Set([MIME_PDF, MIME_CSV, MIME_XLS, MIME_XLSX]);
 const documentIdSchema = z.string().uuid();
 
 function extensionFor(type: string) {
-  return type === "application/pdf" ? "pdf" : "csv";
+  if (type === MIME_PDF) return "pdf";
+  if (type === MIME_XLS) return "xls";
+  if (type === MIME_XLSX) return "xlsx";
+  return "csv";
 }
 
 function safeFileName(value: string, extension: string) {
-  const normalized = value.replace(/[\u0000-\u001f\u007f/\\]/g, "_").trim().slice(0, 170);
-  return normalized || `documento.${extension}`;
+  const normalized = value.replace(/[\u0000-\u001f\u007f/\\]/g, "_").trim();
+  const withoutExtension = normalized.replace(/\.[^.]{1,8}$/u, "").trim().slice(0, 165);
+  return `${withoutExtension || "documento"}.${extension}`;
+}
+
+function startsWith(bytes: Uint8Array, signature: number[]) {
+  return signature.every((value, index) => bytes[index] === value);
 }
 
 function hasExpectedSignature(bytes: Uint8Array, type: string) {
-  if (type === "application/pdf") {
-    return Buffer.from(bytes.slice(0, 1024)).includes(Buffer.from("%PDF-"));
+  if (type === MIME_PDF) {
+    return Buffer.from(bytes.slice(0, 5)).equals(Buffer.from("%PDF-"));
   }
-  return !bytes.slice(0, 1024).some((value) => value === 0);
+  if (type === MIME_XLS) {
+    return startsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  }
+  if (type === MIME_XLSX) {
+    return startsWith(bytes, [0x50, 0x4b, 0x03, 0x04])
+      || startsWith(bytes, [0x50, 0x4b, 0x05, 0x06])
+      || startsWith(bytes, [0x50, 0x4b, 0x07, 0x08]);
+  }
+  return bytes.length > 0 && !bytes.slice(0, 1024).some((value) => value === 0);
 }
 
 export async function GET(request: Request) {
@@ -65,8 +85,8 @@ export async function POST(request: Request) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file");
-      if (!(file instanceof File)) return jsonError("Seleccioná un PDF o CSV.", 422);
-      if (!ALLOWED_TYPES.has(file.type)) return jsonError("Formato no permitido. Usá PDF o CSV.", 422);
+      if (!(file instanceof File)) return jsonError("Seleccioná un PDF, CSV o archivo de Excel.", 422);
+      if (!ALLOWED_TYPES.has(file.type)) return jsonError("Formato no permitido. Usá PDF, CSV, XLS o XLSX.", 422);
       if (file.size < 1 || file.size > MAX_FILE_SIZE) return jsonError("El archivo debe pesar hasta 10 MB.", 413);
 
       const metadata = supplierDocumentMetadataSchema.parse({
@@ -107,7 +127,7 @@ export async function POST(request: Request) {
         return jsonError("No pudimos registrar el documento.", 409);
       }
 
-      await context.admin.from("admin_audit_logs").insert({
+      const audit = await context.admin.from("admin_audit_logs").insert({
         actor_id: context.profile.id,
         actor_email: context.profile.email,
         actor_role: context.profile.role,
@@ -117,6 +137,16 @@ export async function POST(request: Request) {
         message: `Documento privado agregado a ${supplier.data.name}.`,
         metadata: { kind: metadata.kind, sizeBytes: file.size }
       });
+      if (audit.error) {
+        const [rollbackRow, rollbackFile] = await Promise.all([
+          context.admin.from("supplier_documents").delete().eq("id", inserted.data.id),
+          context.admin.storage.from(BUCKET).remove([storagePath])
+        ]);
+        if (rollbackRow.error || rollbackFile.error) {
+          return jsonError("Falló la auditoría y no pudimos revertir completamente la carga. Requiere revisión administrativa.", 500);
+        }
+        return jsonError("No pudimos registrar la auditoría. El documento no fue guardado.", 503);
+      }
       return Response.json({ ok: true, id: inserted.data.id }, { status: 201 });
     }
 
@@ -131,9 +161,21 @@ export async function POST(request: Request) {
     if (documentError || !document || document.status !== "ACTIVE") return jsonError("Documento no disponible.", 404);
 
     const product = payload.productId
-      ? await context.admin.from("products").select("id,name,sku,unit,price").eq("id", payload.productId).maybeSingle()
+      ? await context.admin.from("products").select("id,name,sku,unit,price,supplier_id").eq("id", payload.productId).maybeSingle()
       : null;
     if (product?.error || (payload.productId && !product?.data)) return jsonError("Producto FZAC inexistente.", 404);
+
+    if (payload.productId && product?.data && product.data.supplier_id !== document.supplier_id) {
+      const source = await context.admin
+        .from("product_supplier_sources")
+        .select("id")
+        .eq("product_id", payload.productId)
+        .eq("supplier_id", document.supplier_id)
+        .limit(1)
+        .maybeSingle();
+      if (source.error) return jsonError("No pudimos validar el proveedor del producto.", 503);
+      if (!source.data) return jsonError("El producto seleccionado no pertenece al proveedor de este documento.", 409);
+    }
 
     const inserted = await context.admin.from("supplier_document_items").insert({
       document_id: document.id,
@@ -148,7 +190,7 @@ export async function POST(request: Request) {
     }).select("id").single();
     if (inserted.error || !inserted.data) return jsonError("Ese producto o SKU ya está registrado en el documento.", 409);
 
-    await context.admin.from("admin_audit_logs").insert({
+    const audit = await context.admin.from("admin_audit_logs").insert({
       actor_id: context.profile.id,
       actor_email: context.profile.email,
       actor_role: context.profile.role,
@@ -158,6 +200,13 @@ export async function POST(request: Request) {
       message: "Precio de proveedor verificado y comparado con el precio FZAC.",
       metadata: { documentId: document.id, supplierId: document.supplier_id, productId: product?.data?.id ?? null }
     });
+    if (audit.error) {
+      const rollback = await context.admin.from("supplier_document_items").delete().eq("id", inserted.data.id);
+      if (rollback.error) {
+        return jsonError("Falló la auditoría y no pudimos revertir la comparación. Requiere revisión administrativa.", 500);
+      }
+      return jsonError("No pudimos registrar la auditoría. La comparación no fue guardada.", 503);
+    }
     return Response.json({ ok: true, id: inserted.data.id }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Revisá los datos.", 422);
