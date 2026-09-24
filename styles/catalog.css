@@ -307,10 +307,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  color: #4c4c46;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: #111111;
+  color: #f2f2ed;
   font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.product-card__meta span + span {
+  padding-left: 7px;
+  border-left: 1px solid rgba(244, 196, 0, 0.35);
 }
 
 .product-card h3 {
@@ -336,7 +344,11 @@
 }
 
 .product-card__finance {
-  color: #34342f;
+  width: fit-content;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #111111;
+  color: #f2f2ed;
 }
 
 .product-card__price {
@@ -344,15 +356,19 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 7px;
+  width: fit-content;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #111111;
 }
 
 .product-card__price strong {
-  color: #111111;
+  color: var(--color-yellow);
   font-size: 1.08rem;
 }
 
 .product-card__price del {
-  color: #70706a;
+  color: #b8b8b0;
 }
 
 .product-card__unit {
