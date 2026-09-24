@@ -44,7 +44,7 @@ export function expectedSupplierMargin(
   const configured = configuredRuleMargin(originalPrice, rule);
   if (configured !== null) return configured;
 
-  if (supplierCode === YESERA_SUPPLIER_CODE) return originalPrice > 60_000 ? 10 : 20;
+  if (supplierCode === YESERA_SUPPLIER_CODE) return originalPrice > 60_000 ? 8 : 10;
   if (supplierCode === UNIVERSO_SUPPLIER_CODE) return 0;
   return null;
 }
