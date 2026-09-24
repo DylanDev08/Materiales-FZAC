@@ -240,6 +240,14 @@ export function AdminSupplierPriceAudit() {
             const draft = ruleDrafts[rule.supplierCode];
             if (!draft) return null;
             const busy = savingRule === rule.supplierCode;
+            const baseMargin = Number(draft.marginPercent);
+            const upperMargin = draft.marginAboveThresholdPercent.trim()
+              ? Number(draft.marginAboveThresholdPercent)
+              : null;
+            const canApplyCommercially =
+              Number.isFinite(baseMargin) &&
+              baseMargin > 0 &&
+              (upperMargin === null || (Number.isFinite(upperMargin) && upperMargin > 0));
             return (
               <article className="admin-supplier-audit__rule-card" key={rule.supplierCode}>
                 <div>
@@ -280,11 +288,20 @@ export function AdminSupplierPriceAudit() {
                   />
                   Redondear al peso entero
                 </label>
+                {!canApplyCommercially ? (
+                  <p className="admin-supplier-audit__reference-note">Margen 0% queda como referencia y no puede aplicarse como precio comercial.</p>
+                ) : null}
                 <div className="admin-supplier-audit__rule-actions">
                   <button className="btn btn--ghost" type="button" disabled={Boolean(savingRule)} onClick={() => void savePricingRule(rule, false)}>
                     <Save size={16} /> {busy ? "Guardando..." : "Guardar regla"}
                   </button>
-                  <button className="btn" type="button" disabled={Boolean(savingRule)} onClick={() => void savePricingRule(rule, true)}>
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={Boolean(savingRule) || !canApplyCommercially}
+                    title={canApplyCommercially ? "Recalcular precios activos con esta regla" : "Definí un margen mayor a 0% para aplicar al catálogo"}
+                    onClick={() => void savePricingRule(rule, true)}
+                  >
                     <Zap size={16} /> {busy ? "Aplicando..." : "Aplicar al catálogo"}
                   </button>
                 </div>
