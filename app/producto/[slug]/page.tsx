@@ -14,6 +14,12 @@ function productDescription(name: string, description: string) {
   return value.length > 160 ? `${value.slice(0, 157).trimEnd()}...` : value;
 }
 
+function schemaAvailability(product: { stock: number; availability_status: string }) {
+  if (product.availability_status === "IN_STOCK" && product.stock > 0) return "https://schema.org/InStock";
+  if (product.availability_status === "CONSULT") return "https://schema.org/LimitedAvailability";
+  return "https://schema.org/OutOfStock";
+}
+
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
@@ -82,7 +88,7 @@ export default async function Page({ params }: ProductPageProps) {
       priceCurrency: "ARS",
       price: product.price,
       itemCondition: "https://schema.org/NewCondition",
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      availability: schemaAvailability(product),
       seller: {
         "@id": `${siteUrl}/#store`
       }
