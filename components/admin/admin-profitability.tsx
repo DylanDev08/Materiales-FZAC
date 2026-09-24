@@ -48,7 +48,7 @@ export function AdminProfitability({ data }: { data: ProfitabilityOverview }) {
         <AlertTriangle size={20} />
         <div>
           <strong>Lectura comercial estimada</strong>
-          <p>El costo usa la última compra registrada de cada producto. No modifica pedidos, pagos ni stock y no reemplaza un cierre contable. Los productos sin costo quedan señalados en lugar de asumir un valor.</p>
+          <p>El costo prioriza la última compra registrada y, si todavía no existe una compra, usa el costo de proveedor como referencia. No modifica pedidos, pagos ni stock y no reemplaza un cierre contable. Los productos sin costo quedan señalados en lugar de asumir un valor.</p>
         </div>
       </section>
 
