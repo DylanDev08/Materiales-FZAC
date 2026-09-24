@@ -33,6 +33,15 @@ export async function POST(request: Request) {
     const payload = procurementPayloadSchema.parse(await request.json());
 
     if (payload.action === "SAVE_SUPPLIER") {
+      const previous = payload.id
+        ? await current.admin
+            .from("suppliers")
+            .select("id,code,name,contact_name,email,phone,tax_id,payment_terms,website_url,logo_url,catalog_url,lead_time_days,notes,active,updated_by")
+            .eq("id", payload.id)
+            .maybeSingle()
+        : null;
+      if (payload.id && (previous?.error || !previous?.data)) return jsonError("Proveedor inexistente.", 404);
+
       const values = {
         code: payload.code,
         name: payload.name,
@@ -54,7 +63,8 @@ export async function POST(request: Request) {
         : current.admin.from("suppliers").insert({ ...values, created_by: current.profile.id });
       const { data, error } = await query.select("id,name").single();
       if (error || !data) return jsonError("No pudimos guardar el proveedor. Revisá código, email y CUIT.", 409);
-      await current.admin.from("admin_audit_logs").insert({
+
+      const audit = await current.admin.from("admin_audit_logs").insert({
         actor_id: current.profile.id,
         actor_email: current.profile.email,
         actor_role: current.profile.role,
@@ -63,6 +73,22 @@ export async function POST(request: Request) {
         entity_id: data.id,
         message: `Proveedor guardado: ${data.name}`
       });
+      if (audit.error) {
+        if (previous?.data) {
+          const { id: _previousId, ...restore } = previous.data;
+          const rollback = await current.admin.from("suppliers").update(restore).eq("id", data.id);
+          if (rollback.error) {
+            return jsonError("Falló la auditoría y no pudimos restaurar el proveedor. Requiere revisión administrativa.", 500);
+          }
+        } else {
+          const rollback = await current.admin.from("suppliers").delete().eq("id", data.id);
+          if (rollback.error) {
+            return jsonError("Falló la auditoría y no pudimos eliminar el proveedor creado. Requiere revisión administrativa.", 500);
+          }
+        }
+        return jsonError("No pudimos registrar la auditoría. El cambio de proveedor fue revertido.", 503);
+      }
+
       return Response.json({ ok: true, id: data.id }, { status: payload.id ? 200 : 201 });
     }
 
