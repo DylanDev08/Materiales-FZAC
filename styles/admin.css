@@ -8538,3 +8538,16 @@ body:has(.admin-page) .site-main {
     justify-content: center;
   }
 }
+
+
+.admin-supplier-audit__reference-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  border-left: 3px solid var(--color-yellow);
+  background: rgba(244, 196, 0, 0.08);
+  color: var(--color-muted);
+  padding: 9px 11px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
