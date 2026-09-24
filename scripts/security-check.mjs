@@ -153,8 +153,25 @@ if (!turnstileGuard.includes("if (!isTurnstileConfigured())")) {
 const requireAdmin = await readFile(path.join(root, "lib/auth/require-admin.ts"), "utf8").catch(() => "");
 const apiGuards = await readFile(path.join(root, "lib/auth/api-guards.ts"), "utf8").catch(() => "");
 const adminMfa = await readFile(path.join(root, "lib/auth/admin-mfa.ts"), "utf8").catch(() => "");
-if (!requireAdmin.includes("hasAdminAal2") || !apiGuards.includes("hasAdminAal2") || !adminMfa.includes("getAuthenticatorAssuranceLevel")) {
-  failures.push("Admin: el panel y las APIs deben exigir MFA/AAL2.");
+const trustedDevice = await readFile(path.join(root, "lib/auth/trusted-device.ts"), "utf8").catch(() => "");
+const trustedDeviceRoute = await readFile(path.join(root, "app/api/auth/admin-trusted-device/route.ts"), "utf8").catch(() => "");
+
+const adminUsesStrongAssurance =
+  requireAdmin.includes("hasAdminSessionAssurance")
+  && apiGuards.includes("hasAdminSessionAssurance")
+  && adminMfa.includes("getAuthenticatorAssuranceLevel")
+  && adminMfa.includes("hasTrustedAdminDevice");
+
+const trustedDeviceIsHardened =
+  trustedDevice.includes("token_hash")
+  && trustedDevice.includes("user_agent_hash")
+  && trustedDevice.includes("httpOnly: true")
+  && trustedDevice.includes('sameSite: "lax"')
+  && trustedDeviceRoute.includes("hasAdminAal2")
+  && trustedDeviceRoute.includes("isTrustedMutationRequest");
+
+if (!adminUsesStrongAssurance || !trustedDeviceIsHardened) {
+  failures.push("Admin: el panel y las APIs deben exigir AAL2 o un dispositivo confiable emitido despues de MFA real.");
 }
 
 for (const file of [
