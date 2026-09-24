@@ -18,6 +18,7 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("Verificando la seguridad de tu sesión.");
   const [busy, setBusy] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(true);
 
   useEffect(() => {
     if (started.current) return;
@@ -125,8 +126,20 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
         return;
       }
 
+      if (rememberDevice) {
+        const trusted = await fetch("/api/auth/admin-trusted-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        }).catch(() => null);
+
+        if (trusted && !trusted.ok) {
+          setMessage("MFA verificado. No pudimos recordar este dispositivo, así que volverá a pedirse en el próximo inicio de sesión.");
+        }
+      }
+
       setMode("ready");
-      setMessage("Segundo factor verificado. Entrando al panel…");
+      if (!rememberDevice) setMessage("Segundo factor verificado. Entrando al panel…");
       router.replace(nextPath);
       router.refresh();
     } catch {
@@ -147,13 +160,13 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
           <div>
             <span className="kicker">Seguridad administrativa</span>
             <h1>Verificación en dos pasos</h1>
-            <p>El panel FZAC requiere contraseña o Google + un código TOTP para cada sesión administrativa.</p>
+            <p>El panel FZAC pide TOTP en dispositivos nuevos o no confiables. En tu equipo personal podés recordarlo por 14 días.</p>
           </div>
         </div>
 
         <div className="auth-trust-line">
           <span><ShieldCheck size={16} /> MFA obligatorio</span>
-          <span><KeyRound size={16} /> Sesión AAL2</span>
+          <span><KeyRound size={16} /> MFA o dispositivo confiable</span>
         </div>
 
         {mode === "loading" ? (
@@ -193,6 +206,17 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
                 required
               />
             </label>
+            <label className="field admin-mfa-remember">
+              <span>
+                <input
+                  type="checkbox"
+                  checked={rememberDevice}
+                  onChange={(event) => setRememberDevice(event.target.checked)}
+                />{" "}
+                Confiar en este dispositivo por 14 días
+              </span>
+              <small>Usalo sólo en tu PC o celular personal. En equipos compartidos, dejalo desmarcado.</small>
+            </label>
             <button className="btn" type="submit" disabled={busy || code.length < 6}>
               {busy ? <Loader2 size={18} className="spin" /> : <CheckCircle2 size={18} />}
               {busy ? "Verificando…" : mode === "enroll" ? "Activar MFA y entrar" : "Verificar y entrar"}
@@ -204,7 +228,7 @@ export function AdminMfaGate({ nextPath }: { nextPath: string }) {
         {mode === "ready" ? <p className="notice notice--success">{message}</p> : null}
 
         <p className="admin-mfa-help">
-          Guardá el acceso a tu autenticador. Si perdés el dispositivo, la recuperación del acceso admin debe hacerse desde Supabase por un administrador autorizado.
+          Guardá el acceso a tu autenticador. Un dispositivo confiable evita repetir TOTP durante 14 días, pero seguís necesitando contraseña o Google para iniciar sesión.
         </p>
       </section>
     </main>

@@ -2,6 +2,7 @@ import "server-only";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { hasTrustedAdminDevice } from "@/lib/auth/trusted-device";
 
 export type AdminMfaState = {
   available: boolean;
@@ -46,6 +47,11 @@ export async function getAdminMfaState(): Promise<AdminMfaState> {
 export async function hasAdminAal2() {
   const state = await getAdminMfaState();
   return state.available && state.currentLevel === "aal2";
+}
+
+export async function hasAdminSessionAssurance() {
+  if (await hasAdminAal2()) return true;
+  return hasTrustedAdminDevice();
 }
 
 export async function isAdminMfaEnforcementReady() {

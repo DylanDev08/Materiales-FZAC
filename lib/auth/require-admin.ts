@@ -3,7 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { getUserProfile } from "@/lib/auth/get-user";
 import { getAdminConsolePath } from "@/lib/utils/env";
-import { hasAdminAal2 } from "@/lib/auth/admin-mfa";
+import { hasAdminSessionAssurance } from "@/lib/auth/admin-mfa";
 
 export async function requireAdminIdentity() {
   const profile = await getUserProfile();
@@ -17,7 +17,7 @@ export async function requireAdminIdentity() {
 export async function requireAdmin() {
   const profile = await requireAdminIdentity();
 
-  if (!(await hasAdminAal2())) {
+  if (!(await hasAdminSessionAssurance())) {
     redirect(`/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`);
   }
 
