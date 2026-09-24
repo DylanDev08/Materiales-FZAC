@@ -8297,6 +8297,21 @@ body:has(.admin-page) .site-main {
   background: #fafaf7;
 }
 
+.profit-report-cost-missing {
+  display: grid;
+  gap: 4px;
+  color: #8a5a00;
+}
+
+.profit-report-cost-action {
+  width: fit-content;
+  color: #111111;
+  font-size: .68rem;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .profit-report-footer {
   margin-top: 16px;
   border-top: 1px solid #cfcfca;
