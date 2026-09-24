@@ -110,6 +110,24 @@ Auditoría general:
 
 El smoke autenticado cubrió login, alta y verificación MFA, dashboard, navegación, finanzas, compras, inventario, cuentas de proveedor, directorio de proveedores, reportes y Analytics en 390 px y desktop. También validó idempotencia y ausencia de overflow horizontal o controles táctiles menores a 42 px.
 
+## Correcciones posteriores a la revisión
+
+Después del lote original se revisó el diff real en GitHub y se corrigieron cinco puntos adicionales:
+
+- el archivo de migración base se reconcilió con el ledger remoto `20260924152630`, sin reejecutar el schema;
+- se aplicó y versionó la migración aditiva `20260924163646_supplier_documents_spreadsheet_formats.sql`;
+- PDF/CSV/XLS/XLSX usan MIME normalizado, extensión coherente y validación de firma/contenido;
+- el servidor rechaza vincular un producto a un documento de un proveedor distinto;
+- cargas, comparaciones, altas/ediciones de proveedores, envío y cancelación de órdenes revierten el cambio si no puede persistirse su auditoría;
+- el panel de Analytics informa “instrumentación instalada” y remite a Vercel para confirmar recepción real de eventos.
+
+Validación posterior a estas correcciones:
+
+- Supabase confirma ambas migraciones en su ledger y el bucket privado admite PDF/CSV/XLS/XLSX.
+- Security Advisor no agregó hallazgos nuevos; permanecen únicamente los avisos históricos documentados.
+- Preview del proyecto Vercel canónico `materiales-fzac-391o` para el head corregido: `READY`.
+- GitHub no reportó todavía ejecuciones de Quality Gate/CodeQL para el head corregido mediante la integración consultada; no se presentan como aprobadas hasta que existan.
+
 ## Plataforma
 
 - Producción Vercel auditada antes del PR: deploy `dpl_HmHgJPtz5bUssQFdHS7bHWzpoGDT`, estado `READY`, SHA `bd6838f41d864366563b7a1e66b1900a1343cbc2`.
