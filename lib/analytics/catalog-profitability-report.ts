@@ -100,8 +100,16 @@ function numeric(value: number | string | null | undefined) {
 
 function paymentFeeAmount(raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return 0;
-  const fees = (raw as Record<string, unknown>).fee_details;
-  if (!Array.isArray(fees)) return 0;
+  const record = raw as Record<string, unknown>;
+  const providerPayment =
+    record.provider_payment && typeof record.provider_payment === "object" && !Array.isArray(record.provider_payment)
+      ? (record.provider_payment as Record<string, unknown>)
+      : null;
+  const fees = Array.isArray(record.fee_details)
+    ? record.fee_details
+    : Array.isArray(providerPayment?.fee_details)
+      ? providerPayment.fee_details
+      : [];
   return fees.reduce((sum, fee) => {
     if (!fee || typeof fee !== "object" || Array.isArray(fee)) return sum;
     const amount = Number((fee as Record<string, unknown>).amount ?? 0);
