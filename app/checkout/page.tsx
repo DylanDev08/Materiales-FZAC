@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { getUserProfile } from "@/lib/auth/get-user";
-import { getPaymentConfig, isMercadoPagoConfigured, isTestPaymentEnv } from "@/lib/payments/config";
+import { getPaymentConfig, isTestPaymentEnv } from "@/lib/payments/config";
 import { privatePageMetadata } from "@/lib/seo/metadata";
 import { redirect } from "next/navigation";
 
@@ -13,13 +13,17 @@ export const metadata: Metadata = privatePageMetadata(
 export default async function Page() {
   const profile = await getUserProfile();
   if (!profile) redirect("/login?next=/checkout");
-  const cardPaymentsEnabled = isMercadoPagoConfigured("card");
   const paymentConfig = getPaymentConfig();
+  const productionCardPublicKey =
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_CARD_PUBLIC_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY?.trim() ||
+    "";
+  const cardPublicKey = productionCardPublicKey || paymentConfig.cardPublicKey;
   return (
     <CheckoutForm
-      cardPaymentsEnabled={cardPaymentsEnabled}
-      cardPublicKey={cardPaymentsEnabled ? paymentConfig.cardPublicKey : ""}
-      paymentsTestMode={isTestPaymentEnv()}
+      cardPaymentsEnabled={false}
+      cardPublicKey={cardPublicKey}
+      paymentsTestMode={productionCardPublicKey ? false : isTestPaymentEnv()}
       profile={profile}
     />
   );
