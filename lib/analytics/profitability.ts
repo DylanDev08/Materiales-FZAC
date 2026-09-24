@@ -55,6 +55,13 @@ type PurchaseItemRow = {
   unit_cost: number | string;
 };
 
+type SupplierSourceRow = {
+  product_id: string;
+  original_price: number | string | null;
+  checked_at: string | null;
+  imported_at: string | null;
+};
+
 function numeric(value: number | string | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -94,7 +101,7 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
 
   const periodStart = startFor(period).toISOString();
   const paidStatuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"];
-  const [ordersResult, purchaseOrdersResult, expensesResult] = await Promise.all([
+  const [ordersResult, purchaseOrdersResult, expensesResult, supplierSourcesResult] = await Promise.all([
     admin
       .from("orders")
       .select("id,paid_at,created_at")
@@ -114,10 +121,14 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
       .eq("type", "EXPENSE")
       .eq("status", "ACTIVE")
       .gte("occurred_at", periodStart)
-      .limit(1000)
+      .limit(1000),
+    admin
+      .from("product_supplier_sources")
+      .select("product_id,original_price,checked_at,imported_at")
+      .limit(4000)
   ]);
 
-  if (ordersResult.error || purchaseOrdersResult.error || expensesResult.error) return empty(period);
+  if (ordersResult.error || purchaseOrdersResult.error || expensesResult.error || supplierSourcesResult.error) return empty(period);
 
   const orders = (ordersResult.data ?? []) as OrderRow[];
   const purchaseOrders = (purchaseOrdersResult.data ?? []) as PurchaseOrderRow[];
@@ -153,6 +164,17 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
     }
   }
 
+  const latestSupplierCost = new Map<string, { cost: number; observedAt: string }>();
+  for (const source of (supplierSourcesResult.data ?? []) as SupplierSourceRow[]) {
+    const cost = numeric(source.original_price);
+    if (cost <= 0) continue;
+    const observedAt = source.checked_at ?? source.imported_at ?? "";
+    const current = latestSupplierCost.get(source.product_id);
+    if (!current || Date.parse(observedAt || "1970-01-01") >= Date.parse(current.observedAt || "1970-01-01")) {
+      latestSupplierCost.set(source.product_id, { cost, observedAt });
+    }
+  }
+
   const byProduct = new Map<string, ProductProfitability>();
   let productRevenue = 0;
   let coveredRevenue = 0;
@@ -163,7 +185,9 @@ export async function getProfitabilityOverview(period: ProfitabilityPeriod): Pro
     const revenue = numeric(item.subtotal) || numeric(item.unit_price) * quantity;
     productRevenue += revenue;
     const productId = item.product_id ?? `missing:${item.sku ?? item.name ?? "product"}`;
-    const costReference = item.product_id ? latestCost.get(item.product_id) : undefined;
+    const costReference = item.product_id
+      ? latestCost.get(item.product_id) ?? latestSupplierCost.get(item.product_id)
+      : undefined;
     const row = byProduct.get(productId) ?? {
       productId,
       name: String(item.name ?? "Producto"),
