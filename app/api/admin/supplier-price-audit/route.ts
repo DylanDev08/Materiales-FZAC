@@ -242,6 +242,17 @@ export async function PUT(request: Request) {
   const parsed = pricingRuleSchema.safeParse(body.data);
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Regla comercial inválida.", 422);
 
+  if (
+    parsed.data.applyNow &&
+    (parsed.data.marginPercent <= 0 ||
+      (parsed.data.marginAboveThresholdPercent !== null && parsed.data.marginAboveThresholdPercent <= 0))
+  ) {
+    return jsonError(
+      "Para aplicar la regla al catálogo definí márgenes mayores a 0%. Un margen 0% puede guardarse sólo como referencia.",
+      422
+    );
+  }
+
   const context = await getAdminApiContext(request, { scope: "admin-supplier-pricing-rule", limit: 8 });
   if (!context.ok) return context.response;
   const { admin, profile } = context;
