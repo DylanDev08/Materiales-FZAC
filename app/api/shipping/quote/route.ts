@@ -14,6 +14,7 @@ import { hasSqlMeta } from "@/lib/validations/security";
 
 const addressSchema = z
   .object({
+    placeId: z.string().trim().min(10, "Seleccioná una dirección sugerida por Google Maps.").max(256, "La referencia de Google Maps es inválida."),
     street: z.string().trim().min(2, "Ingresá una calle válida.").max(120, "La calle es demasiado larga.").refine((value) => {
       const letters = value.normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
       return letters.length >= 3 && new Set(letters).size >= 2;
