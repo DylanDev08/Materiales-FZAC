@@ -6,6 +6,11 @@ const safeText = (label: string, min: number, max: number) => z.string().trim().
 const optionalText = (label: string, max: number) => z.string().trim().max(max)
   .refine((value) => !value || !hasSqlMeta(value), `${label} contiene caracteres no permitidos.`)
   .transform((value) => value || null);
+const optionalHttpsUrl = (label: string) => z.union([
+  z.string().trim().url(`${label} debe ser una URL válida.`).max(500)
+    .refine((value) => value.startsWith("https://"), `${label} debe usar HTTPS.`),
+  z.literal("")
+]).optional().default("").transform((value) => value || null);
 
 export const supplierPayloadSchema = z.object({
   action: z.literal("SAVE_SUPPLIER"),
@@ -17,6 +22,9 @@ export const supplierPayloadSchema = z.object({
   phone: z.union([z.string().trim().regex(/^[+0-9()\s-]{6,30}$/, "Ingresá un teléfono válido."), z.literal("")]).transform((value) => value || null),
   taxId: z.union([z.string().trim().regex(/^[0-9-]{7,20}$/, "Ingresá un CUIT o identificación válida."), z.literal("")]).transform((value) => value || null),
   paymentTerms: optionalText("Condiciones de pago", 180),
+  websiteUrl: optionalHttpsUrl("Sitio web"),
+  logoUrl: optionalHttpsUrl("Logo"),
+  catalogUrl: optionalHttpsUrl("Catálogo"),
   leadTimeDays: z.coerce.number().int().min(1).max(120),
   notes: optionalText("Notas", 600),
   active: z.boolean().default(true)
