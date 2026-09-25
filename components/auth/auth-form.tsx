@@ -41,10 +41,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (mode === "login" && searchParams.get("auth_error") === "true") {
       return "No pudimos completar el acceso. Volvé a intentarlo desde esta pantalla.";
     }
+    if (mode === "register" && searchParams.get("oauth_legal_required") === "true") {
+      return "Para crear tu cuenta con Google, aceptá términos y privacidad y volvé a continuar con Google.";
+    }
+    if (mode === "register" && searchParams.get("oauth_legal_error") === "true") {
+      return "No pudimos registrar la aceptación legal. Volvé a intentarlo antes de continuar.";
+    }
     return "";
   });
   const [messageTone, setMessageTone] = useState<"info" | "success" | "error">(
-    mode === "login" && searchParams.get("auth_error") === "true" ? "error" : "info"
+    (mode === "login" && searchParams.get("auth_error") === "true")
+      || (mode === "register" && searchParams.get("oauth_legal_error") === "true")
+      ? "error"
+      : "info"
   );
   const [needsConfirmation, setNeedsConfirmation] = useState(mode === "login" && searchParams.get("registered") === "true");
   const [resending, setResending] = useState(false);
