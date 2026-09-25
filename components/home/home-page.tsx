@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getProducts } from "@/lib/db/catalog";
+import { getCategories, getProducts } from "@/lib/db/catalog";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 const primaryCategories = [
@@ -38,12 +38,19 @@ const buyingNeeds = [
 ];
 
 export async function HomePage() {
-  const shelves = await Promise.all([
-    getProducts({ category: "construccion-en-seco", limit: 3, order: "newest" }),
-    getProducts({ category: "steel-framing", limit: 3, order: "newest" }),
-    getProducts({ category: "ferreteria", limit: 3, order: "newest" }),
-    getProducts({ category: "materiales-de-obra", limit: 3, order: "newest" })
-  ]);
+  const categories = await getCategories();
+  const publicCategorySlugs = new Set(categories.map((category) => category.slug));
+  const visiblePrimaryCategories = primaryCategories.filter((category) =>
+    publicCategorySlugs.has(category.href.replace("/categoria/", ""))
+  );
+  const visibleBuyingNeeds = buyingNeeds.filter((need) =>
+    !need.href.startsWith("/categoria/") || publicCategorySlugs.has(need.href.replace("/categoria/", ""))
+  );
+  const shelves = await Promise.all(
+    visiblePrimaryCategories.map((category) =>
+      getProducts({ category: category.href.replace("/categoria/", ""), limit: 3, order: "newest" })
+    )
+  );
   const products = shelves.flat();
   const materialHelpHref = getWhatsAppHref("Hola FZAC, no encuentro un material en la tienda y necesito asesoramiento.");
   const productShelf = products.slice(0, 10);
@@ -102,7 +109,7 @@ export async function HomePage() {
             text="Sistemas en seco, fijaciones y materiales de obra en un mismo catálogo."
           />
           <div className="storefront-category-rail">
-            {primaryCategories.map(({ href, icon: Icon, label, helper }) => (
+            {visiblePrimaryCategories.map(({ href, icon: Icon, label, helper }) => (
               <Link className="storefront-category" href={href} key={label} prefetch={false}>
                 <span className="storefront-category__icon"><Icon size={22} /></span>
                 <strong>{label}</strong>
@@ -121,7 +128,7 @@ export async function HomePage() {
             text="Accesos rápidos a productos reales del catálogo."
           />
           <div className="storefront-category-rail">
-            {buyingNeeds.map(({ href, icon: Icon, label, helper }) => (
+            {visibleBuyingNeeds.map(({ href, icon: Icon, label, helper }) => (
               <Link className="storefront-category" href={href} key={label} prefetch={false}>
                 <span className="storefront-category__icon"><Icon size={22} /></span>
                 <strong>{label}</strong>

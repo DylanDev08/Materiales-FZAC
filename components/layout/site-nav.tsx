@@ -15,13 +15,6 @@ const productLinks = [
   { href: "/productos?inStock=true", label: "Stock disponible" }
 ];
 
-const fallbackCategories = [
-  { href: "/categoria/construccion-en-seco", label: "Construcción en seco" },
-  { href: "/categoria/steel-framing", label: "Steel Framing" },
-  { href: "/categoria/ferreteria", label: "Ferretería" },
-  { href: "/categoria/materiales-de-obra", label: "Materiales de obra" }
-];
-
 export function SiteNav({ categories }: { categories: Category[] }) {
   const pathname = usePathname();
   const homeActive = isHomeRoute(pathname);
@@ -32,10 +25,9 @@ export function SiteNav({ categories }: { categories: Category[] }) {
   const [ready, setReady] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  const categoryLinks =
-    categories.length > 0
-      ? categories.slice(0, 9).map((category) => ({ href: `/categoria/${category.slug}`, label: category.name }))
-      : fallbackCategories;
+  const categoryLinks = categories
+    .slice(0, 9)
+    .map((category) => ({ href: `/categoria/${category.slug}`, label: category.name }));
 
   const categoriesActive = pathname === "/categorias" || pathname.startsWith("/categoria/");
   const offersActive = pathname === "/ofertas";
@@ -103,11 +95,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
             </button>
             {openDropdown === "categories" ? (
               <div className="nav-dropdown">
-                {categoryLinks.map((item) => (
+                {categoryLinks.length ? categoryLinks.map((item) => (
                   <Link href={item.href} key={item.href} onClick={closeAll} prefetch={false}>
                     {item.label}
                   </Link>
-                ))}
+                )) : (
+                  <Link href="/categorias" onClick={closeAll} prefetch={false}>Ver categorías</Link>
+                )}
               </div>
             ) : null}
           </div>
@@ -140,11 +134,13 @@ export function SiteNav({ categories }: { categories: Category[] }) {
           </button>
           {mobileCategoriesOpen ? (
             <div className="mobile-nav-panel__group">
-              {categoryLinks.map((item) => (
+              {categoryLinks.length ? categoryLinks.map((item) => (
                 <Link href={item.href} key={item.href} onClick={closeAll} prefetch={false}>
                   {item.label}
                 </Link>
-              ))}
+              )) : (
+                <Link href="/categorias" onClick={closeAll} prefetch={false}>Ver categorías</Link>
+              )}
             </div>
           ) : null}
           <Link href="/ofertas" className={offersActive ? "is-active" : undefined} aria-current={offersActive ? "page" : undefined} onClick={closeAll} prefetch={false}>

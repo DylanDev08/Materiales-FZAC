@@ -111,6 +111,10 @@ export async function CatalogPage({
   ]);
   const hasNextPage = fetchedProducts.length > CATALOG_PAGE_SIZE;
   const products = fetchedProducts.slice(0, CATALOG_PAGE_SIZE);
+  const publicCategorySlugs = new Set(categories.map((category) => category.slug));
+  const visibleProjectShortcuts = projectShortcuts.filter((shortcut) =>
+    !shortcut.href.startsWith("/categoria/") || publicCategorySlugs.has(shortcut.href.replace("/categoria/", ""))
+  );
   const isAdmin = profile?.role === "ADMIN";
   const adminProductData = isAdmin && showAdminProductLoader
     ? await Promise.all([getAdminProducts(), getAdminCategories(), getAdminSuppliers()])
@@ -176,7 +180,7 @@ export async function CatalogPage({
             </Link>
           </div>
           <div className="catalog-projects__rail" aria-label="Comprar por proyecto">
-            {projectShortcuts.map(({ href, icon: Icon, label, helper }) => (
+            {visibleProjectShortcuts.map(({ href, icon: Icon, label, helper }) => (
               <Link href={href} key={label} prefetch={false}>
                 <span><Icon size={18} /></span>
                 <strong>{label}</strong>

@@ -23,7 +23,6 @@ export type ProductFilters = {
   offset?: number;
 };
 
-export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "materiales-de-obra"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
@@ -101,8 +100,16 @@ function normalizeProduct(row: Record<string, unknown>): Product {
   return { ...product, image_url: resolveProductImageUrl(product) };
 }
 
+function fallbackPublicCategories() {
+  const populatedCategoryIds = new Set(
+    fallbackProducts.filter((product) => product.active).map((product) => product.category_id)
+  );
+  return fallbackCategories.filter((category) => category.active && populatedCategoryIds.has(category.id));
+}
+
 function applyFallbackFilters(products: Product[], filters: ProductFilters) {
-  let result = products.filter((product) => product.active && PUBLIC_CATEGORY_SLUGS.includes(product.category?.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
+  const publicCategoryIds = new Set(fallbackPublicCategories().map((category) => category.id));
+  let result = products.filter((product) => product.active && publicCategoryIds.has(product.category_id));
 
   if (filters.search) {
     const terms = catalogSearchTerms(filters.search);
@@ -164,17 +171,55 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
 
 export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
+  if (!supabase) return fallbackPublicCategories();
+
+  const populatedCategoryIds = new Set<string>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("category_id")
+      .eq("active", true)
+      .order("id")
+      .range(from, from + 999);
+    if (error) return [];
+    for (const product of data ?? []) {
+      if (product.category_id) populatedCategoryIds.add(product.category_id);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
+  if (!populatedCategoryIds.size) return [];
 
   const { data, error } = await supabase
     .from("categories")
     .select("*")
     .eq("active", true)
-    .in("slug", [...PUBLIC_CATEGORY_SLUGS])
+    .in("id", [...populatedCategoryIds])
     .order("sort_order", { ascending: true });
 
   if (error) return [];
   return (data ?? []).map(normalizeCategory);
+});
+
+export const getCategoryBySlug = cache(async function getCategoryBySlug(slug: string) {
+  const normalizedSlug = sanitizeSearchTerm(slug, 120).toLowerCase();
+  if (!normalizedSlug) return null;
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    const category = fallbackCategories.find((item) => item.active && item.slug === normalizedSlug);
+    return category ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("active", true)
+    .eq("slug", normalizedSlug)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return normalizeCategory(data);
 });
 
 export async function getCatalogFacets(): Promise<CatalogFacets> {
@@ -249,9 +294,9 @@ export async function getProducts(filters: ProductFilters = {}) {
   }
 
   if (filters.category) {
-    const categories = await getCategories();
     const category = categories.find((item) => item.slug === filters.category || item.id === filters.category);
-    if (category) query = query.eq("category_id", category.id);
+    if (!category) return [];
+    query = query.eq("category_id", category.id);
   }
 
   if (filters.brand) query = query.ilike("brand", sanitizeSearchTerm(filters.brand));
