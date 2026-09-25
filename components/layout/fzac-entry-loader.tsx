@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Instagram, Mail } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -91,6 +92,10 @@ export function FzacEntryLoader({
           <span aria-hidden="true" />
           Entrar a la tienda
         </button>
+
+        <Link className="fzac-entry-loader__consumer-link" href="/arrepentimiento" prefetch={false}>
+          Botón de arrepentimiento
+        </Link>
 
         <div className="fzac-entry-loader__progress" aria-hidden="true"><span /></div>
 
