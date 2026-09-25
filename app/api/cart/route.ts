@@ -26,7 +26,12 @@ export async function GET(request: Request) {
 
   const user = await getCurrentUser();
   const admin = getSupabaseAdminClient();
-  if (!user || !admin) return Response.json({ items: [] });
+  if (!user || !admin) {
+    return Response.json(
+      { items: [] },
+      { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } }
+    );
+  }
 
   const { data, error } = await admin
     .from("cart_items")
@@ -34,7 +39,10 @@ export async function GET(request: Request) {
     .eq("user_id", user.id);
 
   if (error) return jsonError("No pudimos cargar el carrito.", 400);
-  return Response.json({ items: data ?? [] });
+  return Response.json(
+    { items: data ?? [] },
+    { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } }
+  );
 }
 
 export async function POST(request: Request) {
