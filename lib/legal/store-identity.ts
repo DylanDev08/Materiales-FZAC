@@ -6,6 +6,7 @@ const DEFAULT_PHONE = "+54 341 584 7000";
 const DEFAULT_CUIT = "20-36454125-3";
 const DEFAULT_COMMERCIAL_NAME = "Fortaleza Construcciones";
 const DEFAULT_BRAND_NAME = "FZACONSTRUCCIONES";
+const DEFAULT_CUSTOMER_SERVICE_HOURS = "Lunes a sábado de 08:00 a 17:00";
 
 function formatCuit(value: string) {
   const digits = value.replace(/\D/g, "");
@@ -21,7 +22,7 @@ export function getStoreLegalIdentity() {
   const address = getEnv("FZAC_LEGAL_ADDRESS") || DEFAULT_ADDRESS;
   const email = getEnv("FZAC_EMAIL") || DEFAULT_EMAIL;
   const phone = getEnv("FZAC_WHATSAPP") || DEFAULT_PHONE;
-  const customerServiceHours = getEnv("FZAC_CUSTOMER_SERVICE_HOURS");
+  const customerServiceHours = getEnv("FZAC_CUSTOMER_SERVICE_HOURS") || DEFAULT_CUSTOMER_SERVICE_HOURS;
 
   return {
     commercialName,
