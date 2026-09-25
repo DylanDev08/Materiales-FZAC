@@ -159,6 +159,15 @@ async function cleanup() {
     if (itemAuditError || itemError) cleanupErrors.push("Could not remove isolated supplier document item.");
   }
   if (supplierDocumentId) {
+    let storagePath = supplierDocumentStoragePath;
+    if (!storagePath) {
+      const { data: document } = await admin
+        .from("supplier_documents")
+        .select("storage_path")
+        .eq("id", supplierDocumentId)
+        .maybeSingle();
+      storagePath = document?.storage_path ?? null;
+    }
     const { error: documentAuditError } = await admin
       .from("admin_audit_logs")
       .delete()
@@ -168,8 +177,8 @@ async function cleanup() {
       .from("supplier_documents")
       .delete()
       .eq("id", supplierDocumentId);
-    const storageError = supplierDocumentStoragePath
-      ? (await admin.storage.from("supplier-documents").remove([supplierDocumentStoragePath])).error
+    const storageError = storagePath
+      ? (await admin.storage.from("supplier-documents").remove([storagePath])).error
       : null;
     if (documentAuditError || documentError || storageError) cleanupErrors.push("Could not remove isolated supplier document data.");
   }
@@ -589,13 +598,13 @@ try {
     return { stage: "done", documentId: upload.body.id, mismatch, item, signed };
   }, { supplierId: procurementSupplierId, unrelatedProductId: marketProductId });
 
+  if (supplierDocumentLifecycle.documentId) supplierDocumentId = supplierDocumentLifecycle.documentId;
+  if (supplierDocumentLifecycle.item?.body?.id) supplierDocumentItemId = supplierDocumentLifecycle.item.body.id;
+
   assert(supplierDocumentLifecycle.stage === "done", `Supplier document lifecycle failed: ${JSON.stringify(supplierDocumentLifecycle)}.`);
   assert(supplierDocumentLifecycle.mismatch?.status === 409, "Supplier document accepted a product from another supplier.");
   assert(supplierDocumentLifecycle.item?.status === 201 && supplierDocumentLifecycle.item?.body?.id, "Supplier document item was not persisted.");
   assert(supplierDocumentLifecycle.signed?.status === 200 && /^https:\/\//.test(supplierDocumentLifecycle.signed?.body?.url ?? ""), "Supplier document did not return a signed download URL.");
-
-  supplierDocumentId = supplierDocumentLifecycle.documentId;
-  supplierDocumentItemId = supplierDocumentLifecycle.item.body.id;
 
   const { data: supplierDocumentRow, error: supplierDocumentError } = await admin
     .from("supplier_documents")
