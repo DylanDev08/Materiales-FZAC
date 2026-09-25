@@ -214,6 +214,23 @@ if (
   failures.push("Envios: la tarifa debe vincular el Place ID seleccionado con la direccion geocodificada por Google Routes.");
 }
 
+const rootLayout = await readFile(path.join(root, "app/layout.tsx"), "utf8").catch(() => "");
+const consentAwareAnalytics = await readFile(
+  path.join(root, "components/analytics/consent-aware-analytics.tsx"),
+  "utf8"
+).catch(() => "");
+const privacyConsentModel = await readFile(path.join(root, "lib/privacy/consent.ts"), "utf8").catch(() => "");
+
+if (
+  rootLayout.includes("<Analytics")
+  || !rootLayout.includes("<ConsentAwareAnalytics")
+  || !consentAwareAnalytics.includes("analyticsAllowed")
+  || !consentAwareAnalytics.includes("subscribePrivacyConsent")
+  || !privacyConsentModel.includes("analytics: boolean")
+) {
+  failures.push("Privacidad: Vercel Analytics debe montarse solo despues del consentimiento explicito de analitica.");
+}
+
 const productUpload = await readFile(path.join(root, "app/api/admin/uploads/product-image/route.ts"), "utf8").catch(() => "");
 if (!productUpload.includes('from "sharp"') || !productUpload.includes(".webp(") || !productUpload.includes("limitInputPixels")) {
   failures.push("Upload de productos: falta decodificar/re-encodear la imagen con limites de pixels.");
