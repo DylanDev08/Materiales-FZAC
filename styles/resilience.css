@@ -1,0 +1,110 @@
+/* Public resilience and operational state pages */
+.status-page {
+  min-height: calc(100dvh - 120px);
+  display: grid;
+  place-items: center;
+  padding: clamp(32px, 7vw, 84px) 20px;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(244,196,0,.14), transparent 34rem),
+    linear-gradient(180deg, #090909, #111);
+}
+.status-page__card {
+  width: min(900px, 100%);
+  display: grid;
+  grid-template-columns: minmax(180px, .72fr) minmax(0, 1.35fr);
+  gap: clamp(26px, 6vw, 70px);
+  align-items: center;
+  border: 1px solid rgba(244,196,0,.25);
+  border-radius: 24px;
+  background: rgba(18,18,18,.96);
+  box-shadow: 0 30px 100px rgba(0,0,0,.42);
+  padding: clamp(28px, 6vw, 62px);
+}
+.status-page__code {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 1px solid rgba(244,196,0,.24);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(244,196,0,.09), rgba(255,255,255,.02));
+  text-align: center;
+}
+.status-page__code span {
+  color: #f4c400;
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+.status-page__code strong {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(4rem, 11vw, 7.5rem);
+  line-height: .9;
+  letter-spacing: -.07em;
+}
+.status-page__content h1 {
+  margin: 12px 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: .98;
+  letter-spacing: -.04em;
+}
+.status-page__content > p {
+  margin: 0;
+  max-width: 60ch;
+  color: #c8c8c8;
+  line-height: 1.7;
+}
+.status-page__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f4c400;
+  font-weight: 800;
+  font-size: .85rem;
+}
+.status-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.status-page__detail {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-left: 3px solid #f4c400;
+  background: rgba(244,196,0,.06);
+  border-radius: 0 10px 10px 0;
+  color: #d8d8d8;
+  line-height: 1.55;
+}
+.status-page__steps {
+  display: grid;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.status-page__steps li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #d4d4d4;
+}
+.status-page__steps li::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: .55em;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #f4c400;
+}
+@media (max-width: 720px) {
+  .status-page__card { grid-template-columns: 1fr; }
+  .status-page__code { min-height: 150px; }
+  .status-page__actions .btn { width: 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-page *, .status-page *::before, .status-page *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
