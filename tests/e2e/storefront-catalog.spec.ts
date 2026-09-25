@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem("fzac-entry-complete-v1", "true");
     window.localStorage.setItem("fzac-privacy-consent-v1", JSON.stringify({
-      version: "2026-08-11",
+      version: "2026-09-24",
       decidedAt: new Date().toISOString(),
       necessary: true,
       preferences: false,
