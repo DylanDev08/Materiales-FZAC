@@ -113,13 +113,17 @@ export async function createTrustedAdminDevice() {
 }
 
 export async function revokeAllTrustedAdminDevices(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.delete(TRUSTED_DEVICE_COOKIE);
+
+  const normalizedUserId = userId.trim();
   const admin = getSupabaseAdminClient();
-  if (!admin || !userId) return false;
+  if (!admin || !normalizedUserId) return false;
 
   const { error } = await admin
     .from("admin_trusted_devices")
     .update({ revoked_at: new Date().toISOString() })
-    .eq("user_id", userId)
+    .eq("user_id", normalizedUserId)
     .is("revoked_at", null);
 
   return !error;

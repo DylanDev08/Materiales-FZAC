@@ -155,6 +155,7 @@ const apiGuards = await readFile(path.join(root, "lib/auth/api-guards.ts"), "utf
 const adminMfa = await readFile(path.join(root, "lib/auth/admin-mfa.ts"), "utf8").catch(() => "");
 const trustedDevice = await readFile(path.join(root, "lib/auth/trusted-device.ts"), "utf8").catch(() => "");
 const trustedDeviceRoute = await readFile(path.join(root, "app/api/auth/admin-trusted-device/route.ts"), "utf8").catch(() => "");
+const passwordResetRoute = await readFile(path.join(root, "app/api/auth/reset-password/route.ts"), "utf8").catch(() => "");
 
 const adminUsesStrongAssurance =
   requireAdmin.includes("hasAdminSessionAssurance")
@@ -172,6 +173,14 @@ const trustedDeviceIsHardened =
 
 if (!adminUsesStrongAssurance || !trustedDeviceIsHardened) {
   failures.push("Admin: el panel y las APIs deben exigir AAL2 o un dispositivo confiable emitido despues de MFA real.");
+}
+
+if (
+  !trustedDevice.includes("cookieStore.delete(TRUSTED_DEVICE_COOKIE)")
+  || !passwordResetRoute.includes("const trustedDevicesRevoked = await revokeAllTrustedAdminDevices(current.user.id)")
+  || !passwordResetRoute.includes("if (!trustedDevicesRevoked)")
+) {
+  failures.push("Admin: cambiar la contrasena debe revocar todos los dispositivos confiables y fallar cerrado si no se completa.");
 }
 
 for (const file of [

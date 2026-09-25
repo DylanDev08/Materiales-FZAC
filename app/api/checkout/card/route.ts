@@ -17,7 +17,6 @@ import {
 } from "@/lib/payments/mercadopago";
 import { confirmApprovedPayment, finalizeFailedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import { jsonError } from "@/lib/utils/api";
 import {
   acquireRequestConcurrency,
@@ -197,7 +196,18 @@ async function handlePost(request: Request) {
           }
         });
       } catch (error) {
-        await releaseOrderStockReservation(orderId, "CARD_PAYMENT_CREATE_FAILED").catch(() => undefined);
+        // A network/provider timeout is ambiguous: Mercado Pago may have accepted the
+        // idempotent request even if this process did not receive the response. Keep the
+        // reservation until webhook reconciliation or its normal expiry in that case.
+        if (error instanceof MercadoPagoCardPaymentError && error.code === "CARD_PAYMENT_REJECTED") {
+          await finalizeFailedPayment({
+            orderId,
+            providerPaymentId: null,
+            raw: { provider_status: "rejected_before_creation" },
+            paymentStatus: "FAILED",
+            providerStatus: "rejected"
+          }).catch(() => undefined);
+        }
         throw error;
       }
 
