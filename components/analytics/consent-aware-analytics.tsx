@@ -1,21 +1,30 @@
 "use client";
 
 import { Analytics } from "@vercel/analytics/next";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   analyticsAllowed,
   subscribePrivacyConsent
 } from "@/lib/privacy/consent";
 
-export function ConsentAwareAnalytics() {
-  const [enabled, setEnabled] = useState(false);
+function subscribeAnalytics(listener: () => void) {
+  return subscribePrivacyConsent(() => listener());
+}
 
-  useEffect(() => {
-    setEnabled(analyticsAllowed());
-    return subscribePrivacyConsent((consent) => {
-      setEnabled(consent?.analytics === true);
-    });
-  }, []);
+function analyticsSnapshot() {
+  return analyticsAllowed();
+}
+
+function serverAnalyticsSnapshot() {
+  return false;
+}
+
+export function ConsentAwareAnalytics() {
+  const enabled = useSyncExternalStore(
+    subscribeAnalytics,
+    analyticsSnapshot,
+    serverAnalyticsSnapshot
+  );
 
   return enabled ? <Analytics /> : null;
 }
