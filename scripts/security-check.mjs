@@ -235,9 +235,22 @@ if (
   || !rootLayout.includes("<ConsentAwareAnalytics")
   || !consentAwareAnalytics.includes("analyticsAllowed")
   || !consentAwareAnalytics.includes("subscribePrivacyConsent")
+  || !consentAwareAnalytics.includes("beforeSend")
+  || !consentAwareAnalytics.includes("analyticsAllowed() ? event : null")
   || !privacyConsentModel.includes("analytics: boolean")
 ) {
-  failures.push("Privacidad: Vercel Analytics debe montarse solo despues del consentimiento explicito de analitica.");
+  failures.push("Privacidad: Vercel Analytics debe montarse y enviar eventos solo con consentimiento explicito de analitica.");
+}
+
+const authCallback = await readFile(path.join(root, "app/auth/callback/route.ts"), "utf8").catch(() => "");
+const legalVersions = await readFile(path.join(root, "lib/legal/versions.ts"), "utf8").catch(() => "");
+if (
+  !authCallback.includes("legal_registration_pending")
+  || !authCallback.includes("isFirstOAuthLogin")
+  || !authCallback.includes("oauth_legal_required")
+  || !legalVersions.includes('CURRENT_PRIVACY_VERSION = "2026-09-24"')
+) {
+  failures.push("Auth/Legal: un alta nueva con Google debe exigir aceptacion legal explicita y registrar la version de privacidad vigente.");
 }
 
 const productUpload = await readFile(path.join(root, "app/api/admin/uploads/product-image/route.ts"), "utf8").catch(() => "");
