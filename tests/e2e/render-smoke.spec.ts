@@ -110,7 +110,7 @@ test.describe("Render public smoke", () => {
   });
 
   test("producto a consultar se añade al carrito sin habilitar un pago falso", async ({ page }) => {
-    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/construccion-en-seco?availability=CONSULT", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".product-card").first()).toBeVisible();
     const addButton = page.getByRole("button", { name: /añadir al carrito/i }).first();
     await expect(addButton).toBeVisible();

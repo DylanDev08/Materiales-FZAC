@@ -32,8 +32,14 @@ export async function POST(request: Request) {
     const { error } = await supabase.auth.updateUser({ password: payload.password });
     if (error) return jsonError("No pudimos actualizar la contraseña. Solicitá un enlace nuevo.", 400);
 
-    await revokeAllTrustedAdminDevices(current.user.id);
+    const trustedDevicesRevoked = await revokeAllTrustedAdminDevices(current.user.id);
     await supabase.auth.signOut({ scope: "global" });
+    if (!trustedDevicesRevoked) {
+      return jsonError(
+        "La contraseña fue actualizada y las sesiones se cerraron, pero no pudimos finalizar la revocación de dispositivos confiables. Contactá a soporte antes de volver a ingresar.",
+        500
+      );
+    }
     return Response.json({
       ok: true,
       target: "/login?password_updated=true",

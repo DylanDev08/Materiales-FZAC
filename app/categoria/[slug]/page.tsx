@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CatalogPage } from "@/components/catalog/catalog-page";
-import { getCategories } from "@/lib/db/catalog";
+import { getCategoryBySlug } from "@/lib/db/catalog";
 import { SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
 type CategoryPageProps = {
@@ -11,8 +11,7 @@ type CategoryPageProps = {
 
 export async function generateMetadata({ params }: Pick<CategoryPageProps, "params">): Promise<Metadata> {
   const { slug } = await params;
-  const categories = await getCategories();
-  const category = categories.find((item) => item.slug === slug);
+  const category = await getCategoryBySlug(slug);
 
   if (!category) {
     return {
@@ -54,8 +53,7 @@ export default async function Page({
 }: CategoryPageProps) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
-  const categories = await getCategories();
-  const category = categories.find((item) => item.slug === slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
   return (

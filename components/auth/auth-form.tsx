@@ -41,10 +41,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     if (mode === "login" && searchParams.get("auth_error") === "true") {
       return "No pudimos completar el acceso. Volvé a intentarlo desde esta pantalla.";
     }
+    if (mode === "register" && searchParams.get("oauth_legal_required") === "true") {
+      return "Para crear tu cuenta con Google, aceptá términos y privacidad y volvé a continuar con Google.";
+    }
+    if (mode === "register" && searchParams.get("oauth_legal_error") === "true") {
+      return "No pudimos registrar la aceptación legal. Volvé a intentarlo antes de continuar.";
+    }
     return "";
   });
   const [messageTone, setMessageTone] = useState<"info" | "success" | "error">(
-    mode === "login" && searchParams.get("auth_error") === "true" ? "error" : "info"
+    (mode === "login" && searchParams.get("auth_error") === "true")
+      || (mode === "register" && searchParams.get("oauth_legal_error") === "true")
+      ? "error"
+      : "info"
   );
   const [needsConfirmation, setNeedsConfirmation] = useState(mode === "login" && searchParams.get("registered") === "true");
   const [resending, setResending] = useState(false);
@@ -184,12 +193,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setMessage("");
     const localHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
     const authOrigin = localHost ? window.location.origin : "https://www.fzacmateriales.store";
+    if (mode === "register") {
+      const intentResponse = await fetch("/auth/legal-intent", { method: "POST" });
+      if (!intentResponse.ok) {
+        setMessage("No pudimos registrar la aceptacion legal para continuar con Google.");
+        setMessageTone("error");
+        googleInFlightRef.current = false;
+        setGoogleLoading(false);
+        return;
+      }
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${authOrigin}/auth/callback?next=${encodeURIComponent(safeNext)}${
-          mode === "register" ? "&legal=register" : ""
-        }`
+        redirectTo: `${authOrigin}/auth/callback?next=${encodeURIComponent(safeNext)}`
       }
     });
 

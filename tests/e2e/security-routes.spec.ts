@@ -14,7 +14,8 @@ import {
   paymentAmountMatchesLocal,
   paymentStatusFromMercadoPago,
   providerRefundId,
-  safeWebhookEvent
+  safeWebhookEvent,
+  shouldIgnoreStalePaymentTransition
 } from "../../lib/payments/mercadopago-webhook-policy";
 
 test.describe("Controles de seguridad no destructivos", () => {
@@ -102,6 +103,15 @@ test.describe("Controles de seguridad no destructivos", () => {
     await expect(invalid.json()).resolves.toMatchObject({ ok: false, received: false });
   });
 
+  test("el webhook rechaza un pago numerico sin firma antes de consultar al proveedor", async ({ request }) => {
+    const response = await request.post("/api/webhooks/mercadopago", {
+      data: { type: "payment", data: { id: "123456789" } }
+    });
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ ok: false, message: "Firma invalida." });
+  });
+
   test("el colector CSP acepta reportes acotados y rechaza JSON inválido", async ({ request }) => {
     const accepted = await request.post("/api/security/csp-report", {
       headers: { "Content-Type": "application/csp-report" },
@@ -140,6 +150,34 @@ test.describe("Controles de seguridad no destructivos", () => {
       expect(response.headers()["cache-control"]).toContain("no-store");
       expect(response.headers()["x-robots-tag"]).toContain("noindex");
     }
+  });
+
+  test("las APIs privadas usan cache privado y no-store", async ({ request }) => {
+    const responses = await Promise.all([
+      request.get("/api/cart"),
+      request.get("/api/account/summary"),
+      request.get("/api/admin/metrics"),
+      request.get("/api/health/env")
+    ]);
+
+    for (const response of responses) {
+      const cache = response.headers()["cache-control"] ?? "";
+      expect(cache).toContain("private");
+      expect(cache).toContain("no-store");
+    }
+  });
+
+  test("los gates productivos mantienen Checkout Pro y Card Brick desactivados", async ({ request }) => {
+    const response = await request.get("/api/payments/mercadopago");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    await expect(response.json()).resolves.toMatchObject({
+      paymentsEnabled: true,
+      environment: "production",
+      enabled: false,
+      cardEnabled: false,
+      cardPublicKey: ""
+    });
   });
 
   test("las áreas administrativas no exponen datos a sesiones anónimas", async ({ request }) => {
@@ -263,7 +301,7 @@ test.describe("Barrera de activacion productiva", () => {
       productionConfirmed: false,
       productionAccessToken: "",
       productionPublicKey: "",
-      webhookSecret: "webhook-placeholder",
+      webhookSecret: "valid-webhook-secret-for-production-check",
       siteUrl: "https://tienda.fzac.example",
       paymentsEnv: "production" as const
     };
@@ -282,8 +320,8 @@ test.describe("Barrera de activacion productiva", () => {
       evaluatePaymentProductionReadiness({
         ...base,
         productionConfirmed: true,
-        productionAccessToken: "production-token-placeholder",
-        productionPublicKey: "production-public-key-placeholder"
+        productionAccessToken: `${"APP"}_${"USR"}-valid-production-access-token-1234567890`,
+        productionPublicKey: `${"APP"}_${"USR"}-valid-production-public-key-1234567890`
       })
     ).toEqual({ ready: true, active: true, blockers: [] });
   });
@@ -325,6 +363,13 @@ test.describe("Politica del webhook Mercado Pago", () => {
     expect(isMercadoPagoPaymentId("1234567890")).toBe(true);
     expect(isMercadoPagoPaymentId("1234<script>")).toBe(false);
     expect(isMercadoPagoPaymentId("1".repeat(33))).toBe(false);
+  });
+
+  test("ignora eventos viejos que intentan degradar estados terminales", () => {
+    expect(shouldIgnoreStalePaymentTransition("PAID", "UPDATE")).toBe(true);
+    expect(shouldIgnoreStalePaymentTransition("PAID", "REFUND")).toBe(false);
+    expect(shouldIgnoreStalePaymentTransition("REFUNDED", "UPDATE")).toBe(true);
+    expect(shouldIgnoreStalePaymentTransition("PENDING", "UPDATE")).toBe(false);
   });
 
   test("persiste solo el sobre seguro del webhook", () => {

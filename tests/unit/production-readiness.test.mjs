@@ -65,3 +65,16 @@ test("production payment mode blocks release when production credentials are mis
   assert.notEqual(result.status, 0);
   assert.match(result.stdout, /BLOCKER \[Pagos\]/);
 });
+
+test("production payment mode rejects placeholders and test credentials", () => {
+  const result = runReadiness({
+    PAYMENTS_ENV: "production",
+    PAYMENTS_PRODUCTION_CONFIRMED: "true",
+    MERCADOPAGO_PRODUCTION_ACCESS_TOKEN: "TEST-placeholder",
+    NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY: "production-public-key-placeholder",
+    MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET: "replace_me"
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout, /BLOCKER \[Pagos\]/);
+});

@@ -48,8 +48,9 @@ async function main() {
   const db = client();
   const { data, error } = await db
     .from("product_supplier_sources")
-    .select("source_product_id,source_url,original_name,original_price,margin_percent,products!inner(name,slug,sku,price,stock,availability_status,image_url,categories(name,slug),suppliers(name,code))")
+    .select("source_product_id,source_url,original_name,original_price,margin_percent,products!inner(active,name,slug,sku,price,stock,availability_status,image_url,categories(name,slug),suppliers(name,code))")
     .eq("source", "La Yesera Rosarina")
+    .eq("products.active", true)
     .order("original_name")
     .limit(1000);
   if (error) throw error;

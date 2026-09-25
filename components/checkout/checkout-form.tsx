@@ -913,6 +913,10 @@ export function CheckoutForm({
 
       if (!response.ok) {
         if (handleCheckoutIntegrityError(data)) return;
+        if (data.error === "CARD_PAYMENT_REJECTED") {
+          resetCheckoutIntent();
+          throw new Error(data.message || "Mercado Pago rechazó el intento. Revisá los datos y volvé a intentar.");
+        }
         if (response.status === 409 && data.error === "INSUFFICIENT_STOCK") {
           setStockState({
             status: "error",

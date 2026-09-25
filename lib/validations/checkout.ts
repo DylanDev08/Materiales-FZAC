@@ -180,11 +180,16 @@ export const checkoutCardCreateSchema = checkoutCreateFieldsSchema
     payment_flow: z.literal("CARD").optional(),
     card: z.object({
       token: safeString("Token de tarjeta", 8, 220),
-      payment_method_id: safeString("Medio de pago", 2, 60),
-      issuer_id: safeString("Banco emisor", 0, 80).optional(),
+      payment_method_id: safeString("Medio de pago", 2, 60)
+        .refine((value) => /^[a-z0-9_]+$/i.test(value), "El medio de pago no es valido."),
+      issuer_id: safeString("Banco emisor", 0, 20)
+        .refine((value) => /^\d+$/.test(value), "El banco emisor no es valido.")
+        .optional(),
       installments: z.coerce.number().int().min(1).max(24),
-      identification_type: safeString("Tipo de documento", 2, 20),
-      identification_number: safeString("Documento", 5, 20),
+      identification_type: safeString("Tipo de documento", 2, 10)
+        .refine((value) => /^[a-z]+$/i.test(value), "El tipo de documento no es valido."),
+      identification_number: safeString("Documento", 5, 20)
+        .refine((value) => /^\d+$/.test(value), "El documento no es valido."),
       cardholder_email: z.string().trim().email("Ingresá un email válido.").max(160)
     })
   })

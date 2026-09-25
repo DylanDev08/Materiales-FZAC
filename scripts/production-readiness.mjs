@@ -9,6 +9,17 @@ function configured(name) {
   return Boolean(current) && !/^<.*>$/.test(current);
 }
 
+function productionMercadoPagoCredential(name) {
+  return configured(name) &&
+    !/(?:placeholder|changeme|change_me|replace_me|example|your[_-]|x{4,})/i.test(value(name)) &&
+    /^APP_USR-[A-Za-z0-9_-]{20,}$/.test(value(name));
+}
+
+function productionSecret(name) {
+  return configured(name) &&
+    !/(?:placeholder|changeme|change_me|replace_me|example|your[_-]|x{4,})/i.test(value(name));
+}
+
 function siteUrlValue() {
   return value("FZAC_PUBLIC_SITE_URL") || value("NEXT_PUBLIC_SITE_URL");
 }
@@ -106,9 +117,9 @@ const checks = [
     area: "Pagos",
     requirement: "Credenciales y webhook exclusivos de produccion disponibles",
     ok:
-      configured("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN") &&
-      configured("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY") &&
-      configured("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET")
+      productionMercadoPagoCredential("MERCADOPAGO_PRODUCTION_ACCESS_TOKEN") &&
+      productionMercadoPagoCredential("NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY") &&
+      productionSecret("MERCADOPAGO_PRODUCTION_WEBHOOK_SECRET")
   },
   {
     severity: "warning",

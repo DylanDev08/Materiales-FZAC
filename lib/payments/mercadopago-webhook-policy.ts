@@ -21,6 +21,16 @@ export function paymentStatusFromMercadoPago(status: string): PaymentStatus {
   return "PENDING";
 }
 
+export function shouldIgnoreStalePaymentTransition(
+  localStatus: string,
+  action: MercadoPagoWebhookAction
+) {
+  const normalized = localStatus.trim().toUpperCase();
+  if (normalized === "PAID") return action === "UPDATE";
+  if (normalized === "REFUNDED") return action !== "REFUND";
+  return false;
+}
+
 export function orderStatusFromMercadoPago(status: string): OrderStatus {
   if (["cancelled", "expired", "refunded", "charged_back"].includes(status)) return "CANCELLED";
   return "PENDING_PAYMENT";

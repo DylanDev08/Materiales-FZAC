@@ -20,8 +20,17 @@ test.beforeEach(async ({ page }) => {
 async function openKnowledgeAnswer(page: Page, viewport: { width: number; height: number }) {
   await page.setViewportSize(viewport);
   await page.route("**/api/assistant", async (route) => {
-    await route.continue({
-      headers: { ...route.request().headers(), "x-fzac-load-test": "readonly" }
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        intent: "privacidad",
+        message: "FZAC usa los datos necesarios para gestionar tu cuenta, pedidos, entregas y soporte.",
+        options: ["Ver privacidad", "Cómo comprar", "Hablar con FZAC"],
+        sources: [{ id: "privacidad", label: "Política de privacidad", href: "/privacidad", updatedAt: "2026-09-24" }],
+        products: [],
+        handoff_required: false
+      })
     });
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });

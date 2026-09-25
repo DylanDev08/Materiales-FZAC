@@ -67,10 +67,10 @@ test("el identificador telefónico es privado, estable y no contiene el número"
 });
 
 test("la migración hace idempotente el message_id y mantiene RLS forzado", async () => {
-  const sql = await readFile(
-    path.join(process.cwd(), "supabase/migrations/20260914030407_whatsapp_existing_chat_channel.sql"),
-    "utf8"
-  );
+  const sql = (await Promise.all([
+    "20260914031615_whatsapp_existing_chat_channel.sql",
+    "20260914032417_whatsapp_chat_grants_hardening.sql"
+  ].map((file) => readFile(path.join(process.cwd(), "supabase/migrations", file), "utf8")))).join("\n");
   expect(sql).toContain("chat_messages_external_message_id_unique");
   expect(sql).toContain("force row level security");
   expect(sql).toContain("revoke all");

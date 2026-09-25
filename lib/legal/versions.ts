@@ -1,5 +1,5 @@
 export const CURRENT_TERMS_VERSION = "2026-08-11";
-export const CURRENT_PRIVACY_VERSION = "2026-08-11";
+export const CURRENT_PRIVACY_VERSION = "2026-09-24";
 
 export type LegalAcceptanceSource = "REGISTER_EMAIL" | "REGISTER_GOOGLE" | "CHECKOUT";
 
@@ -23,4 +23,31 @@ export function legalAcceptanceUserMetadata(acceptance: LegalAcceptance) {
     legal_privacy_version: acceptance.privacy_version,
     legal_acceptance_source: acceptance.source
   };
+}
+
+
+export function hasRecordedLegalAcceptance(metadata: Record<string, unknown> | null | undefined) {
+  return metadata?.legal_terms_accepted === true
+    && typeof metadata.legal_terms_accepted_at === "string"
+    && typeof metadata.legal_terms_version === "string"
+    && typeof metadata.legal_privacy_version === "string";
+}
+
+export function isFirstOAuthLogin(user: {
+  created_at?: string | null;
+  last_sign_in_at?: string | null;
+  app_metadata?: Record<string, unknown> | null;
+}) {
+  const provider = String(user.app_metadata?.provider ?? "").toLowerCase();
+  if (provider !== "google") return false;
+
+  const createdAt = Date.parse(user.created_at ?? "");
+  const lastSignInAt = Date.parse(user.last_sign_in_at ?? "");
+  if (!Number.isFinite(createdAt)) return false;
+
+  if (Number.isFinite(lastSignInAt)) {
+    return Math.abs(lastSignInAt - createdAt) <= 60_000;
+  }
+
+  return Date.now() - createdAt <= 5 * 60_000;
 }
