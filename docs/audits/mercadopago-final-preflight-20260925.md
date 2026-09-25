@@ -93,6 +93,7 @@ Verificación read-only en `gooxgjzetziwnxhuymmx`:
 - No se encontraron secretos versionados ni `service_role` expuesta en cliente.
 - Los snapshots de proveedor persisten sólo el sobre sanitizado; no guardan token/PAN/CVV.
 - Checkout usa autenticación, identidad, origen confiable, body limitado, rate limit distribuido y control de concurrencia.
+- CodeQL detectó que `?legal=register` podía controlar la aceptación legal de OAuth. Se eliminó el parámetro y se reemplazó por una intención firmada server-side, HttpOnly, SameSite, con TTL de 10 minutos, protección de origen y rate limit.
 - `/api/cart`, `/api/account/*`, `/api/admin/*` y `/api/health/env` respondieron con `private, no-store`.
 - CSP productiva permite el SDK/dominos de Mercado Pago y no incluye `unsafe-eval`; HSTS está activo.
 - Advisor Supabase: 0 Critical/High. Pendiente Medium: Leaked Password Protection desactivado. Los cuatro avisos INFO de RLS sin policies son deny-by-default intencional.
@@ -103,10 +104,11 @@ Verificación read-only en `gooxgjzetziwnxhuymmx`:
 - `pnpm lint`: OK, 0 warnings.
 - `pnpm test`: 25/25 OK.
 - `pnpm security:check`: OK; 37 tablas públicas exigen FORCE RLS.
-- `pnpm build`: OK; 77 páginas.
+- `pnpm build`: OK; 78 páginas.
 - Playwright pagos/seguridad contra producción: 28/28 OK.
 - Playwright completo contra SHA productivo anterior: 182 OK, 36 skip, 6 fallos por desfase del deploy/expectativas ya corregidas en rama.
 - Reejecución del conjunto afectado contra el build local actual: 49/49 OK, 23 skip previstos.
+- OAuth/privacidad contra el build final: 25 OK, 1 skip previsto; endpoint de intención legal 200 same-origin, cookie HttpOnly y 403 cross-origin.
 
 Cobertura añadida: gates productivos, preflight sin filtración, placeholder/test credentials, firma inválida, cache privado, monto/moneda Card, identidad del titular, estados terminales y replay lógico.
 

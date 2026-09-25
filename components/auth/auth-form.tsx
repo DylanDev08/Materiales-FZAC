@@ -193,12 +193,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setMessage("");
     const localHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
     const authOrigin = localHost ? window.location.origin : "https://www.fzacmateriales.store";
+    if (mode === "register") {
+      const intentResponse = await fetch("/auth/legal-intent", { method: "POST" });
+      if (!intentResponse.ok) {
+        setMessage("No pudimos registrar la aceptacion legal para continuar con Google.");
+        setMessageTone("error");
+        googleInFlightRef.current = false;
+        setGoogleLoading(false);
+        return;
+      }
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${authOrigin}/auth/callback?next=${encodeURIComponent(safeNext)}${
-          mode === "register" ? "&legal=register" : ""
-        }`
+        redirectTo: `${authOrigin}/auth/callback?next=${encodeURIComponent(safeNext)}`
       }
     });
 

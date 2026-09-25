@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { createLegalAcceptance, hasRecordedLegalAcceptance, isFirstOAuthLogin, legalAcceptanceUserMetadata } from "@/lib/legal/versions";
+import { OAUTH_LEGAL_INTENT_COOKIE, readOAuthLegalIntentCookie, verifyOAuthLegalIntent } from "@/lib/legal/oauth-intent";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getAdminConsolePath, getCanonicalAuthSiteUrl } from "@/lib/utils/env";
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const requestedNext = requestUrl.searchParams.get("next");
-  const legalRegistration = requestUrl.searchParams.get("legal") === "register";
+  const legalRegistration = verifyOAuthLegalIntent(readOAuthLegalIntentCookie(request.headers.get("cookie")));
   const next = safeInternalPath(requestedNext);
   const siteUrl = getCanonicalAuthSiteUrl(request);
   const supabase = await getSupabaseServerClient();
@@ -77,5 +78,7 @@ export async function GET(request: Request) {
       : profile?.role === "ADMIN"
         ? `/seguridad/admin-mfa?next=${encodeURIComponent(getAdminConsolePath())}`
         : next;
-  return NextResponse.redirect(new URL(target, siteUrl));
+  const response = NextResponse.redirect(new URL(target, siteUrl));
+  if (legalRegistration) response.cookies.delete(OAUTH_LEGAL_INTENT_COOKIE);
+  return response;
 }
