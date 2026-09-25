@@ -59,6 +59,9 @@ let procurementSupplierId = null;
 let procurementOrderId = null;
 let supplierInvoiceId = null;
 let supplierPaymentId = null;
+let supplierDocumentId = null;
+let supplierDocumentItemId = null;
+let supplierDocumentStoragePath = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -142,6 +145,33 @@ async function cleanup() {
     const { error: supplierInvoiceAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "supplier_invoices").eq("entity_id", supplierInvoiceId);
     const { error: supplierInvoiceError } = await admin.from("supplier_invoices").delete().eq("id", supplierInvoiceId);
     if (supplierInvoiceAuditError || supplierInvoiceError) cleanupErrors.push("Could not remove isolated supplier invoice data.");
+  }
+  if (supplierDocumentItemId) {
+    const { error: itemAuditError } = await admin
+      .from("admin_audit_logs")
+      .delete()
+      .eq("entity", "supplier_document_items")
+      .eq("entity_id", supplierDocumentItemId);
+    const { error: itemError } = await admin
+      .from("supplier_document_items")
+      .delete()
+      .eq("id", supplierDocumentItemId);
+    if (itemAuditError || itemError) cleanupErrors.push("Could not remove isolated supplier document item.");
+  }
+  if (supplierDocumentId) {
+    const { error: documentAuditError } = await admin
+      .from("admin_audit_logs")
+      .delete()
+      .eq("entity", "supplier_documents")
+      .eq("entity_id", supplierDocumentId);
+    const { error: documentError } = await admin
+      .from("supplier_documents")
+      .delete()
+      .eq("id", supplierDocumentId);
+    const storageError = supplierDocumentStoragePath
+      ? (await admin.storage.from("supplier-documents").remove([supplierDocumentStoragePath])).error
+      : null;
+    if (documentAuditError || documentError || storageError) cleanupErrors.push("Could not remove isolated supplier document data.");
   }
   if (procurementOrderId) {
     const { error: procurementInventoryError } = await admin.from("inventory_movements").delete().eq("product_id", marketProductId).eq("type", "PURCHASE_RECEIPT");
@@ -500,6 +530,105 @@ try {
   const { data: receivedProduct, error: receivedProductError } = await admin.from("products").select("stock").eq("id", marketProductId).single();
   assert(!receivedProductError && Number(receivedProduct?.stock) === 3, "Purchase receipt did not increase stock exactly once.");
 
+  const supplierDocumentLifecycle = await page.evaluate(async ({ supplierId, unrelatedProductId }) => {
+    const uploadForm = new FormData();
+    uploadForm.set("supplierId", supplierId);
+    uploadForm.set("title", "Lista de precios QA");
+    uploadForm.set("kind", "PRICE_LIST");
+    uploadForm.set("documentDate", new Date().toISOString().slice(0, 10));
+    uploadForm.set("notes", "Documento temporal de control automatizado");
+    uploadForm.set(
+      "file",
+      new File(["sku,price\nQA-SKU,123.45\n"], "lista-precios-qa.csv", { type: "text/csv" })
+    );
+
+    const uploadResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      body: uploadForm
+    });
+    const upload = { status: uploadResponse.status, body: await uploadResponse.json() };
+    if (upload.status !== 201 || !upload.body?.id) return { stage: "upload", upload };
+
+    const mismatchResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "ADD_ITEM",
+        documentId: upload.body.id,
+        productId: unrelatedProductId,
+        supplierProductName: "Producto ajeno QA",
+        supplierSku: "QA-MISMATCH",
+        unit: "unidad",
+        supplierPrice: 100,
+        supplierStock: 1
+      })
+    });
+    const mismatch = { status: mismatchResponse.status, body: await mismatchResponse.json() };
+
+    const itemResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "ADD_ITEM",
+        documentId: upload.body.id,
+        productId: "",
+        supplierProductName: "Producto proveedor QA",
+        supplierSku: "QA-SKU",
+        unit: "unidad",
+        supplierPrice: 123.45,
+        supplierStock: 7
+      })
+    });
+    const item = { status: itemResponse.status, body: await itemResponse.json() };
+
+    const signedResponse = await fetch(`/api/admin/supplier-documents?id=${encodeURIComponent(upload.body.id)}`, {
+      cache: "no-store"
+    });
+    const signed = { status: signedResponse.status, body: await signedResponse.json() };
+
+    return { stage: "done", documentId: upload.body.id, mismatch, item, signed };
+  }, { supplierId: procurementSupplierId, unrelatedProductId: marketProductId });
+
+  assert(supplierDocumentLifecycle.stage === "done", `Supplier document lifecycle failed: ${JSON.stringify(supplierDocumentLifecycle)}.`);
+  assert(supplierDocumentLifecycle.mismatch?.status === 409, "Supplier document accepted a product from another supplier.");
+  assert(supplierDocumentLifecycle.item?.status === 201 && supplierDocumentLifecycle.item?.body?.id, "Supplier document item was not persisted.");
+  assert(supplierDocumentLifecycle.signed?.status === 200 && /^https:\/\//.test(supplierDocumentLifecycle.signed?.body?.url ?? ""), "Supplier document did not return a signed download URL.");
+
+  supplierDocumentId = supplierDocumentLifecycle.documentId;
+  supplierDocumentItemId = supplierDocumentLifecycle.item.body.id;
+
+  const { data: supplierDocumentRow, error: supplierDocumentError } = await admin
+    .from("supplier_documents")
+    .select("storage_path,mime_type,size_bytes,supplier_id,status")
+    .eq("id", supplierDocumentId)
+    .single();
+  assert(
+    !supplierDocumentError
+      && supplierDocumentRow?.supplier_id === procurementSupplierId
+      && supplierDocumentRow?.status === "ACTIVE"
+      && supplierDocumentRow?.mime_type === "text/csv"
+      && Number(supplierDocumentRow?.size_bytes ?? 0) > 0,
+    "Supplier document metadata was not persisted correctly."
+  );
+  supplierDocumentStoragePath = supplierDocumentRow.storage_path;
+
+  const { data: anonymousDocuments, error: anonymousDocumentsError } = await anonymous
+    .from("supplier_documents")
+    .select("id")
+    .eq("id", supplierDocumentId);
+  assert(Boolean(anonymousDocumentsError) || anonymousDocuments?.length === 0, "Anonymous users can read supplier documents.");
+
+  const publicStoragePath = supplierDocumentStoragePath
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const publicStorageResponse = await fetch(`${supabaseUrl}/storage/v1/object/public/supplier-documents/${publicStoragePath}`);
+  assert(!publicStorageResponse.ok, "Private supplier document is reachable through a public Storage URL.");
+
+  const signedDownload = await fetch(supplierDocumentLifecycle.signed.body.url);
+  assert(signedDownload.ok, "Signed supplier document URL could not be downloaded.");
+  assert((await signedDownload.text()).includes("QA-SKU,123.45"), "Signed supplier document content does not match the uploaded QA file.");
+
   const supplierFinanceLifecycle = await page.evaluate(async ({ orderId }) => {
     const call = async (method, body, endpoint = "/api/admin/supplier-finance") => {
       const response = await fetch(endpoint, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -745,6 +874,8 @@ try {
       procurementIdempotency: true,
       supplierFinanceResponsive: true,
       supplierWorkspaceResponsive: true,
+      supplierDocumentLifecycle: true,
+      supplierDocumentPrivateStorage: true,
       catalogReportResponsive: true,
       analyticsHubResponsive: true,
       supplierFinanceLifecycle: true,
