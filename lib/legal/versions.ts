@@ -43,7 +43,11 @@ export function isFirstOAuthLogin(user: {
 
   const createdAt = Date.parse(user.created_at ?? "");
   const lastSignInAt = Date.parse(user.last_sign_in_at ?? "");
-  if (!Number.isFinite(createdAt) || !Number.isFinite(lastSignInAt)) return false;
+  if (!Number.isFinite(createdAt)) return false;
 
-  return Math.abs(lastSignInAt - createdAt) <= 60_000;
+  if (Number.isFinite(lastSignInAt)) {
+    return Math.abs(lastSignInAt - createdAt) <= 60_000;
+  }
+
+  return Date.now() - createdAt <= 5 * 60_000;
 }
