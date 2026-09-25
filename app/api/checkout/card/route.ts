@@ -15,6 +15,7 @@ import {
   MercadoPagoCardPaymentError,
   sanitizeMercadoPagoPayment
 } from "@/lib/payments/mercadopago";
+import { paymentAmountMatchesLocal } from "@/lib/payments/mercadopago-webhook-policy";
 import { confirmApprovedPayment, finalizeFailedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/utils/api";
@@ -79,7 +80,8 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
       raw: { ...existingRaw, provider_status: status, provider_payment: safePayment },
       updated_at: new Date().toISOString()
     })
-    .eq("order_id", orderId);
+    .eq("order_id", orderId)
+    .eq("status", "PENDING");
   if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
 }
 
@@ -125,6 +127,9 @@ async function handlePost(request: Request) {
     if (!currentUser?.id || !currentUser.email) return jsonError("Necesitás iniciar sesión para comprar.", 401);
     if (currentUser.email.trim().toLowerCase() !== payload.checkout.customer.email.trim().toLowerCase()) {
       return jsonError("El email del comprador debe coincidir con la cuenta iniciada.", 403);
+    }
+    if (currentUser.email.trim().toLowerCase() !== payload.card.cardholder_email.trim().toLowerCase()) {
+      return jsonError("El email del titular debe coincidir con la cuenta iniciada.", 403);
     }
     const identity = currentUser.id;
     const distributed = await distributedRateLimitRequest(request, {
@@ -214,6 +219,13 @@ async function handlePost(request: Request) {
       const status = String(payment.status ?? "pending");
       const safePayment = sanitizeMercadoPagoPayment(payment);
       if (status === "approved") {
+        if (!safePayment.id || !paymentAmountMatchesLocal(payment, { amount: total, currency: "ARS" })) {
+          throw new MercadoPagoCardPaymentError(
+            "MERCADOPAGO_PAYMENT_INTEGRITY_MISMATCH",
+            409,
+            "El pago requiere conciliacion antes de confirmar la compra."
+          );
+        }
         await confirmApprovedPayment({
           orderId,
           provider: "MERCADOPAGO",

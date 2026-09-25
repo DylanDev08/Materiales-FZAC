@@ -18,7 +18,8 @@ import {
   paymentAmountMatchesLocal,
   paymentStatusFromMercadoPago,
   providerRefundId,
-  safeWebhookEvent
+  safeWebhookEvent,
+  shouldIgnoreStalePaymentTransition
 } from "@/lib/payments/mercadopago-webhook-policy";
 
 type WebhookResult = {
@@ -308,6 +309,11 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
       return { status: 409, body: { ok: false, received: true, message: "Monto de pago incompatible." } };
     }
 
+    if (shouldIgnoreStalePaymentTransition(String(localPayment.status), action)) {
+      await updatePaymentEvent(eventId, { status: "IGNORED", orderId });
+      return { status: 200, body: { ok: true, received: true, ignored: true, orderId } };
+    }
+
     if (action === "MANUAL_REVIEW") {
       await updatePaymentEvent(eventId, {
         status: "FAILED",
@@ -362,7 +368,8 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
           raw: safePayment,
           updated_at: new Date().toISOString()
         })
-        .eq("order_id", orderId);
+        .eq("order_id", orderId)
+        .eq("status", "PENDING");
       if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
     }
 

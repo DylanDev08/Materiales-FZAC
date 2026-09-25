@@ -9,6 +9,7 @@ const migrationPath = new URL(
 const cardRoutePath = new URL("../../app/api/checkout/card/route.ts", import.meta.url);
 const canonicalWebhookPath = new URL("../../app/api/webhooks/mercadopago/route.ts", import.meta.url);
 const compatibilityWebhookPath = new URL("../../app/api/payments/mercadopago/webhook/route.ts", import.meta.url);
+const webhookHandlerPath = new URL("../../lib/payments/mercadopago-webhook.ts", import.meta.url);
 
 test("finalize_failed_order es transaccional, bloquea terminales y queda limitada a service_role", async () => {
   const sql = await readFile(migrationPath, "utf8");
@@ -29,6 +30,24 @@ test("Card Brick no libera stock ante una respuesta ambigua del proveedor", asyn
   assert.doesNotMatch(route, /CARD_PAYMENT_CREATE_FAILED/);
   assert.match(route, /error\.code === "CARD_PAYMENT_REJECTED"/);
   assert.match(route, /finalizeFailedPayment\(/);
+});
+
+test("Card Brick valida identidad y monto antes de confirmar", async () => {
+  const route = await readFile(cardRoutePath, "utf8");
+
+  assert.match(route, /payload\.card\.cardholder_email/);
+  assert.match(route, /paymentAmountMatchesLocal\(payment, \{ amount: total, currency: "ARS" \}\)/);
+  assert.match(route, /MERCADOPAGO_PAYMENT_INTEGRITY_MISMATCH/);
+});
+
+test("estados no terminales nunca degradan un pago ya finalizado", async () => {
+  const [cardRoute, webhookHandler] = await Promise.all([
+    readFile(cardRoutePath, "utf8"),
+    readFile(webhookHandlerPath, "utf8")
+  ]);
+
+  assert.match(cardRoute, /\.eq\("status", "PENDING"\)/);
+  assert.match(webhookHandler, /\.eq\("status", "PENDING"\)/);
 });
 
 test("las dos rutas webhook delegan al mismo handler endurecido", async () => {
