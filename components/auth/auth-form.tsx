@@ -182,10 +182,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     googleInFlightRef.current = true;
     setGoogleLoading(true);
     setMessage("");
+    const localHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+    const authOrigin = localHost ? window.location.origin : "https://www.fzacmateriales.store";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}${
+        redirectTo: `${authOrigin}/auth/callback?next=${encodeURIComponent(safeNext)}${
           mode === "register" ? "&legal=register" : ""
         }`
       }

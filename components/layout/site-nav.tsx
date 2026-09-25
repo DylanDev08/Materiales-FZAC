@@ -16,15 +16,10 @@ const productLinks = [
 ];
 
 const fallbackCategories = [
-  { href: "/categoria/materiales", label: "Materiales de obra" },
   { href: "/categoria/construccion-en-seco", label: "Construcción en seco" },
+  { href: "/categoria/steel-framing", label: "Steel Framing" },
   { href: "/categoria/ferreteria", label: "Ferretería" },
-  { href: "/categoria/herramientas", label: "Herramientas" },
-  { href: "/categoria/electricidad", label: "Electricidad" },
-  { href: "/categoria/plomeria", label: "Plomería" },
-  { href: "/categoria/pintura-impermeabilizacion", label: "Pintura e impermeabilización" },
-  { href: "/categoria/revestimientos", label: "Revestimientos" },
-  { href: "/ofertas", label: "Ofertas" }
+  { href: "/categoria/materiales-de-obra", label: "Materiales de obra" }
 ];
 
 export function SiteNav({ categories }: { categories: Category[] }) {

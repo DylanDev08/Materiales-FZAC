@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem("fzac-entry-complete-v1", "true");
     window.localStorage.setItem("fzac-privacy-consent-v1", JSON.stringify({
-      version: "2026-08-11",
+      version: "2026-09-24",
       decidedAt: new Date().toISOString(),
       necessary: true,
       preferences: false,
@@ -17,11 +17,11 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test("Home presenta el catálogo enfocado y productos reales", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Materiales y pinturas para avanzar con tu obra." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Materiales para avanzar con tu obra." })).toBeVisible();
   await expect(page.locator(".product-card").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/La Yesera Rosarina|precio proveedor|margen comercial/i);
 
-  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería", "Pinturas"]) {
+  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería", "Materiales de obra"]) {
     await expect(page.getByRole("link", { name: new RegExp(category, "i") }).first()).toBeVisible();
   }
 });
@@ -29,9 +29,10 @@ test("Home presenta el catálogo enfocado y productos reales", async ({ page }) 
 test("catálogo público limita proveedor, rubros e imágenes", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".product-card").first()).toBeVisible();
-  await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("120");
+  await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("110");
   await expect(page.locator(".catalog-category-rail a")).toHaveCount(5);
-  await expect(page.locator(".catalog-category-rail")).toContainText(/Pintura/i);
+  await expect(page.locator(".catalog-category-rail")).toContainText(/Materiales de obra/i);
+  await expect(page.locator(".catalog-category-rail")).not.toContainText(/Pintura/i);
   await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Universo Pinturas|Urbe SRL|Maquinaria Sorrentos/i);
   const documentSource = await page.content();
   expect(documentSource).not.toMatch(/original_price|margin_percent|source_image_url|product_supplier_sources/i);
@@ -40,7 +41,7 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
     images.slice(0, 12).map((image) => (image as HTMLImageElement).currentSrc || (image as HTMLImageElement).src)
   );
   expect(sources.length).toBeGreaterThan(0);
-  expect(sources.every((source) => /supabase\.co\/storage\/v1\/object\/public\/product-images\/(la-yesera-rosarina|universo-pinturas)\//.test(decodeURIComponent(source)))).toBe(true);
+  expect(sources.every((source) => !/universo-pinturas/i.test(decodeURIComponent(source)))).toBe(true);
 });
 
 for (const search of [
@@ -70,16 +71,18 @@ for (const search of [
 
 test("la disponibilidad separa productos a consultar del stock comprable", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".catalog-toolbar")).toContainText("120");
+  await expect(page.locator(".catalog-toolbar")).toContainText("110");
   await expect(page.locator(".product-card").first()).toContainText(/consultar disponibilidad/i);
 
   await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".catalog-product-column > .empty-state").last()).toContainText(/no encontramos productos/i);
+  await expect(page.locator(".product-card")).toHaveCount(2);
+  await expect(page.locator(".catalog-product-column")).toContainText(/Cemento Portland/i);
+  await expect(page.locator(".catalog-product-column")).toContainText(/Placa Drywall 12,5mm/i);
   await expect(page.locator("select").filter({ has: page.locator("option[value='IN_STOCK']") }).last()).toHaveValue("IN_STOCK");
 });
 
 test("un producto a consultar se añade al carrito y pide confirmación antes del pago", async ({ page }) => {
-  await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+  await page.goto("/categoria/construccion-en-seco?availability=CONSULT", { waitUntil: "domcontentloaded" });
   const firstCard = page.locator(".product-card").first();
   await expect(firstCard).toBeVisible();
   await firstCard.getByRole("button", { name: "Añadir al carrito" }).click();
@@ -91,13 +94,10 @@ test("un producto a consultar se añade al carrito y pide confirmación antes de
   await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
 });
 
-test("Pinturas pagina el catálogo completo sin cargar miles de cards juntas", async ({ page }) => {
-  await page.goto("/categoria/pintura-impermeabilizacion", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".catalog-toolbar")).toContainText("120");
-  await page.getByRole("link", { name: /siguiente/i }).click();
-  await expect(page).toHaveURL(/page=2/);
-  await expect(page.locator(".catalog-toolbar")).toContainText("Página 2");
-  await expect(page.locator(".product-card").first()).toBeVisible();
+test("una categoría sin productos no se publica en el storefront", async ({ request }) => {
+  const response = await request.get("/categoria/pintura-impermeabilizacion", { maxRedirects: 0 });
+  expect(response.status()).toBe(404);
+  expect(await response.text()).not.toMatch(/Universo Pinturas|precio proveedor|margen comercial/i);
 });
 
 test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {

@@ -17,13 +17,17 @@ test.describe("Privacidad y descubrimiento", () => {
     await expect(consent).toContainText(/no usamos publicidad ni vendemos tus datos/i);
     await consent.getByRole("button", { name: "Configurar" }).click();
 
-    const preferences = consent.getByRole("checkbox");
+    const preferences = consent.getByRole("checkbox", { name: /Preferencias/i });
+    const analytics = consent.getByRole("checkbox", { name: /Analítica de uso/i });
     await preferences.check();
+    await analytics.check();
     await consent.getByRole("button", { name: "Guardar preferencias" }).click();
     await expect(consent).toBeHidden();
 
     const accepted = await page.evaluate(() => JSON.parse(window.localStorage.getItem("fzac-privacy-consent-v1") || "null"));
     expect(accepted.preferences).toBe(true);
+    expect(accepted.analytics).toBe(true);
+    expect(accepted.marketing).toBe(false);
     expect((await page.context().cookies()).some((cookie) => cookie.name === "fzac_privacy_consent")).toBe(true);
 
     await page.evaluate(() => window.localStorage.setItem("fzac-search-recent-v1", JSON.stringify(["cemento"])));
@@ -35,6 +39,8 @@ test.describe("Privacidad y descubrimiento", () => {
       recent: window.localStorage.getItem("fzac-search-recent-v1")
     }));
     expect(rejected.consent.preferences).toBe(false);
+    expect(rejected.consent.analytics).toBe(false);
+    expect(rejected.consent.marketing).toBe(false);
     expect(rejected.recent).toBeNull();
   });
 

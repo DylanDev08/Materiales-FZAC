@@ -25,7 +25,7 @@ export default function Page() {
           <div>
             <span className="kicker">Privacidad FZAC</span>
             <h1>Política de privacidad</h1>
-            <p>Versión vigente desde el 11 de agosto de 2026. Información clara sobre el uso y protección de tus datos.</p>
+            <p>Versión vigente desde el 24 de septiembre de 2026. Información clara sobre el uso y protección de tus datos.</p>
           </div>
         </header>
 
@@ -78,7 +78,8 @@ export default function Page() {
 
           <h2>5. Proveedores que intervienen</h2>
           <p>
-            Para operar la tienda pueden intervenir Supabase en autenticación y base de datos, Render en alojamiento,
+            Para operar la tienda pueden intervenir Supabase en autenticación y base de datos, Render en backend y
+            alojamiento, Vercel en la entrega del frontend y —solo si autorizás “Analítica de uso”— en Web Analytics,
             Mercado Pago en pagos, Resend en email transaccional y Google en OAuth o mapas cuando esas funciones estén
             habilitadas. Cada proveedor recibe solo los datos necesarios para prestar su servicio y aplica sus propias
             condiciones de seguridad y privacidad.
@@ -131,9 +132,15 @@ export default function Page() {
             cookies” en el pie del sitio. Al desactivarla se eliminan del almacenamiento local esos datos opcionales.
           </p>
           <p>
-            Actualmente no se encuentran activadas herramientas publicitarias ni analíticas de terceros. Si se incorporan,
-            permanecerán bloqueadas hasta informar proveedor, finalidad, duración y obtener el consentimiento que corresponda.
-            La aceptación de cookies es independiente de la aceptación de los términos de una cuenta o compra.
+            La opción “Analítica de uso” controla Vercel Web Analytics. Si la autorizás, la tienda puede medir páginas
+            visitadas, fuentes de tráfico y datos técnicos agregados como país aproximado, navegador, sistema operativo o
+            tipo de dispositivo. La instrumentación permanece desmontada mientras esa opción esté desactivada y puede
+            revocarse en cualquier momento desde “Preferencias de cookies”.
+          </p>
+          <p>
+            Vercel describe Web Analytics como una medición first-party orientada a privacidad y sin cookies de seguimiento
+            entre sitios. FZAC no utiliza esta herramienta para publicidad ni habilita perfiles de marketing. La aceptación
+            de privacidad es independiente de la aceptación de los términos de una cuenta o compra.
           </p>
 
           <h2>10. Reclamos ante la autoridad</h2>

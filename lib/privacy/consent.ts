@@ -1,6 +1,7 @@
-export const PRIVACY_CONSENT_VERSION = "2026-08-11";
+export const PRIVACY_CONSENT_VERSION = "2026-09-24";
 export const PRIVACY_CONSENT_STORAGE_KEY = "fzac-privacy-consent-v1";
 export const PRIVACY_CONSENT_COOKIE = "fzac_privacy_consent";
+export const PRIVACY_CONSENT_COOKIE_VERSION = "v2";
 export const PRIVACY_CONSENT_EVENT = "fzac:privacy-consent-changed";
 export const PRIVACY_SETTINGS_OPEN_EVENT = "fzac:privacy-settings-open";
 
@@ -16,7 +17,7 @@ export type PrivacyConsent = {
   decidedAt: string;
   necessary: true;
   preferences: boolean;
-  analytics: false;
+  analytics: boolean;
   marketing: false;
 };
 
@@ -28,7 +29,7 @@ function isConsent(value: unknown): value is PrivacyConsent {
     typeof candidate.decidedAt === "string" &&
     candidate.necessary === true &&
     typeof candidate.preferences === "boolean" &&
-    candidate.analytics === false &&
+    typeof candidate.analytics === "boolean" &&
     candidate.marketing === false
   );
 }
@@ -47,11 +48,15 @@ export function preferencesAllowed() {
   return readPrivacyConsent()?.preferences === true;
 }
 
+export function analyticsAllowed() {
+  return readPrivacyConsent()?.analytics === true;
+}
+
 export function preferenceConsentCookieEnabled(cookieHeader: string | null | undefined) {
   if (!cookieHeader) return false;
   return cookieHeader
     .split(";")
-    .some((entry) => entry.trim() === `${PRIVACY_CONSENT_COOKIE}=v1.p1`);
+    .some((entry) => entry.trim() === `${PRIVACY_CONSENT_COOKIE}=${PRIVACY_CONSENT_COOKIE_VERSION}.p1`);
 }
 
 export function preferenceStorage(): Storage {
@@ -62,13 +67,13 @@ function removeOptionalLocalData() {
   for (const key of OPTIONAL_LOCAL_STORAGE_KEYS) window.localStorage.removeItem(key);
 }
 
-export function savePrivacyConsent(preferences: boolean) {
+export function savePrivacyConsent(preferences: boolean, analytics = false) {
   const consent: PrivacyConsent = {
     version: PRIVACY_CONSENT_VERSION,
     decidedAt: new Date().toISOString(),
     necessary: true,
     preferences,
-    analytics: false,
+    analytics,
     marketing: false
   };
 
@@ -76,7 +81,7 @@ export function savePrivacyConsent(preferences: boolean) {
   if (!preferences) removeOptionalLocalData();
 
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${PRIVACY_CONSENT_COOKIE}=v1.p${preferences ? 1 : 0}; Path=/; Max-Age=15552000; SameSite=Lax${secure}`;
+  document.cookie = `${PRIVACY_CONSENT_COOKIE}=${PRIVACY_CONSENT_COOKIE_VERSION}.p${preferences ? 1 : 0}; Path=/; Max-Age=15552000; SameSite=Lax${secure}`;
   window.dispatchEvent(new CustomEvent<PrivacyConsent>(PRIVACY_CONSENT_EVENT, { detail: consent }));
   return consent;
 }

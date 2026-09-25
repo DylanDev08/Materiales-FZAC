@@ -6,7 +6,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.BASE_URL || "https://materiales-fzac-8xmp.onrender.com",
+    baseURL: process.env.BASE_URL || "https://materiales-fzac.onrender.com",
     storageState: process.env.PLAYWRIGHT_AUTH_STATE || undefined,
     trace: "retain-on-failure",
     screenshot: "only-on-failure"

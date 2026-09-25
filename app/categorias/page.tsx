@@ -17,7 +17,7 @@ import { publicPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = publicPageMetadata({
   title: "Categorías de materiales",
-  description: "Encontrá materiales por rubro: obra, construcción en seco, ferretería, pintura, electricidad y plomería.",
+  description: "Encontrá materiales por rubro: construcción en seco, steel framing, ferretería y materiales de obra.",
   path: "/categorias"
 });
 

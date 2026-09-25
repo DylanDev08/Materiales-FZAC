@@ -6,10 +6,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  AreaChart,
   BarChart3,
   Bell,
   BrainCircuit,
   BookOpen,
+  Building2,
   CreditCard,
   FileText,
   Grid3X3,
@@ -39,6 +41,7 @@ const linkGroups = [
     title: "Resumen",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
+      { path: "/analiticas", label: "Analíticas", icon: AreaChart },
       { path: "?tab=notifications", label: "Notificaciones", icon: Bell },
       { path: "/logs", label: "Actividad", icon: Activity }
     ]
@@ -53,15 +56,15 @@ const linkGroups = [
       { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
       { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
       { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
-      { path: "/rentabilidad/reporte", label: "Reportes PDF", icon: FileText },
-      { path: "/rentabilidad/reporte", label: "Reportes PDF", icon: FileText }
+      { path: "/reportes", label: "Reportes PDF", icon: FileText }
     ]
   },
   {
     title: "Stock y compras",
     links: [
       { path: "/inventario", label: "Inventario", icon: Package },
-      { path: "/compras", label: "Compras y proveedores", icon: ShoppingBasket },
+      { path: "/compras", label: "Compras", icon: ShoppingBasket },
+      { path: "/proveedores", label: "Proveedores", icon: Building2 },
       { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorias", icon: Grid3X3 },

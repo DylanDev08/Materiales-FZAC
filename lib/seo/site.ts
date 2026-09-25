@@ -14,7 +14,6 @@ export const SITE_KEYWORDS = [
   "ferretería Rosario",
   "construcción en seco",
   "cemento y materiales para obra",
-  "herramientas y pintura",
   "Fortaleza Construcciones",
   "Materiales FZAC"
 ];

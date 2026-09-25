@@ -186,6 +186,51 @@ for (const file of [
   }
 }
 
+const paymentService = await readFile(path.join(root, "lib/payments/payment-service.ts"), "utf8").catch(() => "");
+const cardCheckout = await readFile(path.join(root, "app/api/checkout/card/route.ts"), "utf8").catch(() => "");
+const mercadoPagoWebhook = await readFile(path.join(root, "lib/payments/mercadopago-webhook.ts"), "utf8").catch(() => "");
+const failedPaymentMigration = await readFile(
+  path.join(root, "supabase/migrations/20260924234844_finalize_failed_order_atomic.sql"),
+  "utf8"
+).catch(() => "");
+
+if (
+  !paymentService.includes("finalizeFailedPayment")
+  || !paymentService.includes('admin.rpc("finalize_failed_order"')
+  || !cardCheckout.includes("finalizeFailedPayment")
+  || !mercadoPagoWebhook.includes("finalizeFailedPayment")
+  || !failedPaymentMigration.includes("create or replace function public.finalize_failed_order")
+  || !failedPaymentMigration.includes("grant execute on function public.finalize_failed_order")
+) {
+  failures.push("Pagos: rechazos y expiraciones de Mercado Pago deben cerrarse mediante la RPC atomica finalize_failed_order.");
+}
+
+const shippingQuote = await readFile(path.join(root, "lib/shipping/quote.ts"), "utf8").catch(() => "");
+if (
+  !shippingQuote.includes("directions/v2:computeRoutes")
+  || !shippingQuote.includes("geocodingResults.destination.placeId")
+  || !shippingQuote.includes("geocodedPlaceId !== placeId")
+) {
+  failures.push("Envios: la tarifa debe vincular el Place ID seleccionado con la direccion geocodificada por Google Routes.");
+}
+
+const rootLayout = await readFile(path.join(root, "app/layout.tsx"), "utf8").catch(() => "");
+const consentAwareAnalytics = await readFile(
+  path.join(root, "components/analytics/consent-aware-analytics.tsx"),
+  "utf8"
+).catch(() => "");
+const privacyConsentModel = await readFile(path.join(root, "lib/privacy/consent.ts"), "utf8").catch(() => "");
+
+if (
+  rootLayout.includes("<Analytics")
+  || !rootLayout.includes("<ConsentAwareAnalytics")
+  || !consentAwareAnalytics.includes("analyticsAllowed")
+  || !consentAwareAnalytics.includes("subscribePrivacyConsent")
+  || !privacyConsentModel.includes("analytics: boolean")
+) {
+  failures.push("Privacidad: Vercel Analytics debe montarse solo despues del consentimiento explicito de analitica.");
+}
+
 const productUpload = await readFile(path.join(root, "app/api/admin/uploads/product-image/route.ts"), "utf8").catch(() => "");
 if (!productUpload.includes('from "sharp"') || !productUpload.includes(".webp(") || !productUpload.includes("limitInputPixels")) {
   failures.push("Upload de productos: falta decodificar/re-encodear la imagen con limites de pixels.");

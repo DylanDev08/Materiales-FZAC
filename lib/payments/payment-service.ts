@@ -11,6 +11,14 @@ type ConfirmationInput = {
   status?: PaymentStatus;
 };
 
+type FailureConfirmationInput = {
+  orderId: string;
+  providerPaymentId?: string | null;
+  raw?: Record<string, unknown> | null;
+  paymentStatus: "FAILED" | "EXPIRED";
+  providerStatus?: string | null;
+};
+
 type RefundConfirmationInput = {
   paymentId: string;
   providerRefundId?: string | null;
@@ -66,6 +74,26 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
   if (error) {
     if (isMissingRpcError(error, "finalize_paid_order")) throw new PaymentIntegrityRpcMissingError();
     throw new Error("No pudimos finalizar la orden aprobada de forma atomica.");
+  }
+
+  return { ok: true, source: "rpc", result: data };
+}
+
+export async function finalizeFailedPayment(input: FailureConfirmationInput) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("Supabase admin no esta configurado para cerrar pagos fallidos.");
+
+  const { data, error } = await admin.rpc("finalize_failed_order", {
+    p_order_id: input.orderId,
+    p_provider_payment_id: input.providerPaymentId ?? null,
+    p_raw: input.raw ?? {},
+    p_payment_status: input.paymentStatus,
+    p_provider_status: input.providerStatus ?? input.paymentStatus
+  });
+
+  if (error) {
+    if (isMissingRpcError(error, "finalize_failed_order")) throw new PaymentIntegrityRpcMissingError();
+    throw new Error("No pudimos cerrar el pago fallido de forma atomica.");
   }
 
   return { ok: true, source: "rpc", result: data };

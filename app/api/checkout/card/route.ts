@@ -15,7 +15,7 @@ import {
   MercadoPagoCardPaymentError,
   sanitizeMercadoPagoPayment
 } from "@/lib/payments/mercadopago";
-import { confirmApprovedPayment } from "@/lib/payments/payment-service";
+import { confirmApprovedPayment, finalizeFailedPayment } from "@/lib/payments/payment-service";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { releaseOrderStockReservation } from "@/lib/inventory/reservations";
 import { jsonError } from "@/lib/utils/api";
@@ -60,34 +60,28 @@ async function persistPaymentStatus(orderId: string, payment: Record<string, unk
   if (existingError) throw new Error("PAYMENT_STATUS_READ_FAILED");
 
   const existingRaw = existing?.raw && typeof existing.raw === "object" ? existing.raw as Record<string, unknown> : {};
-  const now = new Date().toISOString();
 
   if (mapped === "FAILED" || mapped === "EXPIRED") {
-    await releaseOrderStockReservation(orderId, `MERCADOPAGO_${mapped}`);
+    await finalizeFailedPayment({
+      orderId,
+      providerPaymentId: payment.id ? String(payment.id) : null,
+      raw: { ...existingRaw, provider_payment: safePayment },
+      paymentStatus: mapped,
+      providerStatus: status
+    });
+    return;
   }
+
   const { error: paymentUpdateError } = await admin
     .from("payments")
     .update({
       status: mapped,
       provider_payment_id: payment.id ? String(payment.id) : null,
       raw: { ...existingRaw, provider_status: status, provider_payment: safePayment },
-      updated_at: now
+      updated_at: new Date().toISOString()
     })
     .eq("order_id", orderId);
   if (paymentUpdateError) throw new Error("PAYMENT_STATUS_PERSIST_FAILED");
-
-  if (mapped === "FAILED" || mapped === "EXPIRED") {
-    const { error: orderUpdateError } = await admin
-      .from("orders")
-      .update({
-        status: "CANCELLED",
-        cancellation_reason: `Mercado Pago: ${status || mapped}`,
-        cancelled_at: now,
-        updated_at: now
-      })
-      .eq("id", orderId);
-    if (orderUpdateError) throw new Error("ORDER_STATUS_PERSIST_FAILED");
-  }
 }
 
 async function existingCardPaymentResponse(paymentId: string, orderId: string) {

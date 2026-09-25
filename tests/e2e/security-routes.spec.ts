@@ -23,12 +23,14 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las APIs administrativas bloquean sesiones anónimas", async ({ request }) => {
-    const [metrics, environment, inventoryForecast, procurement, supplierFinance, marketPrices, supplierPriceAudit, marketSync, assistantQuality, assistantQualityUpdate] = await Promise.all([
+    const [metrics, environment, inventoryForecast, procurement, supplierFinance, supplierDocuments, supplierDocumentMutation, marketPrices, supplierPriceAudit, marketSync, assistantQuality, assistantQualityUpdate] = await Promise.all([
       request.get("/api/admin/metrics"),
       request.get("/api/health/env"),
       request.get("/api/admin/inventory/forecast"),
       request.get("/api/admin/procurement"),
       request.get("/api/admin/supplier-finance"),
+      request.get(`/api/admin/supplier-documents?id=${crypto.randomUUID()}`),
+      request.post("/api/admin/supplier-documents", { data: { action: "ADD_ITEM" } }),
       request.get("/api/admin/market-prices"),
       request.get("/api/admin/supplier-price-audit"),
       request.post("/api/admin/market-prices/sync", { data: {} }),
@@ -40,6 +42,8 @@ test.describe("Controles de seguridad no destructivos", () => {
     expect([401, 403]).toContain(inventoryForecast.status());
     expect([401, 403]).toContain(procurement.status());
     expect([401, 403]).toContain(supplierFinance.status());
+    expect([401, 403]).toContain(supplierDocuments.status());
+    expect([401, 403]).toContain(supplierDocumentMutation.status());
     expect([401, 403]).toContain(marketPrices.status());
     expect([401, 403]).toContain(supplierPriceAudit.status());
     expect([401, 403]).toContain(marketSync.status());
@@ -64,7 +68,7 @@ test.describe("Controles de seguridad no destructivos", () => {
   });
 
   test("las mutaciones administrativas bloquean origen cruzado antes de escribir", async ({ request }) => {
-    const [refund, market, supplierPrice] = await Promise.all([
+    const [refund, market, supplierPrice, supplierDocument] = await Promise.all([
       request.patch("/api/admin/consumer-refund-requests/00000000-0000-4000-8000-000000000000", {
         headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
         data: { status: "CLOSED", resolutionNote: "Prueba sin escritura" }
@@ -76,11 +80,16 @@ test.describe("Controles de seguridad no destructivos", () => {
       request.post("/api/admin/supplier-price-audit", {
         headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
         data: { productId: crypto.randomUUID(), expectedCurrentPrice: 1 }
+      }),
+      request.post("/api/admin/supplier-documents", {
+        headers: { Origin: "https://example.invalid", "Sec-Fetch-Site": "cross-site" },
+        data: { action: "ADD_ITEM" }
       })
     ]);
     expect(refund.status()).toBe(403);
     expect(market.status()).toBe(403);
     expect(supplierPrice.status()).toBe(403);
+    expect(supplierDocument.status()).toBe(403);
   });
 
   test("el webhook vacío responde rápido y no consulta al proveedor", async ({ request }) => {
@@ -133,10 +142,17 @@ test.describe("Controles de seguridad no destructivos", () => {
     }
   });
 
-  test("rentabilidad administrativa no expone datos a sesiones anónimas", async ({ request }) => {
-    const response = await request.get("/admin/rentabilidad", { maxRedirects: 0 });
-    expect([302, 303, 307, 308, 401, 403]).toContain(response.status());
-    expect(response.headers()["cache-control"] ?? "no-store").toContain("no-store");
+  test("las áreas administrativas no exponen datos a sesiones anónimas", async ({ request }) => {
+    const responses = await Promise.all([
+      "/admin/rentabilidad",
+      "/admin/proveedores",
+      "/admin/reportes",
+      "/admin/analiticas"
+    ].map((adminRoute) => request.get(adminRoute, { maxRedirects: 0 })));
+    for (const response of responses) {
+      expect([302, 303, 307, 308, 401, 403]).toContain(response.status());
+      expect(response.headers()["cache-control"] ?? "no-store").toContain("no-store");
+    }
   });
 
   test("el entorno previo al dominio mantiene cerrada la indexación", async ({ request }) => {

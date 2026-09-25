@@ -44,6 +44,14 @@ function isLocalUrl(value: string) {
   }
 }
 
+export function getCanonicalAuthSiteUrl(request?: Request) {
+  if (request) {
+    const requestOrigin = new URL(request.url).origin;
+    if (isLocalUrl(requestOrigin)) return requestOrigin;
+  }
+  return FZAC_PRODUCTION_SITE_URL;
+}
+
 export function getRequestSiteUrl(request: Request) {
   const requestUrl = new URL(request.url);
   const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();

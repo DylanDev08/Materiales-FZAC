@@ -162,6 +162,6 @@ services:
       - key: FZAC_LEGAL_ADDRESS
         sync: false
       - key: FZAC_CUSTOMER_SERVICE_HOURS
-        sync: false
+        value: "Lunes a sábado de 08:00 a 17:00"
       - key: NARANJAX_ENABLED
         value: "false"

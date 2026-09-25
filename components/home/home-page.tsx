@@ -8,7 +8,6 @@ import {
   Headphones,
   Layers3,
   MessageCircle,
-  PaintRoller,
   PanelsTopLeft,
   Ruler,
   RotateCcw,
@@ -25,7 +24,7 @@ const primaryCategories = [
   { label: "Construcción en Seco", helper: "Placas, perfiles, masillas y terminaciones", href: "/categoria/construccion-en-seco", icon: PanelsTopLeft },
   { label: "Steel Framing", helper: "Estructuras y soluciones para sistemas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
   { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench },
-  { label: "Pinturas", helper: "Látex, esmaltes, barnices e impermeabilizantes", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller }
+  { label: "Materiales de obra", helper: "Cemento y materiales con stock informado", href: "/categoria/materiales-de-obra", icon: Hammer }
 ];
 
 const buyingNeeds = [
@@ -35,7 +34,7 @@ const buyingNeeds = [
   { label: "Perfiles", helper: "Perfiles interiores y estructurales", href: "/productos?search=perfil", icon: Layers3 },
   { label: "Tornillos y accesorios", helper: "Fijaciones para completar el sistema", href: "/categoria/ferreteria", icon: Wrench },
   { label: "Masillas y cintas", helper: "Tomado de juntas y terminación", href: "/productos?search=masillas%20y%20cintas", icon: PanelsTopLeft },
-  { label: "Pintar y proteger", helper: "Pinturas y soluciones para cada superficie", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller }
+  { label: "Materiales de obra", helper: "Cemento y básicos para avanzar la obra", href: "/categoria/materiales-de-obra", icon: Hammer }
 ];
 
 export async function HomePage() {
@@ -43,7 +42,7 @@ export async function HomePage() {
     getProducts({ category: "construccion-en-seco", limit: 3, order: "newest" }),
     getProducts({ category: "steel-framing", limit: 3, order: "newest" }),
     getProducts({ category: "ferreteria", limit: 3, order: "newest" }),
-    getProducts({ category: "pintura-impermeabilizacion", limit: 3, order: "newest" })
+    getProducts({ category: "materiales-de-obra", limit: 3, order: "newest" })
   ]);
   const products = shelves.flat();
   const materialHelpHref = getWhatsAppHref("Hola FZAC, no encuentro un material en la tienda y necesito asesoramiento.");
@@ -64,8 +63,8 @@ export async function HomePage() {
         <div className="container storefront-hero__inner">
           <div className="storefront-hero__content">
             <span className="storefront-hero__eyebrow">Materiales FZAC · Rosario</span>
-            <h1>Materiales y pinturas para avanzar con tu obra.</h1>
-            <p>Construcción en seco, steel framing, ferretería y pinturas, con precios online, carrito y asesoramiento.</p>
+            <h1>Materiales para avanzar con tu obra.</h1>
+            <p>Construcción en seco, steel framing, ferretería y materiales de obra, con precios online, carrito y asesoramiento.</p>
             <div className="storefront-hero__actions">
               <Link className="btn" href="/productos" prefetch={false}>
                 Ver productos <ArrowRight size={18} />
@@ -100,7 +99,7 @@ export async function HomePage() {
           <SectionHeader
             eyebrow="Categorías principales"
             title="Comprá por rubro"
-            text="Sistemas en seco, fijaciones, pinturas y terminaciones en un mismo catálogo."
+            text="Sistemas en seco, fijaciones y materiales de obra en un mismo catálogo."
           />
           <div className="storefront-category-rail">
             {primaryCategories.map(({ href, icon: Icon, label, helper }) => (

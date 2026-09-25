@@ -23,7 +23,7 @@ export type ProductFilters = {
   offset?: number;
 };
 
-export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "pintura-impermeabilizacion", "materiales-de-obra"] as const;
+export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "materiales-de-obra"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
@@ -166,15 +166,24 @@ export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("active", true)
-    .in("slug", [...PUBLIC_CATEGORY_SLUGS])
-    .order("sort_order", { ascending: true });
+  const [{ data: categoryRows, error: categoryError }, { data: productRows, error: productError }] = await Promise.all([
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("active", true)
+      .in("slug", [...PUBLIC_CATEGORY_SLUGS])
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("products")
+      .select("category_id")
+      .eq("active", true)
+  ]);
 
-  if (error) return [];
-  return (data ?? []).map(normalizeCategory);
+  if (categoryError || productError) return [];
+  const populatedCategoryIds = new Set((productRows ?? []).map((row) => String(row.category_id ?? "")).filter(Boolean));
+  return (categoryRows ?? [])
+    .filter((category) => populatedCategoryIds.has(String(category.id)))
+    .map(normalizeCategory);
 });
 
 export async function getCatalogFacets(): Promise<CatalogFacets> {

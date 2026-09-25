@@ -2,9 +2,9 @@ import { CatalogPage } from "@/components/catalog/catalog-page";
 import { publicPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = publicPageMetadata({
-  title: "Construcción en seco, Steel Framing, Ferretería y Pinturas",
+  title: "Construcción en seco, Steel Framing y Ferretería",
   description:
-    "Explorá construcción en seco, steel framing, ferretería y pinturas con precios FZAC y disponibilidad informada.",
+    "Explorá construcción en seco, steel framing, ferretería y materiales de obra con precios FZAC y disponibilidad informada.",
   path: "/productos"
 });
 

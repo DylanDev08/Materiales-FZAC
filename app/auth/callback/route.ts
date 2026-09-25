@@ -4,7 +4,7 @@ import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { createLegalAcceptance, legalAcceptanceUserMetadata } from "@/lib/legal/versions";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getAdminConsolePath, getRequestSiteUrl } from "@/lib/utils/env";
+import { getAdminConsolePath, getCanonicalAuthSiteUrl } from "@/lib/utils/env";
 import { safeInternalPath } from "@/lib/utils/navigation";
 
 export async function GET(request: Request) {
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const requestedNext = requestUrl.searchParams.get("next");
   const legalRegistration = requestUrl.searchParams.get("legal") === "register";
   const next = safeInternalPath(requestedNext);
-  const siteUrl = getRequestSiteUrl(request);
+  const siteUrl = getCanonicalAuthSiteUrl(request);
   const supabase = await getSupabaseServerClient();
 
   if (!code || !supabase) return NextResponse.redirect(new URL("/login?auth_error=true", siteUrl));

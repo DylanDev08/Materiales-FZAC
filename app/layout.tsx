@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { ConsentAwareAnalytics } from "@/components/analytics/consent-aware-analytics";
 import { FzacEntryLoader } from "@/components/layout/fzac-entry-loader";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -121,6 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="site-main">{children}</div>
             <SiteFooter />
           </div>
+          <ConsentAwareAnalytics />
         </Providers>
       </body>
     </html>

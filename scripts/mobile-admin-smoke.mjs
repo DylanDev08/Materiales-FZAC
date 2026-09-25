@@ -38,6 +38,11 @@ const marketPricesScreenshot = path.join(screenshotDirectory, "mobile-admin-mark
 const inventoryScreenshot = path.join(screenshotDirectory, "mobile-admin-inventory.png");
 const procurementScreenshot = path.join(screenshotDirectory, "mobile-admin-procurement.png");
 const supplierFinanceScreenshot = path.join(screenshotDirectory, "mobile-admin-supplier-finance.png");
+const supplierWorkspaceScreenshot = path.join(screenshotDirectory, "mobile-admin-suppliers.png");
+const reportScreenshot = path.join(screenshotDirectory, "mobile-admin-report.png");
+const reportPrintScreenshot = path.join(screenshotDirectory, "print-admin-report.png");
+const analyticsScreenshot = path.join(screenshotDirectory, "mobile-admin-analytics.png");
+const reportPdf = path.join(screenshotDirectory, "fzac-client-price-list-qa.pdf");
 const desktopScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard.png");
 const desktopCollapsedScreenshot = path.join(screenshotDirectory, "desktop-admin-dashboard-collapsed.png");
 const desktopFinanceScreenshot = path.join(screenshotDirectory, "desktop-admin-finances.png");
@@ -54,6 +59,9 @@ let procurementSupplierId = null;
 let procurementOrderId = null;
 let supplierInvoiceId = null;
 let supplierPaymentId = null;
+let supplierDocumentId = null;
+let supplierDocumentItemId = null;
+let supplierDocumentStoragePath = null;
 let browser = null;
 let server = null;
 let testError = null;
@@ -61,6 +69,35 @@ const cleanupErrors = [];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function decodeBase32(value) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const normalized = value.toUpperCase().replace(/[^A-Z2-7]/g, "");
+  let bits = "";
+  for (const character of normalized) {
+    const index = alphabet.indexOf(character);
+    if (index < 0) throw new Error("The QA MFA secret is not valid base32.");
+    bits += index.toString(2).padStart(5, "0");
+  }
+  const bytes = [];
+  for (let offset = 0; offset + 8 <= bits.length; offset += 8) {
+    bytes.push(Number.parseInt(bits.slice(offset, offset + 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+function totpCode(secret, timestamp = Date.now()) {
+  const counter = BigInt(Math.floor(timestamp / 30_000));
+  const buffer = Buffer.alloc(8);
+  buffer.writeBigUInt64BE(counter);
+  const digest = crypto.createHmac("sha1", decodeBase32(secret)).update(buffer).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const binary = ((digest[offset] & 0x7f) << 24)
+    | ((digest[offset + 1] & 0xff) << 16)
+    | ((digest[offset + 2] & 0xff) << 8)
+    | (digest[offset + 3] & 0xff);
+  return String(binary % 1_000_000).padStart(6, "0");
 }
 
 async function waitForServer() {
@@ -108,6 +145,42 @@ async function cleanup() {
     const { error: supplierInvoiceAuditError } = await admin.from("admin_audit_logs").delete().eq("entity", "supplier_invoices").eq("entity_id", supplierInvoiceId);
     const { error: supplierInvoiceError } = await admin.from("supplier_invoices").delete().eq("id", supplierInvoiceId);
     if (supplierInvoiceAuditError || supplierInvoiceError) cleanupErrors.push("Could not remove isolated supplier invoice data.");
+  }
+  if (supplierDocumentItemId) {
+    const { error: itemAuditError } = await admin
+      .from("admin_audit_logs")
+      .delete()
+      .eq("entity", "supplier_document_items")
+      .eq("entity_id", supplierDocumentItemId);
+    const { error: itemError } = await admin
+      .from("supplier_document_items")
+      .delete()
+      .eq("id", supplierDocumentItemId);
+    if (itemAuditError || itemError) cleanupErrors.push("Could not remove isolated supplier document item.");
+  }
+  if (supplierDocumentId) {
+    let storagePath = supplierDocumentStoragePath;
+    if (!storagePath) {
+      const { data: document } = await admin
+        .from("supplier_documents")
+        .select("storage_path")
+        .eq("id", supplierDocumentId)
+        .maybeSingle();
+      storagePath = document?.storage_path ?? null;
+    }
+    const { error: documentAuditError } = await admin
+      .from("admin_audit_logs")
+      .delete()
+      .eq("entity", "supplier_documents")
+      .eq("entity_id", supplierDocumentId);
+    const { error: documentError } = await admin
+      .from("supplier_documents")
+      .delete()
+      .eq("id", supplierDocumentId);
+    const storageError = storagePath
+      ? (await admin.storage.from("supplier-documents").remove([storagePath])).error
+      : null;
+    if (documentAuditError || documentError || storageError) cleanupErrors.push("Could not remove isolated supplier document data.");
   }
   if (procurementOrderId) {
     const { error: procurementInventoryError } = await admin.from("inventory_movements").delete().eq("product_id", marketProductId).eq("type", "PURCHASE_RECEIPT");
@@ -186,8 +259,17 @@ try {
   await page.getByLabel(/^email$/i).fill(email);
   await page.locator("input[type='password']").fill(password);
   await page.getByRole("button", { name: /^ingresar$/i }).click();
-  await page.waitForURL((url) => url.pathname === adminPath, { timeout: 25_000 });
+  await page.waitForURL((url) => url.pathname === adminPath || url.pathname === "/seguridad/admin-mfa", { timeout: 25_000 });
+  if (new URL(page.url()).pathname === "/seguridad/admin-mfa") {
+    const secret = await page.locator(".admin-mfa-secret code").textContent({ timeout: 25_000 });
+    if (!secret) throw new Error("The isolated QA administrator did not receive an MFA enrollment secret.");
+    await page.getByLabel(/c[oó]digo de autenticaci[oó]n/i).fill(totpCode(secret));
+    await page.getByRole("button", { name: /activar mfa y entrar/i }).click();
+    await page.waitForURL((url) => url.pathname === adminPath, { timeout: 25_000 });
+  }
   await page.locator(".admin-page").waitFor({ state: "visible", timeout: 25_000 });
+  const privacyConsent = page.getByRole("button", { name: "Aceptar recomendadas" });
+  if (await privacyConsent.isVisible().catch(() => false)) await privacyConsent.click();
 
   const closedMetrics = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -457,6 +539,105 @@ try {
   const { data: receivedProduct, error: receivedProductError } = await admin.from("products").select("stock").eq("id", marketProductId).single();
   assert(!receivedProductError && Number(receivedProduct?.stock) === 3, "Purchase receipt did not increase stock exactly once.");
 
+  const supplierDocumentLifecycle = await page.evaluate(async ({ supplierId, unrelatedProductId }) => {
+    const uploadForm = new FormData();
+    uploadForm.set("supplierId", supplierId);
+    uploadForm.set("title", "Lista de precios QA");
+    uploadForm.set("kind", "PRICE_LIST");
+    uploadForm.set("documentDate", new Date().toISOString().slice(0, 10));
+    uploadForm.set("notes", "Documento temporal de control automatizado");
+    uploadForm.set(
+      "file",
+      new File(["sku,price\nQA-SKU,123.45\n"], "lista-precios-qa.csv", { type: "text/csv" })
+    );
+
+    const uploadResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      body: uploadForm
+    });
+    const upload = { status: uploadResponse.status, body: await uploadResponse.json() };
+    if (upload.status !== 201 || !upload.body?.id) return { stage: "upload", upload };
+
+    const mismatchResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "ADD_ITEM",
+        documentId: upload.body.id,
+        productId: unrelatedProductId,
+        supplierProductName: "Producto ajeno QA",
+        supplierSku: "QA-MISMATCH",
+        unit: "unidad",
+        supplierPrice: 100,
+        supplierStock: 1
+      })
+    });
+    const mismatch = { status: mismatchResponse.status, body: await mismatchResponse.json() };
+
+    const itemResponse = await fetch("/api/admin/supplier-documents", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "ADD_ITEM",
+        documentId: upload.body.id,
+        productId: "",
+        supplierProductName: "Producto proveedor QA",
+        supplierSku: "QA-SKU",
+        unit: "unidad",
+        supplierPrice: 123.45,
+        supplierStock: 7
+      })
+    });
+    const item = { status: itemResponse.status, body: await itemResponse.json() };
+
+    const signedResponse = await fetch(`/api/admin/supplier-documents?id=${encodeURIComponent(upload.body.id)}`, {
+      cache: "no-store"
+    });
+    const signed = { status: signedResponse.status, body: await signedResponse.json() };
+
+    return { stage: "done", documentId: upload.body.id, mismatch, item, signed };
+  }, { supplierId: procurementSupplierId, unrelatedProductId: marketProductId });
+
+  if (supplierDocumentLifecycle.documentId) supplierDocumentId = supplierDocumentLifecycle.documentId;
+  if (supplierDocumentLifecycle.item?.body?.id) supplierDocumentItemId = supplierDocumentLifecycle.item.body.id;
+
+  assert(supplierDocumentLifecycle.stage === "done", `Supplier document lifecycle failed: ${JSON.stringify(supplierDocumentLifecycle)}.`);
+  assert(supplierDocumentLifecycle.mismatch?.status === 409, "Supplier document accepted a product from another supplier.");
+  assert(supplierDocumentLifecycle.item?.status === 201 && supplierDocumentLifecycle.item?.body?.id, "Supplier document item was not persisted.");
+  assert(supplierDocumentLifecycle.signed?.status === 200 && /^https:\/\//.test(supplierDocumentLifecycle.signed?.body?.url ?? ""), "Supplier document did not return a signed download URL.");
+
+  const { data: supplierDocumentRow, error: supplierDocumentError } = await admin
+    .from("supplier_documents")
+    .select("storage_path,mime_type,size_bytes,supplier_id,status")
+    .eq("id", supplierDocumentId)
+    .single();
+  assert(
+    !supplierDocumentError
+      && supplierDocumentRow?.supplier_id === procurementSupplierId
+      && supplierDocumentRow?.status === "ACTIVE"
+      && supplierDocumentRow?.mime_type === "text/csv"
+      && Number(supplierDocumentRow?.size_bytes ?? 0) > 0,
+    "Supplier document metadata was not persisted correctly."
+  );
+  supplierDocumentStoragePath = supplierDocumentRow.storage_path;
+
+  const { data: anonymousDocuments, error: anonymousDocumentsError } = await anonymous
+    .from("supplier_documents")
+    .select("id")
+    .eq("id", supplierDocumentId);
+  assert(Boolean(anonymousDocumentsError) || anonymousDocuments?.length === 0, "Anonymous users can read supplier documents.");
+
+  const publicStoragePath = supplierDocumentStoragePath
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const publicStorageResponse = await fetch(`${supabaseUrl}/storage/v1/object/public/supplier-documents/${publicStoragePath}`);
+  assert(!publicStorageResponse.ok, "Private supplier document is reachable through a public Storage URL.");
+
+  const signedDownload = await fetch(supplierDocumentLifecycle.signed.body.url);
+  assert(signedDownload.ok, "Signed supplier document URL could not be downloaded.");
+  assert((await signedDownload.text()).includes("QA-SKU,123.45"), "Signed supplier document content does not match the uploaded QA file.");
+
   const supplierFinanceLifecycle = await page.evaluate(async ({ orderId }) => {
     const call = async (method, body, endpoint = "/api/admin/supplier-finance") => {
       const response = await fetch(endpoint, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -580,6 +761,40 @@ try {
   await page.getByRole("button", { name: "Proveedores" }).click();
   await page.getByRole("heading", { name: "Nuevo proveedor" }).waitFor({ state: "visible" });
 
+  await page.goto(`${baseUrl}${adminPath}/proveedores`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-supplier-workspace").waitFor({ state: "visible", timeout: 25_000 });
+  const supplierWorkspaceMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    undersizedActions: Array.from(document.querySelectorAll(".admin-supplier-workspace button, .admin-supplier-workspace a, .admin-supplier-workspace input, .admin-supplier-workspace select"))
+      .filter((element) => element.getBoundingClientRect().height > 0 && element.getBoundingClientRect().height < 42).length
+  }));
+  assert(supplierWorkspaceMobileMetrics.documentWidth <= supplierWorkspaceMobileMetrics.viewport + 2, "Supplier workspace generates mobile horizontal overflow.");
+  assert(supplierWorkspaceMobileMetrics.undersizedActions === 0, "Supplier workspace contains undersized touch controls.");
+  await page.screenshot({ path: supplierWorkspaceScreenshot, fullPage: true });
+
+  await page.goto(`${baseUrl}${adminPath}/reportes?audience=customer&availability=available`, { waitUntil: "domcontentloaded" });
+  await page.locator(".catalog-report-builder").waitFor({ state: "visible", timeout: 25_000 });
+  const reportMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(reportMobileMetrics.documentWidth <= reportMobileMetrics.viewport + 2, "Catalog report generates mobile horizontal overflow.");
+  await page.screenshot({ path: reportScreenshot, fullPage: true });
+  await page.emulateMedia({ media: "print" });
+  await page.screenshot({ path: reportPrintScreenshot, fullPage: true });
+  await page.pdf({ path: reportPdf, format: "A4", printBackground: true });
+  await page.emulateMedia({ media: "screen" });
+
+  await page.goto(`${baseUrl}${adminPath}/analiticas`, { waitUntil: "domcontentloaded" });
+  await page.locator(".admin-vercel-analytics").waitFor({ state: "visible", timeout: 25_000 });
+  const analyticsMobileMetrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth
+  }));
+  assert(analyticsMobileMetrics.documentWidth <= analyticsMobileMetrics.viewport + 2, "Analytics hub generates mobile horizontal overflow.");
+  await page.screenshot({ path: analyticsScreenshot, fullPage: true });
+
   await page.goto(`${baseUrl}${adminPath}/inventario`, { waitUntil: "domcontentloaded" });
   await page.locator(".admin-inventory").waitFor({ state: "visible", timeout: 25_000 });
   await page.locator(".admin-inventory__skeleton").waitFor({ state: "hidden", timeout: 25_000 });
@@ -667,6 +882,11 @@ try {
       procurementLifecycle: true,
       procurementIdempotency: true,
       supplierFinanceResponsive: true,
+      supplierWorkspaceResponsive: true,
+      supplierDocumentLifecycle: true,
+      supplierDocumentPrivateStorage: true,
+      catalogReportResponsive: true,
+      analyticsHubResponsive: true,
       supplierFinanceLifecycle: true,
       supplierFinanceIdempotency: true,
       sidebarDrawer: true,
@@ -683,6 +903,11 @@ try {
         path.relative(process.cwd(), inventoryScreenshot),
         path.relative(process.cwd(), procurementScreenshot),
         path.relative(process.cwd(), supplierFinanceScreenshot),
+        path.relative(process.cwd(), supplierWorkspaceScreenshot),
+        path.relative(process.cwd(), reportScreenshot),
+        path.relative(process.cwd(), reportPrintScreenshot),
+        path.relative(process.cwd(), analyticsScreenshot),
+        path.relative(process.cwd(), reportPdf),
         path.relative(process.cwd(), desktopScreenshot),
         path.relative(process.cwd(), desktopCollapsedScreenshot),
         path.relative(process.cwd(), desktopFinanceScreenshot),

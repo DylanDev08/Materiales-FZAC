@@ -4,11 +4,18 @@ import { createHash } from "node:crypto";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { AddressPayload } from "@/types/domain";
 
-type RouteMatrixElement = {
-  status?: { code?: number; message?: string };
-  condition?: "ROUTE_EXISTS" | "ROUTE_NOT_FOUND";
-  distanceMeters?: number;
-  duration?: string;
+type ComputeRoutesPayload = {
+  routes?: Array<{
+    distanceMeters?: number;
+    duration?: string;
+  }>;
+  geocodingResults?: {
+    destination?: {
+      placeId?: string;
+      partialMatch?: boolean;
+      geocoderStatus?: { code?: number; message?: string };
+    };
+  };
 };
 
 type GoogleRoutesError = {
@@ -140,7 +147,7 @@ function quoteCacheKey(address: AddressPayload) {
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   return createHash("sha256")
-    .update(JSON.stringify({ origin, destination: addressLine(address).toLowerCase(), tariff }))
+    .update(JSON.stringify({ origin, placeId: cleanAddressPart(address.placeId, 256), destination: addressLine(address).toLowerCase(), tariff }))
     .digest("hex");
 }
 
@@ -158,6 +165,18 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   const destination = addressLine(address);
+  const placeId = cleanAddressPart(address.placeId, 256);
+
+  if (!placeId) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("Seleccioná una dirección de las sugerencias de Google Maps antes de cotizar el envío."),
+      origin,
+      destination,
+      provider: "GOOGLE_ROUTES"
+    };
+  }
 
   if (!hasRealValue(key)) {
     return {
@@ -171,21 +190,28 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
 
   let response: Response;
   try {
-    response = await fetch("https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix", {
+    response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
       method: "POST",
       cache: "no-store",
       signal: AbortSignal.timeout(7_000),
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": key,
-        "X-Goog-FieldMask": "originIndex,destinationIndex,status,condition,distanceMeters,duration"
+        "X-Goog-FieldMask": [
+          "routes.distanceMeters",
+          "routes.duration",
+          "geocodingResults.destination.placeId",
+          "geocodingResults.destination.partialMatch",
+          "geocodingResults.destination.geocoderStatus.code"
+        ].join(",")
       },
       body: JSON.stringify({
-        origins: [{ waypoint: { address: origin } }],
-        destinations: [{ waypoint: { address: destination } }],
+        origin: { address: origin },
+        destination: { address: destination },
         travelMode: "DRIVE",
         routingPreference: "TRAFFIC_UNAWARE",
         languageCode: "es-AR",
+        regionCode: "AR",
         units: "METRIC"
       })
     });
@@ -199,7 +225,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
       provider: "GOOGLE_ROUTES"
     };
   }
-  const payload = (await response.json().catch(() => ({}))) as RouteMatrixElement[] | GoogleRoutesError;
+  const payload = (await response.json().catch(() => ({}))) as ComputeRoutesPayload | GoogleRoutesError;
 
   if (!response.ok) {
     return {
@@ -212,12 +238,30 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  const data = payload as RouteMatrixElement[];
-  const element = data[0];
-  const distanceMeters = Number(element?.distanceMeters ?? 0);
+  const data = payload as ComputeRoutesPayload;
+  const geocodedDestination = data.geocodingResults?.destination;
+  const geocodedPlaceId = geocodedDestination?.placeId?.trim() ?? "";
+  const route = data.routes?.[0];
+  const distanceMeters = Number(route?.distanceMeters ?? 0);
   const distanceKm = distanceMeters / 1000;
 
-  if (element?.condition !== "ROUTE_EXISTS" || Number(element?.status?.code ?? 0) !== 0 || !distanceMeters) {
+  if (
+    !geocodedPlaceId
+    || geocodedPlaceId !== placeId
+    || geocodedDestination?.partialMatch
+    || Number(geocodedDestination?.geocoderStatus?.code ?? 0) !== 0
+  ) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("La dirección escrita no coincide exactamente con la ubicación seleccionada en Google Maps."),
+      origin,
+      destination,
+      provider: "GOOGLE_ROUTES"
+    };
+  }
+
+  if (!distanceMeters) {
     return {
       available: false,
       amount: 0,
@@ -258,7 +302,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     available: true,
     amount: roundShipping(rawAmount, tariff.roundTo),
     distanceKm: Number(distanceKm.toFixed(1)),
-    durationText: durationLabel(element.duration),
+    durationText: durationLabel(route?.duration),
     origin,
     destination,
     provider: "GOOGLE_ROUTES"

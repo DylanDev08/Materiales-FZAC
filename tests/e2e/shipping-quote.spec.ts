@@ -10,27 +10,41 @@ test("rechaza direcciones incompletas antes de consultar Google", async ({ reque
   });
   expect(response.status()).toBe(422);
   const body = await response.json();
-  expect(String(body.error ?? body.message)).toMatch(/calle|direcci[oó]n|caracteres/i);
+  expect(String(body.error ?? body.message)).toMatch(/calle|direcci[oó]n|caracteres|Google/i);
 });
 
-test("una dirección válida cotiza o falla cerrada según la configuración", async ({ request }) => {
+test("rechaza una dirección escrita manualmente si no fue seleccionada desde Google Places", async ({ request }) => {
   const response = await request.post("/api/shipping/quote", {
     data: { street: "Córdoba", number: "1200", city: "Rosario", province: "Santa Fe" }
   });
   const body = await response.json();
 
-  if (response.ok()) {
-    expect(body.available).toBe(true);
-    expect(body.amount).toBeGreaterThanOrEqual(0);
-    expect(body.distanceKm).toBeGreaterThan(0);
-    expect(body.provider).toBe("GOOGLE_ROUTES");
-    return;
-  }
-
   expect(response.status()).toBe(422);
-  expect(body.available).toBe(false);
-  expect(body.amount).toBe(0);
-  expect(body.reason).toMatch(/API server-side de Google Maps|tarifa vigente|servicio de distancia|envío automático|Routes API|límite de consultas/i);
-  expect(body.reason).toMatch(/retiro sin costo|coordinar el envío por WhatsApp/i);
+  expect(body.available ?? false).toBe(false);
+  expect(String(body.error ?? body.message ?? body.reason)).toMatch(/direcci[oó]n sugerida|Google Maps|Google Places/i);
+  expect(Number(body.amount ?? 0)).toBe(0);
+  expect(JSON.stringify(body)).not.toMatch(/AIza|API_KEY_HTTP_REFERRER_BLOCKED|projects\//i);
+});
+
+test("un placeId inválido falla cerrado sin filtrar secretos", async ({ request }) => {
+  const response = await request.post("/api/shipping/quote", {
+    data: {
+      placeId: "ChIJ-invalid-place-id-for-fzac-qa",
+      street: "Córdoba",
+      number: "1200",
+      city: "Rosario",
+      province: "Santa Fe"
+    }
+  });
+  const body = await response.json();
+
+  expect([422, 429]).toContain(response.status());
+  if (response.status() === 422) {
+    expect(body.available).toBe(false);
+    expect(Number(body.amount ?? 0)).toBe(0);
+    expect(String(body.reason ?? body.error ?? body.message)).toMatch(
+      /direcci[oó]n|distancia|Google Maps|Routes API|retiro sin costo|WhatsApp/i
+    );
+  }
   expect(JSON.stringify(body)).not.toMatch(/AIza|API_KEY_HTTP_REFERRER_BLOCKED|projects\//i);
 });

@@ -113,6 +113,12 @@ const checks = [
   {
     severity: "warning",
     area: "Envios",
+    requirement: "Google Places disponible en checkout para seleccionar una direccion verificable",
+    ok: configured("NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY") || configured("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")
+  },
+  {
+    severity: "warning",
+    area: "Envios",
     requirement: "Cotizacion automatica por Google Routes y tarifa configurada",
     ok: shippingConfigured
   },

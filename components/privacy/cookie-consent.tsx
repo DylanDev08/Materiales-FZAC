@@ -15,17 +15,20 @@ type ConsentView = "hidden" | "notice" | "settings";
 export function CookieConsent() {
   const [view, setView] = useState<ConsentView>("hidden");
   const [preferences, setPreferences] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const current = readPrivacyConsent();
       setPreferences(current?.preferences ?? false);
+      setAnalytics(current?.analytics ?? false);
       if (!current) setView("notice");
     });
 
     const openSettings = () => {
       const saved = readPrivacyConsent();
       setPreferences(saved?.preferences ?? false);
+      setAnalytics(saved?.analytics ?? false);
       setView("settings");
     };
     window.addEventListener(PRIVACY_SETTINGS_OPEN_EVENT, openSettings);
@@ -35,8 +38,8 @@ export function CookieConsent() {
     };
   }, []);
 
-  function confirm(nextPreferences: boolean) {
-    savePrivacyConsent(nextPreferences);
+  function confirm(nextPreferences: boolean, nextAnalytics: boolean) {
+    savePrivacyConsent(nextPreferences, nextAnalytics);
     setView("hidden");
   }
 
@@ -65,8 +68,9 @@ export function CookieConsent() {
         </header>
 
         <p>
-          Usamos almacenamiento necesario para la sesión, el carrito y el checkout. Con tu permiso también recordamos
-          búsquedas y conversaciones en este dispositivo. No usamos publicidad ni vendemos tus datos.
+          Usamos almacenamiento necesario para la sesión, el carrito y el checkout. Con tu permiso también podemos recordar
+          búsquedas y conversaciones en este dispositivo y medir visitas de forma agregada con Vercel Web Analytics. No usamos
+          publicidad ni vendemos tus datos.
         </p>
 
         {view === "settings" ? (
@@ -81,10 +85,15 @@ export function CookieConsent() {
               <small>Recuerda búsquedas y conversaciones del asistente en este dispositivo.</small>
               <input type="checkbox" checked={preferences} onChange={(event) => setPreferences(event.target.checked)} />
             </label>
+            <label>
+              <span><SlidersHorizontal size={18} /><strong>Analítica de uso</strong></span>
+              <small>Permite medir páginas visitadas y tráfico agregado con Vercel Web Analytics. No habilita publicidad.</small>
+              <input type="checkbox" checked={analytics} onChange={(event) => setAnalytics(event.target.checked)} />
+            </label>
             <div className="privacy-consent__choice--disabled">
-              <span><strong>Analítica y publicidad</strong></span>
+              <span><strong>Publicidad</strong></span>
               <small>No hay herramientas de seguimiento publicitario activadas.</small>
-              <b>No utilizadas</b>
+              <b>No utilizada</b>
             </div>
           </div>
         ) : null}
@@ -99,8 +108,12 @@ export function CookieConsent() {
           {view === "notice" ? (
             <button className="btn btn--ghost" type="button" onClick={() => setView("settings")}>Configurar</button>
           ) : null}
-          <button className="btn btn--ghost" type="button" onClick={() => confirm(false)}>Solo necesarias</button>
-          <button className="btn" type="button" onClick={() => confirm(view === "settings" ? preferences : true)}>
+          <button className="btn btn--ghost" type="button" onClick={() => confirm(false, false)}>Solo necesarias</button>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => confirm(view === "settings" ? preferences : true, view === "settings" ? analytics : true)}
+          >
             {view === "settings" ? "Guardar preferencias" : "Aceptar recomendadas"}
           </button>
         </div>
