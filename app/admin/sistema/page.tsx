@@ -96,9 +96,6 @@ export default async function Page() {
           <Link className="btn btn--ghost" href={`${adminPath}/categorias`}>
             Ordenar categorías
           </Link>
-          <Link className="btn btn--ghost" href={`${adminPath}/documentacion`}>
-            Abrir guía del panel
-          </Link>
         </section>
 
         <section className="admin-docs-note">
