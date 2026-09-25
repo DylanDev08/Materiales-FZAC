@@ -97,9 +97,9 @@ test.describe("Seguridad y orquestación IA FZAC", () => {
   });
 
   test("solo habilita persistencia con la cookie de preferencias exacta", () => {
-    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v1.p1; theme=dark")).toBe(true);
-    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v1.p0")).toBe(false);
-    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v1.p10")).toBe(false);
+    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v2.p1; theme=dark")).toBe(true);
+    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v2.p0")).toBe(false);
+    expect(preferenceConsentCookieEnabled("fzac_privacy_consent=v2.p10")).toBe(false);
     expect(preferenceConsentCookieEnabled(null)).toBe(false);
   });
 });
