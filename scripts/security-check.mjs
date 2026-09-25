@@ -205,6 +205,15 @@ if (
   failures.push("Pagos: rechazos y expiraciones de Mercado Pago deben cerrarse mediante la RPC atomica finalize_failed_order.");
 }
 
+const shippingQuote = await readFile(path.join(root, "lib/shipping/quote.ts"), "utf8").catch(() => "");
+if (
+  !shippingQuote.includes("directions/v2:computeRoutes")
+  || !shippingQuote.includes("geocodingResults.destination.placeId")
+  || !shippingQuote.includes("geocodedPlaceId !== placeId")
+) {
+  failures.push("Envios: la tarifa debe vincular el Place ID seleccionado con la direccion geocodificada por Google Routes.");
+}
+
 const productUpload = await readFile(path.join(root, "app/api/admin/uploads/product-image/route.ts"), "utf8").catch(() => "");
 if (!productUpload.includes('from "sharp"') || !productUpload.includes(".webp(") || !productUpload.includes("limitInputPixels")) {
   failures.push("Upload de productos: falta decodificar/re-encodear la imagen con limites de pixels.");
