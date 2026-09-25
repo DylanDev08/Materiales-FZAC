@@ -86,6 +86,7 @@ export async function proxy(request: NextRequest) {
   const normalizedAdminPath = rawAdminPath.replace(/^\/+|\/+$/g, "");
   const adminConsolePath = normalizedAdminPath ? `/${normalizedAdminPath}` : "/fzac-admin-crs-2026";
   const isLegacyAdminPath = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
+  const maintenanceMode = process.env.MAINTENANCE_MODE?.trim().toLowerCase() === "true";
   const isConsolePath = request.nextUrl.pathname === adminConsolePath || request.nextUrl.pathname.startsWith(`${adminConsolePath}/`);
   const isPrivatePagePath = [
     "/cuenta",
@@ -109,6 +110,27 @@ export async function proxy(request: NextRequest) {
     ["/api/admin", "/api/account", "/api/orders", "/api/checkout", "/api/auth"].some(
       (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
     );
+  const isMaintenancePage = request.nextUrl.pathname === "/mantenimiento";
+  const isAuthAccessPath = ["/login", "/seguridad/admin-mfa"].some(
+    (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
+  );
+  const shouldShowMaintenance =
+    maintenanceMode &&
+    !isMaintenancePage &&
+    !isConsolePath &&
+    !isLegacyAdminPath &&
+    !isAuthAccessPath &&
+    !request.nextUrl.pathname.startsWith("/api/");
+
+  if (shouldShowMaintenance && ["GET", "HEAD"].includes(request.method.toUpperCase())) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mantenimiento";
+    url.search = "";
+    const maintenanceResponse = NextResponse.redirect(url, 307);
+    maintenanceResponse.headers.set("Retry-After", "300");
+    return applySecurityHeaders(maintenanceResponse, true, true);
+  }
+
   const isApiMutation =
     request.nextUrl.pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
   const isApiRequest = request.nextUrl.pathname.startsWith("/api/");
