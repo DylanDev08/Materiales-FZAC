@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Boxes, ChevronRight, Hammer, Layers3, PackageSearch, PaintRoller, PanelsTopLeft, Ruler, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, Boxes, ChevronRight, Hammer, Layers3, PackageSearch, PanelsTopLeft, Ruler, Wrench } from "lucide-react";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
@@ -45,10 +45,10 @@ const projectShortcuts = [
     icon: Hammer
   },
   {
-    label: "Pinturas",
-    helper: "Látex, esmaltes e impermeabilizantes",
-    href: "/categoria/pintura-impermeabilizacion",
-    icon: PaintRoller
+    label: "Materiales de obra",
+    helper: "Cemento y básicos con disponibilidad informada",
+    href: "/categoria/materiales-de-obra",
+    icon: Hammer
   }
 ];
 
