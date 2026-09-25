@@ -8,9 +8,7 @@ import {
   Activity,
   AreaChart,
   BarChart3,
-  Bell,
   BrainCircuit,
-  BookOpen,
   Building2,
   CreditCard,
   FileText,
@@ -23,10 +21,8 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
-  Palette,
   RotateCcw,
   ReceiptText,
-  Settings,
   ShieldCheck,
   ShoppingBag,
   ShoppingBasket,
@@ -42,8 +38,7 @@ const linkGroups = [
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
       { path: "/analiticas", label: "Analíticas", icon: AreaChart },
-      { path: "?tab=notifications", label: "Notificaciones", icon: Bell },
-      { path: "/logs", label: "Actividad", icon: Activity }
+      { path: "/operaciones", label: "Operaciones", icon: Activity }
     ]
   },
   {
@@ -81,13 +76,9 @@ const linkGroups = [
     ]
   },
   {
-    title: "Configuracion",
+    title: "Herramientas",
     links: [
-      { path: "/documentacion", label: "Guia del panel", icon: BookOpen },
-      { path: "/pagos/eventos", label: "Eventos de pago", icon: Activity },
-      { path: "/sistema", label: "Estado del sistema", icon: ShieldCheck },
-      { path: "/apariencia", label: "Apariencia", icon: Palette },
-      { path: "/ajustes", label: "Ajustes", icon: Settings },
+      { path: "/sistema", label: "Diagnóstico", icon: ShieldCheck },
       { path: "public:/productos", label: "Vista cliente", icon: Home }
     ]
   }
