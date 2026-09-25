@@ -99,12 +99,19 @@ export function AdminSupplierDocuments({
 
   async function openDocument(documentId: string) {
     setMessage("");
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) {
+      setMessage("El navegador bloqueó la pestaña del documento. Habilitá ventanas emergentes para este sitio e intentá de nuevo.");
+      return;
+    }
+    popup.opener = null;
     try {
       const response = await fetch(`/api/admin/supplier-documents?id=${encodeURIComponent(documentId)}`, { cache: "no-store" });
       const body = await response.json() as { url?: string; message?: string };
       if (!response.ok || !body.url) throw new Error(body.message || "No pudimos abrir el documento.");
-      window.open(body.url, "_blank", "noopener,noreferrer");
+      popup.location.replace(body.url);
     } catch (error) {
+      popup.close();
       setMessage(error instanceof Error ? error.message : "No pudimos abrir el documento.");
     }
   }
