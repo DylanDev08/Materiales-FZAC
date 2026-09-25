@@ -814,3 +814,166 @@ export async function getAdminCustomerRows() {
     };
   });
 }
+
+
+export async function getAdminOperationsOverview(limit = 80) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) {
+    return {
+      incidents: [{ severity: "critical", area: "Infraestructura", title: "Backend administrativo sin conexión", detail: "No se pudo crear el cliente administrativo de Supabase.", href: "" }],
+      reconciliation: [],
+      counts: { incidents: 1, pendingPayments: 0, failedEvents: 0, expiredReservations: 0, catalogIssues: 0 }
+    };
+  }
+
+  const now = new Date().toISOString();
+  const [
+    { data: orders },
+    { data: payments },
+    { data: events },
+    { data: reservations },
+    { data: tickets },
+    { data: products }
+  ] = await Promise.all([
+    admin.from("orders").select("id,customer_name,customer_email,status,total,currency,created_at").order("created_at", { ascending: false }).limit(300),
+    admin.from("payments").select("id,order_id,provider,status,amount,currency,provider_payment_id,created_at,updated_at").order("created_at", { ascending: false }).limit(300),
+    admin.from("payment_events").select("order_id,provider_payment_id,status,event_type,error_message,created_at,processed_at").order("created_at", { ascending: false }).limit(300),
+    admin.from("stock_reservations").select("order_id,product_id,status,expires_at,created_at").order("created_at", { ascending: false }).limit(500),
+    admin.from("purchase_tickets").select("order_id,number,status,total,issued_at").order("issued_at", { ascending: false }).limit(300),
+    admin.from("products").select("id,name,sku,active,price,original_price,image_url,category_id,supplier_id,stock,availability_status").eq("active", true).limit(1000)
+  ]);
+
+  const orderRows = orders ?? [];
+  const paymentRows = payments ?? [];
+  const eventRows = events ?? [];
+  const reservationRows = reservations ?? [];
+  const ticketRows = tickets ?? [];
+  const productRows = products ?? [];
+
+  const incidents: Array<{ severity: "critical" | "warning" | "info"; area: string; title: string; detail: string; href: string }> = [];
+  const paymentByOrder = new Map(paymentRows.filter((row) => row.order_id).map((row) => [String(row.order_id), row]));
+  const ticketByOrder = new Map(ticketRows.filter((row) => row.order_id).map((row) => [String(row.order_id), row]));
+
+  for (const order of orderRows) {
+    const payment = paymentByOrder.get(String(order.id));
+    const ticket = ticketByOrder.get(String(order.id));
+    const orderStatus = String(order.status ?? "").toUpperCase();
+    const paymentStatus = String(payment?.status ?? "").toUpperCase();
+
+    if (orderStatus === "PAID" && paymentStatus !== "PAID") {
+      incidents.push({
+        severity: "critical",
+        area: "Pagos",
+        title: "Pedido pagado sin pago aprobado",
+        detail: `Pedido ${shortReference(order.id)} figura PAID pero el pago asociado no está aprobado.`,
+        href: "/pagos"
+      });
+    }
+
+    if (paymentStatus === "PAID" && !["PAID", "COMPLETED", "DELIVERED"].includes(orderStatus)) {
+      incidents.push({
+        severity: "critical",
+        area: "Pagos",
+        title: "Pago aprobado sin pedido finalizado",
+        detail: `Pedido ${shortReference(order.id)} tiene pago aprobado y estado ${friendlyStatus(order.status)}.`,
+        href: "/pagos"
+      });
+    }
+
+    if (orderStatus === "PAID" && !ticket) {
+      incidents.push({
+        severity: "warning",
+        area: "Comprobantes",
+        title: "Pedido pagado sin ticket",
+        detail: `El pedido ${shortReference(order.id)} no tiene comprobante emitido.`,
+        href: "/tickets"
+      });
+    }
+
+    if (payment && Math.abs(Number(payment.amount ?? 0) - Number(order.total ?? 0)) > 0.01) {
+      incidents.push({
+        severity: "critical",
+        area: "Pagos",
+        title: "Diferencia de monto",
+        detail: `Pedido ${shortReference(order.id)}: orden ${currency(order.total)} vs pago ${currency(payment.amount)}.`,
+        href: "/pagos"
+      });
+    }
+  }
+
+  for (const event of eventRows.filter((row) => ["FAILED", "ERROR"].includes(String(row.status ?? "").toUpperCase()) || row.error_message)) {
+    incidents.push({
+      severity: "warning",
+      area: "Webhook",
+      title: "Evento de pago con error",
+      detail: `${event.event_type ?? "payment"} · ${String(event.error_message ?? "evento no procesado").slice(0, 120)}`,
+      href: "/pagos/eventos"
+    });
+  }
+
+  const expiredReservations = reservationRows.filter((row) => {
+    const status = String(row.status ?? "").toUpperCase();
+    return row.expires_at && String(row.expires_at) < now && !["RELEASED", "CONSUMED", "EXPIRED"].includes(status);
+  });
+  expiredReservations.forEach((reservation) => {
+    incidents.push({
+      severity: "warning",
+      area: "Stock",
+      title: "Reserva vencida todavía activa",
+      detail: `Pedido ${shortReference(reservation.order_id)} mantiene una reserva vencida.`,
+      href: "/inventario"
+    });
+  });
+
+  const catalogIssueRows = productRows.filter((product) =>
+    Number(product.price ?? 0) <= 0 ||
+    !product.image_url ||
+    !product.category_id ||
+    !product.supplier_id ||
+    product.original_price === null ||
+    product.original_price === undefined
+  );
+  if (catalogIssueRows.length) {
+    incidents.push({
+      severity: "warning",
+      area: "Catálogo",
+      title: "Productos activos incompletos",
+      detail: `${catalogIssueRows.length} producto(s) activo(s) tienen precio, imagen, categoría, proveedor o costo incompleto.`,
+      href: "/productos"
+    });
+  }
+
+  const reconciliation = orderRows.slice(0, limit).map((order) => {
+    const payment = paymentByOrder.get(String(order.id));
+    const ticket = ticketByOrder.get(String(order.id));
+    const relatedEvents = eventRows.filter((event) => String(event.order_id ?? "") === String(order.id));
+    const amountMatches = payment ? Math.abs(Number(payment.amount ?? 0) - Number(order.total ?? 0)) <= 0.01 : false;
+    const paymentOk = String(payment?.status ?? "").toUpperCase() === "PAID";
+    const orderPaid = ["PAID", "COMPLETED", "DELIVERED"].includes(String(order.status ?? "").toUpperCase());
+
+    return {
+      Pedido: shortReference(order.id),
+      Cliente: order.customer_name || order.customer_email || "-",
+      Orden: friendlyStatus(order.status),
+      Pago: payment ? friendlyStatus(payment.status) : "Sin pago",
+      Monto: currency(order.total),
+      "Monto pago": payment ? currency(payment.amount) : "-",
+      Coincide: payment ? (amountMatches ? "Sí" : "NO") : "-",
+      Webhook: relatedEvents.length ? friendlyStatus(relatedEvents[0].status) : "Sin evento",
+      Ticket: ticket?.number ?? "Sin ticket",
+      Conciliacion: orderPaid && paymentOk && amountMatches && ticket ? "OK" : orderPaid || paymentOk ? "REVISAR" : "Pendiente"
+    };
+  });
+
+  return {
+    incidents: incidents.slice(0, 30),
+    reconciliation,
+    counts: {
+      incidents: incidents.length,
+      pendingPayments: paymentRows.filter((row) => ["PENDING", "IN_PROCESS"].includes(String(row.status ?? "").toUpperCase())).length,
+      failedEvents: eventRows.filter((row) => ["FAILED", "ERROR"].includes(String(row.status ?? "").toUpperCase()) || row.error_message).length,
+      expiredReservations: expiredReservations.length,
+      catalogIssues: catalogIssueRows.length
+    }
+  };
+}
