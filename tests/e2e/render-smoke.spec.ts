@@ -65,7 +65,7 @@ test.describe("Render public smoke", () => {
       window.localStorage.setItem(
         "fzac-privacy-consent-v1",
         JSON.stringify({
-          version: "2026-08-11",
+          version: "2026-09-24",
           decidedAt: new Date().toISOString(),
           necessary: true,
           preferences: false,
