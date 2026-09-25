@@ -71,3 +71,24 @@ test("404 y catálogo no provocan scroll horizontal en 360px", async ({ page }) 
     expect(overflow, `overflow horizontal en ${route}`).toBeLessThanOrEqual(1);
   }
 });
+
+test("rutas comerciales conservan el layout en 430px, tablet y escritorio amplio", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  for (const viewport of [
+    { width: 430, height: 932 },
+    { width: 768, height: 1024 },
+    { width: 1920, height: 1080 }
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const route of ["/", "/productos", "/categoria/construccion-en-seco", "/carrito", "/login"]) {
+      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      expect(response?.status(), `${route} debe responder en ${viewport.width}px`).toBeLessThan(400);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `overflow horizontal en ${route} a ${viewport.width}px`).toBeLessThanOrEqual(1);
+    }
+  }
+
+  expect(pageErrors).toEqual([]);
+});

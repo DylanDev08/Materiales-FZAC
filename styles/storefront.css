@@ -956,9 +956,10 @@ body {
   }
 
   .topbar__consumer-link {
+    min-height: 44px;
     border-left: 0;
     padding-left: 0;
-    font-size: 0.7rem;
+    font-size: 0.76rem;
   }
 
   .site-header__main {

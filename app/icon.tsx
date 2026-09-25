@@ -20,6 +20,8 @@ export default async function Icon() {
           borderRadius: "14px"
         }}
       >
+        {/* ImageResponse renders its own image pipeline; next/image is not supported here. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={source} alt="" width={64} height={64} style={{ objectFit: "contain" }} />
       </div>
     ),

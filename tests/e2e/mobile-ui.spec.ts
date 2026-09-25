@@ -146,7 +146,7 @@ test.describe("Mobile UI audit", () => {
   test("boton de arrepentimiento queda visible desde el primer acceso", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    const consumerLink = page.getByRole("link", { name: /bot[oó]n de arrepentimiento/i }).first();
+    const consumerLink = page.locator(".topbar__consumer-link");
     await expect(consumerLink).toBeVisible();
     const box = await consumerLink.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(38);
@@ -159,7 +159,7 @@ test.describe("Mobile UI audit", () => {
 
   test("catalogo mobile permite escanear y añadir producto a consultar", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/construccion-en-seco?availability=CONSULT", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
     if ((await page.locator(".product-card").count()) === 0) {
       await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
@@ -173,7 +173,7 @@ test.describe("Mobile UI audit", () => {
 
   test("detalle de producto mobile conserva acciones principales", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/construccion-en-seco?availability=CONSULT", { waitUntil: "domcontentloaded" });
     if ((await page.locator("a[href^='/producto/']").count()) === 0) {
       test.skip(true, "El catálogo conectado no tiene un detalle de producto activo para probar.");
     }
@@ -189,7 +189,7 @@ test.describe("Mobile UI audit", () => {
 
   test("carrito mobile modifica cantidad y solicita disponibilidad sin pago falso", async ({ page }, testInfo) => {
     skipDesktop(testInfo);
-    await page.goto("/categoria/pintura-impermeabilizacion?availability=CONSULT", { waitUntil: "domcontentloaded" });
+    await page.goto("/categoria/construccion-en-seco?availability=CONSULT", { waitUntil: "domcontentloaded" });
     await addFirstAvailableProduct(page);
     await page.goto("/carrito", { waitUntil: "domcontentloaded" });
     await expectNoHorizontalOverflow(page);
