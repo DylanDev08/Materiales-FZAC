@@ -224,7 +224,7 @@ function AdminTaskCenter({
     {
       label: "Sistema",
       value: paymentsReady ? 0 : 1,
-      href: `${adminPath}/sistema`,
+      href: `${adminPath}/operaciones`,
       icon: Settings,
       helper: "Verificar Mercado Pago, Resend, Supabase y webhook."
     }
