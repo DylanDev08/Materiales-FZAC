@@ -26,5 +26,7 @@ export function ConsentAwareAnalytics() {
     serverAnalyticsSnapshot
   );
 
-  return enabled ? <Analytics /> : null;
+  return enabled ? (
+    <Analytics beforeSend={(event) => (analyticsAllowed() ? event : null)} />
+  ) : null;
 }
