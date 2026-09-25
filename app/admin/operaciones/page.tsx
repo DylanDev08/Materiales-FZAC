@@ -47,13 +47,13 @@ export default async function Page() {
           <article>
             <Activity size={20} />
             <span>Webhooks</span>
-            <strong>{operations.counts.failedEvents ? \`\${operations.counts.failedEvents} ERROR\` : "SIN ERRORES"}</strong>
+            <strong>{operations.counts.failedEvents ? `${operations.counts.failedEvents} ERROR` : "SIN ERRORES"}</strong>
             <small>Eventos recientes con error o procesamiento pendiente.</small>
           </article>
           <article>
             <PackageSearch size={20} />
             <span>Catálogo</span>
-            <strong>{operations.counts.catalogIssues ? \`\${operations.counts.catalogIssues} REVISAR\` : "COMPLETO"}</strong>
+            <strong>{operations.counts.catalogIssues ? `${operations.counts.catalogIssues} REVISAR` : "COMPLETO"}</strong>
             <small>Productos activos con datos comerciales incompletos.</small>
           </article>
         </div>
@@ -78,9 +78,9 @@ export default async function Page() {
             <div className="admin-ops__incidents">
               {operations.incidents.map((incident, index) => (
                 <Link
-                  href={incident.href ? \`\${adminPath}\${incident.href}\` : \`\${adminPath}/sistema\`}
-                  key={\`\${incident.title}-\${index}\`}
-                  className={\`admin-ops__incident admin-ops__incident--\${incident.severity}\`}
+                  href={incident.href ? `${adminPath}${incident.href}` : `${adminPath}/sistema`}
+                  key={`${incident.title}-${index}`}
+                  className={`admin-ops__incident admin-ops__incident--${incident.severity}`}
                 >
                   <span><AlertTriangle size={17} /></span>
                   <div><small>{incident.area}</small><strong>{incident.title}</strong><p>{incident.detail}</p></div>
@@ -93,7 +93,7 @@ export default async function Page() {
         <section className="admin-ops__section">
           <header>
             <div><span className="kicker">Mercado Pago + órdenes</span><h2>Conciliación reciente</h2></div>
-            <Link href={\`\${adminPath}/pagos\`}>Abrir pagos</Link>
+            <Link href={`${adminPath}/pagos`}>Abrir pagos</Link>
           </header>
           <AdminDataTable
             title="Conciliación de pedidos"
@@ -112,9 +112,9 @@ export default async function Page() {
         </section>
 
         <nav className="admin-ops__tools" aria-label="Herramientas técnicas">
-          <Link href={\`\${adminPath}/logs\`}><Activity size={17} /> Actividad técnica</Link>
-          <Link href={\`\${adminPath}/pagos/eventos\`}><RefreshCcw size={17} /> Eventos de pago</Link>
-          <Link href={\`\${adminPath}/sistema\`}><ShieldCheck size={17} /> Diagnóstico detallado</Link>
+          <Link href={`${adminPath}/logs`}><Activity size={17} /> Actividad técnica</Link>
+          <Link href={`${adminPath}/pagos/eventos`}><RefreshCcw size={17} /> Eventos de pago</Link>
+          <Link href={`${adminPath}/sistema`}><ShieldCheck size={17} /> Diagnóstico detallado</Link>
         </nav>
       </section>
     </AdminShell>
