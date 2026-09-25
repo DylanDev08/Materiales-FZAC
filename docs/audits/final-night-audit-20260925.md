@@ -2,7 +2,7 @@
 
 Fecha: 25 de septiembre de 2026  
 Rama: `release/final-production-audit-20260924`  
-PR: [#33](https://github.com/DylanDev08/Materiales-FZAC/pull/33)
+PR original de release: [#33](https://github.com/DylanDev08/Materiales-FZAC/pull/33) · cerrado tras integrar la release base en `main`. Los follow-ups posteriores permanecen en `release/final-production-audit-20260924` hasta completar la auditoría actual.
 
 ## 1. Resumen ejecutivo
 
@@ -20,14 +20,15 @@ El código, catálogo y suite local están listos. El go-live sigue bloqueado de
 | `3a46659` | merge de la rama remota | Incorporar el cambio concurrente sin force-push. |
 | `8912b53` | merge de `origin/main` | Reconciliar el release candidate con el `main` vigente. |
 
-## 3. PR #33
+## 3. Estado Git / CI actualizado
 
-- Head final local antes del informe: `8912b53` (el commit del informe se agrega al cierre).
-- Estado: abierto; no se hizo merge.
-- Mergeabilidad previa: `true`, estado GitHub `unstable` por integración externa.
-- Quality Gate: exitoso en el head remoto anterior; debe volver a ejecutarse sobre el head final.
-- CodeQL JavaScript/TypeScript: exitoso en el head remoto anterior; debe volver a ejecutarse sobre el head final.
-- Vercel: el preview previo quedó bloqueado por límite de despliegues (`Deployment rate limited — retry in 24 hours`). El PR debe permanecer abierto hasta tener build frontend exitoso y deploy coordinado con Render.
+- `main` actual auditado: `6518a5f8d81b136afb5c9d95f4853396e446339c`.
+- La release base quedó integrada en `main` mediante `a0b41777933e5fb157f1b2546a0b4647876b2ed7`.
+- PR #33 está cerrado; no debe usarse como indicador del head actual.
+- La rama de auditoría está 0 commits detrás de `main` y conserva follow-ups posteriores para revisión.
+- Quality Gate y CodeQL de `main` están exitosos.
+- Los nuevos follow-ups deben pasar nuevamente Quality Gate y CodeQL antes de integrarse.
+- El ruleset `main` está activo y exige `FZAC quality gate` + `CodeQL`, además de bloquear borrado y non-fast-forward.
 
 ## 4. Bugs encontrados y corregidos
 
@@ -97,7 +98,7 @@ No hay productos en estado **ERROR OBJETIVO** ni **REVISAR** según las reglas s
 - Webhooks canónico y compatible delegan al mismo handler.
 - Firma HMAC, `x-request-id`, `data.id`, asociación local, monto, moneda y `live_mode` validados.
 - RPC `finalize_failed_order` transaccional, con locks, reintento seguro, reserva ACTIVE y privilegio exclusivo `service_role`.
-- Preflight autenticó server-side contra Argentina sin crear pagos, preferencias ni refunds.
+- Existe un preflight server-side no destructivo que valida credenciales contra Mercado Pago sin crear pagos, preferencias ni refunds. En esta auditoría no se ejecutó con los secretos ocultos de Render, por lo que la validez actual del Access Token productivo no se declara confirmada.
 
 ### BLOQUEADO INTENCIONALMENTE
 
@@ -161,29 +162,34 @@ No hay productos en estado **ERROR OBJETIVO** ni **REVISAR** según las reglas s
 - El error histórico `/productos%5C` pertenece a un deployment anterior y ya existe normalización en proxy.
 - No se hallaron payloads de tarjeta, contraseñas, cookies o tokens impresos.
 
-## 15. Infraestructura
+## 15. Infraestructura — estado observado en esta auditoría
 
-- Render canónico: `materiales-fzac`, servicio `srv-d9btk2u1a83c73c8fp8g`, rama `main`, deploy live previo `dep-daqprmvf3r2c73bncebg` en SHA `95dc2b6`.
+- Render canónico: `materiales-fzac`, servicio `srv-d9btk2u1a83c73c8fp8g`, rama `main`, plan Free.
+- Render está live en `6518a5f8d81b136afb5c9d95f4853396e446339c`.
 - Vercel canónico: `materiales-fzac-391o`, proyecto `prj_EqB7dnnuor0xae0rqgozLIsucFzd`.
-- Dominio oficial y Render respondieron HTTP 200 en `/`, `/productos` y `/api/health`.
-- El release candidate no se desplegó porque el PR sigue abierto y el build Vercel está limitado; producción no fue desincronizada.
+- Vercel producción sigue en `a0b41777933e5fb157f1b2546a0b4647876b2ed7`; por lo tanto todavía no contiene el hotfix SSR de cookies de `6518a5f`.
+- El dominio oficial responde HTTP 200 y el API canónico proxya correctamente hacia Render.
+- Vercel observó errores históricos de refresh de cookies en `/carrito` sobre un deployment anterior; el hotfix ya existe en `main`, pero falta publicarlo en Vercel producción.
+- Los servicios/proyectos duplicados de Render/Vercel siguen existiendo y no se eliminaron desde esta auditoría porque los conectores disponibles no exponen una operación segura de borrado.
 
-## 16. Acciones manuales para mañana
+## 16. Acciones manuales / externas pendientes
 
 1. Activar Leaked Password Protection en Supabase Auth.
-2. Esperar/liberar el límite de Vercel y confirmar Quality Gate + CodeQL sobre el head final.
-3. Completar/verificar variables productivas de Mercado Pago en Render sin activar aún los gates.
-4. Coordinar merge de #33 y despliegues Vercel + Render sobre el mismo SHA.
-5. Verificar health, login Google/email y recepción de webhook en producción.
-6. Habilitar gates de pago y ejecutar una compra mínima real controlada.
-7. Activar `SEO_INDEXING_ENABLED=true` sólo después del smoke productivo.
+2. Publicar en Vercel producción el `main` vigente después de integrar y validar los follow-ups de esta auditoría.
+3. Confirmar que Render tenga también `NEXT_PUBLIC_MERCADOPAGO_PRODUCTION_PUBLIC_KEY`; Access Token y Webhook Secret siguen siendo sólo server-side.
+4. Ejecutar el preflight productivo de Mercado Pago dentro del entorno con secretos, manteniendo `PAYMENTS_PRODUCTION_CONFIRMED=false`.
+5. Hacer smoke de Google Login desde `https://www.fzacmateriales.store` y smoke de recuperación/confirmación email para validar SMTP.
+6. Probar una dirección real seleccionada con Google Places y su cotización Routes.
+7. Eliminar manualmente los proyectos/servicios duplicados cuando se confirme que no reciben tráfico.
+8. Sólo después: habilitar gates de pago, ejecutar compra mínima real controlada y recién luego evaluar SEO.
 
 ## 17. GO-LIVE CHECKLIST
 
 - [ ] Variables productivas verificadas en Render/Vercel.
 - [x] Smoke local no destructivo.
-- [ ] Merge PR #33.
-- [ ] Deploy coordinado frontend/backend.
+- [x] Release base integrada en main.
+- [ ] Integrar follow-ups de auditoría actuales.
+- [ ] Publicar Vercel producción en el mismo estado funcional que Render/main.
 - [x] Health actual HTTP 200.
 - [x] Login/auth cubierto sin credenciales personales.
 - [x] Checkout cubierto sin cobro real.
@@ -191,8 +197,13 @@ No hay productos en estado **ERROR OBJETIVO** ni **REVISAR** según las reglas s
 - [ ] Compra real mínima.
 - [ ] Activar SEO si corresponde.
 
-## 18. Veredicto técnico
+## 18. Estado técnico después de la reauditoría
 
-**B) LISTO EXCEPTO BLOQUEOS EXTERNOS/MANUALES**
+La base productiva, RLS, catálogo, imágenes, márgenes, MFA, documentos privados y CI se mantienen consistentes. La auditoría posterior detectó y corrigió además:
 
-Riesgos residuales: límite de build Vercel, credenciales/gates productivos todavía deliberadamente incompletos, Leaked Password Protection manual y ausencia —por instrucción— del smoke de cobro real. No corresponde mergear ni declarar producción actualizada hasta resolverlos de forma coordinada.
+- bloqueo por evento de Vercel Analytics tras revocación de consentimiento;
+- versión de privacidad registrada alineada al 24/09/2026;
+- gate persistente para altas nuevas iniciadas desde Google Login sin aceptación legal explícita;
+- documentación de infraestructura actualizada para no confundir el estado de Render y Vercel.
+
+No se activaron cobros reales ni SEO. El principal desfase operativo observado es Vercel producción un commit detrás del hotfix SSR que ya está live en Render/main. La validez actual de secretos productivos de Mercado Pago, SMTP y restricciones de Google Cloud debe comprobarse en sus entornos respectivos sin exponer credenciales.
