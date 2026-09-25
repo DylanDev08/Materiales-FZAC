@@ -23,7 +23,7 @@ export type ProductFilters = {
   offset?: number;
 };
 
-export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "pintura-impermeabilizacion", "materiales-de-obra"] as const;
+export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "materiales-de-obra"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
