@@ -25,8 +25,9 @@ export default async function Page() {
             <span className="kicker">Vercel Web Analytics</span>
             <h2>Medición instalada en toda la tienda</h2>
             <p>
-              La instrumentación está instalada en el layout principal. La recepción efectiva de eventos se confirma en
-              el workspace privado de Vercel: el panel no replica tokens ni credenciales.
+              La instrumentación está integrada en el layout principal, pero sólo se monta para visitantes que autorizan
+              “Analítica de uso” en Preferencias de privacidad. La recepción efectiva de eventos se confirma en el workspace
+              privado de Vercel: el panel no replica tokens ni credenciales.
             </p>
           </div>
           <span className="status-pill status-pill--success"><ShieldCheck size={16} />Instrumentación instalada</span>
@@ -37,7 +38,7 @@ export default async function Page() {
             <BarChart3 size={22} />
             <span>Instrumentación</span>
             <strong>{status.instrumented ? "Instalada" : "No instalada"}</strong>
-            <small>La recepción de eventos se verifica en Vercel</small>
+            <small>Activa únicamente después del consentimiento del visitante</small>
           </article>
           <article>
             <Activity size={22} />
