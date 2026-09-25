@@ -17,11 +17,11 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test("Home presenta el catálogo enfocado y productos reales", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Materiales y pinturas para avanzar con tu obra." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Materiales para avanzar con tu obra." })).toBeVisible();
   await expect(page.locator(".product-card").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/La Yesera Rosarina|precio proveedor|margen comercial/i);
 
-  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería", "Pinturas"]) {
+  for (const category of ["Construcción en Seco", "Steel Framing", "Ferretería", "Materiales de obra"]) {
     await expect(page.getByRole("link", { name: new RegExp(category, "i") }).first()).toBeVisible();
   }
 });
@@ -31,7 +31,8 @@ test("catálogo público limita proveedor, rubros e imágenes", async ({ page })
   await expect(page.locator(".product-card").first()).toBeVisible();
   await expect(page.locator(".catalog-toolbar:not(.catalog-toolbar--skeleton)")).toContainText("110");
   await expect(page.locator(".catalog-category-rail a")).toHaveCount(5);
-  await expect(page.locator(".catalog-category-rail")).toContainText(/Pintura/i);
+  await expect(page.locator(".catalog-category-rail")).toContainText(/Materiales de obra/i);
+  await expect(page.locator(".catalog-category-rail")).not.toContainText(/Pintura/i);
   await expect(page.locator("body")).not.toContainText(/Yesera Rosarina|Universo Pinturas|Urbe SRL|Maquinaria Sorrentos/i);
   const documentSource = await page.content();
   expect(documentSource).not.toMatch(/original_price|margin_percent|source_image_url|product_supplier_sources/i);
@@ -93,11 +94,10 @@ test("un producto a consultar se añade al carrito y pide confirmación antes de
   await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
 });
 
-test("Pinturas queda vacío sin reactivar el catálogo de referencia de Universo", async ({ page }) => {
-  await page.goto("/categoria/pintura-impermeabilizacion", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".empty-state")).toContainText(/no encontramos productos/i);
-  await expect(page.locator(".product-card")).toHaveCount(0);
-  await expect(page.locator("body")).not.toContainText(/Universo Pinturas/i);
+test("una categoría sin productos no se publica en el storefront", async ({ request }) => {
+  const response = await request.get("/categoria/pintura-impermeabilizacion", { maxRedirects: 0 });
+  expect(response.status()).toBe(404);
+  expect(await response.text()).not.toMatch(/Universo Pinturas|precio proveedor|margen comercial/i);
 });
 
 test("la búsqueda combinada de montantes y soleras resuelve ambos tipos", async ({ page }) => {
