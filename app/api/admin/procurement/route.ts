@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       const previous = payload.id
         ? await current.admin
             .from("suppliers")
-            .select("id,code,name,contact_name,email,phone,tax_id,payment_terms,website_url,logo_url,catalog_url,lead_time_days,notes,active,updated_by")
+            .select("code,name,contact_name,email,phone,tax_id,payment_terms,website_url,logo_url,catalog_url,lead_time_days,notes,active,updated_by")
             .eq("id", payload.id)
             .maybeSingle()
         : null;
@@ -75,8 +75,7 @@ export async function POST(request: Request) {
       });
       if (audit.error) {
         if (previous?.data) {
-          const { id: _previousId, ...restore } = previous.data;
-          const rollback = await current.admin.from("suppliers").update(restore).eq("id", data.id);
+          const rollback = await current.admin.from("suppliers").update(previous.data).eq("id", data.id);
           if (rollback.error) {
             return jsonError("Falló la auditoría y no pudimos restaurar el proveedor. Requiere revisión administrativa.", 500);
           }
