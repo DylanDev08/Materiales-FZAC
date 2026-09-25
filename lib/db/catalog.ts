@@ -166,15 +166,24 @@ export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
 
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("active", true)
-    .in("slug", [...PUBLIC_CATEGORY_SLUGS])
-    .order("sort_order", { ascending: true });
+  const [{ data: categoryRows, error: categoryError }, { data: productRows, error: productError }] = await Promise.all([
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("active", true)
+      .in("slug", [...PUBLIC_CATEGORY_SLUGS])
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("products")
+      .select("category_id")
+      .eq("active", true)
+  ]);
 
-  if (error) return [];
-  return (data ?? []).map(normalizeCategory);
+  if (categoryError || productError) return [];
+  const populatedCategoryIds = new Set((productRows ?? []).map((row) => String(row.category_id ?? "")).filter(Boolean));
+  return (categoryRows ?? [])
+    .filter((category) => populatedCategoryIds.has(String(category.id)))
+    .map(normalizeCategory);
 });
 
 export async function getCatalogFacets(): Promise<CatalogFacets> {
