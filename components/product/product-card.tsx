@@ -43,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
     const timer = window.setTimeout(() => {
       setAdded(false);
       setAddError(false);
-    }, 4500);
+    }, 2600);
     return () => window.clearTimeout(timer);
   }, [added, addError]);
 
@@ -63,7 +63,7 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="status-pill status-pill--danger">Stock bajo</span>
           ) : null}
           {availabilityStatus === "CONSULT" ? (
-            <span className="status-pill status-pill--warning">Consultar disponibilidad</span>
+            <span className="status-pill status-pill--warning product-card__availability-consult">Consultar disponibilidad</span>
           ) : null}
           {availabilityStatus === "OUT_OF_STOCK" ? (
             <span className="status-pill status-pill--danger">Sin stock</span>
