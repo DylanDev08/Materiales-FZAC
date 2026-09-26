@@ -35,7 +35,7 @@ function loginErrorResponse(error: { message?: string; code?: string } | null | 
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-login"), 8, 60_000);
-  if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
+  if (!limit.ok) return jsonError("Demasiados intentos. Esperá unos minutos.", 429, retryAfterHeaders(limit));
   const body = await readLimitedJson(request, 4 * 1024);
   if (!body.ok) return jsonError(body.message, body.status);
 
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       slot.release();
     }
   } catch (error) {
-    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
+    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos inválidos.", 422);
     if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
     return jsonError("No pudimos conectar con el servidor.", 500);
   }
