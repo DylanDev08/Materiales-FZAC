@@ -209,7 +209,7 @@ export async function getCatalogProfitabilityReport(
           .select("purchase_order_id,product_id,unit_cost,created_at")
           .range(from, to)
       ),
-      admin
+      db
         .from("orders")
         .select("id")
         .in("status", paidStatuses)
@@ -222,14 +222,14 @@ export async function getCatalogProfitabilityReport(
     const [items, payments] = orders.length
       ? await Promise.all([
           readAll<OrderItemRow>((from, to) =>
-            admin
+            db
               .from("order_items")
               .select("order_id,product_id,quantity,unit_price,subtotal")
               .in("order_id", orders.map((order) => order.id))
               .range(from, to)
           ),
           readAll<PaymentRow>((from, to) =>
-            admin
+            db
               .from("payments")
               .select("order_id,raw")
               .in("order_id", orders.map((order) => order.id))
