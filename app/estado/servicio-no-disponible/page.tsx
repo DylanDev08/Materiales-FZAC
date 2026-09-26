@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Home, RefreshCcw, ServerCrash } from "lucide-react";
 
-export const metadata = { title: "Servicio temporalmente no disponible | Materiales FZAC", robots: { index: false, follow: false } };
+export const metadata = { title: "Servicio temporalmente no disponible", robots: { index: false, follow: false } };
 
 export default function ServiceUnavailablePage() {
   return (
