@@ -8,6 +8,7 @@ import { getAdminConsolePath } from "@/lib/utils/env";
 
 type Audience = "customer" | "internal";
 type Availability = "all" | "available" | "consult";
+type CatalogScope = "active" | "all";
 
 function value(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -37,6 +38,7 @@ export default async function Page({
     ? value(params.availability) as Availability
     : "all";
   const supplierId = value(params.supplier);
+  const catalogScope: CatalogScope = audience === "internal" && value(params.catalog) === "all" ? "all" : "active";
   const categorySlug = value(params.category);
   const search = value(params.q).slice(0, 80);
   const report = await getCatalogProfitabilityReport("month", "all");
@@ -50,6 +52,7 @@ export default async function Page({
     .sort((left, right) => left[1].localeCompare(right[1], "es-AR"));
   const normalizedSearch = normalize(search);
   const rows = report.rows.filter((row) => {
+    if (catalogScope === "active" && !row.active) return false;
     if (supplierId && row.supplierId !== supplierId) return false;
     if (categorySlug && row.categorySlug !== categorySlug) return false;
     if (availability === "available" && !(row.stock > 0 && row.availabilityStatus === "IN_STOCK")) return false;
@@ -71,6 +74,7 @@ export default async function Page({
         <form method="get">
           <label>Tipo de reporte<select defaultValue={audience} name="audience"><option value="customer">Cliente · precios y disponibilidad</option><option value="internal">Interno · costo, precio y ganancia</option></select></label>
           <label>Proveedor<select defaultValue={supplierId} name="supplier"><option value="">Todos</option>{suppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+          {audience === "internal" ? <label>Catálogo<select defaultValue={catalogScope} name="catalog"><option value="active">Solo publicados</option><option value="all">Todos · incluye importados/inactivos</option></select></label> : null}
           <label>Categoría<select defaultValue={categorySlug} name="category"><option value="">Todas</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select></label>
           <label>Disponibilidad<select defaultValue={availability} name="availability"><option value="all">Todas</option><option value="available">Disponible con stock</option><option value="consult">A consultar</option></select></label>
           <label>Producto / SKU<input defaultValue={search} maxLength={80} name="q" placeholder="Ej. placa o PGC" /></label>
@@ -101,7 +105,7 @@ export default async function Page({
               {audience === "internal" ? <><td>{row.supplierName ?? "Sin proveedor"}</td><td>{row.supplierPrice === null ? "Sin costo" : currency(row.supplierPrice)}</td></> : null}
               <td>{currency(row.ecommercePrice)}</td>
               <td>{row.unit}</td>
-              <td>{row.availabilityStatus === "CONSULT" ? "Consultar disponibilidad" : row.stock > 0 ? `Disponible · ${row.stock}` : "Sin stock"}</td>
+              <td>{!row.active ? "No publicado" : row.availabilityStatus === "CONSULT" ? "Consultar disponibilidad" : row.stock > 0 ? `Disponible · ${row.stock}` : "Sin stock"}</td>
               {audience === "internal" ? <><td>{row.unitGrossProfit === null ? "-" : currency(row.unitGrossProfit)}</td><td>{percent(row.markupPercent)}</td></> : null}
             </tr>)}</tbody>
           </table>
