@@ -8516,6 +8516,39 @@ body:has(.admin-page) .site-main {
   padding: 14px 16px;
 }
 
+.admin-supplier-workspace__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--color-border);
+  background: #111;
+}
+
+.admin-supplier-workspace__metrics article {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+}
+
+.admin-supplier-workspace__metrics article + article {
+  border-left: 1px solid var(--color-border);
+}
+
+.admin-supplier-workspace__metrics strong {
+  color: var(--color-yellow);
+  font-size: 1.5rem;
+}
+
+.admin-supplier-workspace__metrics span {
+  color: var(--color-white);
+  font-weight: 850;
+}
+
+.admin-supplier-workspace__metrics small {
+  color: var(--color-muted);
+  line-height: 1.35;
+}
+
 .admin-supplier-workspace__directory {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -8786,7 +8819,7 @@ body:has(.admin-page) .site-main {
 .catalog-report-builder p { margin: 0; }
 .catalog-report-builder > header p,
 .catalog-report-builder > p { color: var(--color-muted); }
-.catalog-report-builder form { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+.catalog-report-builder form { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
 .catalog-report-builder label { min-width: 0; display: grid; gap: 5px; color: var(--color-muted); font-size: .76rem; font-weight: 850; }
 .catalog-report-builder input,
 .catalog-report-builder select { width: 100%; min-height: 44px; border: 1px solid var(--color-border); background: #090909; color: #fff; padding: 8px 10px; }
@@ -8855,12 +8888,14 @@ img[src*="logoFZAC"] {
   .admin-supplier-products > footer,
   .catalog-report-builder > header { align-items: stretch; flex-direction: column; }
   .admin-vercel-analytics__metrics,
+  .admin-supplier-workspace__metrics,
   .admin-supplier-workspace__profile,
   .admin-supplier-documents__forms,
   .admin-supplier-documents__inline,
   .admin-supplier-workspace__profile-actions,
   .catalog-report-builder form { grid-template-columns: 1fr; }
-  .admin-vercel-analytics__metrics article + article { border-top: 1px solid var(--color-border); border-left: 0; }
+  .admin-vercel-analytics__metrics article + article,
+  .admin-supplier-workspace__metrics article + article { border-top: 1px solid var(--color-border); border-left: 0; }
   .admin-supplier-workspace__profile-actions { grid-column: auto; }
   .admin-supplier-workspace__profile-main { align-items: flex-start; }
   .admin-supplier-products > header form { min-width: 0; flex-direction: column; }
