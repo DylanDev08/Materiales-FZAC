@@ -32,7 +32,7 @@ export function passwordChecks(password: string, email = "", name = "") {
 
 export function validatePassword(password: string, email = "", name = "") {
   const failed = passwordChecks(password, email, name).filter((check) => !check.ok);
-  if (failed.length) throw new Error(`La contrasena no cumple: ${failed.map((check) => check.label).join(", ")}.`);
+  if (failed.length) throw new Error(`La contraseña no cumple: ${failed.map((check) => check.label).join(", ")}.`);
 }
 
 const safeText = (label: string, min: number, max: number) =>
@@ -45,7 +45,7 @@ const safeText = (label: string, min: number, max: number) =>
 
 const nameSchema = safeText("Nombre", 2, 120).refine(
   (value) => /^[\p{L}\p{M}\s.'-]+$/u.test(value),
-  "Completa tu nombre con caracteres validos."
+  "Completa tu nombre con caracteres válidos."
 );
 
 const phoneSchema = safeText("Teléfono", 1, 18).refine(
@@ -56,8 +56,8 @@ const phoneSchema = safeText("Teléfono", 1, 18).refine(
 const passwordSchema = z
   .string()
   .min(8, "La contraseña debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo.")
-  .max(128, "La contrasena es demasiado larga.")
-  .refine((value) => value === value.trim(), "La contrasena no puede empezar o terminar con espacios.")
+  .max(128, "La contraseña es demasiado larga.")
+  .refine((value) => value === value.trim(), "La contraseña no puede empezar o terminar con espacios.")
   .refine((value) => /[a-z]/.test(value), "La contraseña debe tener al menos una minúscula.")
   .refine((value) => /[A-Z]/.test(value), "La contraseña debe tener al menos una mayúscula.")
   .refine((value) => /\d/.test(value), "La contraseña debe tener al menos un número.")
@@ -81,19 +81,19 @@ export const registerSchema = z
     phone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
     password: passwordSchema,
-    confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres."),
-    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar terminos y privacidad." }) }),
+    confirmPassword: z.string().min(8, "Confirma la contraseña con al menos 8 caracteres."),
+    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar términos y privacidad." }) }),
     hp: z.string().max(0).optional(),
     captchaToken: z.string().max(4096).optional()
   })
   .superRefine((value, context) => {
     if (value.password !== value.confirmPassword) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Las contrasenas no coinciden." });
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Las contraseñas no coinciden." });
     }
 
     for (const check of passwordChecks(value.password, value.email, value.name)) {
       if (!check.ok) {
-        context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contrasena debe cumplir: ${check.label}.` });
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contraseña debe cumplir: ${check.label}.` });
       }
     }
   });
@@ -101,15 +101,15 @@ export const registerSchema = z
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string().min(8, "Confirma la contrasena con al menos 8 caracteres.")
+    confirmPassword: z.string().min(8, "Confirma la contraseña con al menos 8 caracteres.")
   })
   .superRefine((value, context) => {
     if (value.password !== value.confirmPassword) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Las contrasenas no coinciden." });
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Las contraseñas no coinciden." });
     }
     for (const check of passwordChecks(value.password)) {
       if (!check.ok) {
-        context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contrasena debe cumplir: ${check.label}.` });
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: `La contraseña debe cumplir: ${check.label}.` });
       }
     }
   });
