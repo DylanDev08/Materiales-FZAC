@@ -13,13 +13,13 @@ export function passwordChecks(password: string, email = "", name = "") {
   const normalizedName = name.trim().toLowerCase();
 
   return [
-    { id: "length", label: "8 caracteres minimo", ok: password.length >= 8 },
+    { id: "length", label: "8 caracteres mínimo", ok: password.length >= 8 },
     { id: "lowercase", label: "Una minúscula", ok: /[a-z]/.test(password) },
     { id: "uppercase", label: "Una mayúscula", ok: /[A-Z]/.test(password) },
     { id: "number", label: "Un número", ok: /\d/.test(password) },
     { id: "symbol", label: "Un símbolo", ok: /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~.]/.test(password) },
     { id: "trim", label: "Sin espacios al inicio o final", ok: password === password.trim() },
-    { id: "common", label: "No comun ni obvia", ok: !COMMON_PASSWORDS.some((item) => normalizedPassword.includes(item)) },
+    { id: "common", label: "No común ni obvia", ok: !COMMON_PASSWORDS.some((item) => normalizedPassword.includes(item)) },
     {
       id: "personal",
       label: "No contiene email o nombre",
@@ -45,7 +45,7 @@ const safeText = (label: string, min: number, max: number) =>
 
 const nameSchema = safeText("Nombre", 2, 120).refine(
   (value) => /^[\p{L}\p{M}\s.'-]+$/u.test(value),
-  "Completa tu nombre con caracteres válidos."
+  "Completá tu nombre con caracteres válidos."
 );
 
 const phoneSchema = safeText("Teléfono", 1, 18).refine(
@@ -81,8 +81,8 @@ export const registerSchema = z
     phone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
     password: passwordSchema,
-    confirmPassword: z.string().min(8, "Confirma la contraseña con al menos 8 caracteres."),
-    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Debes aceptar términos y privacidad." }) }),
+    confirmPassword: z.string().min(8, "Confirmá la contraseña con al menos 8 caracteres."),
+    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Aceptá términos y privacidad." }) }),
     hp: z.string().max(0).optional(),
     captchaToken: z.string().max(4096).optional()
   })
