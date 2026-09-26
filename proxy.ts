@@ -117,7 +117,10 @@ export async function proxy(request: NextRequest) {
     "/restablecer",
     "/auth/callback",
     "/seguridad/admin-mfa",
-    "/pago"
+    "/pago",
+    "/checkout/success",
+    "/checkout/pending",
+    "/checkout/failure"
   ].some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
   const shouldShowMaintenance =
     maintenanceMode &&
