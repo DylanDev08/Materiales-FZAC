@@ -5,7 +5,7 @@ services:
     plan: free
     branch: main
     buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm run build
-    startCommand: pnpm run start -p $PORT
+    startCommand: ./node_modules/.bin/next start -H 0.0.0.0 -p $PORT
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
     envVars:
