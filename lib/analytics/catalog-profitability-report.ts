@@ -1,7 +1,9 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getEnv, hasRealValue } from "@/lib/utils/env";
 
 export type ProfitabilityReportPeriod = "day" | "week" | "month";
 export type ProfitabilityReportScope = "all" | "sold" | "issues";
@@ -153,6 +155,26 @@ export async function getCatalogProfitabilityReport(
   scope: ProfitabilityReportScope
 ): Promise<CatalogProfitabilityReport> {
   const admin = getSupabaseAdminClient();
+  if (!admin) {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (hasRealValue(backend)) {
+      try {
+        const cookieStore = await cookies();
+        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const url = new URL("/api/admin/catalog-report", backend);
+        url.searchParams.set("period", period);
+        url.searchParams.set("scope", scope);
+        const response = await fetch(url, {
+          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          cache: "no-store"
+        });
+        if (response.ok) return await response.json() as CatalogProfitabilityReport;
+      } catch {
+        // Fall through to the authenticated Supabase client when backend proxying is unavailable.
+      }
+    }
+  }
+
   const session = admin ? null : await getSupabaseServerClient();
   const db = admin ?? session;
   const periodStart = startFor(period).toISOString();
