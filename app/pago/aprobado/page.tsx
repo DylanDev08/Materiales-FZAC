@@ -14,8 +14,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
       <div className="container empty-state">
         <div>
           <CheckCircle2 size={42} />
-          <h1>Pago aprobado</h1>
-          <p>Tu pago fue confirmado. FZAC preparara el pedido, emitira el comprobante y coordinara retiro o entrega.</p>
+          <h1>{receipt ? "Pago aprobado" : "Estamos verificando el pago"}</h1>
+          <p>{receipt ? "Tu pago fue confirmado. FZAC preparará el pedido y coordinará retiro o entrega." : "Estamos confirmando el estado con Mercado Pago. No repitas la operación hasta ver el pedido actualizado."}</p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href="/cuenta/pedidos">
             Ver pedidos
