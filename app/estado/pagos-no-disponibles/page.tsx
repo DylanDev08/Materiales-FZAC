@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CreditCard, Home, ShoppingCart } from "lucide-react";
 
-export const metadata = { title: "Pagos temporalmente no disponibles | Materiales FZAC", robots: { index: false, follow: false } };
+export const metadata = { title: "Pagos temporalmente no disponibles", robots: { index: false, follow: false } };
 
 export default function PaymentsUnavailablePage() {
   return (
