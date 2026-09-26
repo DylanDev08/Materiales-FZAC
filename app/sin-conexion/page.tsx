@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Home, RefreshCcw, WifiOff } from "lucide-react";
 
-export const metadata = { title: "Sin conexión | Materiales FZAC", robots: { index: false, follow: false } };
+export const metadata = { title: "Sin conexión", robots: { index: false, follow: false } };
 
 export default function OfflinePage() {
   return (
