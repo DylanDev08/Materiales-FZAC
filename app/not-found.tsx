@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Home, Search, TriangleAlert } from "lucide-react";
 
+export const metadata = {
+  title: "Página no encontrada",
+  robots: { index: false, follow: false }
+};
+
 export default function NotFound() {
   return (
     <main className="status-page">
