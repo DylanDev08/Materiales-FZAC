@@ -23,7 +23,7 @@ const STORAGE_KEY = "fzac-cart-v1";
 
 function sanitize(items: CartLine[]) {
   return items
-    .filter((item) => item.product?.id && item.quantity > 0)
+    .filter((item) => item.product?.id && item.quantity > 0 && canAddProductToCart(item.product))
     .map((item) => {
       const available = Number.isFinite(Number(item.product.stock)) ? Number(item.product.stock) : 999;
       return {
