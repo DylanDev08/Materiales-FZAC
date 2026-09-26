@@ -877,7 +877,7 @@ export function CheckoutForm({
       if (!stockOk) return;
 
       if (!card.token || !card.payment_method_id || !card.identification_type || !card.identification_number) {
-        setError("Completa los datos de la tarjeta y del titular para pagar dentro de FZAC.");
+        setError("Completá los datos de la tarjeta y del titular para pagar dentro de FZAC.");
         return;
       }
 
@@ -1611,7 +1611,7 @@ export function CheckoutForm({
                 </button>
               </>
             ) : (
-              <p className="checkout-summary__payment">Completa los pasos para habilitar el pago online.</p>
+              <p className="checkout-summary__payment">Completá los pasos para habilitar el pago online.</p>
             )}
           </aside>
         </div>
@@ -1647,7 +1647,7 @@ export function CheckoutForm({
               <section>
                 <h3>Compra y comprobante</h3>
                 <p>
-                  La compra se confirma solo cuando el proveedor de pago aprueba la operacion. No se descuenta stock ni
+                  La compra se confirma solo cuando el proveedor de pago aprueba la operación. No se descuenta stock ni
                   se emite comprobante hasta que el pago queda aprobado.
                 </p>
               </section>
