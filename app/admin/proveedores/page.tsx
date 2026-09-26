@@ -61,6 +61,12 @@ export default async function Page({
             </div>
           </section>
 
+          <section className="admin-supplier-workspace__metrics" aria-label="Resumen del proveedor">
+            <article><strong>{selected.productCount}</strong><span>Productos vinculados</span><small>Incluye publicados e importados.</small></article>
+            <article><strong>{selected.documentCount}</strong><span>Documentos activos</span><small>Listas, comprobantes y archivos privados.</small></article>
+            <article><strong>{data.totalProducts}</strong><span>Resultados actuales</span><small>{data.query ? `Filtro: ${data.query}` : "Sin filtro de búsqueda."}</small></article>
+          </section>
+
           <AdminSupplierDocuments documents={data.documents} products={data.products} supplierId={selected.id} />
 
           <section className="admin-supplier-products">
