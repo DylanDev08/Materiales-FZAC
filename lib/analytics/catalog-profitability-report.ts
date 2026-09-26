@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ProfitabilityReportPeriod = "day" | "week" | "month";
 export type ProfitabilityReportScope = "all" | "sold" | "issues";
@@ -151,6 +152,8 @@ export async function getCatalogProfitabilityReport(
   scope: ProfitabilityReportScope
 ): Promise<CatalogProfitabilityReport> {
   const admin = getSupabaseAdminClient();
+  const session = admin ? null : await getSupabaseServerClient();
+  const db = admin ?? session;
   const periodStart = startFor(period).toISOString();
   const empty: CatalogProfitabilityReport = {
     available: false,
@@ -172,13 +175,13 @@ export async function getCatalogProfitabilityReport(
     estimatedContributionAfterFees: 0,
     rows: []
   };
-  if (!admin) return empty;
+  if (!db) return empty;
 
   try {
     const paidStatuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"];
     const [products, sources, suppliers, purchaseOrders, purchaseOrderItems, ordersResult] = await Promise.all([
       readAll<ProductRow>((from, to) =>
-        admin
+        db
           .from("products")
           .select("id,name,sku,price,stock,availability_status,image_url,supplier_id,active,unit,category:categories(name,slug)")
           .eq("active", true)
@@ -186,22 +189,22 @@ export async function getCatalogProfitabilityReport(
           .range(from, to)
       ),
       readAll<SourceRow>((from, to) =>
-        admin
+        db
           .from("product_supplier_sources")
           .select("product_id,supplier_id,source,original_price,margin_percent,checked_at,imported_at")
           .range(from, to)
       ),
       readAll<SupplierRow>((from, to) =>
-        admin.from("suppliers").select("id,name,code").range(from, to)
+        db.from("suppliers").select("id,name,code").range(from, to)
       ),
       readAll<PurchaseOrderRow>((from, to) =>
-        admin
+        db
           .from("purchase_orders")
           .select("id,status,received_at,ordered_at,created_at")
           .range(from, to)
       ),
       readAll<PurchaseOrderItemRow>((from, to) =>
-        admin
+        db
           .from("purchase_order_items")
           .select("purchase_order_id,product_id,unit_cost,created_at")
           .range(from, to)
