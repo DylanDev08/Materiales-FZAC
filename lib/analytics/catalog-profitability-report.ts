@@ -29,6 +29,7 @@ export type CatalogProfitabilityRow = {
   stock: number;
   availabilityStatus: string;
   hasImage: boolean;
+  active: boolean;
 };
 
 export type CatalogProfitabilityReport = {
@@ -184,7 +185,6 @@ export async function getCatalogProfitabilityReport(
         db
           .from("products")
           .select("id,name,sku,price,stock,availability_status,image_url,supplier_id,active,unit,category:categories(name,slug)")
-          .eq("active", true)
           .order("name", { ascending: true })
           .range(from, to)
       ),
@@ -313,7 +313,8 @@ export async function getCatalogProfitabilityReport(
         estimatedGrossProfit,
         stock: Number(product.stock ?? 0),
         availabilityStatus: String(product.availability_status ?? "OUT_OF_STOCK"),
-        hasImage: Boolean(String(product.image_url ?? "").trim())
+        hasImage: Boolean(String(product.image_url ?? "").trim()),
+        active: Boolean(product.active)
       };
     });
 
