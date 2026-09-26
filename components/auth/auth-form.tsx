@@ -51,7 +51,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
-  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
+  const turnstileEnabled =
+    process.env.NEXT_PUBLIC_TURNSTILE_ENABLED?.trim().toLowerCase() === "true"
+    && Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
 
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
   const checks = useMemo(() => passwordChecks(password, normalizedEmail, name), [password, normalizedEmail, name]);
@@ -183,7 +185,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setGoogleLoading(true);
     setMessage("");
     const localHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
-    const authOrigin = localHost ? window.location.origin : "https://www.fzacmateriales.store";
+    const canonicalOrigin = "https://www.fzacmateriales.store";
+    const isCanonicalHost = window.location.hostname === "www.fzacmateriales.store" || window.location.hostname === "fzacmateriales.store";
+
+    if (!localHost && !isCanonicalHost) {
+      const canonicalLogin = new URL("/login", canonicalOrigin);
+      canonicalLogin.searchParams.set("next", safeNext);
+      canonicalLogin.searchParams.set("oauth", "google");
+      window.location.assign(canonicalLogin.toString());
+      googleInFlightRef.current = false;
+      setGoogleLoading(false);
+      return;
+    }
+
+    const authOrigin = localHost ? window.location.origin : canonicalOrigin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
