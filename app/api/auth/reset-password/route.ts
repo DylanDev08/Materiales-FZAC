@@ -10,7 +10,7 @@ import { revokeAllTrustedAdminDevices } from "@/lib/auth/trusted-device";
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-reset-password"), 5, 60_000);
   const mutation = validateJsonMutationRequest(request, 4 * 1024);
-  if (!limit.ok) return jsonError("Demasiados intentos. Espera un minuto.", 429, retryAfterHeaders(limit));
+  if (!limit.ok) return jsonError("Demasiados intentos. Esperá un minuto.", 429, retryAfterHeaders(limit));
   const distributed = await distributedRateLimitRequest(request, {
     scope: "auth-reset-password",
     limit: 5,
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   try {
     const payload = resetPasswordSchema.parse(await request.json());
     const supabase = await getSupabaseServerClient();
-    if (!supabase) return jsonError("La recuperacion no esta disponible en este momento.", 503);
+    if (!supabase) return jsonError("La recuperación no esta disponible en este momento.", 503);
 
     const { data: current, error: userError } = await supabase.auth.getUser();
     if (userError || !current.user) return jsonError("El enlace vencio o ya fue utilizado. Solicita uno nuevo.", 401);
