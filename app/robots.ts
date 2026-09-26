@@ -20,6 +20,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/api/",
         "/admin/",
+        "/fzac-admin-crs-2026/",
         "/cuenta/",
         "/checkout/",
         "/carrito/",
