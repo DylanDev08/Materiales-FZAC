@@ -37,7 +37,14 @@ export function toAbsoluteUrl(value: string) {
 }
 
 export function isSeoIndexingEnabled() {
-  return getEnv("SEO_INDEXING_ENABLED").toLowerCase() === "true";
+  const configured = getEnv("SEO_INDEXING_ENABLED").toLowerCase();
+  if (configured === "true") return true;
+
+  const siteUrl = getPublicSiteUrl();
+  const isProductionSite = siteUrl === "https://www.fzacmateriales.store" || siteUrl === "https://fzacmateriales.store";
+  const maintenanceMode = getEnv("MAINTENANCE_MODE").toLowerCase() === "true";
+
+  return isProductionSite && !maintenanceMode;
 }
 
 export function getPublicContact() {
