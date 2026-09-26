@@ -10,7 +10,10 @@ type TurnstileResponse = {
 };
 
 export function isTurnstileConfigured() {
-  return hasRealValue(getEnv("TURNSTILE_SECRET_KEY")) && hasRealValue(getEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY"));
+  const enabled =
+    getEnv("TURNSTILE_ENABLED").toLowerCase() === "true"
+    && getEnv("NEXT_PUBLIC_TURNSTILE_ENABLED").toLowerCase() === "true";
+  return enabled && hasRealValue(getEnv("TURNSTILE_SECRET_KEY")) && hasRealValue(getEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY"));
 }
 
 export async function verifyTurnstileToken(token: string | null | undefined, expectedAction?: string) {
