@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Clock3, HardHat, Home, RefreshCcw } from "lucide-react";
 
-export const metadata = { title: "Mantenimiento | Materiales FZAC", robots: { index: false, follow: false } };
+export const metadata = { title: "Mantenimiento", robots: { index: false, follow: false } };
 
 export default function MaintenancePage() {
   return (
