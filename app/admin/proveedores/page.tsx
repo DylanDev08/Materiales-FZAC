@@ -57,7 +57,7 @@ export default async function Page({
             </div>
             <div className="admin-supplier-workspace__profile-actions">
               <Link className="btn btn--ghost" href={`${adminPath}/compras`}><ShoppingBasket size={17} />Editar datos / comprar</Link>
-              <Link className="btn btn--primary" href={`${adminPath}/reportes?supplier=${selected.id}&audience=internal`}><FileText size={17} />Crear PDF</Link>
+              <Link className="btn btn--primary" href={`${adminPath}/reportes?supplier=${selected.id}&audience=internal&catalog=all`}><FileText size={17} />Crear PDF</Link>
             </div>
           </section>
 
