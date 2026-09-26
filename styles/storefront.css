@@ -1208,3 +1208,11 @@ body {
     min-height: 88px;
   }
 }
+
+
+.product-card__availability-consult {
+  background: var(--color-yellow);
+  color: var(--color-black);
+  border-color: var(--color-yellow);
+  font-weight: 900;
+}
