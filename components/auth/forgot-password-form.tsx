@@ -42,10 +42,10 @@ export function ForgotPasswordForm() {
         body: JSON.stringify({ email: normalizedEmail, captchaToken })
       });
       const data = (await response.json().catch(() => ({}))) as { message?: string };
-      if (!response.ok) throw new Error(data.message || "No pudimos iniciar la recuperacion.");
-      setMessage(data.message || "Si la cuenta existe, vas a recibir un enlace de recuperacion.");
+      if (!response.ok) throw new Error(data.message || "No pudimos iniciar la recuperación.");
+      setMessage(data.message || "Si la cuenta existe, vas a recibir un enlace de recuperación.");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No pudimos iniciar la recuperacion.");
+      setError(requestError instanceof Error ? requestError.message : "No pudimos iniciar la recuperación.");
     } finally {
       if (turnstileEnabled) setCaptchaResetKey((current) => current + 1);
       requestRef.current = false;
