@@ -10,7 +10,7 @@ import { normalizeEmail } from "@/lib/validations/auth";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 const recoverSchema = z.object({
-  email: z.string().trim().email("Ingresa un email valido.").transform(normalizeEmail),
+  email: z.string().trim().email("Ingresa un email válido.").transform(normalizeEmail),
   captchaToken: z.string().max(4096).optional()
 });
 
@@ -19,7 +19,7 @@ const genericMessage = "Si existe una cuenta con ese email, vas a recibir un lin
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-recover"), 5, 60_000);
   const mutation = validateJsonMutationRequest(request, 2 * 1024);
-  if (!limit.ok) return jsonError("Demasiados intentos. Espera unos minutos.", 429, retryAfterHeaders(limit));
+  if (!limit.ok) return jsonError("Demasiados intentos. Esperá unos minutos.", 429, retryAfterHeaders(limit));
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
 
   try {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     await requestPasswordRecoveryEmail({ email: payload.email, name: profile.full_name, siteUrl: getRequestSiteUrl(request) }).catch(() => undefined);
     return Response.json({ ok: true, message: genericMessage });
   } catch (error) {
-    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Email invalido.", 422);
-    return jsonError("No pudimos iniciar la recuperacion.", 500);
+    if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Email inválido.", 422);
+    return jsonError("No pudimos iniciar la recuperación.", 500);
   }
 }
