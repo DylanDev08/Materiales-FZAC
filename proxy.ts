@@ -111,15 +111,20 @@ export async function proxy(request: NextRequest) {
       (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
     );
   const isMaintenancePage = request.nextUrl.pathname === "/mantenimiento";
-  const isAuthAccessPath = ["/login", "/seguridad/admin-mfa"].some(
-    (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
-  );
+  const isOperationalAccessPath = [
+    "/login",
+    "/recuperar",
+    "/restablecer",
+    "/auth/callback",
+    "/seguridad/admin-mfa",
+    "/pago"
+  ].some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
   const shouldShowMaintenance =
     maintenanceMode &&
     !isMaintenancePage &&
     !isConsolePath &&
     !isLegacyAdminPath &&
-    !isAuthAccessPath &&
+    !isOperationalAccessPath &&
     !request.nextUrl.pathname.startsWith("/api/");
 
   if (shouldShowMaintenance && ["GET", "HEAD"].includes(request.method.toUpperCase())) {
