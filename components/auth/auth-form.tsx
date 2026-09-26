@@ -94,8 +94,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
 
     if (mode === "register") {
-      if (name.trim().length < 2) errors.name = "Completa tu nombre.";
-      if (name.trim() && !/^[\p{L}\p{M}\s.'-]+$/u.test(name.trim())) errors.name = "Completa tu nombre con caracteres validos.";
+      if (name.trim().length < 2) errors.name = "Completá tu nombre.";
+      if (name.trim() && !/^[\p{L}\p{M}\s.'-]+$/u.test(name.trim())) errors.name = "Completá tu nombre con caracteres válidos.";
       if (phone.trim() && !isValidArgentinePhone(phone.trim())) errors.phone = "Ingresá un teléfono argentino válido.";
       if (!passwordOk) errors.password = "La contraseña debe cumplir todas las reglas.";
       if (password !== confirmPassword) errors.confirmPassword = "Las contraseñas no coinciden.";
@@ -142,7 +142,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         )
       });
       const data = (await response.json()) as { target?: string; message?: string; code?: string };
-      if (!response.ok) throw new Error(data.message || "No pudimos completar la operacion.");
+      if (!response.ok) throw new Error(data.message || "No pudimos completar la operación.");
       if (mode === "register") {
         setSuccessLocked(true);
         setMessageTone("success");
@@ -174,7 +174,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setMessage("El ingreso con Google no esta disponible en este momento.");
+      setMessage("El ingreso con Google no está disponible en este momento.");
       setMessageTone("error");
       return;
     }
