@@ -53,9 +53,10 @@ export const getUserProfile = cache(async (): Promise<SessionProfile | null> => 
 
   const admin = getSupabaseAdminClient();
   const fallback = sessionProfileFromUser(user);
-  if (!admin) return fallback;
+  const profileClient = admin ?? (await getSupabaseServerClient());
+  if (!profileClient) return fallback;
 
-  const { data } = await admin
+  const { data } = await profileClient
     .from("profiles")
     .select("id,email,full_name,phone,avatar_url,role")
     .eq("id", user.id)
