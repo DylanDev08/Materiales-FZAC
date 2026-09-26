@@ -19,11 +19,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
       <div className="container empty-state">
         <div>
           <CheckCircle2 size={42} />
-          <h1>{receipt ? "Pago confirmado" : "Confirmacion recibida"}</h1>
+          <h1>{receipt ? "Pago confirmado" : "Estamos verificando el pago"}</h1>
           <p>
             {receipt
-              ? "Recibimos la confirmacion de Mercado Pago. Ya emitimos el comprobante FZAC y el equipo esta validando tu pedido."
-              : "Recibimos la confirmacion de Mercado Pago. FZAC esta validando tu pedido y actualizara el estado automaticamente."}
+              ? "Mercado Pago confirmó la operación. Ya emitimos el comprobante FZAC y el equipo está preparando la siguiente etapa del pedido."
+              : "Volviste desde Mercado Pago. Estamos verificando el estado real de la operación; no repitas el pago mientras termina la validación."}
           </p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
           <Link className="btn" href="/cuenta/pedidos">
