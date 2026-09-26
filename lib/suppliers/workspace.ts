@@ -113,7 +113,7 @@ export async function getSupplierWorkspace({
         });
         if (response.ok) return await response.json() as SupplierWorkspaceData;
       } catch {
-        return empty();
+        // Fall through to the authenticated Supabase client when backend proxying is unavailable.
       }
     }
 
