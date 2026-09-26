@@ -16,7 +16,7 @@ export function CatalogReportActions({ backHref, title }: { backHref: string; ti
   return (
     <div className="catalog-report-actions no-print">
       <Link className="btn btn--ghost" href={backHref}><RotateCcw size={17} />Volver</Link>
-      <button className="btn btn--primary" onClick={exportPdf} type="button"><Download size={17} />Exportar PDF</button>
+      <button className="btn btn--primary" onClick={exportPdf} type="button"><Download size={17} />Imprimir / Guardar PDF</button>
     </div>
   );
 }
