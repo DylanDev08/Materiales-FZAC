@@ -1,7 +1,9 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { Tables } from "@/types/supabase";
 
 const PAGE_SIZE = 30;
@@ -95,9 +97,46 @@ export async function getSupplierWorkspace({
   page?: number;
 } = {}): Promise<SupplierWorkspaceData> {
   const admin = getSupabaseAdminClient();
-  const session = admin ? null : await getSupabaseServerClient();
-  const db = admin ?? session;
-  if (!db) return empty();
+  if (!admin) {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (hasRealValue(backend)) {
+      try {
+        const cookieStore = await cookies();
+        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const url = new URL("/api/admin/supplier-workspace", backend);
+        if (supplierId) url.searchParams.set("supplier", supplierId);
+        if (query) url.searchParams.set("q", query);
+        if (page) url.searchParams.set("page", String(page));
+        const response = await fetch(url, {
+          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          cache: "no-store"
+        });
+        if (response.ok) return await response.json() as SupplierWorkspaceData;
+      } catch {
+        return empty();
+      }
+    }
+
+    const session = await getSupabaseServerClient();
+    if (!session) return empty();
+    return getSupplierWorkspaceWithClient(session, { supplierId, query, page });
+  }
+
+  return getSupplierWorkspaceWithClient(admin, { supplierId, query, page });
+}
+
+async function getSupplierWorkspaceWithClient(
+  db: NonNullable<ReturnType<typeof getSupabaseAdminClient>> | NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
+  {
+    supplierId,
+    query,
+    page
+  }: {
+    supplierId?: string;
+    query?: string;
+    page?: number;
+  }
+): Promise<SupplierWorkspaceData> {
 
   const suppliersResult = await db.from("suppliers").select("*")
     .order("active", { ascending: false }).order("name").limit(100);
