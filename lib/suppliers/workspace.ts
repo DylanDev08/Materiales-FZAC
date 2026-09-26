@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/supabase";
 
 const PAGE_SIZE = 30;
@@ -94,17 +95,19 @@ export async function getSupplierWorkspace({
   page?: number;
 } = {}): Promise<SupplierWorkspaceData> {
   const admin = getSupabaseAdminClient();
-  if (!admin) return empty();
+  const session = admin ? null : await getSupabaseServerClient();
+  const db = admin ?? session;
+  if (!db) return empty();
 
-  const suppliersResult = await admin.from("suppliers").select("*")
+  const suppliersResult = await db.from("suppliers").select("*")
     .order("active", { ascending: false }).order("name").limit(100);
   if (suppliersResult.error) return empty();
   const suppliers = (suppliersResult.data ?? []) as Tables<"suppliers">[];
 
   const counts = await Promise.all(suppliers.map(async (supplier) => {
     const [products, documents] = await Promise.all([
-      admin.from("product_supplier_sources").select("id", { count: "exact", head: true }).eq("supplier_id", supplier.id),
-      admin.from("supplier_documents").select("id", { count: "exact", head: true }).eq("supplier_id", supplier.id).eq("status", "ACTIVE")
+      db.from("product_supplier_sources").select("id", { count: "exact", head: true }).eq("supplier_id", supplier.id),
+      db.from("supplier_documents").select("id", { count: "exact", head: true }).eq("supplier_id", supplier.id).eq("status", "ACTIVE")
     ]);
     return {
       ...supplier,
@@ -119,7 +122,7 @@ export async function getSupplierWorkspace({
   const normalizedQuery = safeSearch(query);
   const normalizedPage = Math.max(1, Math.floor(page || 1));
   const from = (normalizedPage - 1) * PAGE_SIZE;
-  let productsQuery = admin.from("product_supplier_sources")
+  let productsQuery = db.from("product_supplier_sources")
     .select("product_id,original_name,source_sku,original_price,product:products(id,name,sku,unit,active,stock,availability_status,price)", { count: "exact" })
     .eq("supplier_id", selectedSupplier.id)
     .order("original_name", { ascending: true });
@@ -129,7 +132,7 @@ export async function getSupplierWorkspace({
 
   const [productsResult, documentsResult] = await Promise.all([
     productsQuery.range(from, from + PAGE_SIZE - 1),
-    admin.from("supplier_documents")
+    db.from("supplier_documents")
       .select("*,items:supplier_document_items(*,product:products(id,name,sku,price))")
       .eq("supplier_id", selectedSupplier.id)
       .order("created_at", { ascending: false })
