@@ -54,7 +54,7 @@ export function ResetPasswordForm() {
           <div>
             <span className="kicker">Seguridad</span>
             <h1>Definí una nueva contraseña</h1>
-            <p>El enlace solo habilita este cambio. Al terminar, se cerraran las sesiones anteriores.</p>
+            <p>El enlace solo habilita este cambio. Al terminar, se cerrarán las sesiones anteriores.</p>
           </div>
         </div>
         <form onSubmit={submit}>
