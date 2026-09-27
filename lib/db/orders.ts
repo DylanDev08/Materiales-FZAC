@@ -24,7 +24,7 @@ import {
   notifyAdminPaymentPending,
   notifyAdminTransferPending
 } from "@/lib/notifications/admin-notifier";
-import { getEnv } from "@/lib/utils/env";
+import { requiresAdminPurchaseApproval } from "@/lib/payments/approval-policy";
 import type { PaymentProvider, Product } from "@/types/domain";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -165,10 +165,6 @@ function normalizeProduct(row: Record<string, unknown>): Product {
   return { ...product, image_url: resolveProductImageUrl(product) };
 }
 
-function purchaseAutoApprovalLimit() {
-  const configured = Number(getEnv("PURCHASE_AUTO_APPROVAL_LIMIT"));
-  return Number.isFinite(configured) && configured > 0 ? configured : 250000;
-}
 
 function checkoutFingerprint(payload: CheckoutInput, userId: string, paymentMethod: string) {
   const snapshot = {
@@ -594,10 +590,10 @@ export async function createCheckout(input: unknown) {
 
   const delivery = shippingQuote?.available ? shippingQuote.amount : 0;
   const total = subtotal + delivery;
-  const approvalLimit = purchaseAutoApprovalLimit();
+  const approvalLimit = 1_000_000;
   const isBankTransfer = paymentMethod === "BANK_TRANSFER";
   const isWhatsApp = paymentMethod === "WHATSAPP";
-  const isLargePurchase = total > approvalLimit;
+  const isLargePurchase = requiresAdminPurchaseApproval(total);
   const requiresAdminApproval = isLargePurchase || isBankTransfer || isWhatsApp;
   const orderStatus = isLargePurchase
     ? "PENDING_ADMIN_APPROVAL"
