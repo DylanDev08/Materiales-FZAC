@@ -9156,3 +9156,16 @@ img[src*="logoFZAC"] {
   .admin-ops__cards, .admin-ops__system { grid-template-columns: 1fr; }
   .admin-ops__section { padding: 14px; }
 }
+
+
+.admin-fulfillment-card { gap: 14px; }
+.admin-fulfillment-editor { display:grid; gap:12px; width:100%; }
+.admin-fulfillment-editor__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.admin-fulfillment-editor label { display:grid; gap:6px; color:var(--color-muted); font-size:.82rem; font-weight:800; }
+.admin-fulfillment-editor label svg { display:inline-block; margin-right:4px; }
+.admin-fulfillment-editor input,
+.admin-fulfillment-editor select,
+.admin-fulfillment-editor textarea { width:100%; border:1px solid var(--color-border); background:#0d0d0d; color:var(--color-white); border-radius:8px; padding:10px 11px; }
+.admin-fulfillment-editor__wide { grid-column:1/-1; }
+@media (max-width:900px){ .admin-fulfillment-editor__grid{grid-template-columns:1fr 1fr;} }
+@media (max-width:620px){ .admin-fulfillment-editor__grid{grid-template-columns:1fr;} }
