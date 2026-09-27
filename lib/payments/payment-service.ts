@@ -1,6 +1,10 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sendTransactionalEmail } from "@/lib/email/resend";
+import { purchaseConfirmationEmailTemplate } from "@/lib/email/templates";
+import { getPublicSiteUrl } from "@/lib/seo/site";
+import { notifyAdminPaymentApproved } from "@/lib/notifications/admin-notifier";
 import type { PaymentProvider, PaymentStatus } from "@/types/domain";
 
 type ConfirmationInput = {
@@ -74,6 +78,48 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
   if (error) {
     if (isMissingRpcError(error, "finalize_paid_order")) throw new PaymentIntegrityRpcMissingError();
     throw new Error("No pudimos finalizar la orden aprobada de forma atomica.");
+  }
+
+  try {
+    const [{ data: order }, { data: ticket }, { data: items }] = await Promise.all([
+      admin.from("orders").select("id,customer_name,customer_email,total,shipping_cost").eq("id", input.orderId).maybeSingle(),
+      admin.from("purchase_tickets").select("number,payment_provider").eq("order_id", input.orderId).maybeSingle(),
+      admin.from("order_items").select("name,quantity,unit_price,subtotal").eq("order_id", input.orderId).order("created_at", { ascending: true })
+    ]);
+
+    if (order?.customer_email && ticket?.number) {
+      const template = purchaseConfirmationEmailTemplate({
+        customerName: String(order.customer_name ?? "cliente"),
+        ticketNumber: String(ticket.number),
+        orderReference: input.orderId.slice(0, 8).toUpperCase(),
+        total: Number(order.total ?? 0),
+        shippingCost: Number(order.shipping_cost ?? 0),
+        paymentProvider: String(ticket.payment_provider ?? input.provider),
+        items: (items ?? []).map((item) => ({
+          name: String(item.name ?? "Producto"),
+          quantity: Number(item.quantity ?? 0),
+          unitPrice: Number(item.unit_price ?? 0),
+          subtotal: Number(item.subtotal ?? 0)
+        })),
+        actionUrl: `${getPublicSiteUrl()}/cuenta/pedidos`
+      });
+
+      await sendTransactionalEmail({
+        to: { email: String(order.customer_email), name: String(order.customer_name ?? "") },
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        idempotencyKey: `fzac-order-paid-${input.orderId}`
+      }).catch(async () => {
+        await notifyAdminPaymentApproved({
+          id: input.orderId,
+          customerName: String(order.customer_name ?? "Cliente"),
+          ticketNumber: String(ticket.number)
+        }).catch(() => undefined);
+      });
+    }
+  } catch {
+    // El email es best-effort: nunca debe revertir una confirmación de pago.
   }
 
   return { ok: true, source: "rpc", result: data };
