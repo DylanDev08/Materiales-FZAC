@@ -100,7 +100,7 @@ function findPriceInJson(value: unknown): number | null {
 }
 
 function extractPrice(html: string) {
-  const scripts = [...html.matchAll(/<script[^>]+type=["']application/ld+json["'][^>]*>([sS]*?)</script>/gi)];
+  const scripts = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for (const match of scripts) {
     try {
       const parsed = JSON.parse(match[1].trim());
