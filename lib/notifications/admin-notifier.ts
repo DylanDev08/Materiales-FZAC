@@ -65,8 +65,8 @@ export async function notifyAdminPaymentApproved(order: { id: string; customerNa
 export async function notifyAdminLargePurchase(order: { id: string; customerName: string; total: number; limit: number }) {
   await notifyAdmin({
     type: "LARGE_PURCHASE_REVIEW",
-    title: "Compra grande para revisar",
-    message: `${order.customerName} creo una compra por $${Math.round(order.total).toLocaleString("es-AR")}. Supera el limite automatico de $${Math.round(order.limit).toLocaleString("es-AR")}.`,
+    title: "PRIORIDAD ALTA · compra grande",
+    message: `${order.customerName} creó una compra por ${Math.round(order.total).toLocaleString("es-AR")}. Supera el límite automático de ${Math.round(order.limit).toLocaleString("es-AR")} y requiere revisión prioritaria antes de habilitar el pago.`,
     linkTo: `${getAdminConsolePath()}/pedidos?order=${order.id}`
   });
 }
