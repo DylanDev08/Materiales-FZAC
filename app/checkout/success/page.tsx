@@ -4,10 +4,23 @@ import { ReceiptActions } from "@/components/orders/receipt-actions";
 import { ReceiptTemplate } from "@/components/orders/receipt-template";
 import { getOrderReceipt } from "@/lib/db/receipts";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+import { PaymentReturnReconciler } from "@/components/payments/payment-return-reconciler";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ orderId?: string; order_id?: string }> }) {
+export default async function Page({
+  searchParams
+}: {
+  searchParams: Promise<{
+    orderId?: string;
+    order_id?: string;
+    payment_id?: string;
+    collection_id?: string;
+    status?: string;
+    collection_status?: string;
+  }>;
+}) {
   const params = await searchParams;
   const orderId = params.orderId || params.order_id || "";
+  const providerPaymentId = params.payment_id || params.collection_id || "";
   const reference = orderId ? orderId.slice(0, 8).toUpperCase() : null;
   const receipt = await getOrderReceipt(orderId);
   const whatsappHref = getWhatsAppHref(
@@ -26,6 +39,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ o
               : "Volviste desde Mercado Pago. Estamos verificando el estado real de la operación; no repitas el pago mientras termina la validación."}
           </p>
           {reference ? <p>Referencia de pedido: {reference}</p> : null}
+          {!receipt && orderId && providerPaymentId ? (
+            <PaymentReturnReconciler orderId={orderId} paymentId={providerPaymentId} />
+          ) : null}
           <Link className="btn" href="/cuenta/pedidos">
             Ver pedido
           </Link>
