@@ -45,7 +45,7 @@ export type ProcurementOrder = {
   id: string;
   order_number: string;
   supplier_id: string;
-  status: "DRAFT" | "ORDERED" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELLED";
+  status: "DRAFT" | "ORDERED" | "IN_TRANSIT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELLED";
   total: number;
   expected_at: string | null;
   notes: string | null;
@@ -113,7 +113,7 @@ export async function getProcurementData(): Promise<ProcurementData> {
       }))
     } as ProcurementOrder;
   });
-  const openStatuses = new Set(["DRAFT", "ORDERED", "PARTIALLY_RECEIVED"]);
+  const openStatuses = new Set(["DRAFT", "ORDERED", "IN_TRANSIT", "PARTIALLY_RECEIVED"]);
 
   return {
     ready: true,
@@ -122,7 +122,7 @@ export async function getProcurementData(): Promise<ProcurementData> {
     orders,
     overview: {
       drafts: orders.filter((order) => order.status === "DRAFT").length,
-      awaitingReceipt: orders.filter((order) => order.status === "ORDERED").length,
+      awaitingReceipt: orders.filter((order) => order.status === "ORDERED" || order.status === "IN_TRANSIT").length,
       partialReceipts: orders.filter((order) => order.status === "PARTIALLY_RECEIVED").length,
       openCommitment: orders.filter((order) => openStatuses.has(order.status)).reduce((sum, order) => sum + order.total, 0),
       activeSuppliers: suppliers.filter((supplier) => supplier.active).length
