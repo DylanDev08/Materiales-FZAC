@@ -8,12 +8,19 @@ type StockRow={
   product_id:string;location_id:string;quantity:number;stock_minimum:number;updated_at:string;
   product:{name?:string;sku?:string;unit?:string;stock?:number;active?:boolean}|Array<{name?:string;sku?:string;unit?:string;stock?:number;active?:boolean}>|null;
 };
+type SupplierStockRow={
+  product_id:string;
+  supplier_stock:number|null;
+  supplier_stock_checked_at:string|null;
+  supplier:{name?:string}|Array<{name?:string}>|null;
+};
 
 function productOf(row:StockRow){ return Array.isArray(row.product) ? row.product[0] : row.product; }
 
 export function AdminInventoryLocations(){
   const [locations,setLocations]=useState<Location[]>([]);
   const [rows,setRows]=useState<StockRow[]>([]);
+  const [supplierRows,setSupplierRows]=useState<SupplierStockRow[]>([]);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
   const [productId,setProductId]=useState("");
@@ -26,10 +33,11 @@ export function AdminInventoryLocations(){
     setLoading(true);setMessage("");
     try{
       const response=await fetch("/api/admin/inventory/locations",{cache:"no-store"});
-      const body=await response.json() as {locations?:Location[];rows?:StockRow[];message?:string};
+      const body=await response.json() as {locations?:Location[];rows?:StockRow[];supplierRows?:SupplierStockRow[];message?:string};
       if(!response.ok) throw new Error(body.message || "No pudimos cargar ubicaciones.");
       setLocations(body.locations ?? []);
       setRows(body.rows ?? []);
+      setSupplierRows(body.supplierRows ?? []);
       setFrom((current)=>current || body.locations?.[0]?.id || "");
       setTo((current)=>current || body.locations?.[1]?.id || "");
     }catch(error){setMessage(error instanceof Error ? error.message : "No pudimos cargar ubicaciones.");}
@@ -50,6 +58,10 @@ export function AdminInventoryLocations(){
   },[rows]);
 
   const selected=products.find((item)=>item.id===productId);
+  const selectedSupplier=supplierRows.find((item)=>item.product_id===productId);
+  const supplierName=selectedSupplier
+    ? (Array.isArray(selectedSupplier.supplier) ? selectedSupplier.supplier[0]?.name : selectedSupplier.supplier?.name)
+    : "";
   async function transfer(){
     if(!productId || !from || !to || from===to) return;
     setSaving(true);setMessage("");
@@ -79,6 +91,9 @@ export function AdminInventoryLocations(){
       <label>Cantidad<input min="1" type="number" value={quantity} onChange={(e)=>setQuantity(e.target.value)}/></label>
       <button className="btn btn--primary" type="button" disabled={saving || !productId || from===to} onClick={()=>void transfer()}><ArrowRightLeft size={17}/>{saving ? "Moviendo…" : "Transferir"}</button>
     </div>
-    {selected ? <p className="admin-location-stock__selected">Total comercial: <strong>{selected.total} {selected.unit}</strong> · {locations.map((l)=>`${l.name}: ${selected.locations[l.id] || 0}`).join(" · ")}</p> : null}
+    {selected ? <p className="admin-location-stock__selected">
+      Stock FZAC total: <strong>{selected.total} {selected.unit}</strong> · {locations.map((l)=>`${l.name}: ${selected.locations[l.id] || 0}`).join(" · ")}
+      {supplierName ? <> · Proveedor {supplierName}: <strong>{selectedSupplier?.supplier_stock == null ? "sin dato" : `${selectedSupplier.supplier_stock} ${selected.unit}`}</strong></> : null}
+    </p> : null}
   </section>;
 }
