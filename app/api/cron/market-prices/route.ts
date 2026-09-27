@@ -12,11 +12,13 @@ async function run(request: Request) {
 
   const envSecret = process.env.MARKET_PRICE_CRON_SECRET?.trim() ?? "";
   const admin = getSupabaseAdminClient();
-  const { data: vaultSecret } = admin
-    ? await admin.rpc("get_market_price_cron_secret").catch(() => ({ data: null }))
-    : { data: null };
+  let vaultSecret = "";
+  if (admin) {
+    const result = await admin.rpc("get_market_price_cron_secret");
+    if (!result.error && typeof result.data === "string") vaultSecret = result.data;
+  }
 
-  const acceptedSecrets = [envSecret, typeof vaultSecret === "string" ? vaultSecret : ""]
+  const acceptedSecrets = [envSecret, vaultSecret]
     .filter((value) => hasRealValue(value));
   if (!acceptedSecrets.length) return jsonError("Automatización no configurada.", 503);
 
