@@ -54,11 +54,26 @@ export async function notifyAdminTransferPending(order: { id: string; customerNa
 }
 
 export async function notifyAdminPaymentApproved(order: { id: string; customerName: string; ticketNumber?: string }) {
-  await notifyAdmin({
+  const admin = getSupabaseAdminClient();
+  if (!admin) return;
+
+  const linkTo = `${getAdminConsolePath()}/pedidos?order=${order.id}`;
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("id")
+    .eq("type", "PURCHASE_APPROVED")
+    .eq("link_to", linkTo)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) return;
+
+  await admin.from("notifications").insert({
+    target_role: "ADMIN",
     type: "PURCHASE_APPROVED",
-    title: "Compra aprobada",
-    message: `Nueva compra aprobada por ${order.customerName}${order.ticketNumber ? `. Ticket ${order.ticketNumber}` : "."}`,
-    linkTo: `${getAdminConsolePath()}/pedidos?order=${order.id}`
+    title: "Pago aprobado · ingreso registrado",
+    message: `Nueva compra aprobada por ${order.customerName}${order.ticketNumber ? `. Ticket ${order.ticketNumber}` : "."} El ingreso ya quedó registrado automáticamente en Finanzas.`,
+    link_to: linkTo
   });
 }
 
