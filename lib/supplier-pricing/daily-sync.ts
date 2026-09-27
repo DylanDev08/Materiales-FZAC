@@ -135,7 +135,6 @@ export async function runDailySupplierPricingSync() {
     admin.from("category_pricing_rules").select("category_id,target_margin_pct,auto_update_threshold_pct,alert_over_market_pct,active"),
     admin.from("product_supplier_sources")
       .select("id,product_id,supplier_id,source_url,original_price,margin_percent,manual_review_required,product:products!inner(id,name,sku,price,category_id,active),supplier:suppliers(id,name,website_url,catalog_url)")
-      .eq("product.active", true)
       .limit(250),
     admin.from("market_price_sources").select("id").eq("active",true).eq("trusted",true).limit(100),
     admin.from("market_price_observations").select("product_id,source_id,normalized_price,expires_at").gte("expires_at",new Date().toISOString()).limit(5000),
