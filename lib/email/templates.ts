@@ -185,6 +185,8 @@ type PurchaseConfirmationEmailInput = {
   total: number;
   shippingCost: number;
   paymentProvider: string;
+  shippingMethod: "DELIVERY" | "PICKUP";
+  deliveryAddress?: string;
   items: Array<{ name: string; quantity: number; unitPrice: number; subtotal: number }>;
   actionUrl: string;
 };
@@ -194,6 +196,10 @@ function formatArs(value: number) {
 }
 
 export function purchaseConfirmationEmailTemplate(input: PurchaseConfirmationEmailInput) {
+  const deliveryLabel = input.shippingMethod === "DELIVERY" ? "Envío / flete" : "Retiro en local";
+  const deliveryInstruction = input.shippingMethod === "DELIVERY"
+    ? "Estamos preparando tu pedido. Te avisaremos cuando salga a despacho con horario estimado y teléfono del flete."
+    : "Estamos preparando tu pedido. Te avisaremos cuando esté listo para retirar; no hace falta acercarte antes.";
   const rows = input.items.map((item) =>
     `<tr><td style="padding:8px 0;border-bottom:1px solid #333;color:#fff">${escapeHtml(item.name)} × ${item.quantity}</td><td style="padding:8px 0;border-bottom:1px solid #333;text-align:right;color:#fff">${escapeHtml(formatArs(item.subtotal))}</td></tr>`
   ).join("");
@@ -215,12 +221,15 @@ export function purchaseConfirmationEmailTemplate(input: PurchaseConfirmationEma
               <tr><td style="padding:6px 0;color:#aaa">Ticket</td><td style="padding:6px 0;text-align:right;color:#f4c400;font-weight:700">${escapeHtml(input.ticketNumber)}</td></tr>
               <tr><td style="padding:6px 0;color:#aaa">Pedido</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(input.orderReference)}</td></tr>
               <tr><td style="padding:6px 0;color:#aaa">Pago</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(input.paymentProvider)}</td></tr>
+              <tr><td style="padding:6px 0;color:#aaa">Entrega</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(deliveryLabel)}</td></tr>
+              ${input.deliveryAddress ? `<tr><td style="padding:6px 0;color:#aaa">Dirección</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(input.deliveryAddress)}</td></tr>` : ""}
             </table>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px">${rows}</table>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:22px">
               <tr><td style="padding:6px 0;color:#aaa">Envío</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(formatArs(input.shippingCost))}</td></tr>
               <tr><td style="padding:8px 0;color:#fff;font-weight:700">Total</td><td style="padding:8px 0;text-align:right;color:#f4c400;font-weight:700">${escapeHtml(formatArs(input.total))}</td></tr>
             </table>
+            <p style="margin:0 0 20px;padding:12px 14px;background:#101010;border-left:3px solid #f4c400;color:#d5d5d5;line-height:1.5">${escapeHtml(deliveryInstruction)}</p>
             <a href="${escapeHtml(safeActionUrl(input.actionUrl))}" style="display:inline-block;padding:13px 20px;background:#f4c400;color:#0b0b0b;text-decoration:none;font-weight:700">Ver mi compra</a>
             <p style="margin:22px 0 0;color:#8f8f8f;font-size:12px;line-height:1.5">Conservá este correo como constancia comercial. El ticket FZAC no reemplaza una factura fiscal cuando corresponda.</p>
           </td></tr>
@@ -231,7 +240,7 @@ export function purchaseConfirmationEmailTemplate(input: PurchaseConfirmationEma
 </html>`;
 
   const lines = input.items.map((item) => `- ${item.name} x${item.quantity}: ${formatArs(item.subtotal)}`).join("\n");
-  const text = `Hola ${input.customerName || "cliente"}.\n\nTu pago fue aprobado.\nTicket: ${input.ticketNumber}\nPedido: ${input.orderReference}\nPago: ${input.paymentProvider}\n\n${lines}\n\nEnvío: ${formatArs(input.shippingCost)}\nTotal: ${formatArs(input.total)}\n\nVer compra: ${safeActionUrl(input.actionUrl)}`;
+  const text = `Hola ${input.customerName || "cliente"}.\n\nTu pago fue aprobado.\nTicket: ${input.ticketNumber}\nPedido: ${input.orderReference}\nPago: ${input.paymentProvider}\nEntrega: ${deliveryLabel}${input.deliveryAddress ? `\nDirección: ${input.deliveryAddress}` : ""}\n\n${lines}\n\nEnvío: ${formatArs(input.shippingCost)}\nTotal: ${formatArs(input.total)}\n\n${deliveryInstruction}\n\nVer compra: ${safeActionUrl(input.actionUrl)}`;
 
   return {
     subject: `Compra confirmada · ${input.ticketNumber}`,
