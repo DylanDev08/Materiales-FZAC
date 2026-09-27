@@ -324,7 +324,11 @@ export async function getAdminOrderTableRows(limit = 200) {
       Total: currency(order.total),
       Estado: friendlyStatus(order.status),
       Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(payment.status)}` : "Pendiente",
-      Envio: order.shipping_method === "DELIVERY" ? "Envio a coordinar" : "Retiro",
+      Envio: order.shipping_method === "DELIVERY" ? "Envío / flete a coordinar" : "Retiro en local",
+      __shippingMethod: String(order.shipping_method ?? "PICKUP"),
+      __address: order.address_snapshot && typeof order.address_snapshot === "object"
+        ? [order.address_snapshot.street, order.address_snapshot.number, order.address_snapshot.city, order.address_snapshot.province].filter(Boolean).join(" ")
+        : "",
       Fecha: adminDate(order.created_at)
     };
   });
