@@ -24,7 +24,7 @@ import {
   notifyAdminPaymentPending,
   notifyAdminTransferPending
 } from "@/lib/notifications/admin-notifier";
-import { requiresAdminPurchaseApproval } from "@/lib/payments/approval-policy";
+import { getPurchaseAutoApprovalLimit, requiresAdminPurchaseApproval } from "@/lib/payments/approval-policy";
 import type { PaymentProvider, Product } from "@/types/domain";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -590,7 +590,7 @@ export async function createCheckout(input: unknown) {
 
   const delivery = shippingQuote?.available ? shippingQuote.amount : 0;
   const total = subtotal + delivery;
-  const approvalLimit = 1_000_000;
+  const approvalLimit = getPurchaseAutoApprovalLimit();
   const isBankTransfer = paymentMethod === "BANK_TRANSFER";
   const isWhatsApp = paymentMethod === "WHATSAPP";
   const isLargePurchase = requiresAdminPurchaseApproval(total);
