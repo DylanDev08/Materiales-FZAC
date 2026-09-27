@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
 import { isTestPaymentEnv } from "@/lib/payments/config";
@@ -174,9 +175,11 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
   rows: AdminFinancialMovement[];
 }> {
   const admin = getSupabaseAdminClient();
-  if (!admin) return { available: false, rows: [] };
+  const session = admin ? null : await getSupabaseServerClient();
+  const db = admin ?? session;
+  if (!db) return { available: false, rows: [] };
 
-  const { data, error } = await admin
+  const { data, error } = await db
     .from("financial_movements")
     .select("id,type,category,description,amount,source,occurred_at,status,void_reason,created_at")
     .order("occurred_at", { ascending: false })
