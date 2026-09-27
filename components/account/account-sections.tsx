@@ -37,13 +37,36 @@ export function AccountOrders({ rows }: { rows: AccountOverview["orders"] }) {
   if (!rows.length) return <p className="account-empty">Todavía no hay pedidos para mostrar.</p>;
   return (
     <div className="account-order-list">
-      {rows.map((order) => (
-        <article key={order.id}>
-          <Package size={20} />
-          <div><strong>{order.total}</strong><span><CalendarDays size={14} /> {order.date} · {order.delivery}</span></div>
-          <span className="status-pill">{statusLabels[order.status] ?? "En revisión"}</span>
-        </article>
-      ))}
+      {rows.map((order) => {
+        const currentIndex = order.progress.indexOf(order.status);
+        return (
+          <article className="account-order-card" key={order.id}>
+            <div className="account-order-card__summary">
+              <Package size={20} />
+              <div>
+                <strong>{order.total}</strong>
+                <span><CalendarDays size={14} /> {order.date} · {order.delivery}</span>
+                {order.address ? <small>{order.address}</small> : null}
+                {order.estimatedWindow ? <small>Horario estimado: {order.estimatedWindow}</small> : null}
+                {order.carrierPhone && ["READY_FOR_DELIVERY","OUT_FOR_DELIVERY"].includes(order.status) ? <small>Flete: {order.carrierPhone}</small> : null}
+              </div>
+              <span className="status-pill">{statusLabels[order.status] ?? "En revisión"}</span>
+            </div>
+            {["PENDING_PAYMENT","PENDING_TRANSFER","PENDING_ADMIN_APPROVAL","COORDINATE","CANCELLED"].includes(order.status) ? null : (
+              <ol className="account-order-progress" aria-label="Seguimiento del pedido">
+                {order.progress.map((step, index) => {
+                  const done = currentIndex >= index || order.status === "DELIVERED" || order.status === "COMPLETED";
+                  const active = order.status === step;
+                  return <li className={active ? "is-active" : done ? "is-done" : ""} key={step}>
+                    <span>{done ? <CheckCircle2 size={15} /> : <Circle size={15} />}</span>
+                    <small>{statusLabels[step] ?? step}</small>
+                  </li>;
+                })}
+              </ol>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }
