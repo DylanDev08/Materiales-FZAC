@@ -326,12 +326,38 @@ export async function getAdminOrderTableRows(limit = 200) {
       Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(payment.status)}` : "Pendiente",
       Envio: order.shipping_method === "DELIVERY" ? "Envío / flete a coordinar" : "Retiro en local",
       __shippingMethod: String(order.shipping_method ?? "PICKUP"),
+      __assignedTo: String(order.assigned_to ?? ""),
+      __carrierName: String(order.carrier_name ?? ""),
+      __carrierPhone: String(order.carrier_phone ?? ""),
+      __estimatedWindow: String(order.estimated_delivery_window ?? ""),
+      __recipientName: String(order.delivery_recipient_name ?? ""),
+      __recipientPhone: String(order.delivery_recipient_phone ?? ""),
+      __actualShippingCost: Number(order.actual_shipping_cost ?? 0),
+      __scheduledFor: String(order.scheduled_for ?? ""),
+      __fulfillmentNotes: String(order.fulfillment_notes ?? ""),
+      __statusRaw: String(order.status ?? ""),
       __address: order.address_snapshot && typeof order.address_snapshot === "object"
         ? [order.address_snapshot.street, order.address_snapshot.number, order.address_snapshot.city, order.address_snapshot.province].filter(Boolean).join(" ")
         : "",
       Fecha: adminDate(order.created_at)
     };
   });
+}
+
+export async function getAdminAssignableUsers() {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return [];
+  const { data } = await admin
+    .from("profiles")
+    .select("id,email,full_name,role")
+    .in("role", ["ADMIN", "OPERATOR"])
+    .order("full_name", { ascending: true })
+    .limit(100);
+  return (data ?? []).map((profile) => ({
+    id: String(profile.id),
+    label: String(profile.full_name || profile.email),
+    role: String(profile.role ?? "USER")
+  }));
 }
 
 export async function getAdminPaymentTableRows(limit = 200) {
