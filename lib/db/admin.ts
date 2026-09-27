@@ -87,6 +87,8 @@ function friendlyStatus(value: string | null | undefined) {
   return labels[status] ?? (status ? status.replaceAll("_", " ") : "-");
 }
 
+const fulfilledPaidStatuses = new Set(["PAID","CONFIRMED","PREPARING","READY_FOR_PICKUP","READY_FOR_DELIVERY","OUT_FOR_DELIVERY","DELIVERED","COMPLETED"]);
+
 function friendlyRole(value: string | null | undefined) {
   const role = String(value ?? "").toUpperCase();
   if (role === "ADMIN") return "Administrador";
@@ -622,11 +624,11 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     { data: financialMovements, error: financialMovementsError },
     { data: supplierInvoices, error: supplierInvoicesError }
   ] = await Promise.all([
-    admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", today),
-    admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", selectedStart),
+    admin.from("orders").select("total, created_at, status").in("status", [...fulfilledPaidStatuses]).gte("created_at", today),
+    admin.from("orders").select("total, created_at, status").in("status", [...fulfilledPaidStatuses]).gte("created_at", selectedStart),
     admin.from("orders").select("id,total,created_at,status").gte("created_at", selectedStart),
     admin.from("purchase_tickets").select("id,total,issued_at,status").gte("issued_at", selectedStart),
-    admin.from("orders").select("total, created_at, status").eq("status", "PAID").gte("created_at", month),
+    admin.from("orders").select("total, created_at, status").in("status", [...fulfilledPaidStatuses]).gte("created_at", month),
     admin.from("orders").select("id,status").eq("status", "PENDING_PAYMENT"),
     admin.from("orders").select("id,status,total").eq("status", "PENDING_ADMIN_APPROVAL"),
     admin.from("orders").select("id,status,total"),
@@ -650,7 +652,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       .limit(8),
     admin
       .from("financial_movements")
-      .select("id,type,category,description,amount,occurred_at,status")
+      .select("id,type,category,description,amount,source,occurred_at,status")
       .gte("occurred_at", selectedStart)
       .order("occurred_at", { ascending: false })
       .limit(600),
@@ -665,7 +667,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   const activeFinancialMovements = (financialMovements ?? []).filter((movement) => movement.status === "ACTIVE");
   const selectedSalesIncome = (selectedPaidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const selectedManualIncome = activeFinancialMovements
-    .filter((movement) => movement.type === "INCOME")
+    .filter((movement) => movement.type === "INCOME" && String(movement.source) !== "PURCHASE_PAYMENT")
     .reduce((sum, movement) => sum + Number(movement.amount ?? 0), 0);
   const selectedIncome = selectedSalesIncome + selectedManualIncome;
   const selectedExpenses = activeFinancialMovements
@@ -682,7 +684,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   const approvedPayments = (payments ?? []).filter((payment) => payment.status === "PAID");
   const pendingPayments = (payments ?? []).filter((payment) => payment.status === "PENDING");
   const rejectedPayments = (payments ?? []).filter((payment) => payment.status === "FAILED");
-  const paidOrderCount = (allOrderRows ?? []).filter((order) => order.status === "PAID").length;
+  const paidOrderCount = (allOrderRows ?? []).filter((order) => fulfilledPaidStatuses.has(String(order.status))).length;
   const selectedStartTime = new Date(selectedStart).getTime();
   const selectedPendingPayments = pendingPayments.filter((payment) => new Date(payment.created_at ?? 0).getTime() >= selectedStartTime);
   const pendingAmount = selectedPendingPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
@@ -692,13 +694,13 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   const periodBuckets = dashboardBuckets(period);
   const selectedOrderRows = selectedOrders ?? [];
   const selectedTicketRows = selectedTickets ?? [];
-  const paidSelectedOrderRows = selectedOrderRows.filter((order) => String(order.status).toUpperCase() === "PAID");
+  const paidSelectedOrderRows = selectedOrderRows.filter((order) => fulfilledPaidStatuses.has(String(order.status).toUpperCase()));
   const pendingSelectedOrderRows = selectedOrderRows.filter((order) =>
     ["PENDING_PAYMENT", "PENDING_TRANSFER", "PENDING_ADMIN_APPROVAL", "COORDINATE"].includes(String(order.status).toUpperCase())
   );
   const orderIncomeSeries = bucketSeries(paidSelectedOrderRows, periodBuckets, (order) => order.created_at, (order) => Number(order.total ?? 0));
   const manualIncomeSeries = bucketSeries(
-    activeFinancialMovements.filter((movement) => movement.type === "INCOME"),
+    activeFinancialMovements.filter((movement) => movement.type === "INCOME" && String(movement.source) !== "PURCHASE_PAYMENT"),
     periodBuckets,
     (movement) => movement.occurred_at,
     (movement) => Number(movement.amount ?? 0)
@@ -711,6 +713,12 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
   );
   const incomeSeries = orderIncomeSeries.map((value, index) => value + (manualIncomeSeries[index] ?? 0));
   const balanceSeries = incomeSeries.map((value, index) => value - (expenseSeries[index] ?? 0));
+
+  const preparingCount = (allOrderRows ?? []).filter((order) => String(order.status) === "PREPARING").length;
+  const readyPickupCount = (allOrderRows ?? []).filter((order) => String(order.status) === "READY_FOR_PICKUP").length;
+  const readyDeliveryCount = (allOrderRows ?? []).filter((order) => String(order.status) === "READY_FOR_DELIVERY").length;
+  const outForDeliveryCount = (allOrderRows ?? []).filter((order) => String(order.status) === "OUT_FOR_DELIVERY").length;
+  const priorityPurchaseCount = (allOrderRows ?? []).filter((order) => String(order.status) === "PENDING_ADMIN_APPROVAL").length;
 
   const recentOrderRows = recentOrders ?? [];
   const statusMap = recentOrderRows.reduce<Record<string, number>>((acc, order) => {
@@ -737,6 +745,11 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       { label: "Ventas del mes", value: currency(salesMonth), helper: "Ingresos del ciclo" },
       { label: "Usuarios registrados", value: String(allProfiles?.length ?? 0), helper: `${newTodayProfiles?.length ?? 0} nuevos hoy` },
       { label: "Pedidos pendientes", value: String(pendingOrders?.length ?? 0), helper: "Requieren seguimiento" },
+      { label: "Pedidos para preparar", value: String(preparingCount), helper: "Pagados y en preparación" },
+      { label: "Retiros listos", value: String(readyPickupCount), helper: "Avisar y coordinar retiro" },
+      { label: "Despachos pendientes", value: String(readyDeliveryCount), helper: "Listos para asignar flete" },
+      { label: "En camino", value: String(outForDeliveryCount), helper: "Entregas en curso" },
+      { label: "Prioridad alta", value: String(priorityPurchaseCount), helper: "Compras mayores a $1.000.000" },
       { label: "Aprobacion admin", value: String(approvalOrders?.length ?? 0), helper: "Compras grandes" },
       { label: "Pedidos pagados", value: String(paidOrderCount), helper: "Ordenes confirmadas" },
       { label: "Pagos pendientes", value: String(pendingPayments.length), helper: "Esperando proveedor" },
