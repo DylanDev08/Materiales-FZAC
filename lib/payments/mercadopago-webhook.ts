@@ -212,6 +212,32 @@ export async function handleMercadoPagoWebhook(request: Request): Promise<Webhoo
     return { status: 200, body: { ok: true, received: true, ignored: true } };
   }
 
+  const normalizedEventType = eventType.toLowerCase();
+  if (normalizedEventType.includes("merchant_order")) {
+    if (!isValidWebhookSignature(request, paymentId)) {
+      return { status: 401, body: { ok: false, message: "Firma invalida." } };
+    }
+
+    try {
+      const receipt = await createPaymentEvent({
+        eventType,
+        providerEventId: buildMercadoPagoProviderEventId(body, request.headers.get("x-request-id")),
+        providerPaymentId: "",
+        raw: safeWebhookEvent(body)
+      });
+      if (receipt?.id) {
+        await updatePaymentEvent(receipt.id, {
+          status: "IGNORED",
+          errorMessage: "Evento merchant_order recibido; el flujo comercial se concilia por payment."
+        });
+      }
+    } catch {
+      return { status: 503, body: { ok: false, received: false, message: "No pudimos registrar la notificacion." } };
+    }
+
+    return { status: 200, body: { ok: true, received: true, ignored: true, event_type: "merchant_order" } };
+  }
+
   if (!isMercadoPagoPaymentId(paymentId)) {
     return { status: 400, body: { ok: false, received: false, message: "Notificacion de pago invalida." } };
   }
