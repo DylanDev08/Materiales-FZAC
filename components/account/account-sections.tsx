@@ -1,4 +1,4 @@
-import { Boxes, CalendarDays, CircleDollarSign, Clock3, Package, ReceiptText, RotateCcw, ShoppingBag } from "lucide-react";
+import { Boxes, CalendarDays, CheckCircle2, Circle, CircleDollarSign, Clock3, Package, ReceiptText, RotateCcw, ShoppingBag } from "lucide-react";
 import type { AccountOverview } from "@/lib/db/account";
 
 const statusLabels: Record<string, string> = {
@@ -10,6 +10,7 @@ const statusLabels: Record<string, string> = {
   CONFIRMED: "Confirmado",
   PREPARING: "En preparación",
   READY_FOR_PICKUP: "Listo para retirar",
+  READY_FOR_DELIVERY: "Listo para despacho",
   OUT_FOR_DELIVERY: "En camino",
   DELIVERED: "Entregado",
   COMPLETED: "Completado",
