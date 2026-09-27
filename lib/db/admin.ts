@@ -294,72 +294,95 @@ export async function getAdminConsumerRefundRows(limit = 300) {
   }));
 }
 
+function formatAdminOrderRow(order: Record<string, unknown>, orderItems: Array<Record<string, unknown>>, payment: Record<string, unknown> | null | undefined) {
+  const address = order.address_snapshot && typeof order.address_snapshot === "object"
+    ? order.address_snapshot as Record<string, unknown>
+    : null;
+  return {
+    Id: String(order.id),
+    Referencia: shortReference(String(order.id)),
+    Cliente: String(order.customer_name ?? "-"),
+    Email: String(order.customer_email ?? "-"),
+    Telefono: String(order.customer_phone ?? "-"),
+    Productos: orderItems.map((item) => `${Number(item.quantity ?? 0)} x ${String(item.name ?? "Producto")}`).join("; ") || "-",
+    Total: currency(Number(order.total ?? 0)),
+    Estado: friendlyStatus(String(order.status ?? "")),
+    Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(String(payment.status ?? ""))}` : "Pendiente",
+    Envio: order.shipping_method === "DELIVERY" ? "Envío / flete a coordinar" : "Retiro en local",
+    __shippingMethod: String(order.shipping_method ?? "PICKUP"),
+    __assignedTo: String(order.assigned_to ?? ""),
+    __carrierName: String(order.carrier_name ?? ""),
+    __carrierPhone: String(order.carrier_phone ?? ""),
+    __estimatedWindow: String(order.estimated_delivery_window ?? ""),
+    __recipientName: String(order.delivery_recipient_name ?? ""),
+    __recipientPhone: String(order.delivery_recipient_phone ?? ""),
+    __actualShippingCost: Number(order.actual_shipping_cost ?? 0),
+    __scheduledFor: String(order.scheduled_for ?? ""),
+    __fulfillmentNotes: String(order.fulfillment_notes ?? ""),
+    __statusRaw: String(order.status ?? ""),
+    __address: address ? [address.street, address.number, address.city, address.province].filter(Boolean).join(" ") : "",
+    Fecha: adminDate(String(order.created_at ?? ""))
+  };
+}
+
 export async function getAdminOrderTableRows(limit = 200) {
   const admin = getSupabaseAdminClient();
-  if (!admin) return [];
+  if (admin) {
+    const { data: orders } = await admin.from("orders").select("*").order("created_at", { ascending: false }).limit(limit);
+    const orderIds = (orders ?? []).map((order) => order.id);
+    const [{ data: items }, { data: payments }] = orderIds.length
+      ? await Promise.all([
+          admin.from("order_items").select("order_id,name,quantity").in("order_id", orderIds),
+          admin.from("payments").select("order_id,provider,status,provider_payment_id,provider_preference_id,provider_session_id,raw").in("order_id", orderIds)
+        ])
+      : [{ data: [] }, { data: [] }];
 
-  const { data: orders } = await admin
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    return (orders ?? []).map((order) => formatAdminOrderRow(
+      order as unknown as Record<string, unknown>,
+      (items ?? []).filter((item) => item.order_id === order.id) as unknown as Array<Record<string, unknown>>,
+      ((payments ?? []).find((item) => item.order_id === order.id) ?? null) as unknown as Record<string, unknown> | null
+    ));
+  }
 
-  const orderIds = (orders ?? []).map((order) => order.id);
-  const [{ data: items }, { data: payments }] = orderIds.length
-    ? await Promise.all([
-        admin.from("order_items").select("order_id,name,quantity").in("order_id", orderIds),
-        admin.from("payments").select("order_id,provider,status,provider_payment_id,provider_preference_id,provider_session_id,raw").in("order_id", orderIds)
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  return (orders ?? []).map((order) => {
-    const orderItems = (items ?? []).filter((item) => item.order_id === order.id);
-    const payment = (payments ?? []).find((item) => item.order_id === order.id);
-
-    return {
-      Id: order.id,
-      Referencia: shortReference(order.id),
-      Cliente: order.customer_name,
-      Email: order.customer_email,
-      Telefono: order.customer_phone,
-      Productos: orderItems.map((item) => `${item.quantity} x ${item.name}`).join("; ") || "-",
-      Total: currency(order.total),
-      Estado: friendlyStatus(order.status),
-      Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(payment.status)}` : "Pendiente",
-      Envio: order.shipping_method === "DELIVERY" ? "Envío / flete a coordinar" : "Retiro en local",
-      __shippingMethod: String(order.shipping_method ?? "PICKUP"),
-      __assignedTo: String(order.assigned_to ?? ""),
-      __carrierName: String(order.carrier_name ?? ""),
-      __carrierPhone: String(order.carrier_phone ?? ""),
-      __estimatedWindow: String(order.estimated_delivery_window ?? ""),
-      __recipientName: String(order.delivery_recipient_name ?? ""),
-      __recipientPhone: String(order.delivery_recipient_phone ?? ""),
-      __actualShippingCost: Number(order.actual_shipping_cost ?? 0),
-      __scheduledFor: String(order.scheduled_for ?? ""),
-      __fulfillmentNotes: String(order.fulfillment_notes ?? ""),
-      __statusRaw: String(order.status ?? ""),
-      __address: order.address_snapshot && typeof order.address_snapshot === "object"
-        ? [order.address_snapshot.street, order.address_snapshot.number, order.address_snapshot.city, order.address_snapshot.province].filter(Boolean).join(" ")
-        : "",
-      Fecha: adminDate(order.created_at)
-    };
-  });
+  const backend = getEnv("API_PROXY_ORIGIN");
+  if (!hasRealValue(backend)) return [];
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+    const url = new URL("/api/admin/orders", backend);
+    url.searchParams.set("per_page", String(Math.min(limit, 100)));
+    const response = await fetch(url, { headers: cookieHeader ? { Cookie: cookieHeader } : undefined, cache: "no-store" });
+    if (!response.ok) return [];
+    const body = await response.json() as { orders?: Array<Record<string, unknown>> };
+    return (body.orders ?? []).map((order) => formatAdminOrderRow(
+      order,
+      Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [],
+      order.payment && typeof order.payment === "object" ? order.payment as Record<string, unknown> : null
+    ));
+  } catch {
+    return [];
+  }
 }
 
 export async function getAdminAssignableUsers() {
   const admin = getSupabaseAdminClient();
-  if (!admin) return [];
-  const { data } = await admin
-    .from("profiles")
-    .select("id,email,full_name,role")
-    .in("role", ["ADMIN", "OPERATOR"])
-    .order("full_name", { ascending: true })
-    .limit(100);
-  return (data ?? []).map((profile) => ({
-    id: String(profile.id),
-    label: String(profile.full_name || profile.email),
-    role: String(profile.role ?? "USER")
-  }));
+  if (admin) {
+    const { data } = await admin.from("profiles").select("id,email,full_name,role").in("role", ["ADMIN", "OPERATOR"]).order("full_name", { ascending: true }).limit(100);
+    return (data ?? []).map((profile) => ({ id: String(profile.id), label: String(profile.full_name || profile.email), role: String(profile.role ?? "USER") }));
+  }
+
+  const backend = getEnv("API_PROXY_ORIGIN");
+  if (!hasRealValue(backend)) return [];
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+    const response = await fetch(new URL("/api/admin/assignees", backend), { headers: cookieHeader ? { Cookie: cookieHeader } : undefined, cache: "no-store" });
+    if (!response.ok) return [];
+    const body = await response.json() as { rows?: Array<{ id: string; label: string; role: string }> };
+    return body.rows ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getAdminPaymentTableRows(limit = 200) {
