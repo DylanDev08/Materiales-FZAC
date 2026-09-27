@@ -30,9 +30,35 @@ export function AdminOrdersView({ rows }: { rows: OrderRow[] }) {
   }
 
   const approvalRows = rows.filter((row) => row.Estado === "Requiere revision");
+  const fulfillmentRows = rows.filter((row) => row.Estado === "Aprobado");
 
   return (
     <>
+      {fulfillmentRows.length ? (
+        <section className="admin-large-purchases">
+          {fulfillmentRows.map((row) => {
+            const delivery = row.__shippingMethod === "DELIVERY";
+            return (
+              <article className="admin-large-purchase-card" key={`fulfillment-${row.Id}`}>
+                <div>
+                  <span className="kicker">{delivery ? "PAGO APROBADO · ORGANIZAR DESPACHO" : "PAGO APROBADO · PREPARAR RETIRO"}</span>
+                  <h2>{row.Cliente}</h2>
+                  <p>{delivery
+                    ? `Coordinar flete y entrega${row.__address ? ` a ${row.__address}` : ""}. Contacto: ${row.Telefono || "-"}.`
+                    : `Preparar mercadería y coordinar retiro en local. Contacto: ${row.Telefono || "-"}.`}</p>
+                </div>
+                <strong>{row.Total}</strong>
+                <small>{row.Productos}</small>
+                <div>
+                  <a className="btn" href={getWhatsAppHref(`Hola ${row.Cliente}, tu pago del pedido ${row.Referencia} fue aprobado. ${delivery ? "Queremos coordinar el despacho y la entrega." : "Queremos coordinar el retiro en nuestro local."}`)} target="_blank" rel="noreferrer">
+                    <MessageCircle size={17} /> Coordinar con cliente
+                  </a>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
       {approvalRows.length ? (
         <section className="admin-large-purchases">
           {approvalRows.map((row) => (
