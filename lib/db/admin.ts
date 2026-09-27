@@ -1,10 +1,13 @@
 import "server-only";
 
+import { cookies } from "next/headers";
+
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
 import { isTestPaymentEnv } from "@/lib/payments/config";
+import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { Category, Product } from "@/types/domain";
 
 function normalizeProduct(row: Record<string, unknown>): Product {
@@ -175,18 +178,54 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
   rows: AdminFinancialMovement[];
 }> {
   const admin = getSupabaseAdminClient();
-  const session = admin ? null : await getSupabaseServerClient();
-  const db = admin ?? session;
-  if (!db) return { available: false, rows: [] };
 
-  const { data, error } = await db
-    .from("financial_movements")
-    .select("id,type,category,description,amount,source,occurred_at,status,void_reason,created_at")
-    .order("occurred_at", { ascending: false })
-    .limit(limit);
+  let data: Array<Record<string, unknown>> | null = null;
+  let hasError = false;
+
+  if (admin) {
+    const result = await admin
+      .from("financial_movements")
+      .select("id,type,category,description,amount,source,source_reference,occurred_at,status,void_reason,created_at")
+      .order("occurred_at", { ascending: false })
+      .limit(limit);
+    data = (result.data ?? []) as Array<Record<string, unknown>>;
+    hasError = Boolean(result.error);
+  } else {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (hasRealValue(backend)) {
+      try {
+        const cookieStore = await cookies();
+        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const url = new URL("/api/admin/financial-movements", backend);
+        url.searchParams.set("limit", String(limit));
+        const response = await fetch(url, {
+          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          cache: "no-store"
+        });
+        if (response.ok) {
+          const body = await response.json() as { rows?: Array<Record<string, unknown>> };
+          data = body.rows ?? [];
+        } else {
+          hasError = true;
+        }
+      } catch {
+        hasError = true;
+      }
+    } else {
+      const session = await getSupabaseServerClient();
+      if (!session) return { available: false, rows: [] };
+      const result = await session
+        .from("financial_movements")
+        .select("id,type,category,description,amount,source,source_reference,occurred_at,status,void_reason,created_at")
+        .order("occurred_at", { ascending: false })
+        .limit(limit);
+      data = (result.data ?? []) as Array<Record<string, unknown>>;
+      hasError = Boolean(result.error);
+    }
+  }
 
   return {
-    available: !error,
+    available: !hasError,
     rows: (data ?? []).map((movement) => ({
       id: String(movement.id),
       type: String(movement.type) === "INCOME" ? "INCOME" : "EXPENSE",
