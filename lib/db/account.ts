@@ -14,6 +14,12 @@ type OrderRow = {
   customer_email: string | null;
   customer_name: string | null;
   customer_phone: string | null;
+  estimated_delivery_window: string | null;
+  carrier_phone: string | null;
+  address_snapshot: Record<string, unknown> | null;
+  ready_at: string | null;
+  dispatched_at: string | null;
+  delivered_at: string | null;
   created_at: string | null;
 };
 
@@ -81,6 +87,11 @@ export type AccountOverview = {
     total: string;
     date: string;
     delivery: string;
+    shippingMethod: string;
+    estimatedWindow: string;
+    carrierPhone: string;
+    address: string;
+    progress: string[];
   }>;
   products: Array<{
     sku: string;
@@ -135,7 +146,7 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
   ] = await Promise.all([
     admin
       .from("orders")
-      .select("id,status,total,subtotal,shipping_cost,shipping_method,customer_email,customer_name,customer_phone,created_at")
+      .select("id,status,total,subtotal,shipping_cost,shipping_method,customer_email,customer_name,customer_phone,estimated_delivery_window,carrier_phone,address_snapshot,ready_at,dispatched_at,delivered_at,created_at")
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(80),
@@ -216,7 +227,16 @@ export async function getAccountOverview(profile: SessionProfile): Promise<Accou
       status: String(order.status ?? "SIN_ESTADO"),
       total: currency(numberValue(order.total)),
       date: shortDate(order.created_at),
-      delivery: order.shipping_method === "DELIVERY" ? "Coordinar por WhatsApp" : "Retiro coordinado"
+      delivery: order.shipping_method === "DELIVERY" ? "Envío / flete" : "Retiro en local",
+      shippingMethod: String(order.shipping_method ?? "PICKUP"),
+      estimatedWindow: String(order.estimated_delivery_window ?? ""),
+      carrierPhone: String(order.carrier_phone ?? ""),
+      address: order.address_snapshot && typeof order.address_snapshot === "object"
+        ? [order.address_snapshot.street, order.address_snapshot.number, order.address_snapshot.city, order.address_snapshot.province].filter(Boolean).join(" ")
+        : "",
+      progress: String(order.shipping_method) === "DELIVERY"
+        ? ["PAID","PREPARING","READY_FOR_DELIVERY","OUT_FOR_DELIVERY","DELIVERED"]
+        : ["PAID","PREPARING","READY_FOR_PICKUP","DELIVERED"]
     })),
     products: paidItems.slice(0, 10).map((item) => {
       const order = ordersById.get(item.order_id);
