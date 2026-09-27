@@ -176,3 +176,66 @@ export function consumerRefundStatusEmailTemplate(input: ConsumerRefundEmailInpu
     text: `${greeting}\n\n${copy}\n\nNúmero de trámite: ${input.requestNumber}${input.orderNumber ? `\nPedido informado: ${input.orderNumber}` : ""}\nEstado: ${status}${input.resolutionNote ? `\nDetalle: ${input.resolutionNote}` : ""}\n\nSeguimiento: ${safeActionUrl(input.actionUrl)}`
   };
 }
+
+
+type PurchaseConfirmationEmailInput = {
+  customerName: string;
+  ticketNumber: string;
+  orderReference: string;
+  total: number;
+  shippingCost: number;
+  paymentProvider: string;
+  items: Array<{ name: string; quantity: number; unitPrice: number; subtotal: number }>;
+  actionUrl: string;
+};
+
+function formatArs(value: number) {
+  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
+}
+
+export function purchaseConfirmationEmailTemplate(input: PurchaseConfirmationEmailInput) {
+  const rows = input.items.map((item) =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #333;color:#fff">${escapeHtml(item.name)} × ${item.quantity}</td><td style="padding:8px 0;border-bottom:1px solid #333;text-align:right;color:#fff">${escapeHtml(formatArs(item.subtotal))}</td></tr>`
+  ).join("");
+
+  const html = `<!doctype html>
+<html lang="es">
+  <body style="margin:0;background:#0b0b0b;color:#fff;font-family:Arial,sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0b0b0b;padding:28px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;border:1px solid rgba(244,196,0,.3);background:#171717">
+          <tr><td style="padding:24px 28px;border-bottom:3px solid #f4c400">
+            <strong style="font-size:24px;color:#f4c400">Materiales FZAC</strong>
+            <div style="margin-top:4px;color:#b8b8b8;font-size:13px">Compra confirmada</div>
+          </td></tr>
+          <tr><td style="padding:28px">
+            <h1 style="margin:0 0 14px;font-size:24px">Pago aprobado</h1>
+            <p style="margin:0 0 20px;color:#d5d5d5;line-height:1.6">Hola ${escapeHtml(input.customerName || "cliente")}. Recibimos tu pago y confirmamos tu compra.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px">
+              <tr><td style="padding:6px 0;color:#aaa">Ticket</td><td style="padding:6px 0;text-align:right;color:#f4c400;font-weight:700">${escapeHtml(input.ticketNumber)}</td></tr>
+              <tr><td style="padding:6px 0;color:#aaa">Pedido</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(input.orderReference)}</td></tr>
+              <tr><td style="padding:6px 0;color:#aaa">Pago</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(input.paymentProvider)}</td></tr>
+            </table>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px">${rows}</table>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:22px">
+              <tr><td style="padding:6px 0;color:#aaa">Envío</td><td style="padding:6px 0;text-align:right;color:#fff">${escapeHtml(formatArs(input.shippingCost))}</td></tr>
+              <tr><td style="padding:8px 0;color:#fff;font-weight:700">Total</td><td style="padding:8px 0;text-align:right;color:#f4c400;font-weight:700">${escapeHtml(formatArs(input.total))}</td></tr>
+            </table>
+            <a href="${escapeHtml(safeActionUrl(input.actionUrl))}" style="display:inline-block;padding:13px 20px;background:#f4c400;color:#0b0b0b;text-decoration:none;font-weight:700">Ver mi compra</a>
+            <p style="margin:22px 0 0;color:#8f8f8f;font-size:12px;line-height:1.5">Conservá este correo como constancia comercial. El ticket FZAC no reemplaza una factura fiscal cuando corresponda.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const lines = input.items.map((item) => `- ${item.name} x${item.quantity}: ${formatArs(item.subtotal)}`).join("\n");
+  const text = `Hola ${input.customerName || "cliente"}.\n\nTu pago fue aprobado.\nTicket: ${input.ticketNumber}\nPedido: ${input.orderReference}\nPago: ${input.paymentProvider}\n\n${lines}\n\nEnvío: ${formatArs(input.shippingCost)}\nTotal: ${formatArs(input.total)}\n\nVer compra: ${safeActionUrl(input.actionUrl)}`;
+
+  return {
+    subject: `Compra confirmada · ${input.ticketNumber}`,
+    html,
+    text
+  };
+}
