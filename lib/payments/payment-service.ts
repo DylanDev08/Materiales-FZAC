@@ -110,16 +110,18 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
         html: template.html,
         text: template.text,
         idempotencyKey: `fzac-order-paid-${input.orderId}`
-      }).catch(async () => {
-        await notifyAdminPaymentApproved({
-          id: input.orderId,
-          customerName: String(order.customer_name ?? "Cliente"),
-          ticketNumber: String(ticket.number)
-        }).catch(() => undefined);
-      });
+      }).catch(() => undefined);
+    }
+
+    if (order) {
+      await notifyAdminPaymentApproved({
+        id: input.orderId,
+        customerName: String(order.customer_name ?? "Cliente"),
+        ticketNumber: ticket?.number ? String(ticket.number) : undefined
+      }).catch(() => undefined);
     }
   } catch {
-    // El email es best-effort: nunca debe revertir una confirmación de pago.
+    // Email y notificaciones son best-effort: nunca deben revertir una confirmación de pago.
   }
 
   return { ok: true, source: "rpc", result: data };
