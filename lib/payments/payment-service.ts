@@ -4,7 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/resend";
 import { purchaseConfirmationEmailTemplate } from "@/lib/email/templates";
 import { getPublicSiteUrl } from "@/lib/seo/site";
-import { notifyAdminPaymentApproved } from "@/lib/notifications/admin-notifier";
+import { notifyAdminFulfillmentRequired, notifyAdminPaymentApproved } from "@/lib/notifications/admin-notifier";
 import type { PaymentProvider, PaymentStatus } from "@/types/domain";
 
 type ConfirmationInput = {
@@ -82,7 +82,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
 
   try {
     const [{ data: order }, { data: ticket }, { data: items }] = await Promise.all([
-      admin.from("orders").select("id,customer_name,customer_email,total,shipping_cost").eq("id", input.orderId).maybeSingle(),
+      admin.from("orders").select("id,customer_name,customer_email,customer_phone,total,shipping_method,shipping_cost,address_snapshot").eq("id", input.orderId).maybeSingle(),
       admin.from("purchase_tickets").select("number,payment_provider").eq("order_id", input.orderId).maybeSingle(),
       admin.from("order_items").select("name,quantity,unit_price,subtotal").eq("order_id", input.orderId).order("created_at", { ascending: true })
     ]);
@@ -114,11 +114,24 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
     }
 
     if (order) {
-      await notifyAdminPaymentApproved({
-        id: input.orderId,
-        customerName: String(order.customer_name ?? "Cliente"),
-        ticketNumber: ticket?.number ? String(ticket.number) : undefined
-      }).catch(() => undefined);
+      await Promise.all([
+        notifyAdminPaymentApproved({
+          id: input.orderId,
+          customerName: String(order.customer_name ?? "Cliente"),
+          ticketNumber: ticket?.number ? String(ticket.number) : undefined
+        }).catch(() => undefined),
+        notifyAdminFulfillmentRequired({
+          id: input.orderId,
+          customerName: String(order.customer_name ?? "Cliente"),
+          customerPhone: order.customer_phone ? String(order.customer_phone) : null,
+          shippingMethod: String(order.shipping_method ?? "PICKUP"),
+          shippingCost: Number(order.shipping_cost ?? 0),
+          address: order.address_snapshot && typeof order.address_snapshot === "object"
+            ? order.address_snapshot as Record<string, unknown>
+            : null,
+          ticketNumber: ticket?.number ? String(ticket.number) : undefined
+        }).catch(() => undefined)
+      ]);
     }
   } catch {
     // Email y notificaciones son best-effort: nunca deben revertir una confirmación de pago.
