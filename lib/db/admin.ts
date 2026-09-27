@@ -663,6 +663,11 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       .limit(1_000)
   ]);
 
+  const { count: priceReviewCount } = await admin
+    .from("product_supplier_sources")
+    .select("id", { count: "exact", head: true })
+    .eq("manual_review_required", true);
+
   const salesToday = (paidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const activeFinancialMovements = (financialMovements ?? []).filter((movement) => movement.status === "ACTIVE");
   const selectedSalesIncome = (selectedPaidOrders ?? []).reduce((sum, order) => sum + Number(order.total ?? 0), 0);
@@ -761,6 +766,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
       { label: "Productos activos", value: String(products?.length ?? 0), helper: `${lowStock.length} bajo stock` },
       { label: "Productos bajo stock", value: String(lowStock.length), helper: `${noStock.length} sin stock` },
       { label: "Productos sin stock", value: String(noStock.length), helper: "Reponer primero" },
+      { label: "Precios a revisar", value: String(priceReviewCount ?? 0), helper: "Cambios de costo fuera del umbral" },
       { label: "Tickets emitidos", value: String(selectedTicketRows.length), helper: `Tickets de la ${selectedPeriodName}` },
       { label: "Chats pendientes", value: String(chats?.length ?? 0), helper: "AI o soporte humano" }
     ],
