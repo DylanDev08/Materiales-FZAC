@@ -3,7 +3,7 @@ import { getUserProfile } from "@/lib/auth/get-user";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getMercadoPagoPayment, sanitizeMercadoPagoPayment } from "@/lib/payments/mercadopago";
 import { paymentLiveModeMatchesEnvironment } from "@/lib/payments/config";
-import { confirmApprovedPayment, finalizeFailedPayment } from "@/lib/payments/payment-service";
+import { confirmApprovedPayment, finalizeFailedPayment, finalizeRefundedPayment } from "@/lib/payments/payment-service";
 import {
   mercadoPagoWebhookAction,
   paymentAmountMatchesLocal,
@@ -88,6 +88,10 @@ export async function POST(request: Request) {
   const providerPaymentId = String(providerPayment.id ?? parsed.data.paymentId);
   const safePayment = sanitizeMercadoPagoPayment(providerPayment);
 
+  if (localPayment.provider_payment_id && String(localPayment.provider_payment_id) !== providerPaymentId) {
+    return jsonError("El pago informado no coincide con el pago asociado al pedido.", 409);
+  }
+
   if (action === "CONFIRM") {
     await confirmApprovedPayment({
       orderId: parsed.data.orderId,
@@ -99,6 +103,35 @@ export async function POST(request: Request) {
 
     return Response.json(
       { ok: true, status: "PAID", orderId: parsed.data.orderId },
+      { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } }
+    );
+  }
+
+  if (action === "MANUAL_REVIEW") {
+    return Response.json(
+      {
+        ok: true,
+        status: "MANUAL_REVIEW",
+        message: "El pago requiere conciliación manual antes de modificar el pedido."
+      },
+      { status: 409 }
+    );
+  }
+
+  if (action === "REFUND") {
+    await finalizeRefundedPayment({
+      paymentId: String(localPayment.id),
+      providerRefundId: null,
+      raw: safePayment,
+      reason: providerStatus === "charged_back"
+        ? "Contracargo confirmado por Mercado Pago"
+        : "Reembolso confirmado por Mercado Pago",
+      actorId: null,
+      actorEmail: "Mercado Pago return reconciliation"
+    });
+
+    return Response.json(
+      { ok: true, status: "REFUNDED", orderId: parsed.data.orderId },
       { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } }
     );
   }
