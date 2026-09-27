@@ -89,6 +89,15 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
     ]);
 
     if (order?.customer_email && ticket?.number) {
+      const address = order.address_snapshot && typeof order.address_snapshot === "object"
+        ? [
+            (order.address_snapshot as Record<string, unknown>).street,
+            (order.address_snapshot as Record<string, unknown>).number,
+            (order.address_snapshot as Record<string, unknown>).city,
+            (order.address_snapshot as Record<string, unknown>).province
+          ].filter(Boolean).join(" ")
+        : "";
+
       const template = purchaseConfirmationEmailTemplate({
         customerName: String(order.customer_name ?? "cliente"),
         ticketNumber: String(ticket.number),
@@ -96,6 +105,8 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
         total: Number(order.total ?? 0),
         shippingCost: Number(order.shipping_cost ?? 0),
         paymentProvider: String(ticket.payment_provider ?? input.provider),
+        shippingMethod: String(order.shipping_method ?? "PICKUP") === "DELIVERY" ? "DELIVERY" : "PICKUP",
+        deliveryAddress: address || undefined,
         items: (items ?? []).map((item) => ({
           name: String(item.name ?? "Producto"),
           quantity: Number(item.quantity ?? 0),
