@@ -149,17 +149,39 @@ export async function PATCH(request: Request) {
       return Response.json({ ok: true, status: "ORDERED" });
     }
 
+    if (payload.action === "MARK_IN_TRANSIT") {
+      const { data, error } = await current.admin.from("purchase_orders")
+        .update({ status: "IN_TRANSIT", updated_at: now })
+        .eq("id", payload.orderId)
+        .eq("status", "ORDERED")
+        .select("id,order_number")
+        .maybeSingle();
+      if (error || !data) return jsonError("La orden no existe o todavía no puede marcarse en tránsito.", 409);
+
+      await current.admin.from("admin_audit_logs").insert({
+        actor_id: current.profile.id,
+        actor_email: current.profile.email,
+        actor_role: current.profile.role,
+        action: "PURCHASE_ORDER_IN_TRANSIT",
+        entity: "purchase_orders",
+        entity_id: data.id,
+        message: `Orden en tránsito: ${data.order_number}`
+      });
+
+      return Response.json({ ok: true, status: "IN_TRANSIT" });
+    }
+
     if (payload.action === "CANCEL_PURCHASE") {
       const previous = await current.admin.from("purchase_orders")
         .select("id,order_number,status,cancelled_by,cancelled_at,cancellation_reason")
         .eq("id", payload.orderId)
-        .in("status", ["DRAFT", "ORDERED"])
+        .in("status", ["DRAFT", "ORDERED", "IN_TRANSIT"])
         .maybeSingle();
       if (previous.error || !previous.data) return jsonError("La orden no puede cancelarse en su estado actual.", 409);
 
       const { data, error } = await current.admin.from("purchase_orders")
         .update({ status: "CANCELLED", cancelled_by: current.profile.id, cancelled_at: now, cancellation_reason: payload.reason })
-        .eq("id", payload.orderId).in("status", ["DRAFT", "ORDERED"]).select("id,order_number").maybeSingle();
+        .eq("id", payload.orderId).in("status", ["DRAFT", "ORDERED", "IN_TRANSIT"]).select("id,order_number").maybeSingle();
       if (error || !data) return jsonError("La orden no puede cancelarse en su estado actual.", 409);
 
       const audit = await current.admin.from("admin_audit_logs").insert({
