@@ -3289,3 +3289,24 @@
     grid-column: 1 / -1;
   }
 }
+
+
+.account-order-card { display:grid; gap:14px; }
+.account-order-card__summary { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:start; }
+.account-order-card__summary small { display:block; color:var(--color-muted); margin-top:4px; }
+.account-order-progress { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.account-order-progress li { position:relative; display:grid; gap:6px; justify-items:center; text-align:center; color:var(--color-muted); }
+.account-order-progress li::after { content:""; position:absolute; top:8px; left:58%; width:84%; height:2px; background:var(--color-border); z-index:0; }
+.account-order-progress li:last-child::after { display:none; }
+.account-order-progress li span { position:relative; z-index:1; background:var(--color-black); border-radius:50%; }
+.account-order-progress li.is-done,
+.account-order-progress li.is-active { color:var(--color-yellow); }
+.account-order-progress li.is-done::after { background:var(--color-yellow); }
+.account-order-progress li.is-active small { color:var(--color-white); font-weight:800; }
+@media (max-width:640px){
+  .account-order-card__summary { grid-template-columns:auto 1fr; }
+  .account-order-card__summary .status-pill { grid-column:1/-1; justify-self:start; }
+  .account-order-progress { grid-template-columns:1fr; gap:4px; }
+  .account-order-progress li { grid-template-columns:auto 1fr; justify-items:start; text-align:left; align-items:center; }
+  .account-order-progress li::after { left:7px; top:70%; width:2px; height:20px; }
+}
