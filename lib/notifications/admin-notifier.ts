@@ -85,3 +85,54 @@ export async function notifyAdminLargePurchase(order: { id: string; customerName
     linkTo: `${getAdminConsolePath()}/pedidos?order=${order.id}`
   });
 }
+
+
+export async function notifyAdminFulfillmentRequired(order: {
+  id: string;
+  customerName: string;
+  customerPhone?: string | null;
+  shippingMethod: string;
+  shippingCost?: number;
+  address?: Record<string, unknown> | null;
+  ticketNumber?: string;
+}) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return;
+
+  const delivery = order.shippingMethod === "DELIVERY";
+  const linkTo = `${getAdminConsolePath()}/pedidos?order=${order.id}`;
+  const type = delivery ? "DELIVERY_COORDINATION_REQUIRED" : "PICKUP_PREPARATION_REQUIRED";
+
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("id")
+    .eq("type", type)
+    .eq("link_to", linkTo)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) return;
+
+  const address = order.address && typeof order.address === "object"
+    ? [
+        order.address.street,
+        order.address.number,
+        order.address.city,
+        order.address.province
+      ].filter(Boolean).join(" ")
+    : "";
+
+  const reference = order.id.slice(0, 8).toUpperCase();
+  const ticket = order.ticketNumber ? ` · Ticket ${order.ticketNumber}` : "";
+  const phone = order.customerPhone ? ` · Tel. ${order.customerPhone}` : "";
+
+  await admin.from("notifications").insert({
+    target_role: "ADMIN",
+    type,
+    title: delivery ? "PAGO APROBADO · ORGANIZAR DESPACHO" : "PAGO APROBADO · PREPARAR RETIRO",
+    message: delivery
+      ? `${order.customerName} · Pedido ${reference}${ticket}${phone}. Coordinar flete${address ? ` a ${address}` : ""}${order.shippingCost ? ` · Envío $${Math.round(order.shippingCost).toLocaleString("es-AR")}` : ""}.`
+      : `${order.customerName} · Pedido ${reference}${ticket}${phone}. Preparar mercadería y coordinar retiro en local.`,
+    link_to: linkTo
+  });
+}
