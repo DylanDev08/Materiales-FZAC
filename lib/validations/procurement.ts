@@ -53,6 +53,11 @@ export const orderPurchaseSchema = z.object({
   orderId: z.string().uuid("Orden inválida.")
 });
 
+export const markPurchaseInTransitSchema = z.object({
+  action: z.literal("MARK_IN_TRANSIT"),
+  orderId: z.string().uuid("Orden inválida.")
+});
+
 export const cancelPurchaseSchema = z.object({
   action: z.literal("CANCEL_PURCHASE"),
   orderId: z.string().uuid("Orden inválida."),
@@ -72,6 +77,7 @@ export const procurementPayloadSchema = z.union([
   supplierPayloadSchema,
   createPurchaseOrderSchema,
   orderPurchaseSchema,
+  markPurchaseInTransitSchema,
   cancelPurchaseSchema,
   receivePurchaseSchema
 ]);
