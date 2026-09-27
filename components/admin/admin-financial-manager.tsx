@@ -321,7 +321,7 @@ export function AdminFinancialManager({
                       <td data-label="Detalle"><strong>{row.description}</strong><small>{row.category}{row.source === "PURCHASE_PAYMENT" ? " · Automático" : ""}</small>{row.voidReason ? <em>Motivo: {row.voidReason}</em> : null}</td>
                       <td data-label="Importe">{currency(row.amount)}</td>
                       <td data-label="Estado">{row.status === "ACTIVE" ? "Vigente" : "Anulado"}</td>
-                      <td data-label="Acción">{row.status === "ACTIVE" && row.source !== "PURCHASE_PAYMENT" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : row.status === "ACTIVE" ? <Link className="admin-finance-manage" href="./cuentas-proveedores">Gestionar pago</Link> : "-"}</td>
+                      <td data-label="Acción">{row.status === "ACTIVE" && row.source !== "PURCHASE_PAYMENT" ? <button className="admin-finance-void" type="button" onClick={() => { setVoidingId(row.id); setVoidReason(""); }}><Ban size={15} /> Anular</button> : row.status === "ACTIVE" && row.source === "PURCHASE_PAYMENT" ? <Link className="admin-finance-manage" href={`./pedidos?order=${encodeURIComponent(row.sourceReference.replace(/^order:/, ""))}`}>Ver pedido</Link> : "-"}</td>
                     </tr>
                   ))}
                 </tbody>
