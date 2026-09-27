@@ -7,6 +7,7 @@ type TransactionalEmail = {
   subject: string;
   html: string;
   text: string;
+  idempotencyKey?: string;
 };
 
 export class ResendDeliveryError extends Error {
@@ -48,7 +49,8 @@ export async function sendTransactionalEmail(input: TransactionalEmail) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {})
       },
       body: JSON.stringify({
         from: formatFromAddress(config),
