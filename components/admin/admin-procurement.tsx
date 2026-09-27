@@ -55,7 +55,8 @@ const emptySupplier: SupplierForm = {
 
 const statusLabels: Record<ProcurementOrder["status"], string> = {
   DRAFT: "Borrador",
-  ORDERED: "Esperando recepción",
+  ORDERED: "Pedido realizado",
+  IN_TRANSIT: "En tránsito",
   PARTIALLY_RECEIVED: "Recepción parcial",
   RECEIVED: "Recibida",
   CANCELLED: "Cancelada"
@@ -63,6 +64,7 @@ const statusLabels: Record<ProcurementOrder["status"], string> = {
 
 function statusTone(status: ProcurementOrder["status"]) {
   if (status === "RECEIVED") return "success";
+  if (status === "IN_TRANSIT") return "info";
   if (status === "CANCELLED") return "danger";
   return "warning";
 }
@@ -239,6 +241,13 @@ export function AdminProcurement({ adminPath, initialProductId }: { adminPath: s
     setMessage(result.status === "RECEIVED" ? "Mercadería recibida y stock actualizado." : "Recepción parcial registrada y stock actualizado.");
   }
 
+  async function markInTransit(orderId: string) {
+    const result = await mutate({ action: "MARK_IN_TRANSIT", orderId }, "PATCH");
+    if (!result) return;
+    await load();
+    setMessage("Orden marcada en tránsito.");
+  }
+
   async function cancelOrder(orderId: string) {
     const result = await mutate({ action: "CANCEL_PURCHASE", orderId, reason: cancelReason }, "PATCH");
     if (!result) return;
@@ -282,7 +291,7 @@ export function AdminProcurement({ adminPath, initialProductId }: { adminPath: s
         <header><div><span className="kicker">Seguimiento</span><h2>Órdenes de compra</h2></div><button className="btn btn--primary" onClick={() => setTab("CREATE")} type="button"><Plus size={18} />Nueva orden</button></header>
         {!data.orders.length ? <p className="admin-empty">Todavía no hay órdenes. Creá la primera desde “Nueva orden”.</p> : data.orders.map((order) => {
           const expanded = expandedOrderId === order.id;
-          const canReceive = order.status === "ORDERED" || order.status === "PARTIALLY_RECEIVED";
+          const canReceive = order.status === "ORDERED" || order.status === "IN_TRANSIT" || order.status === "PARTIALLY_RECEIVED";
           return <article className={`admin-procurement-order admin-procurement-order--${statusTone(order.status)}`} key={order.id}>
             <div className="admin-procurement-order__main">
               <button aria-expanded={expanded} className="admin-procurement-order__toggle" onClick={() => setExpandedOrderId(expanded ? null : order.id)} type="button"><ChevronDown size={18} /></button>
@@ -292,8 +301,9 @@ export function AdminProcurement({ adminPath, initialProductId }: { adminPath: s
               <span className={`status-pill status-pill--${statusTone(order.status)}`}>{statusLabels[order.status]}</span>
               <div className="admin-procurement-order__actions">
                 {order.status === "DRAFT" ? <button className="btn btn--primary" disabled={saving} onClick={() => void sendOrder(order.id)} type="button"><Send size={17} />Enviar</button> : null}
-                {canReceive ? <button className="btn btn--primary" disabled={saving} onClick={() => openReceipt(order)} type="button"><Truck size={17} />Recibir</button> : null}
-                {order.status === "DRAFT" || order.status === "ORDERED" ? <button className="btn btn--ghost" disabled={saving} onClick={() => { setCancellingOrderId(order.id); setReceivingOrderId(null); }} type="button"><X size={17} />Cancelar</button> : null}
+                {order.status === "ORDERED" ? <button className="btn btn--ghost" disabled={saving} onClick={() => void markInTransit(order.id)} type="button"><Truck size={17} />En tránsito</button> : null}
+                {canReceive ? <button className="btn btn--primary" disabled={saving} onClick={() => openReceipt(order)} type="button"><PackageCheck size={17} />Recibir</button> : null}
+                {order.status === "DRAFT" || order.status === "ORDERED" || order.status === "IN_TRANSIT" ? <button className="btn btn--ghost" disabled={saving} onClick={() => { setCancellingOrderId(order.id); setReceivingOrderId(null); }} type="button"><X size={17} />Cancelar</button> : null}
               </div>
             </div>
             {expanded ? <div className="admin-procurement-order__items">{order.items.map((item) => <span key={item.id}><strong>{item.product_name}</strong><small>{item.sku}</small><em>{item.received_quantity}/{item.quantity} {item.unit}</em><b>{currency(item.unit_cost)} c/u</b></span>)}</div> : null}
