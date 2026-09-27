@@ -14,14 +14,22 @@ const transferSchema=z.object({
 export async function GET(request:Request){
   const ctx=await getAdminApiContext(request,{scope:"admin-inventory-locations-read",limit:90});
   if(!ctx.ok) return ctx.response;
-  const [{data:locations,error:locationError},{data:rows,error:stockError}]=await Promise.all([
+  const [
+    {data:locations,error:locationError},
+    {data:rows,error:stockError},
+    {data:supplierRows,error:supplierError}
+  ]=await Promise.all([
     ctx.admin.from("inventory_locations").select("id,code,name,kind,active,sort_order").eq("active",true).order("sort_order"),
     ctx.admin.from("inventory_location_stock")
       .select("product_id,location_id,quantity,stock_minimum,updated_at,product:products(name,sku,unit,stock,active)")
-      .order("updated_at",{ascending:false}).limit(5000)
+      .order("updated_at",{ascending:false}).limit(5000),
+    ctx.admin.from("product_supplier_sources")
+      .select("product_id,supplier_stock,supplier_stock_checked_at,supplier:suppliers(name)")
+      .not("supplier_id","is",null)
+      .limit(5000)
   ]);
-  if(locationError || stockError) return jsonError("No pudimos cargar el stock por ubicación.",500);
-  return Response.json({locations:locations ?? [],rows:rows ?? []},{headers:{"Cache-Control":"private, no-store"}});
+  if(locationError || stockError || supplierError) return jsonError("No pudimos cargar el stock por ubicación.",500);
+  return Response.json({locations:locations ?? [],rows:rows ?? [],supplierRows:supplierRows ?? []},{headers:{"Cache-Control":"private, no-store"}});
 }
 
 export async function POST(request:Request){
