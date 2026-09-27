@@ -236,6 +236,13 @@ function AdminTaskCenter({
       helper: "Reponer productos antes de quedar sin disponibilidad."
     },
     {
+      label: "Precios a revisar",
+      value: numericMetric(metrics, "Precios a revisar"),
+      href: `${adminPath}/auditoria-precios`,
+      icon: TriangleAlert,
+      helper: "Cambios de costo fuera del umbral automático."
+    },
+    {
       label: "Cuentas vencidas",
       value: numericMetric(metrics, "Cuentas vencidas"),
       href: `${adminPath}/cuentas-proveedores`,
