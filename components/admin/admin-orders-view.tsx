@@ -38,9 +38,9 @@ export function AdminOrdersView({ rows }: { rows: OrderRow[] }) {
           {approvalRows.map((row) => (
             <article className="admin-large-purchase-card" key={row.Id}>
               <div>
-                <span className="kicker">Compra grande</span>
+                <span className="kicker">PRIORIDAD ALTA · Compra grande</span>
                 <h2>{row.Cliente}</h2>
-                <p>Supera el limite de aprobacion automatica. Revisar monto, stock y contacto antes de habilitar pago.</p>
+                <p>Supera $1.000.000 y requiere revisión prioritaria. Revisá monto, stock y contacto antes de habilitar el pago.</p>
               </div>
               <strong>{row.Total}</strong>
               <small>{row.Productos}</small>
