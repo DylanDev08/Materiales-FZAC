@@ -3,18 +3,30 @@ import { syncMarketPriceFeeds } from "@/lib/market-pricing/service";
 import { runDailySupplierPricingSync } from "@/lib/supplier-pricing/daily-sync";
 import { jsonError } from "@/lib/utils/api";
 import { hasRealValue } from "@/lib/utils/env";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { acquireRequestConcurrency, getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 async function run(request: Request) {
   const limit = rateLimit(getRequestKey(request, "market-price-cron"), 3, 5 * 60_000);
   if (!limit.ok) return jsonError("Demasiados intentos.", 429, retryAfterHeaders(limit));
 
-  const secret = process.env.MARKET_PRICE_CRON_SECRET?.trim() ?? "";
-  if (!hasRealValue(secret)) return jsonError("Automatización no configurada.", 503);
+  const envSecret = process.env.MARKET_PRICE_CRON_SECRET?.trim() ?? "";
+  const admin = getSupabaseAdminClient();
+  const { data: vaultSecret } = admin
+    ? await admin.rpc("get_market_price_cron_secret").catch(() => ({ data: null }))
+    : { data: null };
+
+  const acceptedSecrets = [envSecret, typeof vaultSecret === "string" ? vaultSecret : ""]
+    .filter((value) => hasRealValue(value));
+  if (!acceptedSecrets.length) return jsonError("Automatización no configurada.", 503);
+
   const authorization = request.headers.get("authorization") ?? "";
-  const expected = Buffer.from(`Bearer ${secret}`);
   const received = Buffer.from(authorization);
-  if (expected.length !== received.length || !timingSafeEqual(expected, received)) return jsonError("No autorizado.", 401);
+  const authorized = acceptedSecrets.some((secret) => {
+    const expected = Buffer.from(`Bearer ${secret}`);
+    return expected.length === received.length && timingSafeEqual(expected, received);
+  });
+  if (!authorized) return jsonError("No autorizado.", 401);
 
   const slot = acquireRequestConcurrency(request, {
     scope: "market-price-sync",
