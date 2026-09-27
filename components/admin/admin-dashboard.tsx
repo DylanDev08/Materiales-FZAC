@@ -187,11 +187,39 @@ function AdminTaskCenter({
   const adminPath = getAdminConsolePath();
   const tasks = [
     {
-      label: "Pedidos pendientes",
-      value: numericMetric(metrics, "Pedidos pendientes"),
+      label: "Pedidos para preparar",
+      value: numericMetric(metrics, "Pedidos para preparar"),
       href: `${adminPath}/pedidos`,
       icon: ShoppingBag,
-      helper: "Revisar compras nuevas y coordinar entrega o retiro."
+      helper: "Pagos aprobados que necesitan preparación."
+    },
+    {
+      label: "Retiros listos",
+      value: numericMetric(metrics, "Retiros listos"),
+      href: `${adminPath}/pedidos`,
+      icon: PackageCheck,
+      helper: "Mercadería lista para coordinar retiro."
+    },
+    {
+      label: "Despachos pendientes",
+      value: numericMetric(metrics, "Despachos pendientes"),
+      href: `${adminPath}/pedidos`,
+      icon: PackageCheck,
+      helper: "Asignar flete, horario y responsable."
+    },
+    {
+      label: "En camino",
+      value: numericMetric(metrics, "En camino"),
+      href: `${adminPath}/pedidos`,
+      icon: PackageCheck,
+      helper: "Entregas que todavía no fueron cerradas."
+    },
+    {
+      label: "Prioridad alta",
+      value: numericMetric(metrics, "Prioridad alta"),
+      href: `${adminPath}/pedidos`,
+      icon: TriangleAlert,
+      helper: "Compras mayores a $1.000.000 para revisar."
     },
     {
       label: "Pagos pendientes",
@@ -205,7 +233,7 @@ function AdminTaskCenter({
       value: numericMetric(metrics, "Productos bajo stock"),
       href: `${adminPath}/inventario`,
       icon: PackageCheck,
-      helper: "Reponer productos sin disponibilidad antes de vender."
+      helper: "Reponer productos antes de quedar sin disponibilidad."
     },
     {
       label: "Cuentas vencidas",
