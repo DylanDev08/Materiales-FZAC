@@ -167,6 +167,7 @@ export type AdminFinancialMovement = {
   description: string;
   amount: number;
   source: "MANUAL" | "ADJUSTMENT" | "PURCHASE_PAYMENT";
+  sourceReference: string;
   occurredAt: string;
   status: "ACTIVE" | "VOID";
   voidReason: string;
@@ -235,6 +236,7 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
       source: String(movement.source) === "PURCHASE_PAYMENT"
         ? "PURCHASE_PAYMENT"
         : String(movement.source) === "ADJUSTMENT" ? "ADJUSTMENT" : "MANUAL",
+      sourceReference: String(movement.source_reference ?? ""),
       occurredAt: String(movement.occurred_at ?? movement.created_at ?? ""),
       status: String(movement.status) === "VOID" ? "VOID" : "ACTIVE",
       voidReason: String(movement.void_reason ?? ""),
