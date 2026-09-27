@@ -16,6 +16,28 @@ async function context(request: Request, scope: string, limitValue: number) {
   return { profile, admin };
 }
 
+export async function GET(request: Request) {
+  const current = await context(request, "admin-financial-read", 90);
+  if ("response" in current) return current.response;
+
+  const url = new URL(request.url);
+  const requested = Number(url.searchParams.get("limit") ?? 180);
+  const limit = Number.isFinite(requested) ? Math.min(Math.max(Math.trunc(requested), 1), 500) : 180;
+
+  const { data, error } = await current.admin
+    .from("financial_movements")
+    .select("id,type,category,description,amount,source,source_reference,occurred_at,status,void_reason,created_at")
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return jsonError("No pudimos cargar ingresos y egresos.", 400);
+
+  return Response.json(
+    { rows: data ?? [] },
+    { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } }
+  );
+}
+
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 8 * 1024);
   if (!mutation.ok) return jsonError(mutation.message, mutation.status);
