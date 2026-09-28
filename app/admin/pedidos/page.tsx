@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { AdminOrdersView } from "@/components/admin/admin-orders-view";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminAssignableUsers, getAdminOrderTableRows } from "@/lib/db/admin";
