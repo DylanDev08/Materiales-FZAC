@@ -1,28 +1,7 @@
 begin;
 
-do $$
-declare
-  v_id uuid;
-begin
-  select id into v_id
-  from vault.decrypted_secrets
-  where name='fzac_market_price_cron_secret'
-  limit 1;
-
-  if v_id is null then
-    perform vault.create_secret(
-      '__REDACTED_RUNTIME_SECRET__',
-      'fzac_market_price_cron_secret',
-      'Secreto privado para el cron diario de precios FZAC'
-    );
-  else
-    perform vault.update_secret(
-      v_id,
-      new_secret := 'zrDbbUzFrkFJftfS_OiBg9Bd80_xeCKfvkdU7m8olAs',
-      new_description := 'Secreto privado para el cron diario de precios FZAC'
-    );
-  end if;
-end $$;
+-- El secreto del cron se guarda exclusivamente en Supabase Vault.
+-- Esta migración nunca contiene ni versiona el valor secreto.
 
 create or replace function public.run_fzac_daily_price_sync()
 returns bigint
