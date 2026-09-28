@@ -178,6 +178,35 @@ export async function getAdminRows(table: string, limit = 200) {
   return (data ?? []) as Array<Record<string, string | number | null | undefined>>;
 }
 
+
+export async function getAdminTicketRows(limit = 200) {
+  const admin = getSupabaseAdminClient();
+
+  if (admin) {
+    const { data } = await admin
+      .from("purchase_tickets")
+      .select("id,number,order_id,customer_name,customer_email,total,status,issued_at,created_at")
+      .order("issued_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []) as Array<Record<string, string | number | null | undefined>>;
+  }
+
+  const configuredBackend = getEnv("API_PROXY_ORIGIN");
+  const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
+
+  try {
+    const proxyHeaders = await getAdminProxyHeaders();
+    const url = new URL("/api/admin/tickets", backend);
+    url.searchParams.set("limit", String(Math.min(limit, 300)));
+    const response = await fetch(url, { headers: proxyHeaders, cache: "no-store" });
+    if (!response.ok) return [];
+    const body = await response.json() as { tickets?: Array<Record<string, string | number | null | undefined>> };
+    return body.tickets ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export type AdminFinancialMovement = {
   id: string;
   type: "INCOME" | "EXPENSE";
