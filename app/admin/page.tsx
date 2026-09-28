@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
