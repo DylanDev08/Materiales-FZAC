@@ -182,6 +182,20 @@ export function AdminInteractiveTable({
       }),
     [activeFilter, activeTab, columns, dateColumn, dateFrom, dateTo, normalizedQuery, rows, statusColumn, tabs]
   );
+  const statusOverview = useMemo(() => {
+    if (!statusColumn) return [] as Array<{ label: string; count: number; tone: string }>;
+    const counts = new Map<string, number>();
+    rows.forEach((row) => {
+      const label = cellText(row[statusColumn]);
+      if (label === "-") return;
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count, tone: statusTone(label) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [rows, statusColumn]);
+
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -254,6 +268,25 @@ export function AdminInteractiveTable({
           <strong>Registro protegido:</strong> limpiar la vista solo restablece filtros. Los tickets, pagos y comprobantes
           no se borran; sus cambios de estado permanecen disponibles para control y auditoria.
         </p>
+      ) : null}
+
+      {statusOverview.length ? (
+        <div className="admin-status-overview" aria-label="Resumen por estado">
+          {statusOverview.map((item) => (
+            <button
+              className={`admin-status-overview__item is-${item.tone}`}
+              key={item.label}
+              type="button"
+              onClick={() => {
+                setActiveFilter(item.label);
+                setPage(1);
+              }}
+            >
+              <span>{item.label}</span>
+              <strong>{item.count}</strong>
+            </button>
+          ))}
+        </div>
       ) : null}
 
       {tabs.length ? (
