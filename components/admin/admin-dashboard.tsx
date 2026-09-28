@@ -411,10 +411,8 @@ async function getDashboardPaymentState() {
     return { ready: true, testMode: isMercadoPagoTestMode() };
   }
 
-  const backend = getEnv("API_PROXY_ORIGIN");
-  if (!hasRealValue(backend)) {
-    return { ready: false, testMode: false };
-  }
+  const configuredBackend = getEnv("API_PROXY_ORIGIN");
+  const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
 
   try {
     const response = await fetch(new URL("/api/payments/mercadopago", backend), { cache: "no-store" });
