@@ -305,9 +305,7 @@ export function AdminFinancialManager({
             <button className="btn btn--ghost" type="button" onClick={exportVisibleCsv} disabled={!visibleRows.length}>
               <Download size={16} /> Exportar CSV
             </button>
-            <button className="btn btn--danger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading}>
-              <ShieldAlert size={16} /> Mantenimiento
-            </button>
+
           </div>
           {visibleRows.length ? (
             <div className="admin-finance-table-wrap">
@@ -330,6 +328,14 @@ export function AdminFinancialManager({
           ) : <p className="admin-empty-state">No hay movimientos para esta vista. Las ventas aprobadas permanecen en el dashboard.</p>}
         </section>
       </div>
+
+      <details className="admin-focus-details admin-focus-details--section">
+        <summary>Herramientas avanzadas de mantenimiento</summary>
+        <p className="admin-focus-details__copy">Usalas solo para limpieza o correcciones administrativas. No afectan ventas automáticas ni comprobantes.</p>
+        <button className="btn btn--danger" type="button" onClick={() => setBulkOpen(true)} disabled={!available || loading}>
+          <ShieldAlert size={16} /> Abrir mantenimiento seguro
+        </button>
+      </details>
 
       {voidingId ? (
         <section className="admin-finance-void-panel" aria-live="polite">
