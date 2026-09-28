@@ -392,7 +392,45 @@ export async function getAdminAssignableUsers() {
 
 export async function getAdminPaymentTableRows(limit = 200) {
   const admin = getSupabaseAdminClient();
-  if (!admin) return [];
+
+  if (!admin) {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (!hasRealValue(backend)) return [];
+    try {
+      const cookieStore = await cookies();
+      const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+      const url = new URL("/api/admin/payments", backend);
+      url.searchParams.set("per_page", String(Math.min(limit, 100)));
+      const response = await fetch(url, {
+        headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+        cache: "no-store"
+      });
+      if (!response.ok) return [];
+      const body = await response.json() as {
+        payments?: Array<Record<string, unknown> & { order?: Record<string, unknown> | null }>;
+      };
+      return (body.payments ?? []).map((payment) => {
+        const order = payment.order && typeof payment.order === "object" ? payment.order : null;
+        return {
+          __paymentId: String(payment.id ?? ""),
+          __orderId: String(payment.order_id ?? ""),
+          __provider: String(payment.provider ?? ""),
+          __status: String(payment.status ?? ""),
+          Estado: friendlyStatus(String(payment.status ?? "")),
+          Ambiente: "PROD",
+          "Medio de pago": friendlyPaymentMethod(payment),
+          Monto: currency(Number(payment.amount ?? 0)),
+          Referencia: shortReference(String(payment.order_id ?? "")),
+          Cliente: String(order?.customer_name ?? "-"),
+          Email: String(order?.customer_email ?? "-"),
+          Fecha: adminDate(String(payment.created_at ?? ""))
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
   const paymentEnv = isTestPaymentEnv() ? "TEST" : "PROD";
 
   const { data: payments } = await admin
