@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { AdminInteractiveTable } from "@/components/admin/admin-interactive-table";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { getAdminRows } from "@/lib/db/admin";
+import { getAdminTicketRows } from "@/lib/db/admin";
 import { currency } from "@/lib/formatters/currency";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
@@ -17,7 +17,7 @@ function ticketStatus(value: string | number | null | undefined) {
 
 export default async function Page() {
   await requireAdmin();
-  const rows = (await getAdminRows("purchase_tickets")).map((ticket) => ({
+  const rows = (await getAdminTicketRows()).map((ticket) => ({
     Numero: ticket.number,
     Cliente: ticket.customer_name,
     Email: ticket.customer_email,
