@@ -407,8 +407,7 @@ export async function getAdminPaymentTableRows(limit = 200) {
     const configuredBackend = getEnv("API_PROXY_ORIGIN");
     const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     try {
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+      const proxyHeaders = await getAdminProxyHeaders();
       const url = new URL("/api/admin/payments", backend);
       url.searchParams.set("per_page", String(Math.min(limit, 100)));
       const response = await fetch(url, {
