@@ -124,6 +124,7 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
           <div>
             <span className="kicker">{delivery ? "LOGÍSTICA · DESPACHO" : "LOGÍSTICA · RETIRO"}</span>
             <h2>{row.Cliente}</h2>
+            {String(row.__paymentStatus)==="PAID" ? <span className="status-pill status-pill--success"><CheckCircle2 size={14}/> PAGO APROBADO</span> : null}
             <p>{delivery
               ? `${row.__address || "Dirección pendiente"} · ${row.Telefono || "sin teléfono"}`
               : `Preparar mercadería para retiro en local · ${row.Telefono || "sin teléfono"}`}</p>
