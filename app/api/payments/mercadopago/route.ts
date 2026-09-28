@@ -1,5 +1,6 @@
 import { getPaymentConfig, getPaymentProductionReadiness, isMercadoPagoConfigured, isPaymentsEnabled, isTestPaymentEnv } from "@/lib/payments/config";
 import { jsonError } from "@/lib/utils/api";
+import { getEnv, hasRealValue } from "@/lib/utils/env";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 
 export async function GET(request: Request) {
@@ -7,6 +8,28 @@ export async function GET(request: Request) {
   if (!limit.ok) return jsonError("Demasiadas consultas. Esperá un momento.", 429, retryAfterHeaders(limit));
   const enabled = isMercadoPagoConfigured();
   const cardEnabled = isMercadoPagoConfigured("card");
+
+  if (!enabled) {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (hasRealValue(backend)) {
+      try {
+        const target = new URL("/api/payments/mercadopago", backend);
+        const response = await fetch(target, { cache: "no-store" });
+        if (response.ok) {
+          const body = await response.text();
+          return new Response(body, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store"
+            }
+          });
+        }
+      } catch {
+        // Si el backend privado falla, continuamos con el estado local.
+      }
+    }
+  }
   const config = getPaymentConfig();
   const productionReadiness = getPaymentProductionReadiness();
   return Response.json({
