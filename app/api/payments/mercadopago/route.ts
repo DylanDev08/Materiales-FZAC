@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const cardEnabled = isMercadoPagoConfigured("card");
 
   if (!enabled) {
-    const backend = getEnv("API_PROXY_ORIGIN");
+    const configuredBackend = getEnv("API_PROXY_ORIGIN");
+    const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     if (hasRealValue(backend)) {
       try {
         const target = new URL("/api/payments/mercadopago", backend);
