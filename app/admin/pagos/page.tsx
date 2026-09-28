@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 import { getAdminPaymentTableRows } from "@/lib/db/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
