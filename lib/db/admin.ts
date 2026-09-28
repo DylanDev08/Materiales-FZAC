@@ -350,8 +350,8 @@ export async function getAdminOrderTableRows(limit = 200) {
     ));
   }
 
-  const backend = getEnv("API_PROXY_ORIGIN");
-  if (!hasRealValue(backend)) return [];
+  const configuredBackend = getEnv("API_PROXY_ORIGIN");
+  const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
   try {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
@@ -377,8 +377,8 @@ export async function getAdminAssignableUsers() {
     return (data ?? []).map((profile) => ({ id: String(profile.id), label: String(profile.full_name || profile.email), role: String(profile.role ?? "USER") }));
   }
 
-  const backend = getEnv("API_PROXY_ORIGIN");
-  if (!hasRealValue(backend)) return [];
+  const configuredBackend = getEnv("API_PROXY_ORIGIN");
+  const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
   try {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
@@ -395,8 +395,8 @@ export async function getAdminPaymentTableRows(limit = 200) {
   const admin = getSupabaseAdminClient();
 
   if (!admin) {
-    const backend = getEnv("API_PROXY_ORIGIN");
-    if (!hasRealValue(backend)) return [];
+    const configuredBackend = getEnv("API_PROXY_ORIGIN");
+    const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     try {
       const cookieStore = await cookies();
       const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
@@ -419,7 +419,12 @@ export async function getAdminPaymentTableRows(limit = 200) {
           __status: String(payment.status ?? ""),
           Estado: friendlyStatus(String(payment.status ?? "")),
           Ambiente: "PROD",
-          "Medio de pago": friendlyPaymentMethod(payment),
+          "Medio de pago": friendlyPaymentMethod(payment as {
+            provider?: string | null;
+            provider_session_id?: string | null;
+            provider_preference_id?: string | null;
+            raw?: unknown;
+          }),
           Monto: currency(Number(payment.amount ?? 0)),
           Referencia: shortReference(String(payment.order_id ?? "")),
           Cliente: String(order?.customer_name ?? "-"),
@@ -634,7 +639,8 @@ function adminDate(value: string | null | undefined) {
 export async function getAdminDashboardData(period: "day" | "week" | "month" = "month") {
   const admin = getSupabaseAdminClient();
   if (!admin) {
-    const backend = getEnv("API_PROXY_ORIGIN");
+    const configuredBackend = getEnv("API_PROXY_ORIGIN");
+    const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     if (hasRealValue(backend)) {
       try {
         const cookieStore = await cookies();
