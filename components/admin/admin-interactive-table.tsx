@@ -22,6 +22,24 @@ function rowText(row: AdminTableRow) {
   return Object.values(row).map(cellText).join(" ").toLowerCase();
 }
 
+function statusTone(value: string) {
+  const normalized = value.toLowerCase();
+  if (/(aprob|pagado|entregado|completado|procesado|recibido|activo|listo)/.test(normalized)) return "success";
+  if (/(pend|prepar|camino|revisi|coordina|espera)/.test(normalized)) return "warning";
+  if (/(rechaz|deneg|cancel|vencido|fall|reembols)/.test(normalized)) return "danger";
+  return "neutral";
+}
+
+function isStatusColumn(column: string) {
+  return ["Estado", "Estado del pago", "Pago", "Activa"].includes(column);
+}
+
+function renderAdminCell(column: string, value: string | number | null | undefined) {
+  const text = cellText(value);
+  if (!isStatusColumn(column)) return text;
+  return <span className={`admin-data-pill admin-data-pill--${statusTone(text)}`}>{text}</span>;
+}
+
 function parseAdminDate(value: string) {
   const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!match) return null;
@@ -331,7 +349,7 @@ export function AdminInteractiveTable({
                 >
                   {visibleColumns.map((column) => (
                     <td data-label={column} key={column}>
-                      {cellText(row[column])}
+                      {renderAdminCell(column, row[column])}
                     </td>
                   ))}
                 </tr>
@@ -438,7 +456,7 @@ export function AdminInteractiveTable({
             {visibleColumns.map((column) => (
               <div key={column}>
                 <dt>{column}</dt>
-                <dd>{cellText(selectedRow[column])}</dd>
+                <dd>{renderAdminCell(column, selectedRow[column])}</dd>
               </div>
             ))}
           </dl>
