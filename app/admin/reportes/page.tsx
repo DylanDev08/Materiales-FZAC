@@ -71,14 +71,21 @@ export default async function Page({
           <div><span className="kicker">Centro de reportes</span><h1>Crear PDF de catálogo y rentabilidad</h1><p>Filtrá materiales y elegí si el documento es para clientes o de uso interno.</p></div>
           <CatalogReportActions backHref={adminPath} title={title} />
         </header>
-        <form method="get">
-          <label>Tipo de reporte<select defaultValue={audience} name="audience"><option value="customer">Cliente · precios y disponibilidad</option><option value="internal">Interno · costo, precio y ganancia</option></select></label>
-          <label>Proveedor<select defaultValue={supplierId} name="supplier"><option value="">Todos</option>{suppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-          {audience === "internal" ? <label>Catálogo<select defaultValue={catalogScope} name="catalog"><option value="active">Solo publicados</option><option value="all">Todos · incluye importados/inactivos</option></select></label> : null}
-          <label>Categoría<select defaultValue={categorySlug} name="category"><option value="">Todas</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select></label>
-          <label>Disponibilidad<select defaultValue={availability} name="availability"><option value="all">Todas</option><option value="available">Disponible con stock</option><option value="consult">A consultar</option></select></label>
-          <label>Producto / SKU<input defaultValue={search} maxLength={80} name="q" placeholder="Ej. placa o PGC" /></label>
-          <button className="btn btn--primary" type="submit"><Filter size={17} />Aplicar filtros</button>
+        <form method="get" className="admin-report-simple-form">
+          <div className="admin-report-simple-form__main">
+            <label>Tipo de PDF<select defaultValue={audience} name="audience"><option value="customer">Para cliente</option><option value="internal">Interno / rentabilidad</option></select></label>
+            <label>Proveedor<select defaultValue={supplierId} name="supplier"><option value="">Todos</option>{suppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+            <button className="btn btn--primary" type="submit"><Filter size={17} />Generar vista</button>
+          </div>
+          <details className="admin-focus-details">
+            <summary>Filtros avanzados</summary>
+            <div className="admin-report-simple-form__advanced">
+              {audience === "internal" ? <label>Catálogo<select defaultValue={catalogScope} name="catalog"><option value="active">Solo publicados</option><option value="all">Todos · importados/inactivos</option></select></label> : null}
+              <label>Categoría<select defaultValue={categorySlug} name="category"><option value="">Todas</option>{categories.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}</select></label>
+              <label>Disponibilidad<select defaultValue={availability} name="availability"><option value="all">Todas</option><option value="available">Disponible con stock</option><option value="consult">A consultar</option></select></label>
+              <label>Producto / SKU<input defaultValue={search} maxLength={80} name="q" placeholder="Ej. placa o PGC" /></label>
+            </div>
+          </details>
         </form>
         <p><FileText size={16} />El PDF para clientes nunca incluye costo, proveedor ni margen. Usá “Imprimir / Guardar como PDF” en el diálogo del navegador.</p>
       </section>
