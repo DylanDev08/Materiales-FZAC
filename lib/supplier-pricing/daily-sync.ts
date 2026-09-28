@@ -29,7 +29,30 @@ type SourceRow = {
 };
 
 function toNumber(value: unknown) {
-  const parsed = Number(String(value ?? "").replace(/./g, "").replace(",", ".").replace(/[^d.-]/g, ""));
+  const cleaned = String(value ?? "").trim().replace(/[^0-9,.-]/g, "");
+  if (!cleaned) return null;
+
+  let normalized = cleaned;
+  const comma = cleaned.lastIndexOf(",");
+  const dot = cleaned.lastIndexOf(".");
+
+  if (comma >= 0 && dot >= 0) {
+    normalized = comma > dot
+      ? cleaned.replace(/\./g, "").replace(",", ".")
+      : cleaned.replace(/,/g, "");
+  } else if (comma >= 0) {
+    const decimals = cleaned.length - comma - 1;
+    normalized = decimals > 0 && decimals <= 2
+      ? cleaned.replace(/\./g, "").replace(",", ".")
+      : cleaned.replace(/,/g, "");
+  } else if (dot >= 0) {
+    const parts = cleaned.split(".");
+    normalized = parts.length > 2 || (parts.length === 2 && parts[1].length === 3)
+      ? cleaned.replace(/\./g, "")
+      : cleaned;
+  }
+
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -135,7 +158,7 @@ export async function runDailySupplierPricingSync() {
     admin.from("category_pricing_rules").select("category_id,target_margin_pct,auto_update_threshold_pct,alert_over_market_pct,active"),
     admin.from("product_supplier_sources")
       .select("id,product_id,supplier_id,source_url,original_price,margin_percent,manual_review_required,product:products!inner(id,name,sku,price,category_id,active),supplier:suppliers(id,name,website_url,catalog_url)")
-      .limit(250),
+      .limit(2_000),
     admin.from("market_price_sources").select("id").eq("active",true).eq("trusted",true).limit(100),
     admin.from("market_price_observations").select("product_id,source_id,normalized_price,expires_at").gte("expires_at",new Date().toISOString()).limit(5000),
     admin.from("supplier_price_history").select("product_id,observed_price,created_at").order("created_at",{ascending:false}).limit(5000)
