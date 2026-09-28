@@ -5,7 +5,7 @@ import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-au
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
 import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
-import { getAdminConsolePath } from "@/lib/utils/env";
+import { getAdminConsolePath, getEnv, hasRealValue } from "@/lib/utils/env";
 
 type DashboardMetric = {
   label: string;
@@ -405,12 +405,43 @@ function AdminRecentControl({
   );
 }
 
+async function getDashboardPaymentState() {
+  const localReady = isMercadoPagoConfigured();
+  if (localReady) {
+    return { ready: true, testMode: isMercadoPagoTestMode() };
+  }
+
+  const backend = getEnv("API_PROXY_ORIGIN");
+  if (!hasRealValue(backend)) {
+    return { ready: false, testMode: false };
+  }
+
+  try {
+    const response = await fetch(new URL("/api/payments/mercadopago", backend), { cache: "no-store" });
+    if (!response.ok) return { ready: false, testMode: false };
+    const body = await response.json() as {
+      enabled?: boolean;
+      environment?: string;
+      productionReadiness?: { ready?: boolean; active?: boolean };
+    };
+    return {
+      ready: Boolean(body.enabled && body.productionReadiness?.ready !== false),
+      testMode: body.environment === "test"
+    };
+  } catch {
+    return { ready: false, testMode: false };
+  }
+}
+
 export async function AdminDashboard({ period }: { period?: string }) {
   const selectedPeriod = normalizePeriod(period);
-  const data = await getAdminDashboardData(selectedPeriod);
+  const [data, paymentState] = await Promise.all([
+    getAdminDashboardData(selectedPeriod),
+    getDashboardPaymentState()
+  ]);
   const metrics = data.metrics;
-  const paymentsReady = isMercadoPagoConfigured();
-  const paymentsTestMode = isMercadoPagoTestMode();
+  const paymentsReady = paymentState.ready;
+  const paymentsTestMode = paymentState.testMode;
 
   const salesMonth = getMetric(metrics, "Ventas del mes");
   const periodIncome = getMetric(metrics, "Ingresos del periodo");
