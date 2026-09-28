@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { cookies, headers as nextHeaders } from "next/headers";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -9,6 +9,18 @@ import { currency } from "@/lib/formatters/currency";
 import { isTestPaymentEnv } from "@/lib/payments/config";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { Category, Product } from "@/types/domain";
+
+
+async function getAdminProxyHeaders() {
+  const [cookieStore, incomingHeaders] = await Promise.all([cookies(), nextHeaders()]);
+  const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+  const userAgent = incomingHeaders.get("user-agent")?.trim() || "";
+
+  const forwarded: Record<string, string> = {};
+  if (cookieHeader) forwarded.Cookie = cookieHeader;
+  if (userAgent) forwarded["User-Agent"] = userAgent;
+  return forwarded;
+}
 
 function normalizeProduct(row: Record<string, unknown>): Product {
   const supplierRow = row.supplier && typeof row.supplier === "object" ? row.supplier as Record<string, unknown> : null;
@@ -202,12 +214,11 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
     const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     if (hasRealValue(backend)) {
       try {
-        const cookieStore = await cookies();
-        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const proxyHeaders = await getAdminProxyHeaders();
         const url = new URL("/api/admin/financial-movements", backend);
         url.searchParams.set("limit", String(limit));
         const response = await fetch(url, {
-          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          headers: proxyHeaders,
           cache: "no-store"
         });
         if (response.ok) {
@@ -353,11 +364,10 @@ export async function getAdminOrderTableRows(limit = 200) {
   const configuredBackend = getEnv("API_PROXY_ORIGIN");
   const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
   try {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+    const proxyHeaders = await getAdminProxyHeaders();
     const url = new URL("/api/admin/orders", backend);
     url.searchParams.set("per_page", String(Math.min(limit, 100)));
-    const response = await fetch(url, { headers: cookieHeader ? { Cookie: cookieHeader } : undefined, cache: "no-store" });
+    const response = await fetch(url, { headers: proxyHeaders, cache: "no-store" });
     if (!response.ok) return [];
     const body = await response.json() as { orders?: Array<Record<string, unknown>> };
     return (body.orders ?? []).map((order) => formatAdminOrderRow(
@@ -380,9 +390,8 @@ export async function getAdminAssignableUsers() {
   const configuredBackend = getEnv("API_PROXY_ORIGIN");
   const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
   try {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
-    const response = await fetch(new URL("/api/admin/assignees", backend), { headers: cookieHeader ? { Cookie: cookieHeader } : undefined, cache: "no-store" });
+    const proxyHeaders = await getAdminProxyHeaders();
+    const response = await fetch(new URL("/api/admin/assignees", backend), { headers: proxyHeaders, cache: "no-store" });
     if (!response.ok) return [];
     const body = await response.json() as { rows?: Array<{ id: string; label: string; role: string }> };
     return body.rows ?? [];
@@ -403,7 +412,7 @@ export async function getAdminPaymentTableRows(limit = 200) {
       const url = new URL("/api/admin/payments", backend);
       url.searchParams.set("per_page", String(Math.min(limit, 100)));
       const response = await fetch(url, {
-        headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+        headers: proxyHeaders,
         cache: "no-store"
       });
       if (!response.ok) return [];
@@ -643,12 +652,11 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     if (hasRealValue(backend)) {
       try {
-        const cookieStore = await cookies();
-        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const proxyHeaders = await getAdminProxyHeaders();
         const url = new URL("/api/admin/dashboard", backend);
         url.searchParams.set("period", period);
         const response = await fetch(url, {
-          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          headers: proxyHeaders,
           cache: "no-store"
         });
         if (response.ok) {
