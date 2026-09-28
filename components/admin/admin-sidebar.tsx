@@ -34,50 +34,40 @@ import {
 
 const linkGroups = [
   {
-    title: "Resumen",
+    title: "Uso diario",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
-      { path: "/analiticas", label: "Analíticas", icon: AreaChart },
-      { path: "/operaciones", label: "Operaciones", icon: Activity }
-    ]
-  },
-  {
-    title: "Ventas y clientes",
-    links: [
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
       { path: "/pagos", label: "Pagos", icon: CreditCard },
       { path: "/tickets", label: "Tickets", icon: FileText },
+      { path: "/reportes", label: "Reportes PDF", icon: FileText },
+      { path: "/finanzas", label: "Gestión interna", icon: Landmark },
+      { path: "/inventario", label: "Inventario", icon: Package },
+      { path: "/proveedores", label: "Proveedores", icon: Building2 }
+    ]
+  },
+  {
+    title: "Compras y control",
+    links: [
+      { path: "/compras", label: "Compras", icon: ShoppingBasket },
+      { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
+      { path: "/auditoria-precios", label: "Auditoría de precios", icon: ShieldCheck }
+    ]
+  },
+  {
+    title: "Más herramientas",
+    links: [
+      { path: "/analiticas", label: "Analíticas", icon: AreaChart },
+      { path: "/operaciones", label: "Operaciones", icon: Activity },
       { path: "/clientes", label: "Clientes", icon: Users },
       { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
-      { path: "/finanzas", label: "Ingresos y egresos", icon: Landmark },
       { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
-      { path: "/reportes", label: "Reportes PDF", icon: FileText }
-    ]
-  },
-  {
-    title: "Stock y compras",
-    links: [
-      { path: "/inventario", label: "Inventario", icon: Package },
-      { path: "/compras", label: "Compras", icon: ShoppingBasket },
-      { path: "/proveedores", label: "Proveedores", icon: Building2 },
-      { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
       { path: "/productos", label: "Productos", icon: Package },
-      { path: "/categorias", label: "Categorias", icon: Grid3X3 },
-      { path: "/auditoria-precios", label: "Auditoría de precios", icon: ShieldCheck },
-      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp }
-    ]
-  },
-  {
-    title: "Atencion asistida",
-    links: [
+      { path: "/categorias", label: "Categorías", icon: Grid3X3 },
+      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
       { path: "/chats", label: "Chats", icon: MessageCircle },
       { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit },
-      { path: "/calidad-ia", label: "Calidad IA", icon: ListChecks }
-    ]
-  },
-  {
-    title: "Herramientas",
-    links: [
+      { path: "/calidad-ia", label: "Calidad IA", icon: ListChecks },
       { path: "/sistema", label: "Diagnóstico", icon: ShieldCheck },
       { path: "public:/productos", label: "Vista cliente", icon: Home }
     ]
