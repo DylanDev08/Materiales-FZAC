@@ -332,6 +332,79 @@ function AdminTaskCenter({
   );
 }
 
+
+function AdminRecentControl({
+  orders,
+  movements,
+  tickets
+}: {
+  orders: Array<Record<string, unknown>>;
+  movements: Array<Record<string, unknown>>;
+  tickets: Array<Record<string, unknown>>;
+}) {
+  const adminPath = getAdminConsolePath();
+  return (
+    <section className="admin-recent-control" aria-label="Últimos movimientos">
+      <header>
+        <div>
+          <span className="kicker">Actividad reciente</span>
+          <h2>Qué pasó recién</h2>
+        </div>
+        <small>Pedidos, dinero y comprobantes en una sola vista.</small>
+      </header>
+      <div className="admin-recent-control__grid">
+        <article>
+          <div className="admin-recent-control__heading">
+            <strong>Pedidos recientes</strong>
+            <Link href={`${adminPath}/pedidos`}>Ver todos</Link>
+          </div>
+          <div className="admin-recent-control__list">
+            {orders.length ? orders.slice(0, 5).map((row, index) => (
+              <div key={`order-${index}`}>
+                <span>{String(row.Cliente ?? "Cliente")}</span>
+                <strong>{String(row.Total ?? "-")}</strong>
+                <small>{String(row.Estado ?? "-")} · {String(row.Fecha ?? "-")}</small>
+              </div>
+            )) : <p>Sin pedidos recientes.</p>}
+          </div>
+        </article>
+
+        <article>
+          <div className="admin-recent-control__heading">
+            <strong>Dinero reciente</strong>
+            <Link href={`${adminPath}/finanzas`}>Ver finanzas</Link>
+          </div>
+          <div className="admin-recent-control__list">
+            {movements.length ? movements.slice(0, 5).map((row, index) => (
+              <div key={`movement-${index}`}>
+                <span>{String(row.Descripcion ?? row.Categoria ?? "Movimiento")}</span>
+                <strong>{String(row.Importe ?? "-")}</strong>
+                <small>{String(row.Tipo ?? "-")} · {String(row.Fecha ?? "-")}</small>
+              </div>
+            )) : <p>Sin movimientos recientes.</p>}
+          </div>
+        </article>
+
+        <article>
+          <div className="admin-recent-control__heading">
+            <strong>Tickets recientes</strong>
+            <Link href={`${adminPath}/tickets`}>Ver tickets</Link>
+          </div>
+          <div className="admin-recent-control__list">
+            {tickets.length ? tickets.slice(0, 5).map((row, index) => (
+              <div key={`ticket-${index}`}>
+                <span>{String(row.Numero ?? "Ticket")}</span>
+                <strong>{String(row.Total ?? "-")}</strong>
+                <small>{String(row.Cliente ?? "-")} · {String(row.Estado ?? "-")}</small>
+              </div>
+            )) : <p>Sin tickets recientes.</p>}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 export async function AdminDashboard({ period }: { period?: string }) {
   const selectedPeriod = normalizePeriod(period);
   const data = await getAdminDashboardData(selectedPeriod);
@@ -396,6 +469,11 @@ export async function AdminDashboard({ period }: { period?: string }) {
 
         <AdminQuickOverview metrics={metrics} />
         <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
+        <AdminRecentControl
+          orders={data.recentOrders as Array<Record<string, unknown>>}
+          movements={data.recentFinancialMovements as Array<Record<string, unknown>>}
+          tickets={data.recentTickets as Array<Record<string, unknown>>}
+        />
 
         <div className="admin-model-cards">
           <DashboardCycleCard
