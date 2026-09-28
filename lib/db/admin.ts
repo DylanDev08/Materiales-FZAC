@@ -198,7 +198,8 @@ export async function getAdminFinancialMovements(limit = 180): Promise<{
     data = (result.data ?? []) as Array<Record<string, unknown>>;
     hasError = Boolean(result.error);
   } else {
-    const backend = getEnv("API_PROXY_ORIGIN");
+    const configuredBackend = getEnv("API_PROXY_ORIGIN");
+    const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
     if (hasRealValue(backend)) {
       try {
         const cookieStore = await cookies();
