@@ -177,6 +177,39 @@ function AdminModelLineChart({ labels, title, series }: { labels: string[]; titl
   );
 }
 
+function AdminQuickOverview({ metrics }: { metrics: DashboardMetric[] }) {
+  const adminPath = getAdminConsolePath();
+  const items = [
+    { label: "Preparar", value: getMetric(metrics, "Pedidos para preparar").value, helper: "Pedidos pagos", href: `${adminPath}/pedidos`, tone: "yellow" },
+    { label: "Pagos aprobados", value: getMetric(metrics, "Pagos aprobados").value, helper: "Confirmados", href: `${adminPath}/pagos`, tone: "green" },
+    { label: "Pagos pendientes", value: getMetric(metrics, "Pagos pendientes").value, helper: "Revisar", href: `${adminPath}/pagos`, tone: "yellow" },
+    { label: "Bajo stock", value: getMetric(metrics, "Productos bajo stock").value, helper: "Reponer", href: `${adminPath}/inventario`, tone: "red" },
+    { label: "Prioridad alta", value: getMetric(metrics, "Prioridad alta").value, helper: "> $1.000.000", href: `${adminPath}/pedidos`, tone: "red" },
+    { label: "Balance", value: getMetric(metrics, "Balance del periodo").value, helper: "Periodo actual", href: `${adminPath}/finanzas`, tone: "green" }
+  ];
+
+  return (
+    <section className="admin-quick-overview" aria-label="Resumen rápido">
+      <header>
+        <div>
+          <span className="kicker">Control rápido</span>
+          <h2>Lo importante ahora</h2>
+        </div>
+        <small>Entrá directo al dato que necesitás revisar.</small>
+      </header>
+      <div>
+        {items.map((item) => (
+          <Link className={`admin-quick-overview__item is-${item.tone}`} href={item.href} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.helper}</small>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AdminTaskCenter({
   metrics,
   paymentsReady
@@ -361,6 +394,7 @@ export async function AdminDashboard({ period }: { period?: string }) {
           </nav>
         </div>
 
+        <AdminQuickOverview metrics={metrics} />
         <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
 
         <div className="admin-model-cards">
