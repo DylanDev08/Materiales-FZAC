@@ -83,19 +83,35 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
 
   try {
     const [{ data: order }, { data: ticket }, { data: items }] = await Promise.all([
-      admin.from("orders").select("id,user_id,customer_name,customer_email,customer_phone,total,shipping_method,shipping_cost,address_snapshot").eq("id", input.orderId).maybeSingle(),
-      admin.from("purchase_tickets").select("number,payment_provider").eq("order_id", input.orderId).maybeSingle(),
-      admin.from("order_items").select("name,quantity,unit_price,subtotal").eq("order_id", input.orderId).order("created_at", { ascending: true })
+      admin
+        .from("orders")
+        .select("id,user_id,status,customer_name,customer_email,customer_phone,total,shipping_method,shipping_cost,address_snapshot")
+        .eq("id", input.orderId)
+        .maybeSingle(),
+      admin
+        .from("purchase_tickets")
+        .select("number,payment_provider")
+        .eq("order_id", input.orderId)
+        .maybeSingle(),
+      admin
+        .from("order_items")
+        .select("name,quantity,unit_price,subtotal")
+        .eq("order_id", input.orderId)
+        .order("created_at", { ascending: true })
     ]);
 
     if (order && String(order.status) === "PAID") {
       const now = new Date().toISOString();
-      const customerMessage = `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} ya está en preparación.`;
+      const customerMessage = String(order.shipping_method ?? "PICKUP") === "DELIVERY"
+        ? `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} ya está en preparación para despacho.`
+        : `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} ya está en preparación. Te avisaremos cuando esté listo para retirar.`;
+
       let whatsappStatus: "NOT_REQUESTED" | "DRY_RUN" | "SENT" | "FAILED" = "NOT_REQUESTED";
       let providerMessageId: string | null = null;
 
       if (order.customer_phone) {
-        const sent = await sendWhatsAppText(String(order.customer_phone), customerMessage).catch(() => ({ status: "FAILED" as const, providerMessageId: null }));
+        const sent = await sendWhatsAppText(String(order.customer_phone), customerMessage)
+          .catch(() => ({ status: "FAILED" as const, providerMessageId: null }));
         whatsappStatus = sent.status;
         providerMessageId = sent.providerMessageId;
       }
@@ -113,12 +129,12 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
           order_id: input.orderId,
           from_status: "PAID",
           to_status: "PREPARING",
-          note: "PAYMENT_AUTO_PREPARING",
+          note: "Pago aprobado. Pedido enviado automáticamente a preparación.",
           actor_id: null,
           customer_visible: true,
           whatsapp_status: whatsappStatus,
           whatsapp_provider_message_id: providerMessageId
-        }).catch(() => undefined);
+        });
 
         if (order.user_id) {
           await admin.from("notifications").insert({
@@ -127,7 +143,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
             title: "Tu pedido está en preparación",
             message: customerMessage,
             link_to: "/cuenta/pedidos"
-          }).catch(() => undefined);
+          });
         }
       }
     }
@@ -170,41 +186,6 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
     }
 
     if (order) {
-      const fulfillmentMessage = String(order.shipping_method ?? "PICKUP") === "DELIVERY"
-        ? `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} está en preparación para despacho. Te avisaremos por WhatsApp cuando salga y el horario estimado.`
-        : `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} está en preparación. Te avisaremos por WhatsApp cuando esté listo para retirar.`;
-
-      const whatsappResult = order.customer_phone
-        ? await sendWhatsAppText(String(order.customer_phone), fulfillmentMessage).catch(() => ({ status: "FAILED" as const, providerMessageId: null }))
-        : { status: "NOT_REQUESTED" as const, providerMessageId: null };
-
-      await admin.from("orders").update({
-        status: "PREPARING",
-        status_updated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }).eq("id", input.orderId).eq("status", "PAID");
-
-      await admin.from("order_status_events").insert({
-        order_id: input.orderId,
-        from_status: "PAID",
-        to_status: "PREPARING",
-        note: "Pago aprobado. Pedido enviado automáticamente a preparación.",
-        actor_id: null,
-        customer_visible: true,
-        whatsapp_status: whatsappResult.status,
-        whatsapp_provider_message_id: whatsappResult.providerMessageId
-      });
-
-      if ((order as any).user_id) {
-        await admin.from("notifications").insert({
-          user_id: (order as any).user_id,
-          type: "ORDER_STATUS_UPDATED",
-          title: "Tu pedido está en preparación",
-          message: fulfillmentMessage,
-          link_to: "/cuenta/pedidos"
-        });
-      }
-
       await Promise.all([
         notifyAdminPaymentApproved({
           id: input.orderId,
@@ -225,7 +206,7 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
       ]);
     }
   } catch {
-    // Email y notificaciones son best-effort: nunca deben revertir una confirmación de pago.
+    // Email, WhatsApp y notificaciones son best-effort: nunca deben revertir una confirmación de pago.
   }
 
   return { ok: true, source: "rpc", result: data };
