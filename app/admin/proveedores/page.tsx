@@ -67,7 +67,10 @@ export default async function Page({
             <article><strong>{data.totalProducts}</strong><span>Resultados actuales</span><small>{data.query ? `Filtro: ${data.query}` : "Sin filtro de búsqueda."}</small></article>
           </section>
 
-          <AdminSupplierDocuments documents={data.documents} products={data.products} supplierId={selected.id} />
+          <details className="admin-focus-details admin-focus-details--section">
+            <summary>Documentos y archivos del proveedor</summary>
+            <AdminSupplierDocuments documents={data.documents} products={data.products} supplierId={selected.id} />
+          </details>
 
           <section className="admin-supplier-products">
             <header>
