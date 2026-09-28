@@ -595,16 +595,35 @@ function adminDate(value: string | null | undefined) {
 export async function getAdminDashboardData(period: "day" | "week" | "month" = "month") {
   const admin = getSupabaseAdminClient();
   if (!admin) {
+    const backend = getEnv("API_PROXY_ORIGIN");
+    if (hasRealValue(backend)) {
+      try {
+        const cookieStore = await cookies();
+        const cookieHeader = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
+        const url = new URL("/api/admin/dashboard", backend);
+        url.searchParams.set("period", period);
+        const response = await fetch(url, {
+          headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+          cache: "no-store"
+        });
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch {
+        // Si el backend privado no responde, usamos un fallback explicito abajo.
+      }
+    }
+
     const buckets = dashboardBuckets(period);
     return {
       metrics: [
-        { label: "Ventas del dia", value: currency(0), helper: "Backend administrativo sin conexion" },
-        { label: "Ingresos del periodo", value: currency(0), helper: "Backend administrativo sin conexion" },
-        { label: "Egresos del periodo", value: currency(0), helper: "Sin modulo de egresos conectado" },
-        { label: "Balance del periodo", value: currency(0), helper: "Ingresos menos egresos" },
-        { label: "Ventas del mes", value: currency(0), helper: "Esperando pagos aprobados" },
-        { label: "Pedidos pendientes", value: "0", helper: "Sin datos" },
-        { label: "Clientes nuevos", value: "0", helper: "Sin datos" }
+        { label: "Ventas del dia", value: currency(0), helper: "No pudimos conectar con el backend administrativo" },
+        { label: "Ingresos del periodo", value: currency(0), helper: "No pudimos conectar con el backend administrativo" },
+        { label: "Egresos del periodo", value: currency(0), helper: "No pudimos conectar con el backend administrativo" },
+        { label: "Balance del periodo", value: currency(0), helper: "Sin datos disponibles" },
+        { label: "Ventas del mes", value: currency(0), helper: "Sin datos disponibles" },
+        { label: "Pedidos pendientes", value: "0", helper: "Sin datos disponibles" },
+        { label: "Clientes nuevos", value: "0", helper: "Sin datos disponibles" }
       ],
       statusCounts: [],
       recentOrders: [],
