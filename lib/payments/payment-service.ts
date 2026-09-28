@@ -88,6 +88,50 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
       admin.from("order_items").select("name,quantity,unit_price,subtotal").eq("order_id", input.orderId).order("created_at", { ascending: true })
     ]);
 
+    if (order && String(order.status) === "PAID") {
+      const now = new Date().toISOString();
+      const customerMessage = `FZAC: pago confirmado. Tu pedido ${input.orderId.slice(0, 8).toUpperCase()} ya está en preparación.`;
+      let whatsappStatus: "NOT_REQUESTED" | "DRY_RUN" | "SENT" | "FAILED" = "NOT_REQUESTED";
+      let providerMessageId: string | null = null;
+
+      if (order.customer_phone) {
+        const sent = await sendWhatsAppText(String(order.customer_phone), customerMessage).catch(() => ({ status: "FAILED" as const, providerMessageId: null }));
+        whatsappStatus = sent.status;
+        providerMessageId = sent.providerMessageId;
+      }
+
+      const { data: prepared } = await admin
+        .from("orders")
+        .update({ status: "PREPARING", status_updated_at: now, updated_at: now })
+        .eq("id", input.orderId)
+        .eq("status", "PAID")
+        .select("id")
+        .maybeSingle();
+
+      if (prepared?.id) {
+        await admin.from("order_status_events").insert({
+          order_id: input.orderId,
+          from_status: "PAID",
+          to_status: "PREPARING",
+          note: "PAYMENT_AUTO_PREPARING",
+          actor_id: null,
+          customer_visible: true,
+          whatsapp_status: whatsappStatus,
+          whatsapp_provider_message_id: providerMessageId
+        }).catch(() => undefined);
+
+        if (order.user_id) {
+          await admin.from("notifications").insert({
+            user_id: order.user_id,
+            type: "ORDER_STATUS_UPDATED",
+            title: "Tu pedido está en preparación",
+            message: customerMessage,
+            link_to: "/cuenta/pedidos"
+          }).catch(() => undefined);
+        }
+      }
+    }
+
     if (order?.customer_email && ticket?.number) {
       const address = order.address_snapshot && typeof order.address_snapshot === "object"
         ? [
