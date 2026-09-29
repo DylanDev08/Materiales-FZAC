@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import Image from "next/image";
 import { FileText, Filter } from "lucide-react";
 import { CatalogReportActions } from "@/components/admin/catalog-report-actions";
@@ -38,7 +41,10 @@ export default async function Page({
     ? value(params.availability) as Availability
     : "all";
   const supplierId = value(params.supplier);
-  const catalogScope: CatalogScope = audience === "internal" && value(params.catalog) === "all" ? "all" : "active";
+  const catalogParam = value(params.catalog);
+  const catalogScope: CatalogScope = audience === "internal"
+    ? (catalogParam === "active" ? "active" : "all")
+    : "active";
   const categorySlug = value(params.category);
   const search = value(params.q).slice(0, 80);
   const report = await getCatalogProfitabilityReport("month", "all");
@@ -47,7 +53,8 @@ export default async function Page({
   const suppliers = Array.from(new Map(report.rows.filter((row) => row.supplierId && row.supplierName)
     .map((row) => [row.supplierId as string, row.supplierName as string])).entries())
     .sort((left, right) => left[1].localeCompare(right[1], "es-AR"));
-  const categories = Array.from(new Map(report.rows.filter((row) => row.categorySlug && row.categoryName)
+  const supplierScopedRows = supplierId ? report.rows.filter((row) => row.supplierId === supplierId) : report.rows;
+  const categories = Array.from(new Map(supplierScopedRows.filter((row) => row.categorySlug && row.categoryName)
     .map((row) => [row.categorySlug as string, row.categoryName as string])).entries())
     .sort((left, right) => left[1].localeCompare(right[1], "es-AR"));
   const normalizedSearch = normalize(search);
@@ -60,9 +67,17 @@ export default async function Page({
     if (normalizedSearch && !normalize(`${row.name} ${row.sku} ${row.categoryName ?? ""}`).includes(normalizedSearch)) return false;
     return true;
   });
+  const selectedSupplierRows = supplierId ? report.rows.filter((row) => row.supplierId === supplierId) : [];
+  const selectedSupplierLinked = selectedSupplierRows.length;
+  const selectedSupplierPublished = selectedSupplierRows.filter((row) => row.active).length;
   const title = audience === "customer" ? "Lista de precios FZAC" : "Comparación proveedor y cliente";
   const availableCount = rows.filter((row) => row.stock > 0 && row.availabilityStatus === "IN_STOCK").length;
   const consultCount = rows.filter((row) => row.availabilityStatus === "CONSULT").length;
+  const totalSupplierCost = rows.reduce((sum, row) => sum + (row.supplierPrice ?? 0), 0);
+  const totalEcommerceValue = rows.reduce((sum, row) => sum + row.ecommercePrice, 0);
+  const totalUnitGrossProfit = rows.reduce((sum, row) => sum + (row.unitGrossProfit ?? 0), 0);
+  const markupValues = rows.map((row) => row.markupPercent).filter((value): value is number => value !== null && Number.isFinite(value));
+  const averageMarkup = markupValues.length ? markupValues.reduce((sum, value) => sum + value, 0) / markupValues.length : null;
 
   return (
     <main className="catalog-report-page">
@@ -87,6 +102,13 @@ export default async function Page({
             </div>
           </details>
         </form>
+        {supplierId ? (
+          <p className="notice notice--info">
+            <FileText size={16} />
+            Proveedor seleccionado: {selectedSupplierLinked} productos vinculados internamente · {selectedSupplierPublished} publicados.
+            {audience === "customer" && selectedSupplierPublished < selectedSupplierLinked ? " El PDF para cliente solo incluye los publicados; cambiá a Interno / rentabilidad para revisar todo el catálogo importado." : ""}
+          </p>
+        ) : null}
         <p><FileText size={16} />El PDF para clientes nunca incluye costo, proveedor ni margen. Usá “Imprimir / Guardar como PDF” en el diálogo del navegador.</p>
       </section>
 
@@ -100,7 +122,13 @@ export default async function Page({
           <span><strong>{rows.length}</strong>Materiales listados</span>
           <span><strong>{availableCount}</strong>Disponibles</span>
           <span><strong>{consultCount}</strong>A consultar</span>
-          {audience === "internal" ? <span><strong>{rows.filter((row) => row.supplierPrice !== null).length}</strong>Con costo registrado</span> : null}
+          {audience === "internal" ? <>
+            <span><strong>{rows.filter((row) => row.supplierPrice !== null).length}</strong>Con costo registrado</span>
+            <span><strong>{currency(totalSupplierCost)}</strong>Costo unitario acumulado</span>
+            <span><strong>{currency(totalEcommerceValue)}</strong>Precio FZAC acumulado</span>
+            <span><strong>{currency(totalUnitGrossProfit)}</strong>Ganancia bruta/u. acumulada</span>
+            <span><strong>{percent(averageMarkup)}</strong>Markup promedio</span>
+          </> : null}
         </div>
 
         {!report.available ? <p className="notice notice--danger">No pudimos leer el catálogo para generar este reporte.</p> : !rows.length ? <p className="catalog-pdf-report__empty">No hay productos para los filtros elegidos.</p> : (
