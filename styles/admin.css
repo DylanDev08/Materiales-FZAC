@@ -9758,3 +9758,124 @@ img[src*="logoFZAC"] {
     font-size: .7rem;
   }
 }
+
+
+/* Compact mobile dashboard */
+.admin-mobile-detail > summary {
+  display: none;
+}
+
+.admin-mobile-detail__content {
+  display: contents;
+}
+
+@media (max-width: 720px) {
+  .admin-mobile-detail {
+    display: grid;
+    gap: 12px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    background: #101010;
+    overflow: hidden;
+  }
+
+  .admin-mobile-detail > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    cursor: pointer;
+    list-style: none;
+    padding: 13px 14px;
+  }
+
+  .admin-mobile-detail > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .admin-mobile-detail > summary > span:first-child {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .admin-mobile-detail > summary strong {
+    color: var(--color-white);
+    font-size: .92rem;
+  }
+
+  .admin-mobile-detail > summary small {
+    color: var(--color-muted);
+    font-size: .72rem;
+    line-height: 1.35;
+  }
+
+  .admin-mobile-detail > summary > span:last-child {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: rgba(244,196,0,.1);
+    color: var(--color-yellow);
+    font-size: 1.25rem;
+    font-weight: 900;
+    transition: transform .2s ease;
+  }
+
+  .admin-mobile-detail[open] > summary > span:last-child {
+    transform: rotate(45deg);
+  }
+
+  .admin-mobile-detail__content {
+    display: none;
+    padding: 0 10px 10px;
+  }
+
+  .admin-mobile-detail[open] .admin-mobile-detail__content {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-task-center__grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-task-card {
+    min-height: 0;
+    grid-template-columns: 34px minmax(0,1fr) auto;
+    padding: 11px 12px;
+  }
+
+  .admin-task-card p {
+    display: none;
+  }
+
+  .admin-quick-overview {
+    padding: 12px;
+  }
+
+  .admin-quick-overview > header {
+    margin-bottom: 2px;
+  }
+
+  .admin-quick-overview__item {
+    padding: 10px;
+  }
+
+  .admin-quick-overview__item small {
+    display: none;
+  }
+
+  .admin-quick-overview__item strong {
+    font-size: 1.35rem;
+  }
+}
+
+@media (min-width: 721px) {
+  .admin-mobile-detail:not([open]) > .admin-mobile-detail__content {
+    display: contents;
+  }
+}
