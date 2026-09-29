@@ -20,6 +20,7 @@ export type AssistantSafetyAssessment = {
 const EMAIL = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
 const UUID = /\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi;
 const PHONE_OR_DOCUMENT = /\+?\d(?:[\s().-]*\d){7,12}/g;
+const NON_PERSONAL_NUMBER_CONTEXT = /(?:sku|codigo|código|producto|pedido|orden|referencia|ref)\s*[:#-]?\s*$/i;
 const EXPLICIT_SECRET = /\b(?:sk|sbp|re|rnd|pat|ghp|xox[baprs]|app_usr)[-_][a-z0-9_-]{12,}\b/gi;
 const AUTHORIZATION_SECRET = /\b(?:bearer|authorization)\s+[a-z0-9._~+\/-]{12,}/gi;
 const PASSWORD_VALUE = /\b(?:password|contrasena|contraseña|clave)\s*[:=]\s*\S+/gi;
@@ -98,7 +99,10 @@ export function redactAssistantSensitiveText(value: string, maxLength = 500) {
     .replace(/(?:\d[ -]?){13,19}/g, (candidate) => luhn(candidate) ? "[tarjeta omitida]" : candidate)
     .replace(EMAIL, "[email omitido]")
     .replace(UUID, "[referencia omitida]")
-    .replace(PHONE_OR_DOCUMENT, "[dato personal omitido]")
+    .replace(PHONE_OR_DOCUMENT, (candidate, offset, fullText) => {
+      const prefix = String(fullText).slice(Math.max(0, Number(offset) - 24), Number(offset));
+      return NON_PERSONAL_NUMBER_CONTEXT.test(prefix) ? candidate : "[dato personal omitido]";
+    })
     .replace(/\s+/g, " ")
     .trim();
 }
