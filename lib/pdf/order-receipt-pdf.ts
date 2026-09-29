@@ -117,7 +117,7 @@ function pageContent(
   s += t(118, PAGE_H - 68, 8.5, identity.address || "Rosario, Santa Fe", false, DARK);
   if (identity.taxId) s += t(118, PAGE_H - 84, 8, `CUIT ${identity.taxId}`, false, DARK);
 
-  s += t(375, PAGE_H - 44, 17, "COMPROBANTE DE COMPRA", true, BLACK);
+  s += t(365, PAGE_H - 44, 15, "COMPROBANTE DE COMPRA", true, BLACK);
   s += t(433, PAGE_H - 63, 8, "FECHA", true, MUTED);
   s += t(485, PAGE_H - 63, 8.5, date(receipt.issuedAt), false, DARK);
   s += t(433, PAGE_H - 79, 8, "N°", true, MUTED);
@@ -125,7 +125,7 @@ function pageContent(
   s += t(433, PAGE_H - 95, 8, "REF.", true, MUTED);
   s += t(485, PAGE_H - 95, 8.5, receipt.reference, false, DARK);
 
-  s += rect(left, PAGE_H - 126, width, 5, GOLD);
+  s += line(left, PAGE_H - 124, right, PAGE_H - 124, GOLD, 1.4);
   let y = PAGE_H - 148;
 
   if (pageIndex === 0) {
@@ -149,18 +149,9 @@ function pageContent(
     shipLines.forEach((row, i) => { s += t(shipX, y - 16 - i * 13, 7.8, row, false, DARK); });
 
     y -= 58;
-    s += rect(left, y - 17, width, 20, GOLD);
-    s += t(left + 10, y - 11, 8, "PAGO / OPERACIÓN", true, BLACK);
-
-    y -= 33;
-    s += t(left + 2, y, 8, "Medio de pago", true, MUTED);
-    s += t(left + 88, y, 8.5, receipt.payment.provider, false, DARK);
-    s += t(left + 230, y, 8, "Estado", true, MUTED);
-    s += t(left + 275, y, 8.5, receipt.status, true, DARK);
-    s += t(left + 380, y, 8, "Referencia", true, MUTED);
-    s += t(left + 440, y, 8.5, receipt.reference, false, DARK);
-
-    y -= 28;
+    y -= 6;
+    s += t(left + 2, y, 7.8, `Pago: ${receipt.payment.provider} · Estado: ${receipt.status}`, false, MUTED);
+    y -= 24;
   }
 
   // Table headers with fixed columns.
@@ -209,25 +200,19 @@ function pageContent(
   }
 
   if (isLast) {
-    const boxTop = 190;
-    const notesW = 318;
-    const totalsX = left + notesW + 16;
+    const boxTop = 168;
+    const notesW = 300;
+    const totalsX = left + notesW + 18;
     const totalsW = right - totalsX;
 
-    s += rect(left, boxTop, notesW, 20, GOLD);
-    s += t(left + 8, boxTop + 6, 8, "COMENTARIOS / ACLARACIONES", true, BLACK);
-    s += line(left, boxTop, left, 86, "0.78 0.78 0.78", 0.7);
-    s += line(left + notesW, boxTop, left + notesW, 86, "0.78 0.78 0.78", 0.7);
-    s += line(left, 86, left + notesW, 86, "0.78 0.78 0.78", 0.7);
-    s += t(left + 8, boxTop - 18, 7.5, "Comprobante emitido por FZAC luego de confirmar el pago.", false, MUTED);
-    s += t(left + 8, boxTop - 32, 7.5, "Conservá este documento como respaldo de la operación.", false, MUTED);
+    s += t(left, boxTop + 6, 7.5, "Observación", true, MUTED);
+    s += t(left, boxTop - 10, 7.5, "Comprobante emitido por FZAC luego de confirmar el pago.", false, DARK);
 
     const totalRows = [
       ["SUBTOTAL", money(receipt.amounts.subtotal)],
-      ["ENVÍO", receipt.amounts.shippingCost > 0 ? money(receipt.amounts.shippingCost) : "$ 0"],
-      ["IVA INCLUIDO", money(receipt.amounts.ivaIncluded)]
+      ["ENVÍO", receipt.amounts.shippingCost > 0 ? money(receipt.amounts.shippingCost) : "$ 0"]
     ];
-    let ty = boxTop + 2;
+    let ty = boxTop + 4;
     for (const [label, value] of totalRows) {
       s += rect(totalsX, ty - 18, totalsW, 20, "0.96 0.96 0.96");
       s += t(totalsX + 8, ty - 11, 7.7, label, true, MUTED);
@@ -238,7 +223,7 @@ function pageContent(
     s += t(totalsX + 8, ty - 12, 9, "TOTAL", true, BLACK);
     s += t(totalsX + 95, ty - 12, 11, money(receipt.amounts.total), true, BLACK);
 
-    s += t(left, 58, 7.2, "Comprobante de compra FZAC. No reemplaza una factura fiscal emitida ante ARCA.", false, MUTED);
+    s += t(left, 58, 7.2, "Comprobante de compra FZAC · No reemplaza una factura fiscal emitida ante ARCA.", false, MUTED);
   }
 
   s += line(left, 40, right, 40, "0.82 0.82 0.82", 0.5);
