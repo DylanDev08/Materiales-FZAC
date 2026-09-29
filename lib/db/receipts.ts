@@ -44,7 +44,7 @@ export async function getOrderReceipt(orderId?: string) {
   let orderQuery = admin
     .from("orders")
     .select(
-      "id,user_id,status,customer_name,customer_email,customer_phone,subtotal,total,shipping_cost,shipping_method,address_snapshot,created_at,paid_at"
+      "id,user_id,status,customer_name,customer_email,customer_phone,subtotal,total,shipping_cost,shipping_method,address_snapshot,notes,created_at,paid_at"
     )
     .eq("id", orderId);
   if (profile.role !== "ADMIN") orderQuery = orderQuery.eq("user_id", profile.id);
@@ -59,7 +59,7 @@ export async function getOrderReceipt(orderId?: string) {
       .select("sku,name,unit_price,subtotal,quantity")
       .eq("order_id", order.id)
       .order("created_at", { ascending: true }),
-    admin.from("payments").select("provider,status,amount,currency,updated_at").eq("order_id", order.id).maybeSingle()
+    admin.from("payments").select("provider,status,amount,currency,provider_payment_id,updated_at").eq("order_id", order.id).maybeSingle()
   ]);
 
   const paymentConfirmed =
@@ -103,14 +103,33 @@ export async function getOrderReceipt(orderId?: string) {
       phone: String(ticket?.customer_phone ?? order.customer_phone ?? "-")
     },
     payment: {
-      provider: payment?.provider ? "Pago online" : "Pendiente",
-      status: String(payment?.status ?? "PENDING")
+      provider:
+        String(payment?.provider ?? "").toUpperCase() === "MERCADOPAGO"
+          ? "Mercado Pago"
+          : String(payment?.provider ?? "").toUpperCase() === "BANK_TRANSFER"
+            ? "Transferencia"
+            : String(payment?.provider ?? "").toUpperCase() === "WHATSAPP"
+              ? "Coordinado por WhatsApp"
+              : payment?.provider
+                ? String(payment.provider)
+                : "Pendiente",
+      status: String(payment?.status ?? "PENDING"),
+      providerPaymentId: payment?.provider_payment_id ? String(payment.provider_payment_id) : null
     },
     shipping: {
-      method: order.shipping_method === "DELIVERY" ? "Envio coordinado" : "Retiro coordinado",
+      method: order.shipping_method === "DELIVERY" ? "Envío a domicilio" : "Retiro en local",
       cost: shippingCost,
-      address: addressText(ticket?.address_snapshot ?? order.address_snapshot)
+      address:
+        order.shipping_method === "DELIVERY"
+          ? addressText(ticket?.address_snapshot ?? order.address_snapshot)
+          : "FZAC Materiales - Rosario"
     },
+    notes: String(
+      ticket?.notes ??
+      order.notes ??
+      ((ticket?.address_snapshot ?? order.address_snapshot) as AddressSnapshot | null)?.notes ??
+      ""
+    ).trim(),
     amounts: {
       subtotal,
       ivaIncluded,
