@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, MessageCircle, PackageCheck, Save, Truck, UserRound, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, MessageCircle, PackageCheck, Save, Truck, UserRound, XCircle } from "lucide-react";
 import { AdminInteractiveTable } from "@/components/admin/admin-interactive-table";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
@@ -94,6 +94,41 @@ function FulfillmentEditor({
   </div>;
 }
 
+function MobileOrdersList({ rows }: { rows: OrderRow[] }) {
+  return (
+    <section className="admin-mobile-orders" aria-label="Pedidos">
+      {rows.map((row) => (
+        <details className="admin-mobile-order-card" key={String(row.Id)}>
+          <summary>
+            <div className="admin-mobile-order-card__top">
+              <span className="admin-mobile-order-card__ref">#{String(row.Referencia || "")}</span>
+              <strong>{String(row.Total || "-")}</strong>
+            </div>
+            <div className="admin-mobile-order-card__main">
+              <div>
+                <h3>{String(row.Cliente || "Cliente")}</h3>
+                <p>{String(row.Productos || "Sin detalle")}</p>
+              </div>
+              <span className="admin-data-pill admin-data-pill--warning">{String(row.Estado || "Pendiente")}</span>
+            </div>
+            <div className="admin-mobile-order-card__meta">
+              <span>{String(row.Pago || "Pago pendiente")}</span>
+              <span>{String(row.Envio || "")}</span>
+            </div>
+          </summary>
+          <div className="admin-mobile-order-card__detail">
+            <dl>
+              <div><dt>Email</dt><dd>{String(row.Email || "-")}</dd></div>
+              <div><dt>Teléfono</dt><dd>{String(row.Telefono || "-")}</dd></div>
+              <div><dt>Fecha</dt><dd>{String(row.Fecha || "-")}</dd></div>
+            </dl>
+          </div>
+        </details>
+      ))}
+    </section>
+  );
+}
+
 export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; assignees?: Assignee[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -131,10 +166,18 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
           </div>
           <strong>{row.Total}</strong>
           <small>{row.Productos}</small>
-          <FulfillmentEditor row={row} assignees={assignees} disabled={Boolean(busy)} onSaved={setMessage}/>
-          <a className="btn btn--ghost" href={getWhatsAppHref(`Hola ${row.Cliente}, te contactamos por el pedido ${row.Referencia}. ${delivery ? "Queremos coordinar el despacho." : "Queremos coordinar el retiro en nuestro local."}`)} target="_blank" rel="noreferrer">
-            <MessageCircle size={17}/> Abrir WhatsApp
-          </a>
+          <div className="admin-order-quick-actions">
+            <a className="btn btn--ghost" href={getWhatsAppHref(`Hola ${row.Cliente}, te contactamos por el pedido ${row.Referencia}. ${delivery ? "Queremos coordinar el despacho." : "Queremos coordinar el retiro en nuestro local."}`)} target="_blank" rel="noreferrer">
+              <MessageCircle size={17}/> WhatsApp
+            </a>
+          </div>
+          <details className="admin-order-manage">
+            <summary>
+              <span>Gestionar pedido</span>
+              <ChevronDown size={17} />
+            </summary>
+            <FulfillmentEditor row={row} assignees={assignees} disabled={Boolean(busy)} onSaved={setMessage}/>
+          </details>
         </article>;
       })}
     </section> : null}
@@ -152,6 +195,9 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
     </section> : null}
 
     {message ? <p className="notice notice--success" role="status">{message}</p> : null}
-    <AdminInteractiveTable title="Pedidos" columns={columns} rows={rows}/>
+    <div className="admin-orders-desktop-table">
+      <AdminInteractiveTable title="Pedidos" columns={columns} rows={rows}/>
+    </div>
+    <MobileOrdersList rows={rows}/>
   </>;
 }
