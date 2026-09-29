@@ -26,6 +26,7 @@ const statusLabels: Record<string, string> = {
   CONFIRMED: "confirmado",
   PREPARING: "en preparación",
   READY_FOR_PICKUP: "listo para retirar",
+  READY_FOR_DELIVERY: "listo para despacho",
   OUT_FOR_DELIVERY: "en reparto",
   DELIVERED: "entregado",
   COMPLETED: "completado",
