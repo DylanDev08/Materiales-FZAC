@@ -34,42 +34,40 @@ import {
 
 const linkGroups = [
   {
-    title: "Uso diario",
+    title: "Ventas y operación",
     links: [
       { path: "", label: "Dashboard", icon: BarChart3 },
       { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
-      { path: "/pagos", label: "Pagos", icon: CreditCard },
+      { path: "/pagos", label: "Cobros", icon: CreditCard },
       { path: "/tickets", label: "Tickets", icon: FileText },
-      { path: "/reportes", label: "Reportes PDF", icon: FileText },
-      { path: "/finanzas", label: "Gestión interna", icon: Landmark },
-      { path: "/inventario", label: "Inventario", icon: Package },
-      { path: "/proveedores", label: "Proveedores", icon: Building2 }
+      { path: "/reportes", label: "PDF y reportes", icon: FileText },
+      { path: "/finanzas", label: "Caja y gestión interna", icon: Landmark },
+      { path: "/inventario", label: "Stock", icon: Package },
+      { path: "/proveedores", label: "Proveedores", icon: Building2 },
+      { path: "/analiticas", label: "Analíticas", icon: AreaChart }
     ]
   },
   {
-    title: "Compras y control",
+    title: "Compras y catálogo",
     links: [
-      { path: "/compras", label: "Compras", icon: ShoppingBasket },
+      { path: "/compras", label: "Compras a proveedores", icon: ShoppingBasket },
       { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
-      { path: "/auditoria-precios", label: "Auditoría de precios", icon: ShieldCheck }
-    ]
-  },
-  {
-    title: "Más herramientas",
-    links: [
-      { path: "/analiticas", label: "Analíticas", icon: AreaChart },
-      { path: "/operaciones", label: "Operaciones", icon: Activity },
-      { path: "/clientes", label: "Clientes", icon: Users },
-      { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw },
-      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
+      { path: "/auditoria-precios", label: "Control de precios", icon: ShieldCheck },
       { path: "/productos", label: "Productos", icon: Package },
       { path: "/categorias", label: "Categorías", icon: Grid3X3 },
+      { path: "/clientes", label: "Clientes", icon: Users },
+      { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw }
+    ]
+  },
+  {
+    title: "Configuración y soporte",
+    links: [
+      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
       { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
-      { path: "/chats", label: "Chats", icon: MessageCircle },
-      { path: "/conocimiento", label: "Conocimiento IA", icon: BrainCircuit },
-      { path: "/calidad-ia", label: "Calidad IA", icon: ListChecks },
-      { path: "/sistema", label: "Diagnóstico", icon: ShieldCheck },
-      { path: "public:/productos", label: "Vista cliente", icon: Home }
+      { path: "/chats", label: "Mensajes", icon: MessageCircle },
+      { path: "/operaciones", label: "Estado de servicios", icon: Activity },
+      { path: "/sistema", label: "Configuración", icon: ShieldCheck },
+      { path: "public:/productos", label: "Ver tienda", icon: Home }
     ]
   }
 ];
