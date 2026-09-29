@@ -1,13 +1,21 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 
-export function ReceiptActions() {
+export function ReceiptActions({ orderId, reference }: { orderId: string; reference: string }) {
   return (
     <div className="receipt-actions">
-      <button className="btn" type="button" onClick={() => window.print()}>
+      <a
+        className="btn"
+        href={`/api/orders/${encodeURIComponent(orderId)}/receipt-pdf`}
+        download={`factura-fzac-${reference}.pdf`}
+      >
+        <Download size={18} />
+        Descargar comprobante PDF
+      </a>
+      <button className="btn btn--ghost" type="button" onClick={() => window.print()}>
         <Printer size={18} />
-        Imprimir o guardar PDF
+        Imprimir
       </button>
     </div>
   );
