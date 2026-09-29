@@ -331,7 +331,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
   const redirects = checkoutSiteUrl
     ? {
         back_urls: {
-          success: `${checkoutSiteUrl.origin}/pago/aprobado?${orderQuery}`,
+          success: `${checkoutSiteUrl.origin}/pago/aprobado?${orderQuery}&return=payment`,
           pending: `${checkoutSiteUrl.origin}/pago/pendiente?${orderQuery}`,
           failure: `${checkoutSiteUrl.origin}/pago/rechazado?${orderQuery}`
         },
