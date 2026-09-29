@@ -245,3 +245,139 @@
     background: #ffffff;
   }
 }
+
+
+/* Approved payment receipt page */
+.payment-approved-page {
+  display: grid;
+  gap: 22px;
+}
+
+.payment-approved-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid rgba(54, 179, 126, .28);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(54, 179, 126, .08), rgba(17,17,17,.98));
+  padding: 18px;
+}
+
+.payment-approved-hero__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(54, 179, 126, .12);
+  color: #72e8ad;
+}
+
+.payment-approved-hero h1,
+.payment-approved-hero p {
+  margin: 0;
+}
+
+.payment-approved-hero h1 {
+  margin-top: 4px;
+}
+
+.payment-approved-hero p {
+  margin-top: 7px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.payment-approved-hero strong {
+  display: inline-flex;
+  margin-top: 10px;
+  color: #72e8ad;
+}
+
+.payment-approved-reconcile {
+  margin-top: -8px;
+}
+
+.receipt-page-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.receipt-page-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.receipt-page-toolbar h2,
+.receipt-page-toolbar p {
+  margin: 0;
+}
+
+.receipt-page-toolbar h2 {
+  margin-top: 3px;
+}
+
+.receipt-page-toolbar p {
+  margin-top: 5px;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.payment-approved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.receipt-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .payment-approved-page {
+    gap: 14px;
+  }
+
+  .payment-approved-hero {
+    padding: 14px;
+  }
+
+  .payment-approved-hero__icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .payment-approved-hero h1 {
+    font-size: 1.45rem;
+  }
+
+  .receipt-page-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .receipt-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .receipt-actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .payment-approved-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .payment-approved-actions .btn {
+    justify-content: center;
+  }
+}
