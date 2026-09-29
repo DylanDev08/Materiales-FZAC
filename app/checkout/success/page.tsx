@@ -13,6 +13,8 @@ export default async function Page({
     if (current) query.set(key, current);
   }
 
+  query.set("return", "payment");
+
   const legacyOrderId = query.get("orderId");
   if (legacyOrderId && !query.get("order_id")) {
     query.set("order_id", legacyOrderId);
