@@ -58,11 +58,17 @@ export function AccountSettingsForm({ profile }: { profile: SessionProfile }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)
       });
-      const data = (await response.json()) as { message?: string };
+      const data = (await response.json()) as { message?: string; profile?: { full_name?: string | null; phone?: string | null; avatar_url?: string | null } };
       if (!response.ok) throw new Error(data.message || "No pudimos guardar tus datos.");
-      setSaved(form);
+      const persisted = {
+        full_name: data.profile?.full_name ?? form.full_name,
+        phone: data.profile?.phone ?? form.phone,
+        avatar_url: data.profile?.avatar_url ?? form.avatar_url
+      };
+      setForm(persisted);
+      setSaved(persisted);
       setOk(true);
-      setMessage("Tus datos quedaron actualizados.");
+      setMessage("Tus datos quedaron guardados y se mantendrán en próximas sesiones.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No pudimos actualizar la cuenta.");
