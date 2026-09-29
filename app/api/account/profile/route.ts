@@ -52,19 +52,48 @@ export async function PATCH(request: Request) {
     const admin = getSupabaseAdminClient();
     if (!admin) return jsonError("No pudimos guardar tus datos en este momento.", 503);
 
-    const { error } = await admin.from("profiles").upsert(
-      {
-        id: user.id,
-        email: user.email,
-        full_name: payload.full_name,
-        phone: payload.phone,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "id" }
-    );
+    const { data: savedProfile, error } = await admin
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email,
+          full_name: payload.full_name,
+          phone: payload.phone,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: "id" }
+      )
+      .select("full_name,phone,avatar_url")
+      .single();
 
-    if (error) return jsonError("No pudimos guardar tus datos.", 400);
-    return Response.json({ ok: true });
+    if (error || !savedProfile) return jsonError("No pudimos guardar tus datos.", 400);
+
+    const currentMetadata =
+      user.user_metadata && typeof user.user_metadata === "object"
+        ? user.user_metadata
+        : {};
+
+    const { error: authSyncError } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...currentMetadata,
+        full_name: savedProfile.full_name,
+        phone: savedProfile.phone
+      }
+    });
+
+    if (authSyncError) {
+      return jsonError("Guardamos el perfil, pero no pudimos sincronizar la sesión. Volvé a iniciar sesión e intentá nuevamente.", 500);
+    }
+
+    return Response.json({
+      ok: true,
+      profile: {
+        full_name: savedProfile.full_name,
+        phone: savedProfile.phone,
+        avatar_url: savedProfile.avatar_url
+      }
+    });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Datos invalidos.", 422);
     if (error instanceof SyntaxError) return jsonError("El contenido enviado no es válido.", 400);
