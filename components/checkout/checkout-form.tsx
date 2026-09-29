@@ -63,7 +63,7 @@ type StockState =
 type ShippingQuoteState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "ok"; amount: number; distanceKm: number; durationText?: string }
+  | { status: "ok"; amount: number; distanceKm: number; durationText?: string; origin: string; destination: string }
   | { status: "error"; message: string; distanceKm?: number };
 
 type FieldState = { status: "idle" | "valid" | "invalid"; message: string };
@@ -487,6 +487,8 @@ export function CheckoutForm({
       amount?: number;
       distanceKm?: number;
       durationText?: string;
+      origin?: string;
+      destination?: string;
       reason?: string;
       message?: string;
     };
@@ -504,7 +506,9 @@ export function CheckoutForm({
       status: "ok",
       amount: Number(data.amount ?? 0),
       distanceKm: Number(data.distanceKm ?? 0),
-      durationText: data.durationText
+      durationText: data.durationText,
+      origin: String(data.origin || "FZAC Materiales, Rosario"),
+      destination: String(data.destination || [address.street, address.number, address.city, address.province].filter(Boolean).join(", "))
     });
     return true;
   }
@@ -1282,10 +1286,32 @@ export function CheckoutForm({
                         </button>
                       </div>
                       {shippingQuote.status === "ok" ? (
-                        <p className="notice notice--success">
-                          Envío cotizado: {currency(shippingQuote.amount)} ({shippingQuote.distanceKm} km
-                          {shippingQuote.durationText ? `, ${shippingQuote.durationText}` : ""}).
-                        </p>
+                        <div className="checkout-shipping-quote" role="status" aria-live="polite">
+                          <div className="checkout-shipping-quote__head">
+                            <Truck size={18} />
+                            <div>
+                              <strong>Envío calculado</strong>
+                              <span>{currency(shippingQuote.amount)}</span>
+                            </div>
+                          </div>
+                          <div className="checkout-shipping-route">
+                            <div>
+                              <small>Desde</small>
+                              <strong>{shippingQuote.origin}</strong>
+                            </div>
+                            <ArrowRight size={18} aria-hidden="true" />
+                            <div>
+                              <small>Hasta</small>
+                              <strong>{shippingQuote.destination}</strong>
+                            </div>
+                          </div>
+                          <div className="checkout-shipping-quote__meta">
+                            <span><strong>{shippingQuote.distanceKm} km</strong> de recorrido</span>
+                            {shippingQuote.durationText ? <span><strong>{shippingQuote.durationText}</strong> estimados</span> : null}
+                            <span><strong>{currency(subtotal)}</strong> productos</span>
+                            <span><strong>{currency(total)}</strong> total con envío</span>
+                          </div>
+                        </div>
                       ) : null}
                       {shippingQuote.status === "error" ? (
                         <div className="notice notice--danger checkout-shipping-fallback">
