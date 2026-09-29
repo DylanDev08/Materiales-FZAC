@@ -1468,3 +1468,133 @@
     width: 100%;
   }
 }
+
+
+/* Shipping quote detail */
+.checkout-shipping-quote {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  border: 1px solid rgba(54, 179, 126, 0.28);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(54, 179, 126, 0.09), rgba(16, 16, 16, 0.96));
+  padding: 15px;
+}
+
+.checkout-shipping-quote__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkout-shipping-quote__head > svg {
+  color: #72e8ad;
+  flex: 0 0 auto;
+}
+
+.checkout-shipping-quote__head > div {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checkout-shipping-quote__head strong {
+  color: var(--color-white);
+}
+
+.checkout-shipping-quote__head span {
+  color: #72e8ad;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.checkout-shipping-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  padding: 12px;
+}
+
+.checkout-shipping-route > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.checkout-shipping-route small {
+  color: var(--color-muted);
+  font-size: .7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.checkout-shipping-route strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.checkout-shipping-route > svg {
+  color: var(--color-yellow);
+}
+
+.checkout-shipping-quote__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.checkout-shipping-quote__meta span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border-radius: 9px;
+  background: rgba(255,255,255,.04);
+  padding: 9px 10px;
+  color: var(--color-muted);
+  font-size: .73rem;
+}
+
+.checkout-shipping-quote__meta strong {
+  color: var(--color-white);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .checkout-shipping-route {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .checkout-shipping-route > svg {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .checkout-shipping-quote__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 440px) {
+  .checkout-shipping-quote {
+    padding: 12px;
+  }
+
+  .checkout-shipping-quote__head > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .checkout-shipping-quote__meta {
+    grid-template-columns: 1fr;
+  }
+}
