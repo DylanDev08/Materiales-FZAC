@@ -1638,3 +1638,141 @@
     margin-bottom: 0;
   }
 }
+
+
+/* Checkout mobile button normalization */
+@media (max-width: 720px) {
+  .checkout-layout .btn,
+  .checkout-panel .btn,
+  .checkout-summary .btn,
+  .cart-layout .btn,
+  .terms-modal .btn,
+  .checkout-help-link,
+  .checkout-pay-button {
+    min-height: 48px;
+    width: 100%;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 14px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+  }
+
+  .checkout-layout .btn svg,
+  .checkout-panel .btn svg,
+  .checkout-summary .btn svg,
+  .cart-layout .btn svg,
+  .terms-modal .btn svg,
+  .checkout-pay-button svg {
+    flex: 0 0 auto;
+  }
+
+  .checkout-panel__actions,
+  .cart-summary-actions,
+  .terms-modal__panel footer {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .checkout-panel__actions > *,
+  .cart-summary-actions > *,
+  .terms-modal__panel footer > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .checkout-panel__actions > :only-child,
+  .cart-summary-actions > :only-child,
+  .terms-modal__panel footer > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .checkout-panel__actions > :nth-child(3):last-child,
+  .cart-summary-actions > :nth-child(3):last-child,
+  .terms-modal__panel footer > :nth-child(3):last-child {
+    grid-column: 1 / -1;
+  }
+
+  .payment-mode-grid {
+    gap: 8px;
+  }
+
+  .payment-mode-button {
+    min-height: 82px;
+    padding: 10px;
+    text-align: left;
+  }
+
+  .payment-mode-button strong {
+    font-size: .86rem;
+  }
+
+  .payment-mode-button span {
+    font-size: .68rem;
+  }
+
+  .checkout-floating-product__actions button,
+  .quantity-control button,
+  .terms-modal__close {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .checkout-pay-button {
+    min-height: 54px;
+    font-size: .98rem;
+    font-weight: 900;
+  }
+
+  .checkout-help-link--danger {
+    width: 100%;
+  }
+
+  .checkout-layout button:disabled,
+  .checkout-panel button:disabled,
+  .checkout-summary button:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+  }
+}
+
+@media (max-width: 430px) {
+  .checkout-panel__actions,
+  .cart-summary-actions,
+  .terms-modal__panel footer {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-panel__actions > *,
+  .cart-summary-actions > *,
+  .terms-modal__panel footer > * {
+    grid-column: 1 !important;
+  }
+
+  .payment-mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-mode-button {
+    min-height: 70px;
+    grid-template-columns: auto minmax(0,1fr);
+    align-items: center;
+    align-content: center;
+    column-gap: 10px;
+  }
+
+  .payment-mode-button svg {
+    grid-row: 1 / 3;
+  }
+}
