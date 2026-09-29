@@ -498,11 +498,20 @@ export async function AdminDashboard({ period }: { period?: string }) {
 
         <AdminQuickOverview metrics={metrics} />
         <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
-        <AdminRecentControl
-          orders={data.recentOrders as Array<Record<string, unknown>>}
-          movements={data.recentFinancialMovements as Array<Record<string, unknown>>}
-          tickets={data.recentTickets as Array<Record<string, unknown>>}
-        />
+        <details className="admin-mobile-detail">
+          <summary>
+            <span>
+              <strong>Ver detalle del dashboard</strong>
+              <small>Actividad reciente, finanzas, estados y gráficos</small>
+            </span>
+            <span aria-hidden="true">+</span>
+          </summary>
+          <div className="admin-mobile-detail__content">
+            <AdminRecentControl
+              orders={data.recentOrders as Array<Record<string, unknown>>}
+              movements={data.recentFinancialMovements as Array<Record<string, unknown>>}
+              tickets={data.recentTickets as Array<Record<string, unknown>>}
+            />
 
         <div className="admin-model-cards">
           <DashboardCycleCard
@@ -619,6 +628,8 @@ export async function AdminDashboard({ period }: { period?: string }) {
           <span>Sin stock: {getMetric(metrics, "Productos sin stock").value}</span>
           <span>Usuarios: {getMetric(metrics, "Usuarios registrados").value}</span>
         </section>
+          </div>
+        </details>
       </section>
     </AdminShell>
   );
