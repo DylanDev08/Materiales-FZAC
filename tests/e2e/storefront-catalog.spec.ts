@@ -72,7 +72,8 @@ for (const search of [
 test("la disponibilidad separa productos a consultar del stock comprable", async ({ page }) => {
   await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".catalog-toolbar")).toContainText("110");
-  await expect(page.locator(".product-card").first()).toContainText(/consultar disponibilidad/i);
+  await expect(page.locator(".product-card").first()).toContainText(/stock a confirmar/i);
+  await expect(page.locator(".product-card").first().getByRole("button", { name: "Añadir al carrito" })).toBeVisible();
 
   await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".product-card")).toHaveCount(2);
@@ -90,8 +91,21 @@ test("un producto a consultar se añade al carrito y pide confirmación antes de
 
   await page.goto("/carrito", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".cart-line").first()).toBeVisible();
-  await expect(page.getByRole("link", { name: /solicitar disponibilidad/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /confirmar stock/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /continuar al checkout/i })).toHaveCount(0);
+});
+
+test("la ficha de un producto a confirmar mantiene carrito y copy comercial", async ({ page }) => {
+  await page.goto("/productos?availability=CONSULT", { waitUntil: "domcontentloaded" });
+  const firstCard = page.locator(".product-card").first();
+  await expect(firstCard).toContainText(/stock a confirmar/i);
+  const href = await firstCard.locator("a[href^='/producto/']").first().getAttribute("href");
+  expect(href).toBeTruthy();
+
+  await page.goto(String(href), { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".product-buybox")).toContainText(/stock a confirmar/i);
+  await expect(page.locator(".product-buybox").getByRole("button", { name: "Añadir al carrito" })).toBeVisible();
+  await expect(page.locator(".product-buybox")).toContainText(/antes de cobrar, FZAC confirma/i);
 });
 
 test("una categoría sin productos no se publica en el storefront", async ({ request }) => {
