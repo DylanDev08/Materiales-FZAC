@@ -30,7 +30,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const maxQuantity = purchasable ? product.stock : 999;
   const subtotal = product.price * quantity;
   const lowStockThreshold = Math.max(5, product.stock_minimum);
-  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero consultar disponibilidad de ${product.name} (${product.sku}).`);
+  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`);
 
   function setSafeQuantity(next: number) {
     if (!cartEligible) {
@@ -123,15 +123,15 @@ export function ProductBuyBox({ product }: { product: Product }) {
           {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
           {availabilityStatus === "CONSULT" ? (
             <p className="notice">
-              Podés armar el carrito y solicitar la cantidad que necesitás. FZAC confirmará disponibilidad antes de habilitar el pago.
+              Podés agregarlo al carrito. Antes de cobrar, FZAC confirma la cantidad disponible.
             </p>
           ) : null}
         </>
       ) : (
         <p className="notice">
           {availabilityStatus === "CONSULT"
-            ? "Este producto tiene precio publicado, pero FZAC debe confirmar disponibilidad antes de crear una compra. Consultanos y coordinamos cantidad, retiro o envío."
-            : "Este producto no tiene stock confirmado para compra directa. Podés consultarnos por reposición o alternativas."}
+            ? "Stock a confirmar antes del pago."
+            : "Sin stock por el momento. Consultanos por reposición o alternativas."}
         </p>
       )}
 
@@ -170,13 +170,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
       <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
         <MessageCircle size={18} />
-        {availabilityStatus === "CONSULT" ? "Consultar disponibilidad por WhatsApp" : "Consultar por WhatsApp"}
+        {availabilityStatus === "CONSULT" ? "Confirmar stock por WhatsApp" : "Consultar por WhatsApp"}
       </a>
 
       <div className="product-buybox__trust">
-        <span>Retiro coordinado</span>
-        <span>Envío a cotizar</span>
-        <span>{purchasable ? "Pago y stock verificados" : "Disponibilidad validada antes de vender"}</span>
+        <span>Retiro en FZAC</span>
+        <span>Envío según zona</span>
+        <span>{purchasable ? "Stock listo para comprar" : "Stock confirmado antes del pago"}</span>
       </div>
     </aside>
   );
