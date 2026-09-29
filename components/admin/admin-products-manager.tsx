@@ -1,7 +1,8 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ImageOff, PackageSearch, Save, Search, Trash2, UploadCloud } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, CheckCircle2, ExternalLink, Eye, ImageOff, PackageSearch, Plus, Save, Search, Trash2, UploadCloud } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
@@ -102,6 +103,7 @@ export function AdminProductsManager({
   const [query, setQuery] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
   const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
@@ -191,6 +193,7 @@ export function AdminProductsManager({
         return exists ? current.map((item) => (item.id === data.product?.id ? data.product : item)) : [...current, data.product!];
       });
       setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+      setEditorOpen(false);
       setMessage("Producto guardado correctamente.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Error al guardar producto.");
@@ -237,9 +240,41 @@ export function AdminProductsManager({
     }
   }
 
+  function startNewProduct() {
+    setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+    setMessage("");
+    setEditorOpen(true);
+    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function editProduct(product: Product) {
+    setForm(productForm(product));
+    setMessage("");
+    setEditorOpen(true);
+    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
   return (
     <>
-      <section className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
+      {mode === "full" ? (
+        <section className="admin-product-navigation" aria-label="Navegación de productos">
+          <div>
+            <span className="kicker">Catálogo y administración</span>
+            <h2>Productos</h2>
+            <p>Revisá el catálogo como cliente, buscá productos o cargá uno nuevo sin perder el panel administrativo.</p>
+          </div>
+          <div className="admin-product-navigation__actions">
+            <Link className="btn btn--ghost" href="/productos" target="_blank" rel="noreferrer">
+              <Eye size={17} /> Ver tienda como cliente <ExternalLink size={14} />
+            </Link>
+            <button className="btn" type="button" onClick={startNewProduct}>
+              <Plus size={17} /> Nuevo producto
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {editorOpen ? (
+      <section id="admin-product-editor" className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
         <div className="admin-product-editor__head">
           <div>
             <span className="kicker">Gestión exclusiva</span>
@@ -386,6 +421,7 @@ export function AdminProductsManager({
         </form>
         {message ? <p className="notice">{message}</p> : null}
       </section>
+      ) : null}
 
       {mode === "full" ? (
       <section className="admin-panel admin-panel--table">
@@ -495,7 +531,10 @@ export function AdminProductsManager({
                   </td>
                   <td>
                     <div className="admin-actions">
-                      <button className="btn btn--ghost" type="button" onClick={() => setForm(productForm(product))}>
+                      <Link className="btn btn--ghost" href={`/producto/${product.slug}`} target="_blank" rel="noreferrer">
+                        <Eye size={16} /> Ver
+                      </Link>
+                      <button className="btn btn--ghost" type="button" onClick={() => editProduct(product)}>
                         Editar
                       </button>
                       <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>
