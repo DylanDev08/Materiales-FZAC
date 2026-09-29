@@ -38,7 +38,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
             {availabilityStatus === "CONSULT" ? <MessageCircle size={19} /> : <PackageCheck size={19} />}
             <span>
               {availabilityStatus === "CONSULT" ? (
-                <><strong>Disponibilidad a confirmar</strong> con FZAC</>
+                <><strong>Stock a confirmar</strong> antes del pago</>
               ) : availabilityStatus === "OUT_OF_STOCK" ? (
                 <><strong>Sin stock</strong> para compra directa</>
               ) : (
@@ -48,7 +48,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
           </div>
           <div>
             <Truck size={19} />
-            <span><strong>Retiro o envío</strong> según tu dirección</span>
+            <span><strong>Retiro o envío</strong> según zona</span>
           </div>
           <div>
             <CreditCard size={19} />
@@ -82,13 +82,13 @@ export function ProductDetail({ product, related }: { product: Product; related:
           <details>
             <summary>Entrega y retiro</summary>
             <div>
-              <p>Retiro coordinado en FZAC o envío cotizado según dirección, distancia y disponibilidad.</p>
+              <p>Retiro en FZAC o envío cotizado según tu dirección.</p>
             </div>
           </details>
           <details>
             <summary>Medios de pago</summary>
             <div>
-              <p>Tarjeta segura con Mercado Pago, Checkout Pro, transferencia pendiente de revisión o coordinación por WhatsApp.</p>
+              <p>Tarjeta, Mercado Pago, transferencia o coordinación por WhatsApp.</p>
             </div>
           </details>
         </section>
