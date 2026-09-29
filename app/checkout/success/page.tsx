@@ -1,64 +1,22 @@
-import Link from "next/link";
-import { CheckCircle2, MessageCircle } from "lucide-react";
-import { ReceiptActions } from "@/components/orders/receipt-actions";
-import { ReceiptTemplate } from "@/components/orders/receipt-template";
-import { getOrderReceipt } from "@/lib/db/receipts";
-import { getWhatsAppHref } from "@/lib/utils/contact";
-import { PaymentReturnReconciler } from "@/components/payments/payment-return-reconciler";
+import { redirect } from "next/navigation";
 
 export default async function Page({
   searchParams
 }: {
-  searchParams: Promise<{
-    orderId?: string;
-    order_id?: string;
-    payment_id?: string;
-    collection_id?: string;
-    status?: string;
-    collection_status?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const orderId = params.orderId || params.order_id || "";
-  const providerPaymentId = params.payment_id || params.collection_id || "";
-  const reference = orderId ? orderId.slice(0, 8).toUpperCase() : null;
-  const receipt = await getOrderReceipt(orderId);
-  const whatsappHref = getWhatsAppHref(
-    `Hola FZAC, hice una compra por Mercado Pago${reference ? ` con referencia ${reference}` : ""} y quiero consultar el estado.`
-  );
+  const query = new URLSearchParams();
 
-  return (
-    <main className="page-section">
-      <div className="container empty-state">
-        <div>
-          <CheckCircle2 size={42} />
-          <h1>{receipt ? "Pago confirmado" : "Estamos verificando el pago"}</h1>
-          <p>
-            {receipt
-              ? "Mercado Pago confirmó la operación. Ya emitimos el comprobante FZAC y el equipo está preparando la siguiente etapa del pedido."
-              : "Volviste desde Mercado Pago. Estamos verificando el estado real de la operación; no repitas el pago mientras termina la validación."}
-          </p>
-          {reference ? <p>Referencia de pedido: {reference}</p> : null}
-          {!receipt && orderId && providerPaymentId ? (
-            <PaymentReturnReconciler orderId={orderId} paymentId={providerPaymentId} />
-          ) : null}
-          <Link className="btn" href="/cuenta/pedidos">
-            Ver pedido
-          </Link>
-          <Link className="btn btn--ghost" href="/productos">
-            Volver al catálogo
-          </Link>
-          <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
-            <MessageCircle size={17} /> Consultar por WhatsApp
-          </a>
-        </div>
-      </div>
-      {receipt ? (
-        <div className="container" style={{ marginTop: 22 }}>
-          <ReceiptActions />
-          <ReceiptTemplate receipt={receipt} />
-        </div>
-      ) : null}
-    </main>
-  );
+  for (const [key, value] of Object.entries(params)) {
+    const current = Array.isArray(value) ? value[0] : value;
+    if (current) query.set(key, current);
+  }
+
+  const legacyOrderId = query.get("orderId");
+  if (legacyOrderId && !query.get("order_id")) {
+    query.set("order_id", legacyOrderId);
+  }
+
+  redirect(`/pago/aprobado?${query.toString()}`);
 }
