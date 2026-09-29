@@ -15,7 +15,8 @@ export function canPurchaseProduct(product: Pick<Product, "stock" | "availabilit
 }
 
 export function canAddProductToCart(product: Pick<Product, "stock" | "availability_status">) {
-  return getProductAvailabilityStatus(product) === "IN_STOCK" && product.stock > 0;
+  const status = getProductAvailabilityStatus(product);
+  return (status === "IN_STOCK" && product.stock > 0) || status === "CONSULT";
 }
 
 export function productAvailabilityLabel(
@@ -23,7 +24,7 @@ export function productAvailabilityLabel(
   options: { includeQuantity?: boolean } = {}
 ) {
   const status = getProductAvailabilityStatus(product);
-  if (status === "CONSULT") return "Consultar disponibilidad";
+  if (status === "CONSULT") return "Stock a confirmar";
   if (status === "OUT_OF_STOCK") return "Sin stock";
   if (options.includeQuantity === false) return "En stock";
   return `${product.stock} ${product.unit} disponibles`;
@@ -31,7 +32,7 @@ export function productAvailabilityLabel(
 
 export function assistantAvailabilityText(product: Pick<Product, "stock" | "unit" | "availability_status">) {
   const status = getProductAvailabilityStatus(product);
-  if (status === "CONSULT") return "disponibilidad a consultar";
+  if (status === "CONSULT") return "stock a confirmar";
   if (status === "OUT_OF_STOCK") return "sin stock confirmado";
   return `${product.stock} ${product.unit} disponibles`;
 }
