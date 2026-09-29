@@ -172,7 +172,7 @@ export function CartPage() {
                     </p>
                     <span className={`cart-line__stock ${item.product.stock > 0 && !issue ? "is-ok" : "is-warning"}`}>
                       {needsAvailabilityCheck
-                        ? "Disponibilidad a confirmar: este producto no permite compra directa."
+                        ? "Stock a confirmar antes del pago."
                         : availabilityStatus === "OUT_OF_STOCK"
                           ? "Sin stock para compra directa."
                           : issue
@@ -257,7 +257,7 @@ export function CartPage() {
                 </Link>
               ) : hasConsultItems ? (
                 <a className="btn" href={helpHref} target="_blank" rel="noreferrer">
-                  <MessageCircle size={17} /> Solicitar disponibilidad
+                  <MessageCircle size={17} /> Confirmar stock
                 </a>
               ) : (
                 <span className="btn is-disabled" aria-disabled="true">
