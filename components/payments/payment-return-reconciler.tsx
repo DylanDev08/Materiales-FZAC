@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 
 export function PaymentReturnReconciler({
   orderId,
@@ -34,6 +35,10 @@ export function PaymentReturnReconciler({
         };
 
         if (data.status === "PAID") {
+          track("Venta confirmada", {
+            orderId: orderId.slice(0, 8).toUpperCase(),
+            provider: "Mercado Pago"
+          });
           setMessage("Pago confirmado. Estamos actualizando tu comprobante...");
           router.refresh();
           return;
