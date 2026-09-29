@@ -1598,3 +1598,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Strong mobile checkout total */
+@media (max-width: 720px) {
+  .checkout-summary .summary-total,
+  .summary-total {
+    position: sticky;
+    bottom: 10px;
+    z-index: 18;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 14px;
+    border: 1px solid rgba(244,196,0,.35);
+    border-radius: 14px;
+    background: rgba(13,13,13,.96);
+    padding: 13px 14px;
+    box-shadow: 0 14px 34px rgba(0,0,0,.42);
+    backdrop-filter: blur(12px);
+  }
+
+  .summary-total span {
+    color: var(--color-muted);
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .summary-total strong {
+    color: var(--color-yellow);
+    font-size: clamp(1.35rem, 7vw, 1.8rem);
+    line-height: 1;
+  }
+
+  .checkout-summary__payment {
+    margin-bottom: 0;
+  }
+}
