@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const config = getPaymentConfig();
   const productionReadiness = getPaymentProductionReadiness();
   return Response.json({
-    provider: "CONFIGURED_PAYMENT_PROVIDER",
+    provider: "MERCADOPAGO",
     enabled,
     cardEnabled,
     cardPublicKey: cardEnabled ? config.cardPublicKey : "",
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     environment: isTestPaymentEnv() ? "test" : "production",
     productionReadiness,
     message: enabled
-      ? "El proveedor de pago online esta configurado para operar server-side."
-      : "El flujo comercial ya esta preparado. Solo falta configurar pagos para operar en produccion."
+      ? "Mercado Pago está activo para cobrar ventas."
+      : "Mercado Pago no está disponible para cobrar en este momento."
   }, { headers: { "Cache-Control": "no-store" } });
 }
