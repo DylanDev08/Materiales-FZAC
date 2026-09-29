@@ -10323,3 +10323,138 @@ img[src*="logoFZAC"] {
     justify-content: center;
   }
 }
+
+
+/* Admin mobile button normalization */
+@media (max-width: 720px) {
+  .admin-page .btn,
+  .admin-page button,
+  .admin-page a.btn {
+    min-height: 44px;
+    max-width: 100%;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 13px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+  }
+
+  .admin-page .btn svg,
+  .admin-page button svg,
+  .admin-page a.btn svg {
+    flex: 0 0 auto;
+  }
+
+  .admin-actions,
+  .admin-approval-inbox__actions,
+  .admin-product-navigation__actions,
+  .admin-order-quick-actions,
+  .admin-topbar__actions,
+  .admin-panel__actions,
+  .admin-section-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .admin-actions > *,
+  .admin-approval-inbox__actions > *,
+  .admin-product-navigation__actions > *,
+  .admin-order-quick-actions > *,
+  .admin-panel__actions > *,
+  .admin-section-actions > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-actions > :only-child,
+  .admin-approval-inbox__actions > :only-child,
+  .admin-product-navigation__actions > :only-child,
+  .admin-order-quick-actions > :only-child,
+  .admin-panel__actions > :only-child,
+  .admin-section-actions > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-actions > :nth-child(3):last-child,
+  .admin-approval-inbox__actions > :nth-child(3):last-child,
+  .admin-product-navigation__actions > :nth-child(3):last-child,
+  .admin-order-quick-actions > :nth-child(3):last-child,
+  .admin-panel__actions > :nth-child(3):last-child,
+  .admin-section-actions > :nth-child(3):last-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-product-save,
+  .admin-fulfillment-editor .btn,
+  .admin-catalog-empty .btn,
+  .admin-mobile-menu-button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .admin-table .admin-actions {
+    min-width: 220px;
+  }
+
+  .admin-topbar__actions {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: stretch;
+  }
+
+  .admin-topbar__logout {
+    min-width: 44px;
+    min-height: 44px;
+    padding-inline: 11px;
+  }
+
+  .admin-finance-type button,
+  .admin-finance-ledger__toggle {
+    min-height: 44px;
+  }
+
+  .admin-order-manage > summary {
+    min-height: 46px;
+  }
+
+  .admin-sidebar nav a {
+    min-height: 44px;
+  }
+
+  .admin-page button:disabled,
+  .admin-page .btn:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-actions,
+  .admin-approval-inbox__actions,
+  .admin-product-navigation__actions,
+  .admin-order-quick-actions,
+  .admin-panel__actions,
+  .admin-section-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-actions > *,
+  .admin-approval-inbox__actions > *,
+  .admin-product-navigation__actions > *,
+  .admin-order-quick-actions > *,
+  .admin-panel__actions > *,
+  .admin-section-actions > * {
+    grid-column: 1 !important;
+  }
+
+  .admin-page .btn,
+  .admin-page button,
+  .admin-page a.btn {
+    font-size: .86rem;
+  }
+}
