@@ -297,7 +297,7 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
   const { accessToken, siteUrl } = assertMercadoPagoConfigured(input.orderId, "checkout");
   const checkoutSiteUrl = safeUrl(input.siteUrl ?? siteUrl);
   const webhookSiteUrl = publicWebhookUrl(input.siteUrl ?? siteUrl);
-  const orderQuery = `orderId=${encodeURIComponent(input.orderId)}`;
+  const orderQuery = `order_id=${encodeURIComponent(input.orderId)}`;
   const items = input.items.map(({ product, quantity }) => ({
     id: product.id,
     title: product.name,
