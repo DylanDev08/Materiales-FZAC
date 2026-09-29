@@ -201,7 +201,7 @@ export async function getCatalogProfitabilityReport(
   if (!db) return empty;
 
   try {
-    const paidStatuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"];
+    const paidStatuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "READY_FOR_DELIVERY", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"];
     const [products, sources, suppliers, purchaseOrders, purchaseOrderItems, ordersResult] = await Promise.all([
       readAll<ProductRow>((from, to) =>
         db
@@ -344,7 +344,7 @@ export async function getCatalogProfitabilityReport(
       .filter((row) => {
         if (scope === "sold") return row.unitsSold > 0;
         if (scope === "issues") {
-          return row.supplierPrice === null || !row.hasImage || row.unitGrossProfit === null || row.unitGrossProfit <= 0;
+          return row.supplierPrice === null || row.ecommercePrice <= 0 || !row.hasImage || row.unitGrossProfit === null || row.unitGrossProfit <= 0;
         }
         return true;
       })
