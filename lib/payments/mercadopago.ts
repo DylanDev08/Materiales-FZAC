@@ -331,9 +331,9 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
   const redirects = checkoutSiteUrl
     ? {
         back_urls: {
-          success: `${checkoutSiteUrl.origin}/checkout/success?${orderQuery}`,
-          pending: `${checkoutSiteUrl.origin}/checkout/pending?${orderQuery}`,
-          failure: `${checkoutSiteUrl.origin}/checkout/failure?${orderQuery}`
+          success: `${checkoutSiteUrl.origin}/pago/aprobado?${orderQuery}`,
+          pending: `${checkoutSiteUrl.origin}/pago/pendiente?${orderQuery}`,
+          failure: `${checkoutSiteUrl.origin}/pago/rechazado?${orderQuery}`
         },
         ...(isPublicHttpsUrl(checkoutSiteUrl) ? { auto_return: "approved" } : {}),
         ...(webhookSiteUrl ? { notification_url: `${webhookSiteUrl.origin}/api/webhooks/mercadopago` } : {})
