@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircle2, MessageCircle } from "lucide-react";
+import { PaymentReturnMarker } from "@/components/payments/payment-return-marker";
 import { PaymentReturnReconciler } from "@/components/payments/payment-return-reconciler";
 import { ReceiptActions } from "@/components/orders/receipt-actions";
 import { ReceiptTemplate } from "@/components/orders/receipt-template";
@@ -19,19 +21,28 @@ export default async function Page({
     collection_id?: string;
     status?: string;
     collection_status?: string;
+    return?: string;
   }>;
 }) {
   const params = await searchParams;
+  const isPaymentReturn =
+    params.return === "payment" ||
+    Boolean(params.payment_id || params.collection_id || params.status || params.collection_status);
   const orderId = params.orderId || params.order_id || "";
   const providerPaymentId = params.payment_id || params.collection_id || "";
   const reference = orderId ? orderId.slice(0, 8).toUpperCase() : null;
   const receipt = await getOrderReceipt(orderId);
+
+  if (orderId && !isPaymentReturn) {
+    redirect(`/cuenta/pedidos?order=${encodeURIComponent(orderId)}`);
+  }
   const whatsappHref = getWhatsAppHref(
     `Hola FZAC, hice una compra${reference ? ` con referencia ${reference}` : ""} y quiero consultar el comprobante.`
   );
 
   return (
     <main className="page-section payment-approved-page">
+      <PaymentReturnMarker />
       <div className="container payment-approved-hero">
         <div className="payment-approved-hero__icon"><CheckCircle2 size={34} /></div>
         <div>
@@ -39,7 +50,7 @@ export default async function Page({
           <h1>{receipt ? "Pago aprobado y comprobante emitido" : "Pago recibido, estamos emitiendo tu comprobante"}</h1>
           <p>
             {receipt
-              ? "Tu compra quedó confirmada. Abajo tenés el detalle completo y podés descargar el comprobante en PDF."
+              ? "Tu compra quedó confirmada. Podés descargar o imprimir el comprobante si querés, o simplemente continuar en FZAC."
               : "Estamos confirmando el pago y generando el comprobante. No repitas la operación."}
           </p>
           {reference ? <strong>Pedido #{reference}</strong> : null}
@@ -58,7 +69,7 @@ export default async function Page({
             <div>
               <span className="kicker">Comprobante de compra</span>
               <h2>Detalle de tu operación</h2>
-              <p>Monto, artículos, cantidades, códigos, fecha, pago y entrega en un solo documento.</p>
+              <p>Estas acciones son opcionales. No se descarga ni imprime nada automáticamente.</p>
             </div>
             <ReceiptActions orderId={receipt.orderId} reference={receipt.reference} />
           </div>
