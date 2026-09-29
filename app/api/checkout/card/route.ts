@@ -40,7 +40,7 @@ function paymentStatus(status: string) {
 
 function redirectForStatus(status: string, orderId: string) {
   const query = `order_id=${encodeURIComponent(orderId)}`;
-  if (status === "approved") return `/pago/aprobado?${query}`;
+  if (status === "approved") return `/pago/aprobado?${query}&return=payment`;
   if (status === "rejected" || status === "cancelled" || status === "expired") return `/pago/rechazado?${query}`;
   return `/pago/pendiente?${query}`;
 }
