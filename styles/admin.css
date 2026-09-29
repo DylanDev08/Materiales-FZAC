@@ -9510,3 +9510,251 @@ img[src*="logoFZAC"] {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Mobile admin usability hardening */
+@media (max-width: 900px) {
+  .admin-page,
+  .admin-app-shell,
+  .admin-workspace,
+  .admin-content {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-app-shell {
+    display: block;
+  }
+
+  .admin-workspace {
+    margin-left: 0 !important;
+  }
+
+  .admin-mobile-menu-button {
+    position: sticky;
+    top: 8px;
+    z-index: 80;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin: 8px 12px 0;
+    border: 1px solid rgba(244,196,0,.3);
+    border-radius: 12px;
+    background: rgba(15,15,15,.96);
+    color: var(--color-white);
+    padding: 9px 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.28);
+    backdrop-filter: blur(12px);
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 100;
+    width: min(86vw, 340px) !important;
+    max-width: 340px;
+    height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+    box-shadow: 24px 0 56px rgba(0,0,0,.5);
+  }
+
+  .admin-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .admin-sidebar.is-collapsed {
+    width: min(86vw, 340px) !important;
+  }
+
+  .admin-sidebar.is-collapsed .admin-sidebar__brand-copy,
+  .admin-sidebar.is-collapsed .admin-sidebar__group > p,
+  .admin-sidebar.is-collapsed .admin-sidebar__group a span,
+  .admin-sidebar.is-collapsed .admin-sidebar__collapse span {
+    display: initial;
+  }
+
+  .admin-sidebar nav {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 28px;
+  }
+
+  .admin-sidebar__group a {
+    min-height: 44px;
+  }
+
+  .admin-sidebar__collapse {
+    display: none;
+  }
+
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: block;
+    border: 0;
+    background: rgba(0,0,0,.62);
+    backdrop-filter: blur(2px);
+  }
+
+  .admin-topbar {
+    position: relative;
+    top: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: stretch;
+    padding: 14px 12px 12px;
+  }
+
+  .admin-topbar__title {
+    min-width: 0;
+  }
+
+  .admin-topbar__title h1 {
+    font-size: clamp(1.35rem, 7vw, 1.8rem);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-topbar__title p {
+    max-width: 100%;
+    margin-top: 5px;
+    font-size: .84rem;
+    line-height: 1.45;
+  }
+
+  .admin-topbar__actions {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .admin-protected-badge,
+  .admin-topbar__user {
+    display: none;
+  }
+
+  .admin-topbar__logout {
+    min-height: 40px;
+  }
+
+  .admin-content {
+    overflow-x: clip;
+    padding: 10px 12px 24px !important;
+  }
+
+  .admin-panel,
+  .admin-card,
+  .admin-model-card,
+  .admin-ops__section,
+  .admin-focus-details,
+  .admin-quick-overview {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .admin-table-wrap,
+  .admin-orders-table-wrap,
+  .admin-payments-table-wrap,
+  .catalog-pdf-report,
+  [class*="__table-wrap"] {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 720px;
+  }
+
+  .admin-quick-overview > div,
+  .admin-focus-summary,
+  .admin-model-kpis,
+  .admin-dashboard-grid,
+  .admin-dashboard-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .admin-quick-overview__item,
+  .admin-focus-summary article {
+    min-height: 0;
+  }
+
+  .admin-model-control-row,
+  .admin-task-center__head,
+  .admin-section-header,
+  .admin-panel > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-model-period-tabs,
+  .admin-tabs,
+  .admin-filter-row,
+  .admin-actions {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-mobile-menu-button {
+    width: calc(100% - 24px);
+    justify-content: center;
+  }
+
+  .admin-topbar {
+    padding-top: 12px;
+  }
+
+  .admin-topbar__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-topbar__logout span {
+    display: none;
+  }
+
+  .admin-content {
+    padding-inline: 10px !important;
+  }
+
+  .admin-quick-overview > div,
+  .admin-focus-summary,
+  .admin-model-kpis,
+  .admin-dashboard-grid,
+  .admin-dashboard-cards {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-table {
+    min-width: 650px;
+  }
+
+  .admin-panel,
+  .admin-card,
+  .admin-model-card,
+  .admin-ops__section,
+  .admin-focus-details {
+    border-radius: 12px;
+  }
+
+  .admin-panel,
+  .admin-card,
+  .admin-model-card {
+    padding-inline: 12px;
+  }
+
+  .admin-data-pill {
+    font-size: .7rem;
+  }
+}
