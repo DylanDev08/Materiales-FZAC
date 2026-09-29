@@ -765,7 +765,7 @@ export async function getAdminDashboardData(period: "day" | "week" | "month" = "
     admin.from("profiles").select("id,created_at,last_login_at"),
     admin.from("profiles").select("id,created_at,last_login_at").gte("created_at", month),
     admin.from("profiles").select("id,created_at").gte("created_at", today),
-    admin.from("chat_conversations").select("id,status").in("status", ["OPEN", "WAITING_ADMIN"]),
+    admin.from("chat_conversations").select("id,status").eq("status", "WAITING_ADMIN"),
     admin.from("inventory_movements").select("id,type,quantity,reason,created_at").order("created_at", { ascending: false }).limit(6),
     admin.from("payment_events").select("id,status,event_type,error_message,created_at").order("created_at", { ascending: false }).limit(6),
     admin
