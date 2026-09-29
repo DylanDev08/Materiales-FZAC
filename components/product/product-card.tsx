@@ -63,7 +63,7 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="status-pill status-pill--danger">Stock bajo</span>
           ) : null}
           {availabilityStatus === "CONSULT" ? (
-            <span className="status-pill status-pill--warning product-card__availability-consult">Consultar disponibilidad</span>
+            <span className="status-pill status-pill--warning product-card__availability-consult">Stock a confirmar</span>
           ) : null}
           {availabilityStatus === "OUT_OF_STOCK" ? (
             <span className="status-pill status-pill--danger">Sin stock</span>
@@ -100,7 +100,7 @@ export function ProductCard({ product }: { product: Product }) {
           {purchasable ? (
             <><ShieldCheck size={14} /> Pago seguro y stock validado</>
           ) : (
-            <><MessageCircle size={14} /> Disponibilidad a confirmar antes de comprar</>
+            <><MessageCircle size={14} /> Confirmamos stock antes del pago</>
           )}
         </span>
 
@@ -113,7 +113,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <Link className="btn" href={`/producto/${product.slug}`} prefetch={false}>
               <MessageCircle size={18} />
-              {availabilityStatus === "CONSULT" ? "Consultar" : "Ver alternativas"}
+              {availabilityStatus === "CONSULT" ? "Ver producto" : "Ver alternativas"}
             </Link>
           )}
           <Link
