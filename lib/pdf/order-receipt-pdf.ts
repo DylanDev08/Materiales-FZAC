@@ -206,7 +206,10 @@ function pageContent(
     const totalsW = right - totalsX;
 
     s += t(left, boxTop + 6, 7.5, "Observación", true, MUTED);
-    s += t(left, boxTop - 10, 7.5, "Comprobante emitido por FZAC luego de confirmar el pago.", false, DARK);
+    const noteLines = wrap(receipt.notes || "Comprobante emitido por FZAC luego de confirmar el pago.", 48, 3);
+    noteLines.forEach((row, index) => {
+      s += t(left, boxTop - 10 - index * 12, 7.5, row, false, DARK);
+    });
 
     const totalRows = [
       ["SUBTOTAL", money(receipt.amounts.subtotal)],
