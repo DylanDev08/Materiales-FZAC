@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { AccountShell } from "@/components/account/account-shell";
 import { requireUser } from "@/lib/auth/require-admin";
 import { getAccountOverview } from "@/lib/db/account";
