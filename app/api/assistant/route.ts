@@ -129,7 +129,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Assistan
         [
           "En checkout podes pagar online con Mercado Pago, generar un pedido por transferencia o coordinar por WhatsApp. Solo Mercado Pago abre el sitio del proveedor; FZAC no guarda datos de tarjeta.",
           "Para pagar, completa los datos del comprador y revisa stock. Mercado Pago redirige al pago online; transferencia y WhatsApp generan un pedido pendiente para continuar por su propio canal.",
-          "El stock se descuenta cuando el pago queda aprobado o cuando administracion confirma el pedido. Un pago pendiente o rechazado no descuenta unidades."
+          "El stock se descuenta cuando el pago queda aprobado. Un pago pendiente, rechazado o una coordinación sin pago confirmado no descuenta unidades."
         ],
         history
       ),
@@ -223,7 +223,7 @@ function guidedReply(message: string, intent: AssistantIntent, history: Assistan
   if (intent === "order_status" || includesAny(message, ["pedido", "orden", "estado", "comprobante", "factura", "compra"])) {
     return {
       message:
-        "El estado del pedido se revisa desde Mi cuenta > Pedidos. Si el pago esta aprobado, administracion actualiza preparacion, retiro, entrega o comprobante. Usa el email de compra para ubicarlo.",
+        "El estado del pedido se revisa desde Mi cuenta > Pedidos. Después del pago podés ver preparación, listo para retiro o despacho, en camino y entregado. Si necesitás ayuda, usá la referencia del pedido sin compartir datos sensibles.",
       options: fourOptions(["Ver mis pedidos", "Pago pendiente", "Coordinar retiro", "Problema con pedido"])
     };
   }
