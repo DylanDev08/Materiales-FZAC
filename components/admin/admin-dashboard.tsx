@@ -325,7 +325,7 @@ function AdminTaskCenter({
       {!paymentsReady ? (
         <p className="admin-task-center__warning">
           <TriangleAlert size={16} />
-          Mercado Pago o su webhook todavía requieren revisión antes de producción real.
+          Revisá Mercado Pago antes de aceptar nuevos cobros.
         </p>
       ) : null}
     </section>
@@ -454,12 +454,12 @@ export async function AdminDashboard({ period }: { period?: string }) {
 
   const statusSegments: StatusSegment[] = [
     { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
-    { label: "Coordinadas", value: numericMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
-    { label: "En proceso", value: numericMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
+    { label: "Revisión prioritaria", value: numericMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
+    { label: "Pago pendiente", value: numericMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
     { label: "Pendientes", value: numericMetric(metrics, "Pedidos pendientes"), color: "#274060" },
-    { label: "En conflicto", value: numericMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
-    { label: "Rechazadas", value: numericMetric(metrics, "Pagos rechazados"), color: "#c2185b" },
-    { label: "Proxima zona", value: numericMetric(metrics, "Chats pendientes"), color: "#0057d9" }
+    { label: "Pago rechazado", value: numericMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
+    { label: "Stock a revisar", value: numericMetric(metrics, "Productos bajo stock"), color: "#c2185b" },
+    { label: "Consultas abiertas", value: numericMetric(metrics, "Chats pendientes"), color: "#0057d9" }
   ];
   const statusTotal = statusSegments.reduce((sum, item) => sum + item.value, 0);
   const visibleStatus = statusTotal
@@ -469,16 +469,16 @@ export async function AdminDashboard({ period }: { period?: string }) {
   const chartData = data.charts;
 
   return (
-    <AdminShell title="Dashboard" description="Resumen general de ventas, pedidos, pagos y actividad.">
+    <AdminShell title="Dashboard" description="Ventas, cobros, pedidos, stock y caja para controlar la operación diaria.">
       <section className="admin-dashboard-model" aria-label="Dashboard administrativo FZAC">
         <div className="admin-model-control-row">
           <div className="admin-model-payment-state">
             <span className={paymentsReady ? (paymentsTestMode ? "is-test" : "is-ready") : "is-warning"} />
             {paymentsReady
               ? paymentsTestMode
-                ? "Mercado Pago en modo prueba"
-                : "Mercado Pago listo"
-              : "Mercado Pago pendiente de configurar"}
+                ? "Mercado Pago no está cobrando ventas reales"
+                : "Mercado Pago activo para cobrar"
+              : "Mercado Pago requiere revisión"}
           </div>
           <AdminDashboardAutoRefresh />
           <nav className="admin-model-period-tabs" aria-label="Periodo de ingresos y egresos">
@@ -549,7 +549,7 @@ export async function AdminDashboard({ period }: { period?: string }) {
         {!data.financialModuleReady ? (
           <section className="admin-model-finance-warning">
             <TriangleAlert size={19} />
-            <div><strong>Libro de egresos pendiente</strong><p>Aplicá la migración financiera para registrar gastos y obtener un balance completo.</p></div>
+            <div><strong>Caja incompleta</strong><p>No pudimos cargar todos los movimientos de caja. Revisá Gestión interna.</p></div>
           </section>
         ) : (
           <Link className="admin-model-finance-link" href={`${getAdminConsolePath()}/finanzas`}>
