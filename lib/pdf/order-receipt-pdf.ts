@@ -106,77 +106,144 @@ function pageContent(
 ) {
   let s = "";
   s += rect(0, 0, PAGE_W, PAGE_H, "1 1 1");
-  s += rect(0, PAGE_H - 108, PAGE_W, 108, BLACK);
-  s += rect(0, PAGE_H - 114, PAGE_W, 6, GOLD);
-  s += `q 58 0 0 58 34 ${PAGE_H - 88} cm /Im1 Do Q\n`;
 
-  s += t(108, PAGE_H - 48, 18, identity.commercialName || "FZAC Materiales", true, "1 1 1");
-  s += t(108, PAGE_H - 68, 9, "Materiales para construcción", false, "0.82 0.82 0.82");
-  if (identity.taxId) s += t(108, PAGE_H - 84, 8, `CUIT ${identity.taxId}`, false, "0.72 0.72 0.72");
-  s += t(420, PAGE_H - 46, 13, "COMPROBANTE FZAC", true, GOLD);
-  s += t(420, PAGE_H - 66, 9, receipt.number, true, "1 1 1");
-  s += t(420, PAGE_H - 82, 8, `Ref. ${receipt.reference}`, false, "0.75 0.75 0.75");
+  const left = 34;
+  const right = 561;
+  const width = right - left;
 
-  let y = PAGE_H - 145;
+  // Header: clean commercial document, inspired by purchase-order layout.
+  s += `q 72 0 0 72 ${left} ${PAGE_H - 102} cm /Im1 Do Q\n`;
+  s += t(118, PAGE_H - 50, 15, identity.commercialName || "FZAC Materiales", true, BLACK);
+  s += t(118, PAGE_H - 68, 8.5, identity.address || "Rosario, Santa Fe", false, DARK);
+  if (identity.taxId) s += t(118, PAGE_H - 84, 8, `CUIT ${identity.taxId}`, false, DARK);
+
+  s += t(375, PAGE_H - 44, 17, "COMPROBANTE DE COMPRA", true, BLACK);
+  s += t(433, PAGE_H - 63, 8, "FECHA", true, MUTED);
+  s += t(485, PAGE_H - 63, 8.5, date(receipt.issuedAt), false, DARK);
+  s += t(433, PAGE_H - 79, 8, "N°", true, MUTED);
+  s += t(485, PAGE_H - 79, 8.5, receipt.number, true, DARK);
+  s += t(433, PAGE_H - 95, 8, "REF.", true, MUTED);
+  s += t(485, PAGE_H - 95, 8.5, receipt.reference, false, DARK);
+
+  s += rect(left, PAGE_H - 126, width, 5, GOLD);
+  let y = PAGE_H - 148;
+
   if (pageIndex === 0) {
-    s += t(34, y, 8, "CLIENTE", true, MUTED);
-    s += t(34, y - 18, 12, receipt.customer.name, true);
-    s += t(34, y - 34, 8, receipt.customer.email, false, DARK);
-    s += t(34, y - 49, 8, receipt.customer.phone, false, DARK);
+    // Two-column identity block.
+    const colGap = 18;
+    const colW = (width - colGap) / 2;
 
-    s += t(230, y, 8, "FECHA", true, MUTED);
-    s += t(230, y - 18, 10, date(receipt.issuedAt), true);
-    s += t(230, y - 36, 8, receipt.payment.provider, false, DARK);
+    s += rect(left, y - 17, colW, 20, BLACK);
+    s += t(left + 10, y - 11, 8, "CLIENTE", true, "1 1 1");
+    s += rect(left + colW + colGap, y - 17, colW, 20, BLACK);
+    s += t(left + colW + colGap + 10, y - 11, 8, "ENTREGA / RETIRO", true, "1 1 1");
 
-    s += t(395, y, 8, "ENTREGA", true, MUTED);
-    s += t(395, y - 18, 9, receipt.shipping.method, true);
-    const addr = wrap(receipt.shipping.address, 30, 2);
-    addr.forEach((row, i) => { s += t(395, y - 35 - i * 13, 7.5, row, false, DARK); });
+    y -= 34;
+    s += t(left + 2, y, 10.5, receipt.customer.name, true);
+    s += t(left + 2, y - 16, 8, receipt.customer.email, false, DARK);
+    s += t(left + 2, y - 31, 8, receipt.customer.phone, false, DARK);
 
-    y -= 82;
-    s += line(34, y, 561, y);
-    y -= 24;
+    const shipX = left + colW + colGap + 2;
+    s += t(shipX, y, 10, receipt.shipping.method, true);
+    const shipLines = wrap(receipt.shipping.address, 38, 3);
+    shipLines.forEach((row, i) => { s += t(shipX, y - 16 - i * 13, 7.8, row, false, DARK); });
+
+    y -= 58;
+    s += rect(left, y - 17, width, 20, GOLD);
+    s += t(left + 10, y - 11, 8, "PAGO / OPERACIÓN", true, BLACK);
+
+    y -= 33;
+    s += t(left + 2, y, 8, "Medio de pago", true, MUTED);
+    s += t(left + 88, y, 8.5, receipt.payment.provider, false, DARK);
+    s += t(left + 230, y, 8, "Estado", true, MUTED);
+    s += t(left + 275, y, 8.5, receipt.status, true, DARK);
+    s += t(left + 380, y, 8, "Referencia", true, MUTED);
+    s += t(left + 440, y, 8.5, receipt.reference, false, DARK);
+
+    y -= 28;
   }
 
-  s += rect(34, y - 22, 527, 26, "0.95 0.95 0.95");
-  s += t(44, y - 13, 8, "ITEM / CÓDIGO", true, DARK);
-  s += t(355, y - 13, 8, "CANT.", true, DARK);
-  s += t(415, y - 13, 8, "UNIT.", true, DARK);
-  s += t(500, y - 13, 8, "TOTAL", true, DARK);
-  y -= 33;
+  // Table headers with fixed columns.
+  const colSku = left;
+  const colDesc = left + 86;
+  const colQty = left + 325;
+  const colUnit = left + 388;
+  const colTotal = left + 462;
+
+  s += rect(left, y - 19, width, 22, BLACK);
+  s += t(colSku + 6, y - 12, 7.5, "CÓDIGO", true, "1 1 1");
+  s += t(colDesc + 6, y - 12, 7.5, "DESCRIPCIÓN", true, "1 1 1");
+  s += t(colQty + 6, y - 12, 7.5, "CANT.", true, "1 1 1");
+  s += t(colUnit + 6, y - 12, 7.5, "P/U", true, "1 1 1");
+  s += t(colTotal + 6, y - 12, 7.5, "TOTAL", true, "1 1 1");
+  y -= 26;
 
   for (const item of items) {
-    const nameLines = wrap(item.name, 47, 2);
-    const rowH = nameLines.length > 1 ? 40 : 31;
-    s += line(34, y + 6, 561, y + 6, "0.9 0.9 0.9", 0.5);
-    nameLines.forEach((row, i) => { s += t(44, y - i * 12, 8.5, row, i === 0); });
-    s += t(44, y - (nameLines.length > 1 ? 26 : 14), 7, `Código: ${item.sku}`, false, MUTED);
-    s += t(365, y, 8.5, item.quantity, false, DARK);
-    s += t(415, y, 8.5, money(item.unitPrice), false, DARK);
-    s += t(500, y, 8.5, money(item.subtotal), true, DARK);
+    const rowTop = y + 7;
+    const nameLines = wrap(item.name, 42, 2);
+    const rowH = nameLines.length > 1 ? 40 : 30;
+
+    s += line(left, rowTop, right, rowTop, "0.82 0.82 0.82", 0.55);
+    s += line(colDesc, rowTop, colDesc, y - rowH + 7, "0.86 0.86 0.86", 0.45);
+    s += line(colQty, rowTop, colQty, y - rowH + 7, "0.86 0.86 0.86", 0.45);
+    s += line(colUnit, rowTop, colUnit, y - rowH + 7, "0.86 0.86 0.86", 0.45);
+    s += line(colTotal, rowTop, colTotal, y - rowH + 7, "0.86 0.86 0.86", 0.45);
+
+    s += t(colSku + 5, y - 4, 7.4, item.sku, false, DARK);
+    nameLines.forEach((row, i) => { s += t(colDesc + 6, y - 4 - i * 12, 8.2, row, i === 0, DARK); });
+    s += t(colQty + 18, y - 4, 8.5, item.quantity, false, DARK);
+    s += t(colUnit + 7, y - 4, 8.2, money(item.unitPrice), false, DARK);
+    s += t(colTotal + 7, y - 4, 8.2, money(item.subtotal), true, DARK);
     y -= rowH;
   }
 
-  if (isLast) {
-    y -= 10;
-    s += line(330, y + 14, 561, y + 14, GOLD, 1.1);
-    s += t(365, y, 8, "Subtotal", false, MUTED);
-    s += t(485, y, 9, money(receipt.amounts.subtotal), true);
-    y -= 18;
-    s += t(365, y, 8, "Envío", false, MUTED);
-    s += t(485, y, 9, receipt.amounts.shippingCost > 0 ? money(receipt.amounts.shippingCost) : "$ 0", true);
-    y -= 22;
-    s += rect(350, y - 8, 211, 28, GOLD);
-    s += t(365, y, 10, "TOTAL", true, BLACK);
-    s += t(470, y, 12, money(receipt.amounts.total), true, BLACK);
-    y -= 42;
-    s += t(34, y, 7.5, "IVA incluido según precio final informado.", false, MUTED);
-    s += t(34, y - 14, 7.5, "Comprobante de compra FZAC. No reemplaza una factura fiscal emitida ante ARCA.", false, MUTED);
+  // Keep a clean body area even for few products.
+  const minBottom = isLast ? 214 : 82;
+  while (y > minBottom + 72) {
+    s += line(left, y + 7, right, y + 7, "0.93 0.93 0.93", 0.35);
+    s += line(colDesc, y + 7, colDesc, y - 20, "0.94 0.94 0.94", 0.3);
+    s += line(colQty, y + 7, colQty, y - 20, "0.94 0.94 0.94", 0.3);
+    s += line(colUnit, y + 7, colUnit, y - 20, "0.94 0.94 0.94", 0.3);
+    s += line(colTotal, y + 7, colTotal, y - 20, "0.94 0.94 0.94", 0.3);
+    y -= 27;
   }
 
-  s += line(34, 34, 561, 34, "0.86 0.86 0.86", 0.5);
-  s += t(34, 18, 7, identity.address || "FZAC Materiales", false, MUTED);
-  s += t(500, 18, 7, `Página ${pageIndex + 1}/${pageCount}`, false, MUTED);
+  if (isLast) {
+    const boxTop = 190;
+    const notesW = 318;
+    const totalsX = left + notesW + 16;
+    const totalsW = right - totalsX;
+
+    s += rect(left, boxTop, notesW, 20, GOLD);
+    s += t(left + 8, boxTop + 6, 8, "COMENTARIOS / ACLARACIONES", true, BLACK);
+    s += line(left, boxTop, left, 86, "0.78 0.78 0.78", 0.7);
+    s += line(left + notesW, boxTop, left + notesW, 86, "0.78 0.78 0.78", 0.7);
+    s += line(left, 86, left + notesW, 86, "0.78 0.78 0.78", 0.7);
+    s += t(left + 8, boxTop - 18, 7.5, "Comprobante emitido por FZAC luego de confirmar el pago.", false, MUTED);
+    s += t(left + 8, boxTop - 32, 7.5, "Conservá este documento como respaldo de la operación.", false, MUTED);
+
+    const totalRows = [
+      ["SUBTOTAL", money(receipt.amounts.subtotal)],
+      ["ENVÍO", receipt.amounts.shippingCost > 0 ? money(receipt.amounts.shippingCost) : "$ 0"],
+      ["IVA INCLUIDO", money(receipt.amounts.ivaIncluded)]
+    ];
+    let ty = boxTop + 2;
+    for (const [label, value] of totalRows) {
+      s += rect(totalsX, ty - 18, totalsW, 20, "0.96 0.96 0.96");
+      s += t(totalsX + 8, ty - 11, 7.7, label, true, MUTED);
+      s += t(totalsX + 95, ty - 11, 8.5, value, true, DARK);
+      ty -= 22;
+    }
+    s += rect(totalsX, ty - 20, totalsW, 24, GOLD);
+    s += t(totalsX + 8, ty - 12, 9, "TOTAL", true, BLACK);
+    s += t(totalsX + 95, ty - 12, 11, money(receipt.amounts.total), true, BLACK);
+
+    s += t(left, 58, 7.2, "Comprobante de compra FZAC. No reemplaza una factura fiscal emitida ante ARCA.", false, MUTED);
+  }
+
+  s += line(left, 40, right, 40, "0.82 0.82 0.82", 0.5);
+  s += t(left, 24, 7, identity.address || "FZAC Materiales", false, MUTED);
+  s += t(478, 24, 7, `Página ${pageIndex + 1}/${pageCount}`, false, MUTED);
   return Buffer.from(s, "latin1");
 }
 
