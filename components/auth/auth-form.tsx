@@ -211,9 +211,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       return;
     }
 
+    const secureCookieSuffix = localHost ? "" : "; Secure";
     document.cookie = rememberMe
-      ? "fzac-auth-remember=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure"
-      : "fzac-auth-remember=0; Path=/; SameSite=Lax; Secure";
+      ? `fzac-auth-remember=1; Path=/; Max-Age=2592000; SameSite=Lax${secureCookieSuffix}`
+      : `fzac-auth-remember=0; Path=/; SameSite=Lax${secureCookieSuffix}`;
 
     const authOrigin = localHost ? window.location.origin : canonicalOrigin;
     const { error } = await supabase.auth.signInWithOAuth({
