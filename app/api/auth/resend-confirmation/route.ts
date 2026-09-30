@@ -13,7 +13,7 @@ const schema = z.object({
   captchaToken: z.string().max(4096).optional()
 });
 
-const genericMessage = "Si la cuenta está pendiente, vas a recibir un nuevo enlace de Fortaleza Construcciones.";
+const genericMessage = "Si la cuenta está pendiente, vas a recibir un nuevo enlace de Materiales FZAC.";
 
 export async function POST(request: Request) {
   const mutation = validateJsonMutationRequest(request, 2 * 1024);
