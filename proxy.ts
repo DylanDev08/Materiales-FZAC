@@ -192,15 +192,23 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(response, isConsolePath || isPrivatePagePath, isSensitivePath);
   }
 
+  const rememberPreference = request.cookies.get("fzac-auth-remember")?.value;
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
-        request.cookies.set({ name, value, ...options });
+        const effectiveOptions =
+          rememberPreference === "0" && value
+            ? (() => {
+                const { maxAge: _maxAge, expires: _expires, ...sessionOptions } = options;
+                return sessionOptions;
+              })()
+            : options;
+        request.cookies.set({ name, value, ...effectiveOptions });
         response = NextResponse.next({ request });
-        response.cookies.set({ name, value, ...options });
+        response.cookies.set({ name, value, ...effectiveOptions });
       },
       remove(name: string, options: CookieOptions) {
         request.cookies.set({ name, value: "", ...options });
