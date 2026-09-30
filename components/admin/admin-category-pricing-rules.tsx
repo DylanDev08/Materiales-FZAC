@@ -35,7 +35,10 @@ export function AdminCategoryPricingRules(){
     finally{setLoading(false);}
   }
 
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{
+    const timer=window.setTimeout(()=>{void load();},0);
+    return ()=>window.clearTimeout(timer);
+  },[]);
 
   function patch(id:string,key:keyof Row,value:unknown){
     setRows((current)=>current.map((row)=>row.category_id===id ? {...row,[key]:value} : row));
