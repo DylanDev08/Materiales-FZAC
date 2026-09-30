@@ -2,7 +2,11 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
-export async function getSupabaseServerClient() {
+type SupabaseServerClientOptions = {
+  sessionOnly?: boolean;
+};
+
+export async function getSupabaseServerClient(options: SupabaseServerClientOptions = {}) {
   const config = getSupabaseConfig();
   if (!config.hasPublicConfig) return null;
 
@@ -21,8 +25,13 @@ export async function getSupabaseServerClient() {
         }>
       ) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+          cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+            if (options.sessionOnly && value) {
+              const { maxAge: _maxAge, expires: _expires, ...sessionOptions } = cookieOptions;
+              cookieStore.set(name, value, sessionOptions);
+              return;
+            }
+            cookieStore.set(name, value, cookieOptions);
           });
         } catch {
           // Server Components cannot mutate cookies. The proxy refreshes and
