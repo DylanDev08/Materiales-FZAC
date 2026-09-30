@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, ExternalLink, Eye, ImageOff, PackageSearch, Plus, Save, Search, Trash2, UploadCloud } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Eye, ImageOff, PackageSearch, Plus, Save, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
 import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
@@ -254,6 +254,12 @@ export function AdminProductsManager({
     window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
+  function closeEditor() {
+    setEditorOpen(false);
+    setMessage("");
+    setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+  }
+
   return (
     <>
       {mode === "full" ? (
@@ -277,135 +283,172 @@ export function AdminProductsManager({
       <section id="admin-product-editor" className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
         <div className="admin-product-editor__head">
           <div>
-            <span className="kicker">Gestión exclusiva</span>
-            <h2>{form.id ? "Editar producto" : "Cargar producto"}</h2>
+            <span className="kicker">Ficha administrativa</span>
+            <h2>{form.id ? form.name || "Editar producto" : "Nuevo producto"}</h2>
             <p>
-              Completá precio, foto, stock, descripción y estado comercial. Esta sección solo aparece para administradores.
+              Lo importante primero: nombre, precio, stock, categoría, proveedor, foto y descripción. Los datos técnicos quedan en “Opciones avanzadas”.
             </p>
           </div>
-          {mode === "create-only" ? <span className="status-pill status-pill--warning">Solo admin</span> : null}
+          <div className="admin-product-editor__head-actions">
+            {mode === "create-only" ? <span className="status-pill status-pill--warning">Solo admin</span> : null}
+            {mode === "full" ? (
+              <button className="btn btn--ghost" type="button" onClick={closeEditor}>
+                <X size={17} /> Cerrar
+              </button>
+            ) : null}
+          </div>
         </div>
         {!hasCategories ? (
           <p className="notice notice--danger">No hay categorias registradas. Crea una categoria antes de cargar productos.</p>
         ) : null}
-        <form className="form-grid" onSubmit={save}>
-          <label>
-            Nombre
-            <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value, slug: slugify(event.target.value) })} required />
-          </label>
-          <label>
-            Slug
-            <input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} required />
-          </label>
-          <label>
-            SKU
-            <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} required />
-          </label>
-          <label>
-            Marca
-            <input value={form.brand} onChange={(event) => setForm({ ...form, brand: event.target.value })} required />
-          </label>
-          <label>
-            Categoria
-            <select value={form.category_id} onChange={(event) => setForm({ ...form, category_id: event.target.value })} required disabled={!hasCategories}>
-              {!hasCategories ? <option value="">Sin categorias registradas</option> : null}
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Subcategoria
-            <input value={form.subcategory} onChange={(event) => setForm({ ...form, subcategory: event.target.value })} />
-          </label>
-          <label>
-            Precio
-            <input inputMode="decimal" value={String(form.price)} onChange={(event) => setForm({ ...form, price: event.target.value })} required />
-          </label>
-          <label>
-            Precio anterior
-            <input
-              inputMode="decimal"
-              value={form.compare_price ?? ""}
-              onChange={(event) => setForm({ ...form, compare_price: event.target.value || null })}
-            />
-          </label>
-          <label>
-            Stock
-            <input inputMode="numeric" value={String(form.stock)} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
-          </label>
-          <label>
-            Disponibilidad
-            <select
-              value={form.availability_status}
-              onChange={(event) => setForm({ ...form, availability_status: event.target.value as ProductAvailabilityStatus })}
-            >
-              <option value="IN_STOCK">En stock</option>
-              <option value="CONSULT">Consultar disponibilidad</option>
-              <option value="OUT_OF_STOCK">Sin stock</option>
-            </select>
-          </label>
-          <label>
-            Stock minimo
-            <input inputMode="numeric" value={String(form.stock_minimum)} onChange={(event) => setForm({ ...form, stock_minimum: event.target.value })} />
-          </label>
-          <label>
-            Unidad
-            <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
-          </label>
-          <label>
-            Proveedor
-            <select value={form.supplier_id ?? ""} onChange={(event) => setForm({ ...form, supplier_id: event.target.value || null })}>
-              <option value="">Sin proveedor asignado</option>
-              {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-            </select>
-          </label>
-          <label>
-            Imagen
-            <input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
-          </label>
-          <div className="field admin-upload-field">
-            <span>Foto del producto</span>
-            <label className="admin-upload-control">
-              <UploadCloud size={16} />
-              {uploadingImage ? "Subiendo..." : "Subir al bucket"}
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploadingImage} />
-            </label>
-            {form.image_url ? (
-              <span className="admin-upload-preview">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={String(form.image_url)} alt="Vista previa del producto" />
-                URL lista para guardar
+        <form className="admin-product-simple-form" onSubmit={save}>
+          <section className="admin-product-simple-card">
+            <div className="admin-product-simple-card__title">
+              <span className="kicker">{form.id ? "Editar" : "Crear"}</span>
+              <h3>Datos principales</h3>
+              <p>Estos son los campos que vas a tocar casi siempre.</p>
+            </div>
+
+            <div className="admin-product-simple-grid">
+              <label className="admin-product-field--wide">
+                Nombre del producto
+                <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value, slug: slugify(event.target.value) })} required />
+              </label>
+
+              <label>
+                Precio de venta
+                <input inputMode="decimal" value={String(form.price)} onChange={(event) => setForm({ ...form, price: event.target.value })} required />
+              </label>
+
+              <label>
+                Cantidad / stock
+                <input inputMode="numeric" value={String(form.stock)} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
+              </label>
+
+              <label>
+                Disponibilidad
+                <select
+                  value={form.availability_status}
+                  onChange={(event) => setForm({ ...form, availability_status: event.target.value as ProductAvailabilityStatus })}
+                >
+                  <option value="IN_STOCK">En stock</option>
+                  <option value="CONSULT">Consultar disponibilidad</option>
+                  <option value="OUT_OF_STOCK">Sin stock</option>
+                </select>
+              </label>
+
+              <label>
+                Categoría
+                <select value={form.category_id} onChange={(event) => setForm({ ...form, category_id: event.target.value })} required disabled={!hasCategories}>
+                  {!hasCategories ? <option value="">Sin categorías registradas</option> : null}
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </label>
+
+              <label>
+                Proveedor
+                <select value={form.supplier_id ?? ""} onChange={(event) => setForm({ ...form, supplier_id: event.target.value || null })}>
+                  <option value="">Sin proveedor asignado</option>
+                  {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                </select>
+              </label>
+
+              <label className="admin-product-field--wide">
+                Descripción
+                <textarea
+                  rows={5}
+                  value={form.description}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                  placeholder="Descripción clara del producto, uso, presentación y datos relevantes."
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="admin-product-simple-card admin-product-media-card">
+            <div className="admin-product-simple-card__title">
+              <span className="kicker">Imagen</span>
+              <h3>Foto del producto</h3>
+              <p>Podés subirla directamente o pegar una URL segura.</p>
+            </div>
+            <div className="admin-product-media">
+              <div className="admin-product-media__preview">
+                {form.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.image_url} alt="Vista previa del producto" />
+                ) : (
+                  <span><ImageOff size={34} /> Sin foto</span>
+                )}
+              </div>
+              <div className="admin-product-media__actions">
+                <label className="admin-upload-control">
+                  <UploadCloud size={16} />
+                  {uploadingImage ? "Subiendo..." : "Subir imagen"}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploadingImage} />
+                </label>
+                <label>
+                  URL de imagen
+                  <input value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} placeholder="https://..." />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <details className="admin-product-advanced">
+            <summary>
+              <span>
+                <strong>Opciones avanzadas</strong>
+                <small>SKU, slug, marca, precio anterior, unidad, stock mínimo y publicación</small>
               </span>
-            ) : (
-              <small>Tambien podes pegar una URL publica ya subida en Supabase Storage.</small>
-            )}
-          </div>
-          <label>
-            Descripcion (opcional si la fuente no publica una descripcion verificable)
-            <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
-          </label>
-          <div className="field admin-product-flags-field">
-            <span>Flags</span>
-            <span className="admin-product-flags">
+              <ChevronDown size={18} />
+            </summary>
+            <div className="admin-product-simple-grid">
               <label>
-                <input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> Destacado
+                SKU
+                <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} required />
               </label>
               <label>
-                <input type="checkbox" checked={form.on_sale} onChange={(event) => setForm({ ...form, on_sale: event.target.checked })} /> Oferta
+                Marca
+                <input value={form.brand} onChange={(event) => setForm({ ...form, brand: event.target.value })} required />
               </label>
               <label>
-                <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Activo
+                Slug
+                <input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} required />
               </label>
-            </span>
-          </div>
-          <aside className="admin-product-preview" aria-label="Vista previa antes de guardar">
-            <span className="kicker">Vista previa</span>
+              <label>
+                Subcategoría
+                <input value={form.subcategory} onChange={(event) => setForm({ ...form, subcategory: event.target.value })} />
+              </label>
+              <label>
+                Precio anterior
+                <input inputMode="decimal" value={form.compare_price ?? ""} onChange={(event) => setForm({ ...form, compare_price: event.target.value || null })} />
+              </label>
+              <label>
+                Stock mínimo
+                <input inputMode="numeric" value={String(form.stock_minimum)} onChange={(event) => setForm({ ...form, stock_minimum: event.target.value })} />
+              </label>
+              <label>
+                Unidad
+                <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
+              </label>
+              <div className="field admin-product-flags-field">
+                <span>Publicación</span>
+                <span className="admin-product-flags">
+                  <label><input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> Destacado</label>
+                  <label><input type="checkbox" checked={form.on_sale} onChange={(event) => setForm({ ...form, on_sale: event.target.checked })} /> Oferta</label>
+                  <label><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Activo</label>
+                </span>
+              </div>
+            </div>
+          </details>
+
+          <aside className="admin-product-preview" aria-label="Resumen del producto">
+            <span className="kicker">Resumen antes de guardar</span>
             <div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {form.image_url ? <img src={form.image_url} alt="" /> : <ImageOff size={28} />}
+              {form.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.image_url} alt="" />
+              ) : <ImageOff size={28} />}
               <p>
                 <strong>{form.name || "Nombre del producto"}</strong>
                 <span>{currency(Number(form.price) || 0)} · {form.unit || "unidad"}</span>
@@ -414,10 +457,16 @@ export function AdminProductsManager({
             </div>
             {duplicateWarning ? <em><AlertTriangle size={15} /> {duplicateWarning}</em> : <small>Sin coincidencias visibles por nombre, SKU o slug.</small>}
           </aside>
-          <button className="btn admin-product-save" type="submit" disabled={saving || !hasCategories || Boolean(duplicateWarning)}>
-            <Save size={18} />
-            {saving ? "Guardando..." : "Guardar producto"}
-          </button>
+
+          <div className="admin-product-editor__savebar">
+            {form.id && mode === "full" ? (
+              <button className="btn btn--ghost" type="button" onClick={closeEditor}>Cancelar</button>
+            ) : null}
+            <button className="btn admin-product-save" type="submit" disabled={saving || !hasCategories || Boolean(duplicateWarning)}>
+              <Save size={18} />
+              {saving ? "Guardando..." : form.id ? "Guardar cambios" : "Crear producto"}
+            </button>
+          </div>
         </form>
         {message ? <p className="notice">{message}</p> : null}
       </section>
@@ -511,7 +560,12 @@ export function AdminProductsManager({
                 const availability = getProductAvailabilityStatus(product);
                 return (
                 <tr key={product.id}>
-                  <td>{product.name}</td>
+                  <td>
+                    <button className="admin-product-name-button" type="button" onClick={() => editProduct(product)}>
+                      <strong>{product.name}</strong>
+                      <small>{product.sku}</small>
+                    </button>
+                  </td>
                   <td>{product.category?.name ?? categoryById.get(product.category_id) ?? "Categoria pendiente"}</td>
                   <td>{currency(product.price)}</td>
                   <td>{availability === "CONSULT" ? "A consultar" : product.stock}</td>
@@ -535,7 +589,7 @@ export function AdminProductsManager({
                         <Eye size={16} /> Ver
                       </Link>
                       <button className="btn btn--ghost" type="button" onClick={() => editProduct(product)}>
-                        Editar
+                        Editar ficha
                       </button>
                       <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>
                         <Trash2 size={16} />
