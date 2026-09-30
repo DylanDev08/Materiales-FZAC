@@ -24,7 +24,7 @@ function authErrorMessage(message: string) {
 }
 
 const genericRegistrationMessage =
-  "Si el email puede registrarse, vas a recibir un enlace de Fortaleza Construcciones para confirmar el acceso.";
+  "Si el email puede registrarse, vas a recibir un enlace de Materiales FZAC para confirmar el acceso.";
 
 function genericRegistrationResponse() {
   return Response.json({ target: "/login?registered=true", message: genericRegistrationMessage });
