@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
@@ -14,7 +15,9 @@ export async function GET(request: Request) {
   const legalRegistration = requestUrl.searchParams.get("legal") === "register";
   const next = safeInternalPath(requestedNext);
   const siteUrl = getCanonicalAuthSiteUrl(request);
-  const supabase = await getSupabaseServerClient();
+  const cookieStore = await cookies();
+  const rememberPreference = cookieStore.get("fzac-auth-remember")?.value;
+  const supabase = await getSupabaseServerClient({ sessionOnly: rememberPreference === "0" });
 
   if (!code || !supabase) return NextResponse.redirect(new URL("/login?auth_error=true", siteUrl));
   const { error } = await supabase.auth.exchangeCodeForSession(code);
