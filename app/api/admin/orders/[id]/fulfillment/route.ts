@@ -3,6 +3,7 @@ import { getAdminApiContext } from "@/lib/auth/admin-api";
 import { sendWhatsAppText } from "@/lib/whatsapp/client";
 import { jsonError } from "@/lib/utils/api";
 import { validateJsonMutationRequest } from "@/lib/utils/request-security";
+import type { TablesUpdate } from "@/types/supabase";
 
 const schema=z.object({
   status:z.enum(["PREPARING","READY_FOR_PICKUP","READY_FOR_DELIVERY","OUT_FOR_DELIVERY","DELIVERED"]),
@@ -17,7 +18,16 @@ const schema=z.object({
   notes:z.string().max(600).optional().default("")
 });
 
-function customerMessage(order:any,status:string,input:z.infer<typeof schema>){
+type FulfillmentOrder = {
+  id: string;
+  user_id: string | null;
+  status: string;
+  shipping_method: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+};
+
+function customerMessage(order:FulfillmentOrder,status:string,input:z.infer<typeof schema>){
   const ref=String(order.id).slice(0,8).toUpperCase();
   if(status==="PREPARING") return `FZAC: pago confirmado. Tu pedido ${ref} está en preparación.`;
   if(status==="READY_FOR_PICKUP") return `FZAC: tu pedido ${ref} ya está listo para retirar. Respondé este mensaje para coordinar el horario.`;
@@ -47,7 +57,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(["READY_FOR_DELIVERY","OUT_FOR_DELIVERY"].includes(body.data.status) && order.shipping_method!=="DELIVERY") return jsonError("Este pedido es para retiro.",409);
 
   const now=new Date().toISOString();
-  const patch:any={
+  const patch:TablesUpdate<"orders">={
     status:body.data.status,
     assigned_to:body.data.assignedTo ?? null,
     carrier_name:body.data.carrierName || null,
