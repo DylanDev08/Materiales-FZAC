@@ -169,10 +169,13 @@ export function AdminProductsManager({
     setSaving(true);
     setMessage("");
 
+    const generatedSlug = form.slug || slugify(form.name);
+    const generatedSku = form.sku || `FZAC-${generatedSlug.slice(0, 48).toUpperCase()}`;
     const payload = {
       ...form,
       id: form.id || undefined,
-      slug: form.slug || slugify(form.name),
+      slug: generatedSlug,
+      sku: generatedSku,
       price: Number(form.price),
       compare_price: form.compare_price ? Number(form.compare_price) : null,
       stock: Number(form.stock),
@@ -360,6 +363,8 @@ export function AdminProductsManager({
                   value={form.description}
                   onChange={(event) => setForm({ ...form, description: event.target.value })}
                   placeholder="Descripción clara del producto, uso, presentación y datos relevantes."
+                  minLength={5}
+                  required
                 />
               </label>
             </div>
@@ -405,7 +410,7 @@ export function AdminProductsManager({
             <div className="admin-product-simple-grid">
               <label>
                 SKU
-                <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} required />
+                <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} placeholder="Se genera automáticamente si lo dejás vacío" />
               </label>
               <label>
                 Marca
