@@ -56,6 +56,50 @@ export async function requestPasswordRecoveryEmail(input: { email: string; name?
   return { delivered: await nativeRecoveryEmail(input.email, input.siteUrl), channel: "supabase" as const };
 }
 
+export async function resendSignupConfirmationWithResend(input: {
+  email: string;
+  siteUrl?: string;
+}) {
+  if (!isResendConfigured()) return false;
+  const admin = getSupabaseAdminClient();
+  if (!admin) return false;
+
+  const normalizedEmail = input.email.trim().toLowerCase();
+  let targetUser: User | null = null;
+
+  for (let page = 1; page <= 10 && !targetUser; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
+    if (error) return false;
+    targetUser = data.users.find((user) => user.email?.trim().toLowerCase() === normalizedEmail) ?? null;
+    if (data.users.length < 100) break;
+  }
+
+  if (!targetUser || targetUser.email_confirmed_at || targetUser.confirmed_at) return true;
+
+  const redirectTo = input.siteUrl ? authCallbackUrlForSite(input.siteUrl, "/cuenta") : authCallbackUrl("/cuenta");
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: normalizedEmail,
+    options: { redirectTo }
+  });
+  if (error || !data.properties?.action_link) return false;
+
+  try {
+    const template = verificationEmailTemplate({
+      name: typeof targetUser.user_metadata?.full_name === "string" ? targetUser.user_metadata.full_name : null,
+      actionUrl: data.properties.action_link
+    });
+    await sendTransactionalEmail({
+      to: { email: normalizedEmail, name: typeof targetUser.user_metadata?.full_name === "string" ? targetUser.user_metadata.full_name : null },
+      ...template,
+      idempotencyKey: `auth-confirmation-${targetUser.id}-${Math.floor(Date.now() / 60000)}`
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function createSignupWithResend(input: {
   email: string;
   password: string;
