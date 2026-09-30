@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { ZodError } from "zod";
 import { syncUserProfileOnLogin } from "@/lib/auth/get-user";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
     if (!slot.ok) return jsonError("Ya estamos verificando este ingreso.", 429, retryAfterHeaders(slot));
 
     try {
-      const supabase = await getSupabaseServerClient();
+      const supabase = await getSupabaseServerClient({ sessionOnly: !payload.rememberMe });
       if (!supabase) return jsonError("El ingreso no esta disponible en este momento.", 503);
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -83,6 +84,15 @@ export async function POST(request: Request) {
       });
 
       if (error || !data.user?.email) return loginErrorResponse(error);
+
+      const cookieStore = await cookies();
+      cookieStore.set("fzac-auth-remember", payload.rememberMe ? "1" : "0", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        ...(payload.rememberMe ? { maxAge: 60 * 60 * 24 * 30 } : {})
+      });
 
       const profile = await syncUserProfileOnLogin(data.user);
       const target = profile?.role === "ADMIN"
