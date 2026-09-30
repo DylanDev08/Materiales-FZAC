@@ -25,6 +25,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const googleAutoStartedRef = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -149,7 +150,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           mode === "login"
-            ? { email: normalizedEmail, password, hp, captchaToken }
+            ? { email: normalizedEmail, password, rememberMe, hp, captchaToken }
             : { name, phone: phone.trim() ? normalizeArgentinePhone(phone) : "", email: normalizedEmail, password, confirmPassword, acceptedTerms, hp, captchaToken }
         )
       });
@@ -209,6 +210,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setGoogleLoading(false);
       return;
     }
+
+    document.cookie = rememberMe
+      ? "fzac-auth-remember=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure"
+      : "fzac-auth-remember=0; Path=/; SameSite=Lax; Secure";
 
     const authOrigin = localHost ? window.location.origin : canonicalOrigin;
     const { error } = await supabase.auth.signInWithOAuth({
@@ -417,6 +422,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </>
           ) : null}
           {turnstileEnabled ? <TurnstileWidget action={mode === "login" ? "login" : "register"} onToken={setCaptchaToken} resetKey={captchaResetKey} /> : null}
+          {mode === "login" ? (
+            <label className="auth-remember">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+              />
+              Mantener sesión iniciada en este dispositivo
+            </label>
+          ) : null}
           <button className="btn" type="submit" disabled={loading || successLocked || (turnstileEnabled && !captchaToken)}>
             {loading ? <Loader2 size={18} className="spin" /> : null}
             {loading ? (mode === "login" ? "Ingresando..." : "Creando cuenta...") : mode === "login" ? "Ingresar" : "Registrarme"}
