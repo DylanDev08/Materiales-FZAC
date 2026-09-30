@@ -30,7 +30,7 @@ export function AdminInventoryLocations(){
   const [saving,setSaving]=useState(false);
 
   async function load(){
-    setLoading(true);setMessage("");
+
     try{
       const response=await fetch("/api/admin/inventory/locations",{cache:"no-store"});
       const body=await response.json() as {locations?:Location[];rows?:StockRow[];supplierRows?:SupplierStockRow[];message?:string};
@@ -79,7 +79,7 @@ export function AdminInventoryLocations(){
   }
 
   return <section className="admin-panel admin-location-stock">
-    <header><div><span className="kicker">Ubicaciones</span><h2>Local, depósito y stock total</h2><p>El total sigue siendo el stock comercial. Las ubicaciones sirven para saber dónde está físicamente la mercadería.</p></div><button className="btn btn--ghost" disabled={loading} onClick={()=>void load()} type="button"><RefreshCw className={loading ? "is-spinning" : undefined} size={17}/>Actualizar</button></header>
+    <header><div><span className="kicker">Ubicaciones</span><h2>Local, depósito y stock total</h2><p>El total sigue siendo el stock comercial. Las ubicaciones sirven para saber dónde está físicamente la mercadería.</p></div><button className="btn btn--ghost" disabled={loading} onClick={()=>{setLoading(true);setMessage("");void load();}} type="button"><RefreshCw className={loading ? "is-spinning" : undefined} size={17}/>Actualizar</button></header>
     {message ? <p className="notice" role="status">{message}</p> : null}
     <div className="admin-location-stock__summary">
       {locations.map((location)=><article key={location.id}><Warehouse size={18}/><strong>{location.name}</strong><span>{products.reduce((sum,p)=>sum+(p.locations[location.id] || 0),0)} un.</span></article>)}
