@@ -71,6 +71,7 @@ const loginPasswordSchema = z
 export const loginSchema = z.object({
   email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
   password: loginPasswordSchema,
+  rememberMe: z.boolean().optional().default(false),
   hp: z.string().max(0).optional(),
   captchaToken: z.string().max(4096).optional()
 });
