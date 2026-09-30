@@ -93,6 +93,7 @@ export function AccountMenu({ profile, adminPath }: AccountMenuProps) {
   async function logout() {
     const supabase = getSupabaseBrowserClient();
     await supabase?.auth.signOut();
+    document.cookie = "fzac-auth-remember=; Path=/; Max-Age=0; SameSite=Lax";
     setOpen(false);
     router.push("/login");
     router.refresh();
