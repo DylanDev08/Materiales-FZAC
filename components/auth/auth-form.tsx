@@ -22,6 +22,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const searchParams = useSearchParams();
   const submitInFlightRef = useRef(false);
   const googleInFlightRef = useRef(false);
+  const googleAutoStartedRef = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,6 +61,15 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const passwordOk = checks.every((check) => check.ok);
   const requestedNext = searchParams.get("next");
   const safeNext = safeInternalPath(requestedNext);
+
+  useEffect(() => {
+    if (!hydrated || googleAutoStartedRef.current || searchParams.get("oauth") !== "google") return;
+    if (mode === "register" && searchParams.get("legal") !== "register") return;
+    googleAutoStartedRef.current = true;
+    void googleLogin();
+  // googleLogin intentionally reads the current form mode/state once after hydration.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, mode, searchParams]);
 
   function clearFieldError(field: keyof AuthFieldErrors) {
     setFieldErrors((current) => {
@@ -168,7 +178,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   async function googleLogin() {
     if (googleInFlightRef.current) return;
-    if (mode === "register" && !acceptedTerms) {
+    const legalAcceptedViaRedirect = mode === "register" && searchParams.get("legal") === "register";
+    if (mode === "register" && !acceptedTerms && !legalAcceptedViaRedirect) {
       setFieldErrors((current) => ({ ...current, acceptedTerms: "Aceptá términos y privacidad para continuar con Google." }));
       setMessage("Revisá la aceptación legal antes de continuar.");
       setMessageTone("error");
@@ -189,9 +200,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     const isCanonicalHost = window.location.hostname === "www.fzacmateriales.store" || window.location.hostname === "fzacmateriales.store";
 
     if (!localHost && !isCanonicalHost) {
-      const canonicalLogin = new URL("/login", canonicalOrigin);
+      const canonicalLogin = new URL(mode === "register" ? "/registro" : "/login", canonicalOrigin);
       canonicalLogin.searchParams.set("next", safeNext);
       canonicalLogin.searchParams.set("oauth", "google");
+      if (mode === "register") canonicalLogin.searchParams.set("legal", "register");
       window.location.assign(canonicalLogin.toString());
       googleInFlightRef.current = false;
       setGoogleLoading(false);
