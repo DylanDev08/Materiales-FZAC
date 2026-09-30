@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CreditCard, Headphones, Instagram, Mail, RotateCcw, ShieldCheck } from "lucide-react";
+import { Building2, CreditCard, Headphones, Instagram, Mail, RotateCcw, ShieldCheck } from "lucide-react";
 import { CookieSettingsButton } from "@/components/privacy/cookie-settings-button";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { getEnv } from "@/lib/utils/env";
@@ -41,6 +41,19 @@ export function SiteFooter() {
             E-commerce de materiales para obra, mantenimiento y construcción en Rosario. Compra online,
             pago seguro y coordinación comercial.
           </p>
+          <a
+            className="site-footer__portfolio-link"
+            href="https://fzac-portfolio-1.onrender.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Abrir Portfolio FZAC"
+          >
+            <Building2 size={20} />
+            <span>
+              <strong>Portfolio FZAC</strong>
+              <small>Ver obras y trabajos realizados</small>
+            </span>
+          </a>
         </div>
 
         <div>
