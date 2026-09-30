@@ -43,7 +43,10 @@ export function AdminInventoryLocations(){
     }catch(error){setMessage(error instanceof Error ? error.message : "No pudimos cargar ubicaciones.");}
     finally{setLoading(false);}
   }
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{
+    const timer=window.setTimeout(()=>{void load();},0);
+    return ()=>window.clearTimeout(timer);
+  },[]);
 
   const products=useMemo(()=>{
     const map=new Map<string,{id:string;name:string;sku:string;unit:string;total:number;locations:Record<string,number>}>();
