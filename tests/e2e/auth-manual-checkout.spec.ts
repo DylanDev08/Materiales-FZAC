@@ -20,6 +20,7 @@ test.describe("Auth manual y checkout no destructivo", () => {
     await expect(page.getByLabel(/^Email$/i)).toBeVisible();
     await expect(page.getByLabel(/^Contraseña$/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /^Ingresar$/i })).toBeVisible();
+    await expect(page.getByLabel(/Mantener sesión iniciada en este dispositivo/i)).toBeVisible();
     await expect(page.getByRole("link", { name: /Recuperar contraseña/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Registrate/i })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(/TESTUSER|entorno de prueba|texto de prueba|lorem ipsum/i);
