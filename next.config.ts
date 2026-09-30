@@ -38,7 +38,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "*.mitiendanube.com" },
       { protocol: "https", hostname: "*.tiendanube.com" },
-      { protocol: "https", hostname: "*.cloudfront.net" }
+      { protocol: "https", hostname: "*.cloudfront.net" },
+      { protocol: "https", hostname: "universopinturerias.vtexassets.com" },
+      { protocol: "https", hostname: "www.sinteplast.com.ar" }
     ]
   },
   async headers() {
