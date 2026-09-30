@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, HardHat, Home, RefreshCcw } from "lucide-react";
+import { Clock3, HardHat, RefreshCcw } from "lucide-react";
 
 export const metadata = { title: "Mantenimiento", robots: { index: false, follow: false } };
 
