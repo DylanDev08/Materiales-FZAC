@@ -36,19 +36,24 @@ const PROMPT_INJECTION_PATTERNS = [
   /\bprompt\s+(?:del\s+)?sistema\b/i,
   /\bmodo\s+(?:desarrollador|developer|jailbreak)\b/i,
   /\brepite\s+(?:el\s+)?mensaje\s+(?:del\s+)?sistema\b/i,
-  /\bactua\s+como\s+si\s+no\s+tuvieras\s+reglas\b/i
+  /\bactua\s+como\s+si\s+no\s+tuvieras\s+reglas\b/i,
+  /\bignore\s+(?:all\s+)?(?:previous|prior|system)\s+instructions?\b/i,
+  /\bforget\s+(?:all\s+)?(?:previous|prior|system)\s+instructions?\b/i,
+  /\b(?:reveal|show|print|repeat)\s+(?:the\s+)?(?:system|developer)\s+prompt\b/i
 ];
 
 const SECRET_EXFILTRATION_PATTERNS = [
   /\b(?:mostra|mostrar|revela|revelar|dame|imprimi|imprimir|lista|listar)\b[\s\S]{0,80}\b(?:\.env|variables? de entorno|api keys?|tokens?|secretos?|service[_ -]?role|access[_ -]?token)\b/i,
   /\b(?:lee|leer|accede|acceder)\b[\s\S]{0,60}\b(?:\.env|credenciales?|secretos?|configuracion interna)\b/i,
-  /\b(?:supabase_service_role_key|mercadopago_access_token|resend_api_key)\b/i
+  /\b(?:supabase_service_role_key|mercadopago_access_token|resend_api_key)\b/i,
+  /\b(?:show|reveal|print|list|give me)\b[\s\S]{0,80}\b(?:environment variables?|api keys?|tokens?|secrets?|credentials?)\b/i
 ];
 
 const CROSS_USER_PATTERNS = [
   /\b(?:datos|pedidos|pagos|direcciones|emails?|telefonos?)\s+de\s+(?:otros?|todos?)(?:\s+los)?\s+(?:clientes|usuarios)\b/i,
   /\b(?:lista|listado|base)\s+de\s+(?:clientes|usuarios|emails?|telefonos?)\b/i,
-  /\bpedido\s+de\s+otro\s+(?:cliente|usuario)\b/i
+  /\bpedido\s+de\s+otro\s+(?:cliente|usuario)\b/i,
+  /\b(?:orders?|payments?|addresses?|emails?|phones?)\s+(?:of|from)\s+(?:other|all)\s+(?:customers?|users?)\b/i
 ];
 
 function normalize(value: string) {
