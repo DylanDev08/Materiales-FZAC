@@ -23,7 +23,7 @@ function loginErrorResponse(error: { message?: string; code?: string } | null | 
       {
         ok: false,
         code: "EMAIL_NOT_CONFIRMED",
-        message: "Tu cuenta existe, pero falta confirmar el email. Abrí el enlace de Fortaleza Construcciones antes de iniciar sesión."
+        message: "Tu cuenta existe, pero falta confirmar el email. Abrí el enlace de Materiales FZAC antes de iniciar sesión."
       },
       { status: 403 }
     );
