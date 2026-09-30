@@ -852,3 +852,131 @@
 .category-nav__button.is-active {
   box-shadow: inset 0 -3px var(--color-yellow);
 }
+
+
+/* Public navigation and footer interaction polish */
+.category-nav a,
+.category-nav__button,
+.nav-dropdown a,
+.mobile-nav-panel a,
+.mobile-nav-panel button,
+.account-menu__panel nav a,
+.account-menu__panel nav button {
+  min-height: 44px;
+  line-height: 1.2;
+  touch-action: manipulation;
+}
+
+.category-nav a,
+.category-nav__button {
+  justify-content: center;
+  padding-inline: 12px;
+}
+
+.nav-dropdown {
+  overflow: hidden;
+}
+
+.nav-dropdown a {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 9px 12px;
+}
+
+.mobile-nav-panel {
+  overflow-x: hidden;
+}
+
+.mobile-nav-panel > a,
+.mobile-nav-panel > button,
+.mobile-nav-panel__group a {
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+  padding: 10px 12px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.mobile-nav-panel__group a {
+  min-height: 44px;
+}
+
+.account-menu__panel nav a,
+.account-menu__panel nav button {
+  width: 100%;
+  padding: 9px 11px;
+  white-space: normal;
+}
+
+.site-footer__portfolio-link {
+  width: min(100%, 300px);
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  margin-top: 16px;
+  border: 1px solid rgba(244, 196, 0, 0.28);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 196, 0, 0.065);
+  color: var(--color-white) !important;
+  padding: 10px 12px;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.site-footer__portfolio-link:hover {
+  border-color: var(--color-yellow);
+  background: rgba(244, 196, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.site-footer__portfolio-link > svg {
+  color: var(--color-yellow);
+}
+
+.site-footer__portfolio-link > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.site-footer__portfolio-link strong {
+  color: var(--color-white);
+  font-size: .9rem;
+}
+
+.site-footer__portfolio-link small {
+  color: var(--color-muted);
+  font-size: .76rem;
+}
+
+@media (max-width: 860px) {
+  .mobile-menu-trigger {
+    min-height: 48px;
+  }
+
+  .mobile-nav-panel {
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .mobile-nav-panel > a,
+  .mobile-nav-panel > button {
+    min-height: 50px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.025);
+  }
+
+  .mobile-nav-panel > a.is-active,
+  .mobile-nav-panel > button.is-active {
+    border-color: rgba(244,196,0,.36);
+  }
+}
+
+@media (max-width: 620px) {
+  .site-footer__portfolio-link {
+    width: 100%;
+    min-height: 62px;
+  }
+}
