@@ -3310,3 +3310,34 @@
   .account-order-progress li { grid-template-columns:auto 1fr; justify-items:start; text-align:left; align-items:center; }
   .account-order-progress li::after { left:7px; top:70%; width:2px; height:20px; }
 }
+
+
+/* Shared public button resilience */
+.btn {
+  max-width: 100%;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+
+.btn svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .page-section .btn,
+  .storefront-section .btn,
+  .account-page .btn,
+  .payment-page .btn {
+    min-height: 48px;
+    padding: 10px 13px;
+  }
+
+  .section-head .btn,
+  .legal-page__actions .btn,
+  .legal-action-row .btn {
+    width: 100%;
+  }
+}
