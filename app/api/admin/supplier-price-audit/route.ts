@@ -102,8 +102,8 @@ async function auditData(admin: AdminClient) {
     const originalPrice = source?.original_price == null ? null : Number(source.original_price);
     const currentMargin = source?.margin_percent == null ? null : Number(source.margin_percent);
     const rule = pricingRuleFromSupplier(supplier);
-    const expectedMargin = expectedSupplierMargin(supplier?.code, originalPrice, rule);
-    const expectedPrice = expectedSupplierPrice(supplier?.code, originalPrice, rule);
+    const expectedMargin = expectedSupplierMargin(supplier?.code, originalPrice, rule, currentMargin);
+    const expectedPrice = expectedSupplierPrice(supplier?.code, originalPrice, rule, currentMargin);
     const currentPrice = Number(product.price);
     const status = source?.manual_review_required ? "MANUAL_REVIEW" : supplierAuditStatus({
       supplierName: supplier?.name ?? null,
@@ -203,8 +203,9 @@ export async function POST(request: Request) {
 
   const originalPrice = Number(source.original_price);
   const rule = pricingRuleFromSupplier(supplier as SupplierRow);
-  const price = expectedSupplierPrice(supplier.code, originalPrice, rule);
-  const margin = expectedSupplierMargin(supplier.code, originalPrice, rule);
+  const productMargin = source.margin_percent == null ? null : Number(source.margin_percent);
+  const price = expectedSupplierPrice(supplier.code, originalPrice, rule, productMargin);
+  const margin = expectedSupplierMargin(supplier.code, originalPrice, rule, productMargin);
   if (price === null || margin === null) return jsonError("La fuente no tiene un precio válido.", 422);
 
   const previousMargin = Number(source.margin_percent);
