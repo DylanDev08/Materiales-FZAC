@@ -8,6 +8,7 @@ type TransactionalEmail = {
   html: string;
   text: string;
   idempotencyKey?: string;
+  replyTo?: string;
 };
 
 export class ResendDeliveryError extends Error {
@@ -19,13 +20,15 @@ export class ResendDeliveryError extends Error {
 
 export function getResendConfig() {
   const apiKey = getEnv("RESEND_API_KEY");
-  const fromEmail = getEnv("RESEND_FROM_EMAIL");
-  const fromName = getEnv("RESEND_FROM_NAME") || "Materiales FZAC";
+  const fromEmail = "no-reply@fzacmateriales.store";
+  const fromName = "Materiales FZAC";
+  const replyTo = "fortalezaconstrucciones@gmail.com";
   return {
     apiKey,
     fromEmail,
     fromName,
-    configured: hasRealValue(apiKey) && hasRealValue(fromEmail)
+    replyTo,
+    configured: hasRealValue(apiKey)
   };
 }
 
@@ -57,7 +60,8 @@ export async function sendTransactionalEmail(input: TransactionalEmail) {
         to: [input.to.email],
         subject: input.subject,
         html: input.html,
-        text: input.text
+        text: input.text,
+        reply_to: input.replyTo || config.replyTo
       }),
       signal: controller.signal,
       cache: "no-store"
