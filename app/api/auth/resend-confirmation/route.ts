@@ -1,4 +1,5 @@
 import { ZodError, z } from "zod";
+import { resendSignupConfirmationWithResend } from "@/lib/auth/email-auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestSiteUrl } from "@/lib/utils/env";
@@ -41,14 +42,21 @@ export async function POST(request: Request) {
     const emailLimit = rateLimit(`auth-resend-confirmation-email:${payload.email}`, 2, 30 * 60_000);
     if (!emailLimit.ok) return Response.json({ ok: true, message: genericMessage });
 
-    const supabase = await getSupabaseServerClient();
-    if (supabase) {
-      const siteUrl = getRequestSiteUrl(request);
-      await supabase.auth.resend({
-        type: "signup",
-        email: payload.email,
-        options: { emailRedirectTo: `${siteUrl}/auth/callback?next=/cuenta` }
-      });
+    const siteUrl = getRequestSiteUrl(request);
+    const deliveredByResend = await resendSignupConfirmationWithResend({
+      email: payload.email,
+      siteUrl
+    });
+
+    if (!deliveredByResend) {
+      const supabase = await getSupabaseServerClient();
+      if (supabase) {
+        await supabase.auth.resend({
+          type: "signup",
+          email: payload.email,
+          options: { emailRedirectTo: `${siteUrl}/auth/callback?next=/cuenta` }
+        });
+      }
     }
 
     return Response.json({ ok: true, message: genericMessage });
