@@ -25,7 +25,7 @@ export function AdminCategoryPricingRules(){
   const [message,setMessage]=useState("");
 
   async function load(){
-    setLoading(true); setMessage("");
+
     try{
       const response=await fetch("/api/admin/category-pricing-rules",{cache:"no-store"});
       const body=await response.json() as {rows?:Row[];message?:string};
@@ -64,7 +64,7 @@ export function AdminCategoryPricingRules(){
   return <section className="admin-panel admin-category-pricing">
     <header>
       <div><span className="kicker">Política comercial</span><h2>Margen y alertas por categoría</h2><p>El cron diario usa estas reglas. Cambios de costo normales se aplican; los que superan el umbral quedan para revisión.</p></div>
-      <button className="btn btn--ghost" disabled={loading} type="button" onClick={()=>void load()}><RefreshCw className={loading ? "is-spinning" : undefined} size={17}/>Actualizar</button>
+      <button className="btn btn--ghost" disabled={loading} type="button" onClick={()=>{setLoading(true);setMessage("");void load();}}><RefreshCw className={loading ? "is-spinning" : undefined} size={17}/>Actualizar</button>
     </header>
     {message ? <p className="notice" role="status">{message}</p> : null}
     {loading && !rows.length ? <p className="admin-empty">Cargando categorías…</p> : null}
