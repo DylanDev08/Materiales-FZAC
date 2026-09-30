@@ -37,14 +37,17 @@ function configuredRuleMargin(originalPrice: number, rule: SupplierPricingRule |
 export function expectedSupplierMargin(
   supplierCode: string | null | undefined,
   originalPrice: number | null,
-  rule?: SupplierPricingRule | null
+  rule?: SupplierPricingRule | null,
+  productMargin?: number | null
 ) {
   if (originalPrice === null || !Number.isFinite(originalPrice) || originalPrice <= 0) return null;
+
+  if (finiteNonNegative(productMargin)) return Number(productMargin);
 
   const configured = configuredRuleMargin(originalPrice, rule);
   if (configured !== null) return configured;
 
-  if (supplierCode === YESERA_SUPPLIER_CODE) return originalPrice > 60_000 ? 8 : 10;
+  if (supplierCode === YESERA_SUPPLIER_CODE) return 5;
   if (supplierCode === UNIVERSO_SUPPLIER_CODE) return 0;
   return null;
 }
@@ -52,9 +55,10 @@ export function expectedSupplierMargin(
 export function expectedSupplierPrice(
   supplierCode: string | null | undefined,
   originalPrice: number | null,
-  rule?: SupplierPricingRule | null
+  rule?: SupplierPricingRule | null,
+  productMargin?: number | null
 ) {
-  const margin = expectedSupplierMargin(supplierCode, originalPrice, rule);
+  const margin = expectedSupplierMargin(supplierCode, originalPrice, rule, productMargin);
   if (margin === null || originalPrice === null) return null;
   const raw = originalPrice * (1 + margin / 100);
   const roundToWholePeso = rule?.roundToWholePeso ?? supplierCode === YESERA_SUPPLIER_CODE;
