@@ -27,7 +27,9 @@ export async function getSupabaseServerClient(options: SupabaseServerClientOptio
         try {
           cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
             if (options.sessionOnly && value) {
-              const { maxAge: _maxAge, expires: _expires, ...sessionOptions } = cookieOptions;
+              const sessionOptions = { ...(cookieOptions ?? {}) };
+              delete sessionOptions.maxAge;
+              delete sessionOptions.expires;
               cookieStore.set(name, value, sessionOptions);
               return;
             }
