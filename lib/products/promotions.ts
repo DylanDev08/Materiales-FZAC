@@ -25,10 +25,9 @@ export function productLinePricing(
   let total = regularTotal;
   if (type === "TWO_FOR_ONE" && qty > 0) {
     total = roundMoney(unitPrice * Math.ceil(qty / 2));
-  } else if (type === "SECOND_UNIT_PERCENT" && qty > 0) {
+  } else if (type === "SECOND_UNIT_PERCENT" && qty > 1) {
     const percent = Math.min(100, Math.max(0, Number(product.promotion_discount_percent ?? 0)));
-    const discountedUnits = Math.floor(qty / 2);
-    total = roundMoney(regularTotal - unitPrice * discountedUnits * (percent / 100));
+    total = roundMoney(regularTotal - unitPrice * (percent / 100));
   }
 
   return {
