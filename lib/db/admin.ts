@@ -143,14 +143,27 @@ export async function getAdminProducts() {
   const admin = getSupabaseAdminClient();
   if (!admin) return fallbackProducts;
 
-  const { data, error } = await admin
-    .from("products")
-    .select("*, supplier:suppliers(id,name)")
-    .eq("active", true)
-    .order("name", { ascending: true })
-    .limit(500);
-  if (error) return [];
-  return (data ?? []).map(normalizeProduct);
+  const rows: Array<Record<string, unknown>> = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from("products")
+      .select("*, supplier:suppliers(id,name), category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)")
+      .order("name", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) return [];
+    rows.push(...((data ?? []) as Array<Record<string, unknown>>));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return rows.map((row) => {
+    const product = normalizeProduct(row);
+    const categoryRow = row.category && typeof row.category === "object" ? row.category as Record<string, unknown> : null;
+    return {
+      ...product,
+      category: categoryRow ? normalizeCategory(categoryRow) : null
+    };
+  });
 }
 
 export async function getAdminSuppliers() {
