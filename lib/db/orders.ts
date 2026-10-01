@@ -630,14 +630,14 @@ export async function createCheckout(input: unknown) {
     checkout_fingerprint: fingerprint,
     legal_acceptance: createLegalAcceptance("CHECKOUT")
   };
-  const atomicItems = lines.map(({ product, quantity }) => ({
+  const atomicItems = lines.map(({ product, quantity, subtotal: lineSubtotal }) => ({
     product_id: product.id,
     sku: product.sku,
     name: product.name,
     unit_price: product.price,
     quantity,
     image_url: product.image_url,
-    line_total: subtotal
+    line_total: lineSubtotal
   }));
   const { data: atomicData, error: atomicError } = await admin.rpc("create_checkout_order", {
     p_user_id: userId,
