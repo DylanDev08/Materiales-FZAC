@@ -104,11 +104,17 @@ export function AdminProductsManager({
   const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
   const [supplierFilter, setSupplierFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [brandFilter, setBrandFilter] = useState("ALL");
+  const [specificationsText, setSpecificationsText] = useState(() => {
+    const selected = products.find((product) => product.id === initialProductId);
+    return JSON.stringify(selected?.specifications ?? {}, null, 2);
+  });
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
   const categoryIds = useMemo(() => new Set(categories.map((category) => category.id)), [categories]);
+  const brands = useMemo(() => Array.from(new Set(rows.map((product) => product.brand.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")), [rows]);
   const hasCategories = categories.length > 0;
   const catalogSummary = useMemo(() => {
     const active = rows.filter((product) => product.active);
@@ -148,9 +154,10 @@ export function AdminProductsManager({
         (catalogFilter === "INACTIVE" && !product.active);
       const matchesSupplier = supplierFilter === "ALL" || product.supplier_id === supplierFilter;
       const matchesCategory = categoryFilter === "ALL" || product.category_id === categoryFilter;
-      return matchesQuery && matchesFilter && matchesSupplier && matchesCategory;
+      const matchesBrand = brandFilter === "ALL" || product.brand === brandFilter;
+      return matchesQuery && matchesFilter && matchesSupplier && matchesCategory && matchesBrand;
     });
-  }, [catalogFilter, categoryById, categoryFilter, categoryIds, query, sortedRows, supplierFilter]);
+  }, [brandFilter, catalogFilter, categoryById, categoryFilter, categoryIds, query, sortedRows, supplierFilter]);
   const duplicateWarning = useMemo(
     () => form.name.trim() && form.slug.trim() && form.sku.trim() ? duplicateReason(form, rows) : null,
     [form, rows]
@@ -171,6 +178,21 @@ export function AdminProductsManager({
     setSaving(true);
     setMessage("");
 
+    let parsedSpecifications: Record<string, string | number | boolean> = {};
+    try {
+      const candidate = specificationsText.trim() ? JSON.parse(specificationsText) : {};
+      if (!candidate || Array.isArray(candidate) || typeof candidate !== "object") {
+        setMessage("La ficha técnica debe ser un objeto JSON válido.");
+        setSaving(false);
+        return;
+      }
+      parsedSpecifications = candidate as Record<string, string | number | boolean>;
+    } catch {
+      setMessage("Revisá la ficha técnica: el JSON no es válido.");
+      setSaving(false);
+      return;
+    }
+
     const generatedSlug = form.slug || slugify(form.name);
     const generatedSku = form.sku || `FZAC-${generatedSlug.slice(0, 48).toUpperCase()}`;
     const payload = {
@@ -181,7 +203,8 @@ export function AdminProductsManager({
       price: Number(form.price),
       compare_price: form.compare_price ? Number(form.compare_price) : null,
       stock: Number(form.stock),
-      stock_minimum: Number(form.stock_minimum)
+      stock_minimum: Number(form.stock_minimum),
+      specifications: parsedSpecifications
     };
 
     try {
@@ -199,6 +222,7 @@ export function AdminProductsManager({
         return exists ? current.map((item) => (item.id === data.product?.id ? data.product : item)) : [...current, data.product!];
       });
       setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+      setSpecificationsText("{}");
       setEditorOpen(false);
       setMessage("Producto guardado correctamente.");
     } catch (error) {
@@ -248,6 +272,7 @@ export function AdminProductsManager({
 
   function startNewProduct() {
     setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
+    setSpecificationsText("{}");
     setMessage("");
     setEditorOpen(true);
     window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -255,6 +280,7 @@ export function AdminProductsManager({
 
   function editProduct(product: Product) {
     setForm(productForm(product));
+    setSpecificationsText(JSON.stringify(product.specifications ?? {}, null, 2));
     setMessage("");
     setEditorOpen(true);
     window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -263,6 +289,7 @@ export function AdminProductsManager({
   function closeEditor() {
     setEditorOpen(false);
     setMessage("");
+    setSpecificationsText("{}");
     setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
   }
 
@@ -439,6 +466,24 @@ export function AdminProductsManager({
                 Unidad
                 <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
               </label>
+              <label className="admin-product-field--wide">
+                Galería de imágenes
+                <textarea
+                  rows={4}
+                  value={form.gallery.join("\n")}
+                  onChange={(event) => setForm({ ...form, gallery: event.target.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) })}
+                  placeholder="Una URL HTTPS por línea"
+                />
+              </label>
+              <label className="admin-product-field--wide">
+                Ficha técnica (JSON)
+                <textarea
+                  rows={7}
+                  value={specificationsText}
+                  onChange={(event) => setSpecificationsText(event.target.value)}
+                  placeholder={'{"Color":"Blanco","Peso":"20 kg"}'}
+                />
+              </label>
               <div className="field admin-product-flags-field">
                 <span>Publicación</span>
                 <span className="admin-product-flags">
@@ -549,6 +594,13 @@ export function AdminProductsManager({
             </select>
           </label>
           <label className="admin-catalog-filter">
+            <span>Marca</span>
+            <select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}>
+              <option value="ALL">Todas</option>
+              {brands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+            </select>
+          </label>
+          <label className="admin-catalog-filter">
             <span>Proveedor</span>
             <select value={supplierFilter} onChange={(event) => setSupplierFilter(event.target.value)}>
               <option value="ALL">Todos</option>
@@ -620,7 +672,7 @@ export function AdminProductsManager({
                     <div className="admin-catalog-empty">
                       <PackageSearch size={24} />
                       <strong>No encontramos productos con estos filtros.</strong>
-                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setCategoryFilter("ALL"); setSupplierFilter("ALL"); }}>
+                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setCategoryFilter("ALL"); setBrandFilter("ALL"); setSupplierFilter("ALL"); }}>
                         Limpiar filtros
                       </button>
                     </div>
