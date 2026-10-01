@@ -12,6 +12,7 @@ import {
   getProductAvailabilityStatus,
   productAvailabilityLabel
 } from "@/lib/products/availability";
+import { promotionLabel } from "@/lib/products/promotions";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -27,6 +28,7 @@ export function ProductCard({ product }: { product: Product }) {
   const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
   const hasProductImage = Boolean(product.image_url?.trim());
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
+  const promotion = promotionLabel(product);
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
@@ -58,7 +60,8 @@ export function ProductCard({ product }: { product: Product }) {
         />
         <div className="product-card__badges">
           {!hasProductImage ? <span className="status-pill product-card__image-pending">Imagen pendiente</span> : null}
-          {discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
+          {promotion ? <span className="status-pill status-pill--warning">{promotion}</span> : null}
+          {!promotion && discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
           {purchasable && product.stock <= product.stock_minimum ? (
             <span className="status-pill status-pill--danger">Stock bajo</span>
           ) : null}
