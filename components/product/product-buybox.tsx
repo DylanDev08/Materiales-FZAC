@@ -37,7 +37,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(
     whatsappOnly
-      ? `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "combo" : "combos"} de ${product.name} (${product.sku}). Quiero coordinar el pago inmediato por WhatsApp. Si llevo 2 combos, el primero va a precio completo y el segundo con 30% de descuento.`
+      ? `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "combo" : "combos"} de ${product.name} (${product.sku}). Total promocional estimado: ${currency(pricing.total)}. Quiero coordinar el pago inmediato por WhatsApp. Si llevo 2 combos, el primero va a precio completo y el segundo con 30% de descuento.`
       : `Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`
   );
 
@@ -125,6 +125,10 @@ export function ProductBuyBox({ product }: { product: Product }) {
               Comprar y pagar por WhatsApp
             </a>
           </div>
+          <p className="product-subtotal">
+            Total estimado <strong>{currency(pricing.total)}</strong>
+            {pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)}.</small> : null}
+          </p>
           <p className="notice">
             Venta exclusiva por WhatsApp. Si llevás 2 combos, el primero va a precio completo y el segundo tiene 30% de descuento.
           </p>
