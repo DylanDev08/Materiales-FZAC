@@ -66,8 +66,20 @@ export const adminProductSchema = z.object({
   specifications: specificationsSchema.default({}),
   featured: z.boolean().default(false),
   on_sale: z.boolean().default(false),
+  promotion_type: z.enum(["NONE", "TWO_FOR_ONE", "SECOND_UNIT_PERCENT"]).default("NONE"),
+  promotion_discount_percent: z.preprocess(
+    (value) => (value === "" || value == null ? null : value),
+    z.coerce.number().min(1).max(100).nullable()
+  ).optional(),
   active: z.boolean().default(true)
 }).superRefine((value, context) => {
+  if (value.promotion_type === "SECOND_UNIT_PERCENT" && !value.promotion_discount_percent) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["promotion_discount_percent"],
+      message: "Indicá el porcentaje de descuento para la segunda unidad."
+    });
+  }
   if (value.compare_price != null && Number(value.compare_price) < Number(value.price)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
