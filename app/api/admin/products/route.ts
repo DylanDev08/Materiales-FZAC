@@ -86,7 +86,8 @@ export async function PATCH(request: Request) {
     const duplicate = await findDuplicate(admin, payload);
     if (duplicate) return jsonError(duplicate, 409);
 
-    const { id: _payloadId, ...update } = payload;
+    const update = { ...payload };
+    delete update.id;
     const { data, error } = await admin
       .from("products")
       .update({ ...update, updated_at: new Date().toISOString() })
