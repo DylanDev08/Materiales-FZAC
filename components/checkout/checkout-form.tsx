@@ -31,6 +31,7 @@ import { CheckoutLoadingScreen, type CheckoutLoadingPhase } from "@/components/c
 import { MercadoPagoCardForm, type MercadoPagoCardPayload } from "@/components/checkout/mercado-pago-card-form";
 import { currency } from "@/lib/formatters/currency";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import {
   isSafeUserNote,
   isValidArgentinePhone,
@@ -1416,20 +1417,25 @@ export function CheckoutForm({
               id="checkout-order-summary"
             >
               <div className="checkout-floating-products">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const pricing = productLinePricing(item.product, item.quantity);
+                  const promotion = promotionLabel(item.product);
+                  return (
                   <article className="checkout-floating-product" key={item.productId}>
                     <Image src={item.product.image_url} alt={item.product.name} width={58} height={58} />
                     <div>
                       <strong>{item.product.name}</strong>
                       <span>
                         {item.quantity} x {currency(item.product.price)}
+                        {promotion ? ` · ${promotion}` : ""}
                       </span>
                       <small className={item.product.stock > 0 ? "status-pill status-pill--success" : "status-pill status-pill--danger"}>
                         Stock {item.product.stock}
                       </small>
                     </div>
                     <div className="checkout-floating-product__actions">
-                      <strong>{currency(item.product.price * item.quantity)}</strong>
+                      <strong>{currency(pricing.total)}</strong>
+                      {pricing.savings > 0 ? <small>Ahorrás {currency(pricing.savings)}</small> : null}
                       <span>
                         <button
                           type="button"
@@ -1457,7 +1463,8 @@ export function CheckoutForm({
                       </span>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
               <div className="summary-line">
                 <span>Subtotal</span>
