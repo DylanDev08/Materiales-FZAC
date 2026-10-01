@@ -12,6 +12,7 @@ import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/secu
 import { registerSchema } from "@/lib/validations/auth";
 import { normalizeArgentinePhone } from "@/lib/validations/security";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
+import { checkLeakedPassword } from "@/lib/security/leaked-password";
 
 function authErrorMessage(message: string) {
   if (/rate limit|too many|over_email_send_rate_limit/i.test(message)) {
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
 
   try {
     const payload = registerSchema.parse(await request.json());
+    const leakedPassword = await checkLeakedPassword(payload.password);
+    if (leakedPassword.checked && leakedPassword.compromised) {
+      return jsonError("Esa contraseña apareció en filtraciones conocidas. Elegí una contraseña distinta y única.", 422);
+    }
     const captcha = await verifyTurnstileToken(payload.captchaToken, "register");
     if (!captcha.ok) {
       return jsonError(
