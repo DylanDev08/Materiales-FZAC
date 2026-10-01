@@ -58,6 +58,7 @@ export function CatalogFilters({
     if (availability === "IN_STOCK") rows.push({ key: "availability", label: "Disponible" });
     if (availability === "CONSULT") rows.push({ key: "availability", label: "Consultar disponibilidad" });
     if (availability === "OUT_OF_STOCK") rows.push({ key: "availability", label: "Sin stock" });
+    if (searchParams.get("onSale") === "true") rows.push({ key: "onSale", label: "Ofertas" });
     if (searchParams.get("featured") === "true") rows.push({ key: "featured", label: "Destacados" });
     return rows;
   }, [categories, lockedCategory, searchParams]);
@@ -169,6 +170,20 @@ export function CatalogFilters({
           </button>
         </header>
         <form onSubmit={applyPrices}>
+          {!lockedCategory ? (
+            <label className="field">
+              Rubro
+              <select
+                value={searchParams.get("category") ?? ""}
+                onChange={(event) => replaceParams({ category: event.target.value || null })}
+              >
+                <option value="">Todos los rubros</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>{category.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             Marca
             <select
@@ -183,6 +198,31 @@ export function CatalogFilters({
               ))}
             </select>
           </label>
+          <label className="field">
+            Disponibilidad
+            <select
+              value={searchParams.get("availability") ?? ""}
+              onChange={(event) => replaceParams({ availability: event.target.value || null, inStock: null })}
+            >
+              <option value="">Todas</option>
+              <option value="IN_STOCK">Disponible</option>
+              <option value="CONSULT">Consultar disponibilidad</option>
+              <option value="OUT_OF_STOCK">Sin stock</option>
+            </select>
+          </label>
+          <label className="field">
+            Ordenar
+            <select
+              value={searchParams.get("order") ?? "newest"}
+              onChange={(event) => replaceParams({ order: event.target.value === "newest" ? null : event.target.value })}
+            >
+              <option value="newest">Más recientes</option>
+              <option value="price_asc">Menor precio</option>
+              <option value="price_desc">Mayor precio</option>
+              <option value="name_asc">Nombre A-Z</option>
+              <option value="stock_desc">Stock disponible</option>
+            </select>
+          </label>
           <div className="catalog-filter__range">
             <label className="field">
               Precio mínimo
@@ -191,6 +231,14 @@ export function CatalogFilters({
             <label className="field">
               Precio máximo
               <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} inputMode="numeric" placeholder="Sin límite" />
+            </label>
+          </div>
+          <div className="catalog-filter__advanced-toggles">
+            <label className="field">
+              <span><input type="checkbox" checked={searchParams.get("onSale") === "true"} onChange={(event) => replaceParams({ onSale: event.target.checked ? "true" : null })} /> Solo ofertas</span>
+            </label>
+            <label className="field">
+              <span><input type="checkbox" checked={searchParams.get("featured") === "true"} onChange={(event) => replaceParams({ featured: event.target.checked ? "true" : null })} /> Destacados</span>
             </label>
           </div>
           <div className="catalog-filter__advanced-actions">
