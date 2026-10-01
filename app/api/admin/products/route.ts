@@ -7,7 +7,7 @@ import { isTrustedMutationRequest, validateJsonMutationRequest } from "@/lib/uti
 import { duplicateReason } from "@/lib/products/identity";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
-const productIdSchema = z.string().uuid("Producto inválido.");
+const productIdSchema = z.string().trim().uuid("Producto inválido.");
 
 function productValidationError(error: unknown) {
   if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Revisá los datos del producto.", 422);
@@ -78,16 +78,19 @@ export async function PATCH(request: Request) {
   const { admin, profile } = context;
 
   try {
-    const payload = adminProductSchema.parse(await request.json());
-    if (!payload.id) return jsonError("Falta el producto a modificar.", 422);
+    const raw = await request.json() as Record<string, unknown>;
+    const idResult = productIdSchema.safeParse(new URL(request.url).searchParams.get("id") ?? raw.id);
+    if (!idResult.success) return jsonError(idResult.error.issues[0]?.message ?? "Producto inválido.", 422);
+
+    const payload = adminProductSchema.parse({ ...raw, id: idResult.data });
     const duplicate = await findDuplicate(admin, payload);
     if (duplicate) return jsonError(duplicate, 409);
 
-    const { id, ...update } = payload;
+    const { id: _payloadId, ...update } = payload;
     const { data, error } = await admin
       .from("products")
       .update({ ...update, updated_at: new Date().toISOString() })
-      .eq("id", id)
+      .eq("id", idResult.data)
       .select("*")
       .single();
 
