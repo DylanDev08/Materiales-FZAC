@@ -14,6 +14,7 @@ import {
 } from "@/lib/products/availability";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
+import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
 import type { Product } from "@/types/domain";
 
 export function ProductBuyBox({ product }: { product: Product }) {
@@ -32,8 +33,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const pricing = productLinePricing(product, quantity);
   const subtotal = pricing.total;
   const promotion = promotionLabel(product);
+  const whatsappOnly = isWhatsAppOnlyProduct(product);
   const lowStockThreshold = Math.max(5, product.stock_minimum);
-  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`);
+  const whatsappHref = getWhatsAppHref(
+    whatsappOnly
+      ? `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "combo" : "combos"} de ${product.name} (${product.sku}). Quiero coordinar el pago inmediato por WhatsApp. Si llevo 2 combos, el primero va a precio completo y el segundo con 30% de descuento.`
+      : `Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`
+  );
 
   function setSafeQuantity(next: number) {
     if (!cartEligible) {
@@ -95,7 +101,35 @@ export function ProductBuyBox({ product }: { product: Product }) {
         <span className="status-pill status-pill--warning">Últimas unidades</span>
       ) : null}
 
-      {cartEligible ? (
+      {whatsappOnly ? (
+        <>
+          <div className="product-actions">
+            <div className="quantity-stepper" aria-label="Cantidad">
+              <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
+                <Minus size={16} />
+              </button>
+              <input
+                aria-label="Cantidad"
+                min={1}
+                max={product.stock || 10}
+                type="number"
+                value={quantity || 1}
+                onChange={(event) => setSafeQuantity(Number(event.target.value))}
+              />
+              <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= (product.stock || 10)} aria-label="Sumar una unidad">
+                <Plus size={16} />
+              </button>
+            </div>
+            <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
+              <MessageCircle size={18} />
+              Comprar y pagar por WhatsApp
+            </a>
+          </div>
+          <p className="notice">
+            Venta exclusiva por WhatsApp. Si llevás 2 combos, el primero va a precio completo y el segundo tiene 30% de descuento.
+          </p>
+        </>
+      ) : cartEligible ? (
         <>
           <div className="product-actions">
             <div className="quantity-stepper" aria-label="Cantidad">
@@ -166,7 +200,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         </div>
       ) : null}
 
-      {purchasable ? (
+      {purchasable && !whatsappOnly ? (
         <button className="btn btn--ghost" type="button" onClick={buyNow} disabled={!hydrated || isAdding}>
           <Zap size={18} />
           {hydrated ? "Comprar ahora" : "Cargando carrito"}
@@ -175,7 +209,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
       <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
         <MessageCircle size={18} />
-        {availabilityStatus === "CONSULT" ? "Confirmar stock por WhatsApp" : "Consultar por WhatsApp"}
+        {whatsappOnly ? "Comprar por WhatsApp" : availabilityStatus === "CONSULT" ? "Confirmar stock por WhatsApp" : "Consultar por WhatsApp"}
       </a>
 
       <div className="product-buybox__trust">
