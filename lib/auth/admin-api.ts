@@ -2,6 +2,7 @@ import "server-only";
 
 import { getApiAdmin } from "@/lib/auth/api-guards";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/utils/api";
 import { getRequestKey, rateLimit, retryAfterHeaders } from "@/lib/utils/rate-limit";
 import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
@@ -47,7 +48,7 @@ export async function getAdminApiContext(
   const profile = await getApiAdmin();
   if (!profile) return { ok: false as const, response: jsonError("No autorizado o falta verificar MFA.", 403) };
 
-  const admin = getSupabaseAdminClient();
+  const admin = getSupabaseAdminClient() ?? await getSupabaseServerClient();
   if (!admin) {
     return {
       ok: false as const,
