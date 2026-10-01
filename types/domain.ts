@@ -20,6 +20,7 @@ export type PaymentMethod = "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
 export type PaymentFlow = "CHECKOUT_PRO" | "CARD" | "TRANSFER" | "WHATSAPP";
 export type ShippingMethod = "PICKUP" | "DELIVERY";
 export type ProductAvailabilityStatus = "IN_STOCK" | "OUT_OF_STOCK" | "CONSULT";
+export type ProductPromotionType = "NONE" | "TWO_FOR_ONE" | "SECOND_UNIT_PERCENT";
 
 export type Category = {
   id: string;
@@ -55,6 +56,8 @@ export type Product = {
   specifications: Record<string, string | number | boolean>;
   featured: boolean;
   on_sale: boolean;
+  promotion_type?: ProductPromotionType;
+  promotion_discount_percent?: number | null;
   active: boolean;
 };
 
