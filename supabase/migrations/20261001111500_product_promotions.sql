@@ -24,7 +24,10 @@ AS $function$
         then p_price * ceil(p_quantity / 2.0)
       when coalesce(p_promotion_type, 'NONE') = 'SECOND_UNIT_PERCENT'
         then p_price * p_quantity
-          - p_price * floor(p_quantity / 2.0) * (coalesce(p_discount_percent, 0) / 100.0)
+          - case
+              when p_quantity >= 2 then p_price * (coalesce(p_discount_percent, 0) / 100.0)
+              else 0
+            end
       else p_price * p_quantity
     end
   , 2);
