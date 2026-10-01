@@ -103,6 +103,7 @@ export function AdminProductsManager({
   const [query, setQuery] = useState("");
   const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("ALL");
   const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
 
   const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
@@ -146,9 +147,10 @@ export function AdminProductsManager({
         (catalogFilter === "OUT_OF_STOCK" && product.active && availability === "OUT_OF_STOCK") ||
         (catalogFilter === "INACTIVE" && !product.active);
       const matchesSupplier = supplierFilter === "ALL" || product.supplier_id === supplierFilter;
-      return matchesQuery && matchesFilter && matchesSupplier;
+      const matchesCategory = categoryFilter === "ALL" || product.category_id === categoryFilter;
+      return matchesQuery && matchesFilter && matchesSupplier && matchesCategory;
     });
-  }, [catalogFilter, categoryById, categoryIds, query, sortedRows, supplierFilter]);
+  }, [catalogFilter, categoryById, categoryFilter, categoryIds, query, sortedRows, supplierFilter]);
   const duplicateWarning = useMemo(
     () => form.name.trim() && form.slug.trim() && form.sku.trim() ? duplicateReason(form, rows) : null,
     [form, rows]
@@ -183,7 +185,8 @@ export function AdminProductsManager({
     };
 
     try {
-      const response = await fetch("/api/admin/products", {
+      const endpoint = form.id ? `/api/admin/products?id=${encodeURIComponent(form.id.trim())}` : "/api/admin/products";
+      const response = await fetch(endpoint, {
         method: form.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -539,6 +542,13 @@ export function AdminProductsManager({
             </select>
           </label>
           <label className="admin-catalog-filter">
+            <span>Categoría</span>
+            <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+              <option value="ALL">Todas</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </label>
+          <label className="admin-catalog-filter">
             <span>Proveedor</span>
             <select value={supplierFilter} onChange={(event) => setSupplierFilter(event.target.value)}>
               <option value="ALL">Todos</option>
@@ -610,7 +620,7 @@ export function AdminProductsManager({
                     <div className="admin-catalog-empty">
                       <PackageSearch size={24} />
                       <strong>No encontramos productos con estos filtros.</strong>
-                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setSupplierFilter("ALL"); }}>
+                      <button className="btn btn--ghost" type="button" onClick={() => { setQuery(""); setCatalogFilter("ALL"); setCategoryFilter("ALL"); setSupplierFilter("ALL"); }}>
                         Limpiar filtros
                       </button>
                     </div>
