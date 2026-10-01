@@ -17,6 +17,7 @@ import {
 import { useCart } from "@/components/cart/cart-provider";
 import { currency } from "@/lib/formatters/currency";
 import { canAddProductToCart, getProductAvailabilityStatus } from "@/lib/products/availability";
+import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
@@ -158,6 +159,8 @@ export function CartPage() {
             {items.map((item) => {
               const availabilityStatus = getProductAvailabilityStatus(item.product);
               const needsAvailabilityCheck = availabilityStatus === "CONSULT";
+              const pricing = productLinePricing(item.product, item.quantity);
+              const promotion = promotionLabel(item.product);
               const issue =
                 validation.status === "error"
                   ? validation.items.find((candidate) => candidate.productId === item.productId)
@@ -169,6 +172,7 @@ export function CartPage() {
                     <h3>{item.product.name}</h3>
                     <p className="cart-line__meta">
                       {item.product.sku} - {currency(item.product.price)} por {item.product.unit}
+                      {promotion ? <> · <strong>{promotion}</strong></> : null}
                     </p>
                     <span className={`cart-line__stock ${item.product.stock > 0 && !issue ? "is-ok" : "is-warning"}`}>
                       {needsAvailabilityCheck
@@ -228,7 +232,8 @@ export function CartPage() {
                   </div>
                   <div className="cart-line__price">
                     <span>Subtotal</span>
-                    <strong>{currency(item.product.price * item.quantity)}</strong>
+                    <strong>{currency(pricing.total)}</strong>
+                    {pricing.savings > 0 ? <small>Ahorrás {currency(pricing.savings)}</small> : null}
                   </div>
                 </article>
               );
