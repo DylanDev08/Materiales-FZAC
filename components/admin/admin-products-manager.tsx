@@ -57,7 +57,7 @@ const emptyProduct: ProductForm = {
   active: true
 };
 
-type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK" | "INACTIVE";
+type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK";
 
 function productForm(product: Product): ProductForm {
   return {
@@ -150,8 +150,7 @@ export function AdminProductsManager({
         (catalogFilter === "READY" && product.active && issues.length === 0) ||
         (catalogFilter === "ATTENTION" && product.active && issues.length > 0) ||
         (catalogFilter === "CONSULT" && product.active && availability === "CONSULT") ||
-        (catalogFilter === "OUT_OF_STOCK" && product.active && availability === "OUT_OF_STOCK") ||
-        (catalogFilter === "INACTIVE" && !product.active);
+        (catalogFilter === "OUT_OF_STOCK" && product.active && availability === "OUT_OF_STOCK");
       const matchesSupplier = supplierFilter === "ALL" || product.supplier_id === supplierFilter;
       const matchesCategory = categoryFilter === "ALL" || product.category_id === categoryFilter;
       const matchesBrand = brandFilter === "ALL" || product.brand === brandFilter;
@@ -583,7 +582,6 @@ export function AdminProductsManager({
               <option value="ATTENTION">Requieren revision</option>
               <option value="CONSULT">Consultar disponibilidad</option>
               <option value="OUT_OF_STOCK">Sin stock</option>
-              <option value="INACTIVE">Inactivos</option>
             </select>
           </label>
           <label className="admin-catalog-filter">
