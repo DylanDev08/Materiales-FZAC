@@ -4,7 +4,6 @@ import { cookies, headers as nextHeaders } from "next/headers";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { currency } from "@/lib/formatters/currency";
 import { isTestPaymentEnv } from "@/lib/payments/config";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
@@ -140,8 +139,8 @@ function friendlyPaymentMethod(payment: {
 }
 
 export async function getAdminProducts() {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return fallbackProducts;
+  const admin = getSupabaseAdminClient() ?? await getSupabaseServerClient();
+  if (!admin) return [];
 
   const rows: Array<Record<string, unknown>> = [];
   const pageSize = 1000;
@@ -168,7 +167,7 @@ export async function getAdminProducts() {
 }
 
 export async function getAdminSuppliers() {
-  const admin = getSupabaseAdminClient();
+  const admin = getSupabaseAdminClient() ?? await getSupabaseServerClient();
   if (!admin) return [];
   const { data, error } = await admin.from("suppliers").select("id,name").eq("active", true).order("name");
   if (error) return [];
@@ -176,8 +175,8 @@ export async function getAdminSuppliers() {
 }
 
 export async function getAdminCategories() {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return fallbackCategories;
+  const admin = getSupabaseAdminClient() ?? await getSupabaseServerClient();
+  if (!admin) return [];
 
   const { data, error } = await admin.from("categories").select("*").order("sort_order", { ascending: true }).limit(300);
   if (error) return [];
