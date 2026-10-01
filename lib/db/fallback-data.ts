@@ -78,6 +78,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { espesor: "12.5 mm", uso: "Interior", medida: "1.20 x 2.40 m" },
     featured: true,
     on_sale: true,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   },
   {
@@ -99,6 +101,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { peso: "50 kg", tipo: "Portland", rendimiento: "Segun mezcla" },
     featured: true,
     on_sale: false,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   },
   {
@@ -120,6 +124,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { largo: "2.60 m", material: "Acero galvanizado", ancho: "70 mm" },
     featured: true,
     on_sale: true,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   },
   {
@@ -141,6 +147,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { amperaje: "25A", polos: 2, curva: "C" },
     featured: false,
     on_sale: false,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   },
   {
@@ -162,6 +170,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { contenido: "20 L", terminacion: "Mate", color: "Blanco" },
     featured: true,
     on_sale: true,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   },
   {
@@ -183,6 +193,8 @@ const fallbackProductRows: Array<Omit<Product, "category" | "availability_status
     specifications: { diametro: "20 mm", uso: "Agua", largo: "4 m" },
     featured: false,
     on_sale: false,
+    promotion_type: "NONE",
+    promotion_discount_percent: null,
     active: true
   }
 ];
