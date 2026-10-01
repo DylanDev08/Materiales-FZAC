@@ -23,7 +23,6 @@ export type ProductFilters = {
   offset?: number;
 };
 
-export const PUBLIC_CATEGORY_SLUGS = ["construccion-en-seco", "steel-framing", "ferreteria", "materiales-de-obra"] as const;
 const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
@@ -102,7 +101,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
 }
 
 function applyFallbackFilters(products: Product[], filters: ProductFilters) {
-  let result = products.filter((product) => product.active && PUBLIC_CATEGORY_SLUGS.includes(product.category?.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
+  let result = products.filter((product) => product.active);
 
   if (filters.search) {
     const terms = catalogSearchTerms(filters.search);
@@ -164,14 +163,13 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
 
 export const getCategories = cache(async function getCategories() {
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return fallbackCategories.filter((category) => PUBLIC_CATEGORY_SLUGS.includes(category.slug as typeof PUBLIC_CATEGORY_SLUGS[number]));
+  if (!supabase) return fallbackCategories.filter((category) => category.active);
 
   const [{ data: categoryRows, error: categoryError }, { data: productRows, error: productError }] = await Promise.all([
     supabase
       .from("categories")
       .select("*")
       .eq("active", true)
-      .in("slug", [...PUBLIC_CATEGORY_SLUGS])
       .order("sort_order", { ascending: true }),
     supabase
       .from("products")
