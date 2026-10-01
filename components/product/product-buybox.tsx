@@ -13,6 +13,7 @@ import {
   productAvailabilityLabel
 } from "@/lib/products/availability";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import type { Product } from "@/types/domain";
 
 export function ProductBuyBox({ product }: { product: Product }) {
@@ -28,7 +29,9 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
   const maxQuantity = purchasable ? product.stock : 999;
-  const subtotal = product.price * quantity;
+  const pricing = productLinePricing(product, quantity);
+  const subtotal = pricing.total;
+  const promotion = promotionLabel(product);
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`);
 
@@ -72,7 +75,8 @@ export function ProductBuyBox({ product }: { product: Product }) {
       <div className="product-price">
         <strong>{currency(product.price)}</strong>
         {hasValidComparePrice ? <del>{currency(product.compare_price!)}</del> : null}
-        {discount ? <span className="status-pill status-pill--warning">-{discount}%</span> : null}
+        {promotion ? <span className="status-pill status-pill--warning">{promotion}</span> : null}
+        {!promotion && discount ? <span className="status-pill status-pill--warning">-{discount}%</span> : null}
         <small className="product-price__unit">Precio por {product.unit}</small>
       </div>
 
@@ -118,6 +122,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
           <p className="product-subtotal">
             Total estimado <strong>{currency(subtotal)}</strong>
+            {pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)} con la promoción.</small> : null}
           </p>
 
           {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
