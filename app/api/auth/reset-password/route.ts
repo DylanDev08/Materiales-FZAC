@@ -6,6 +6,7 @@ import { validateJsonMutationRequest } from "@/lib/utils/request-security";
 import { distributedRateLimitRequest, distributedRetryHeaders } from "@/lib/security/distributed-rate-limit";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 import { revokeAllTrustedAdminDevices } from "@/lib/auth/trusted-device";
+import { checkLeakedPassword } from "@/lib/security/leaked-password";
 
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "auth-reset-password"), 5, 60_000);
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
 
   try {
     const payload = resetPasswordSchema.parse(await request.json());
+    const leakedPassword = await checkLeakedPassword(payload.password);
+    if (leakedPassword.checked && leakedPassword.compromised) {
+      return jsonError("Esa contraseña apareció en filtraciones conocidas. Elegí una contraseña distinta y única.", 422);
+    }
     const supabase = await getSupabaseServerClient();
     if (!supabase) return jsonError("La recuperación no esta disponible en este momento.", 503);
 
