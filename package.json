@@ -56,7 +56,7 @@
     "release:audit": "node --env-file-if-exists=.env scripts/production-readiness.mjs --strict"
   },
   "dependencies": {
-    "@emnapi/core": "1.11.2",
+    "@emnapi/core": "1.11.3",
     "@emnapi/runtime": "1.11.2",
     "@mercadopago/sdk-react": "^1.0.7",
     "@supabase/ssr": "^0.5.2",
