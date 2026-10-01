@@ -11,6 +11,7 @@ import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEna
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { canPurchaseProduct } from "@/lib/products/availability";
 import { productLinePricing } from "@/lib/products/promotions";
+import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
 import {
   applyAvailableStockToProducts,
   getActiveOrderStockReservation,
@@ -583,6 +584,13 @@ export async function createCheckout(input: unknown) {
   }
 
   const lines = Array.from(linesByProduct.values());
+  if (lines.some(({ product }) => isWhatsAppOnlyProduct(product))) {
+    throw new CheckoutIntegrityError(
+      "CHECKOUT_CREATE_FAILED",
+      "Este combo se vende únicamente por WhatsApp. Volvé a la ficha del producto para coordinar el pago.",
+      409
+    );
+  }
   const stockIssues = lines.flatMap(({ product, quantity }) =>
     !canPurchaseProduct(product) || quantity > product.stock
       ? [{ productId: product.id, requested: quantity, available: product.stock, name: product.name }]
