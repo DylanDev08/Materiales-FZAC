@@ -46,9 +46,14 @@ export async function POST(request: Request) {
 
   try {
     const payload = adminProductSchema.parse(await request.json());
-    const duplicate = await findDuplicate(admin, payload);
+    const normalizedPayload = {
+      ...payload,
+      promotion_discount_percent: payload.promotion_type === "SECOND_UNIT_PERCENT" ? payload.promotion_discount_percent : null,
+      on_sale: payload.on_sale || payload.promotion_type !== "NONE"
+    };
+    const duplicate = await findDuplicate(admin, normalizedPayload);
     if (duplicate) return jsonError(duplicate, 409);
-    const insert = { ...payload };
+    const insert = { ...normalizedPayload };
     delete insert.id;
     const { data, error } = await admin.from("products").insert(insert).select("*").single();
     if (error) return jsonError("No pudimos crear el producto. Revisá SKU, slug, categoría y valores cargados.", 409);
@@ -83,10 +88,15 @@ export async function PATCH(request: Request) {
     if (!idResult.success) return jsonError(idResult.error.issues[0]?.message ?? "Producto inválido.", 422);
 
     const payload = adminProductSchema.parse({ ...raw, id: idResult.data });
-    const duplicate = await findDuplicate(admin, payload);
+    const normalizedPayload = {
+      ...payload,
+      promotion_discount_percent: payload.promotion_type === "SECOND_UNIT_PERCENT" ? payload.promotion_discount_percent : null,
+      on_sale: payload.on_sale || payload.promotion_type !== "NONE"
+    };
+    const duplicate = await findDuplicate(admin, normalizedPayload);
     if (duplicate) return jsonError(duplicate, 409);
 
-    const update = { ...payload };
+    const update = { ...normalizedPayload };
     delete update.id;
     const { data, error } = await admin
       .from("products")
