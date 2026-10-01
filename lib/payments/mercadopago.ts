@@ -18,7 +18,7 @@ type PreferenceInput = {
     email: string;
     phone: string;
   };
-  items: Array<{ product: Pick<Product, "id" | "name" | "price" | "image_url">; quantity: number }>;
+  items: Array<{ product: Pick<Product, "id" | "name" | "price" | "image_url">; quantity: number; lineTotal?: number }>;
   shippingCost: number;
   total: number;
   siteUrl?: string;
@@ -298,14 +298,19 @@ export async function createMercadoPagoPreference(input: PreferenceInput) {
   const checkoutSiteUrl = safeUrl(input.siteUrl ?? siteUrl);
   const webhookSiteUrl = publicWebhookUrl(input.siteUrl ?? siteUrl);
   const orderQuery = `order_id=${encodeURIComponent(input.orderId)}`;
-  const items = input.items.map(({ product, quantity }) => ({
-    id: product.id,
-    title: product.name,
-    quantity,
-    unit_price: Number(product.price),
-    currency_id: "ARS",
-    ...(checkoutPictureUrl(product.image_url) ? { picture_url: checkoutPictureUrl(product.image_url) } : {})
-  }));
+  const items = input.items.map(({ product, quantity, lineTotal }) => {
+    const regularTotal = Number(product.price) * quantity;
+    const promotionalTotal = Number(lineTotal);
+    const hasPromotionalTotal = Number.isFinite(promotionalTotal) && Math.abs(promotionalTotal - regularTotal) > 0.009;
+    return {
+      id: product.id,
+      title: hasPromotionalTotal ? `${product.name} x${quantity} - promoción FZAC` : product.name,
+      quantity: hasPromotionalTotal ? 1 : quantity,
+      unit_price: hasPromotionalTotal ? promotionalTotal : Number(product.price),
+      currency_id: "ARS",
+      ...(checkoutPictureUrl(product.image_url) ? { picture_url: checkoutPictureUrl(product.image_url) } : {})
+    };
+  });
 
   if (input.shippingCost > 0) {
     items.push({
