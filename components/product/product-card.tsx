@@ -13,6 +13,8 @@ import {
   productAvailabilityLabel
 } from "@/lib/products/availability";
 import { promotionLabel } from "@/lib/products/promotions";
+import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
+import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -29,6 +31,8 @@ export function ProductCard({ product }: { product: Product }) {
   const hasProductImage = Boolean(product.image_url?.trim());
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
   const promotion = promotionLabel(product);
+  const whatsappOnly = isWhatsAppOnlyProduct(product);
+  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero comprar el ${product.name}. Quiero coordinar el pago inmediato por WhatsApp.`);
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
@@ -108,7 +112,12 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
 
         <div className="product-card__actions">
-          {cartEligible ? (
+          {whatsappOnly ? (
+            <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
+              <MessageCircle size={18} />
+              Comprar por WhatsApp
+            </a>
+          ) : cartEligible ? (
             <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
               <ShoppingCart size={18} />
               {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
