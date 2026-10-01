@@ -149,6 +149,7 @@ export async function getAdminProducts() {
     const { data, error } = await admin
       .from("products")
       .select("*, supplier:suppliers(id,name), category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)")
+      .eq("active", true)
       .order("name", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) return [];
