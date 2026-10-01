@@ -23,7 +23,7 @@ export type ProductFilters = {
   offset?: number;
 };
 
-const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
+const PUBLIC_PRODUCT_SELECT = "id,slug,sku,name,description,category_id,subcategory,brand,price,compare_price,stock,stock_minimum,availability_status,unit,image_url,gallery,specifications,featured,on_sale,promotion_type,promotion_discount_percent,active,category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)";
 const SEARCH_WORD_ALIASES: Record<string, string> = {
   placas: "placa",
   montantes: "montante",
@@ -94,6 +94,12 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     specifications: ((row.specifications ?? {}) as Product["specifications"]) || {},
     featured: Boolean(row.featured),
     on_sale: Boolean(row.on_sale ?? row.onSale),
+    promotion_type:
+      row.promotion_type === "TWO_FOR_ONE" || row.promotion_type === "SECOND_UNIT_PERCENT"
+        ? row.promotion_type
+        : "NONE",
+    promotion_discount_percent:
+      row.promotion_discount_percent == null ? null : Number(row.promotion_discount_percent),
     active: Boolean(row.active ?? true)
   };
 
