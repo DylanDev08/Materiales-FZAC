@@ -455,7 +455,7 @@ export function AdminProductsManager({
                   {form.promotion_type === "TWO_FOR_ONE"
                     ? "Cada 2 unidades, el cliente paga 1. Si lleva 3 paga 2; si lleva 4 paga 2."
                     : form.promotion_type === "SECOND_UNIT_PERCENT"
-                      ? `En cada par, la primera unidad va a precio completo y la segunda tiene ${Number(form.promotion_discount_percent || 0)}% de descuento.`
+                      ? `La primera unidad va a precio completo y únicamente la segunda tiene ${Number(form.promotion_discount_percent || 0)}% de descuento.`
                       : "El producto se cobra normalmente. Podés seguir usando Precio anterior para una rebaja simple."}
                 </small>
               </div>
