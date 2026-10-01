@@ -10,6 +10,7 @@ import { isMercadoPagoConfigured, MercadoPagoNotConfiguredError } from "@/lib/pa
 import { createMercadoPagoPreference, getMercadoPagoPreference, isMercadoPagoEnabled } from "@/lib/payments/mercadopago";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { canPurchaseProduct } from "@/lib/products/availability";
+import { productLinePricing } from "@/lib/products/promotions";
 import {
   applyAvailableStockToProducts,
   getActiveOrderStockReservation,
@@ -159,6 +160,12 @@ function normalizeProduct(row: Record<string, unknown>): Product {
     specifications: (row.specifications as Product["specifications"]) ?? {},
     featured: Boolean(row.featured),
     on_sale: Boolean(row.on_sale),
+    promotion_type:
+      row.promotion_type === "TWO_FOR_ONE" || row.promotion_type === "SECOND_UNIT_PERCENT"
+        ? row.promotion_type
+        : "NONE",
+    promotion_discount_percent:
+      row.promotion_discount_percent == null ? null : Number(row.promotion_discount_percent),
     active: Boolean(row.active ?? true)
   };
 
@@ -419,7 +426,7 @@ async function resumeCheckoutByIdempotencyKey(
   if (!preference && provider === "MERCADOPAGO" && isMercadoPagoEnabled()) {
     const { data: orderItems } = await admin
       .from("order_items")
-      .select("product_id,sku,name,unit_price,quantity,image_url")
+      .select("product_id,sku,name,unit_price,quantity,subtotal,image_url")
       .eq("order_id", order.id)
       .order("created_at", { ascending: true });
 
@@ -430,7 +437,8 @@ async function resumeCheckoutByIdempotencyKey(
         price: Number(item.unit_price ?? 0),
         image_url: String(item.image_url ?? "")
       },
-      quantity: Number(item.quantity ?? 1)
+      quantity: Number(item.quantity ?? 1),
+      lineTotal: Number(item.subtotal ?? Number(item.unit_price ?? 0) * Number(item.quantity ?? 1))
     }));
 
     try {
@@ -567,7 +575,11 @@ export async function createCheckout(input: unknown) {
     if (!product) throw new Error("Un producto del carrito ya no esta disponible.");
     const current = linesByProduct.get(product.id);
     const quantity = (current?.quantity ?? 0) + item.quantity;
-    linesByProduct.set(product.id, { product, quantity, subtotal: product.price * quantity });
+    linesByProduct.set(product.id, {
+      product,
+      quantity,
+      subtotal: productLinePricing(product, quantity).total
+    });
   }
 
   const lines = Array.from(linesByProduct.values());
@@ -624,7 +636,8 @@ export async function createCheckout(input: unknown) {
     name: product.name,
     unit_price: product.price,
     quantity,
-    image_url: product.image_url
+    image_url: product.image_url,
+    line_total: subtotal
   }));
   const { data: atomicData, error: atomicError } = await admin.rpc("create_checkout_order", {
     p_user_id: userId,
@@ -783,7 +796,7 @@ export async function createCheckout(input: unknown) {
         orderId: order.id,
         paymentId: payment.id,
         customer: payload.customer,
-        items: lines.map(({ product, quantity }) => ({ product, quantity })),
+        items: lines.map(({ product, quantity, subtotal }) => ({ product, quantity, lineTotal: subtotal })),
         shippingCost: delivery,
         total,
         expiresAt: reservationExpiresAt,
