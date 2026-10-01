@@ -104,7 +104,9 @@ export function ProductCard({ product }: { product: Product }) {
           {availabilityLabel}
         </span>
         <span className="product-card__finance">
-          {purchasable ? (
+          {whatsappOnly ? (
+            <><MessageCircle size={14} /> Venta y pago coordinados por WhatsApp</>
+          ) : purchasable ? (
             <><ShieldCheck size={14} /> Pago seguro y stock validado</>
           ) : (
             <><MessageCircle size={14} /> Confirmamos stock antes del pago</>
