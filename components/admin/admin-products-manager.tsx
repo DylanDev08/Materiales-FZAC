@@ -7,7 +7,7 @@ import { currency } from "@/lib/formatters/currency";
 import { getProductAvailabilityStatus } from "@/lib/products/availability";
 import { slugify } from "@/lib/utils/slug";
 import { duplicateReason } from "@/lib/products/identity";
-import type { Category, Product, ProductAvailabilityStatus } from "@/types/domain";
+import type { Category, Product, ProductAvailabilityStatus, ProductPromotionType } from "@/types/domain";
 
 type ProductForm = {
   id: string;
@@ -30,6 +30,8 @@ type ProductForm = {
   specifications: Record<string, string | number | boolean>;
   featured: boolean;
   on_sale: boolean;
+  promotion_type: ProductPromotionType;
+  promotion_discount_percent: string | number | null;
   active: boolean;
 };
 
@@ -54,6 +56,8 @@ const emptyProduct: ProductForm = {
   specifications: {} as Record<string, string | number | boolean>,
   featured: false,
   on_sale: false,
+  promotion_type: "NONE",
+  promotion_discount_percent: null,
   active: true
 };
 
@@ -203,6 +207,11 @@ export function AdminProductsManager({
       compare_price: form.compare_price ? Number(form.compare_price) : null,
       stock: Number(form.stock),
       stock_minimum: Number(form.stock_minimum),
+      promotion_discount_percent:
+        form.promotion_type === "SECOND_UNIT_PERCENT" && form.promotion_discount_percent
+          ? Number(form.promotion_discount_percent)
+          : null,
+      on_sale: form.on_sale || form.promotion_type !== "NONE",
       specifications: parsedSpecifications
     };
 
@@ -396,6 +405,60 @@ export function AdminProductsManager({
                   required
                 />
               </label>
+            </div>
+          </section>
+
+          <section className="admin-product-simple-card">
+            <div className="admin-product-simple-card__title">
+              <span className="kicker">Ofertas</span>
+              <h3>Promoción del producto</h3>
+              <p>Podés activar 2x1 o aplicar un descuento únicamente sobre la segunda unidad de cada par.</p>
+            </div>
+            <div className="admin-product-simple-grid">
+              <label>
+                Tipo de promoción
+                <select
+                  value={form.promotion_type}
+                  onChange={(event) => {
+                    const promotionType = event.target.value as ProductPromotionType;
+                    setForm({
+                      ...form,
+                      promotion_type: promotionType,
+                      promotion_discount_percent:
+                        promotionType === "SECOND_UNIT_PERCENT" ? (form.promotion_discount_percent || 20) : null,
+                      on_sale: promotionType === "NONE" ? form.on_sale : true
+                    });
+                  }}
+                >
+                  <option value="NONE">Sin promoción especial</option>
+                  <option value="TWO_FOR_ONE">2x1</option>
+                  <option value="SECOND_UNIT_PERCENT">Descuento en segunda unidad</option>
+                </select>
+              </label>
+              {form.promotion_type === "SECOND_UNIT_PERCENT" ? (
+                <label>
+                  Descuento segunda unidad (%)
+                  <input
+                    inputMode="decimal"
+                    min={1}
+                    max={100}
+                    type="number"
+                    value={form.promotion_discount_percent ?? ""}
+                    onChange={(event) => setForm({ ...form, promotion_discount_percent: event.target.value })}
+                    required
+                  />
+                </label>
+              ) : null}
+              <div className="field admin-product-field--wide">
+                <span>Cómo se aplica</span>
+                <small>
+                  {form.promotion_type === "TWO_FOR_ONE"
+                    ? "Cada 2 unidades, el cliente paga 1. Si lleva 3 paga 2; si lleva 4 paga 2."
+                    : form.promotion_type === "SECOND_UNIT_PERCENT"
+                      ? `En cada par, la primera unidad va a precio completo y la segunda tiene ${Number(form.promotion_discount_percent || 0)}% de descuento.`
+                      : "El producto se cobra normalmente. Podés seguir usando Precio anterior para una rebaja simple."}
+                </small>
+              </div>
             </div>
           </section>
 
