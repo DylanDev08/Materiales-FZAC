@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { canAddProductToCart } from "@/lib/products/availability";
 import { resolveProductImageUrl } from "@/lib/products/images";
+import { productLinePricing } from "@/lib/products/promotions";
 import type { CartLine, Product } from "@/types/domain";
 
 type CartContextValue = {
@@ -81,7 +82,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((sum, item) => sum + item.quantity, 0);
-    const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    const subtotal = items.reduce((sum, item) => sum + productLinePricing(item.product, item.quantity).total, 0);
 
     return {
       items,
