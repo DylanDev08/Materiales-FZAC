@@ -14,7 +14,7 @@ with bundle as (
     'ce900685-7128-4452-a85d-065c8195fe01',
     'Combos impermeabilización',
     'FZAC',
-    0,
+    340000,
     null,
     10,
     2,
@@ -26,12 +26,12 @@ with bundle as (
       'Tipo','Combo',
       'Cantidad de productos',6,
       'Contenido','Thermocontrol Techo 20 kg; Manta Realis 1 x 25 m; Recuplast Grietas y Juntas 1 kg; Sintex PU 50 300 ml; Rodillo Lana Brousse 22 x 40; Pinceleta Obra V4 N°40 Eco',
-      'Promoción','Primer combo a precio completo; segundo combo con 30% de descuento. No se repite en unidades posteriores',
+      'Promoción','Primer combo $340.000; segundo combo $238.000 (30% de descuento)',
       'sale_channel','WHATSAPP_ONLY'
     ),
     true,
     true,
-    false,
+    true,
     'b28d55b3-afbf-404f-8fcc-f3d6da9660b2',
     'SECOND_UNIT_PERCENT',
     30
