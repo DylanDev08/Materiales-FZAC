@@ -31,6 +31,12 @@ function normalizeAdminProduct(row: Record<string, unknown>): Product {
     specifications: (row.specifications as Product["specifications"]) ?? {},
     featured: Boolean(row.featured),
     on_sale: Boolean(row.on_sale),
+    promotion_type:
+      row.promotion_type === "TWO_FOR_ONE" || row.promotion_type === "SECOND_UNIT_PERCENT"
+        ? row.promotion_type
+        : "NONE",
+    promotion_discount_percent:
+      row.promotion_discount_percent == null ? null : Number(row.promotion_discount_percent),
     active: Boolean(row.active ?? true)
   };
 }
