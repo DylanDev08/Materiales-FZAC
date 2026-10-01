@@ -33,8 +33,8 @@ function normalizeAdminProduct(row: Record<string, unknown>): Product {
     on_sale: Boolean(row.on_sale),
     promotion_type:
       row.promotion_type === "TWO_FOR_ONE" || row.promotion_type === "SECOND_UNIT_PERCENT"
-        ? row.promotion_type
-        : "NONE",
+        ? (row.promotion_type as Product["promotion_type"])
+        : "NONE" as const,
     promotion_discount_percent:
       row.promotion_discount_percent == null ? null : Number(row.promotion_discount_percent),
     active: Boolean(row.active ?? true)
