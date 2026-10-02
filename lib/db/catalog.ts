@@ -160,7 +160,11 @@ function applyFallbackFilters(products: Product[], filters: ProductFilters) {
       result = result.sort((a, b) => Number(b.on_sale) - Number(a.on_sale) || b.stock - a.stock);
       break;
     default:
-      result = result.sort((a, b) => Number(b.featured) - Number(a.featured));
+      result = result.sort(
+        (a, b) =>
+          Number(b.on_sale) - Number(a.on_sale) ||
+          Number(b.featured) - Number(a.featured)
+      );
   }
 
   const offset = Math.max(0, filters.offset ?? 0);
@@ -280,7 +284,12 @@ export async function getProducts(filters: ProductFilters = {}) {
   else if (filters.order === "stock_desc") query = query.order("stock", { ascending: false });
   else if (filters.order === "offers") query = query.order("on_sale", { ascending: false }).order("stock", { ascending: false });
   else if (filters.order === "name_asc") query = query.order("name", { ascending: true });
-  else query = query.order("created_at", { ascending: false });
+  else {
+    query = query
+      .order("on_sale", { ascending: false })
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false });
+  }
   query = query.order("id", { ascending: true });
 
   const { data, error } = await query;
