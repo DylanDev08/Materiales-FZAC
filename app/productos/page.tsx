@@ -13,5 +13,5 @@ export default async function Page({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <CatalogPage searchParams={await searchParams} title="Productos" showAdminProductLoader />;
+  return <CatalogPage searchParams={await searchParams} title="Productos" />;
 }
