@@ -5,9 +5,6 @@ import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/catalog/product-grid-skeleton";
 import { CatalogViewToggle } from "@/components/catalog/catalog-view-toggle";
-import { AdminProductsManager } from "@/components/admin/admin-products-manager";
-import { getUserProfile } from "@/lib/auth/get-user";
-import { getAdminCategories, getAdminProducts, getAdminSuppliers } from "@/lib/db/admin";
 import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
 
@@ -74,14 +71,12 @@ export async function CatalogPage({
   searchParams,
   title = "Catálogo FZAC",
   description,
-  forcedFilters = {},
-  showAdminProductLoader = false
+  forcedFilters = {}
 }: {
   searchParams: SearchParams;
   title?: string;
   description?: string;
   forcedFilters?: ProductFilters;
-  showAdminProductLoader?: boolean;
 }) {
   const requestedPage = Number.parseInt(value(searchParams, "page") ?? "1", 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 100) : 1;
@@ -103,18 +98,13 @@ export async function CatalogPage({
     ...forcedFilters
   };
 
-  const [categories, fetchedProducts, facets, profile] = await Promise.all([
+  const [categories, fetchedProducts, facets] = await Promise.all([
     getCategories(),
     getProducts(filters),
-    getCatalogFacets(),
-    getUserProfile()
+    getCatalogFacets()
   ]);
   const hasNextPage = fetchedProducts.length > CATALOG_PAGE_SIZE;
   const products = fetchedProducts.slice(0, CATALOG_PAGE_SIZE);
-  const isAdmin = profile?.role === "ADMIN";
-  const adminProductData = isAdmin && showAdminProductLoader
-    ? await Promise.all([getAdminProducts(), getAdminCategories(), getAdminSuppliers()])
-    : null;
   const filterValues = {
     search: value(searchParams, "search"),
     category: forcedFilters.category ?? value(searchParams, "category"),
@@ -154,14 +144,6 @@ export async function CatalogPage({
           </Link>
         </div>
       </section>
-
-      {adminProductData ? (
-        <section className="catalog-admin-entry">
-          <div className="container">
-            <AdminProductsManager products={adminProductData[0]} categories={adminProductData[1]} suppliers={adminProductData[2]} mode="create-only" />
-          </div>
-        </section>
-      ) : null}
 
       <section className="catalog-projects">
         <div className="container">
