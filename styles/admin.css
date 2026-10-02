@@ -7608,6 +7608,77 @@ body:has(.admin-page) .site-main {
   cursor: default;
 }
 
+.admin-push-control {
+  display: grid;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(244, 196, 0, 0.035);
+}
+
+.admin-push-control__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.admin-push-control__status > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--color-yellow);
+}
+
+.admin-push-control__status > div {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-push-control__status strong {
+  font-size: 0.82rem;
+}
+
+.admin-push-control__status small,
+.admin-push-control__hint,
+.admin-push-control__message {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.admin-push-control__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-push-control__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid rgba(244, 196, 0, 0.24);
+  border-radius: 6px;
+  background: #1c1c1c;
+  color: #fff;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-push-control__actions button:hover {
+  border-color: rgba(244, 196, 0, 0.55);
+}
+
+.admin-push-control__actions button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.admin-push-control__message {
+  color: #f4c400;
+}
+
 .admin-notification-list {
   max-height: min(460px, 65vh);
   overflow-y: auto;
