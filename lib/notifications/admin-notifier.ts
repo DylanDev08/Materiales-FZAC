@@ -2,6 +2,7 @@ import "server-only";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAdminConsolePath } from "@/lib/utils/env";
+import { sendAdminWebPush } from "@/lib/notifications/web-push";
 
 type AdminNotificationInput = {
   type: string;
@@ -53,7 +54,7 @@ export async function notifyAdminTransferPending(order: { id: string; customerNa
   });
 }
 
-export async function notifyAdminPaymentApproved(order: { id: string; customerName: string; ticketNumber?: string }) {
+export async function notifyAdminPaymentApproved(order: { id: string; customerName: string; ticketNumber?: string; total?: number }) {
   const admin = getSupabaseAdminClient();
   if (!admin) return;
 
@@ -75,6 +76,14 @@ export async function notifyAdminPaymentApproved(order: { id: string; customerNa
     message: `Nueva compra aprobada por ${order.customerName}${order.ticketNumber ? `. Ticket ${order.ticketNumber}` : "."} El ingreso ya quedó registrado automáticamente en Finanzas.`,
     link_to: linkTo
   });
+
+  const amount = order.total != null ? ` · ${Math.round(order.total).toLocaleString("es-AR")}` : "";
+  await sendAdminWebPush({
+    title: "FZAC Materiales · Pago aprobado",
+    body: `${order.customerName}${amount}${order.ticketNumber ? ` · Ticket ${order.ticketNumber}` : ""}`,
+    url: linkTo,
+    tag: `fzac-payment-${order.id}`
+  }).catch(() => undefined);
 }
 
 export async function notifyAdminLargePurchase(order: { id: string; customerName: string; total: number; limit: number }) {
