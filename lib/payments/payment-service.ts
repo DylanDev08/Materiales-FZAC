@@ -190,7 +190,8 @@ export async function confirmApprovedPayment(input: ConfirmationInput) {
         notifyAdminPaymentApproved({
           id: input.orderId,
           customerName: String(order.customer_name ?? "Cliente"),
-          ticketNumber: ticket?.number ? String(ticket.number) : undefined
+          ticketNumber: ticket?.number ? String(ticket.number) : undefined,
+          total: Number(order.total ?? 0)
         }).catch(() => undefined),
         notifyAdminFulfillmentRequired({
           id: input.orderId,
