@@ -43,23 +43,26 @@ export function AdminPushDeviceControl() {
   );
 
   useEffect(() => {
-    const hasSupport =
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window;
-
-    setSupported(hasSupport);
-    if (!hasSupport) return;
-
-    setPermission(Notification.permission);
-    setStandalone(
-      window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
-    );
-
     let active = true;
+
     async function load() {
+      await Promise.resolve();
+      const hasSupport =
+        typeof window !== "undefined" &&
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window;
+
+      if (!active) return;
+      setSupported(hasSupport);
+      if (!hasSupport) return;
+
+      setPermission(Notification.permission);
+      setStandalone(
+        window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+      );
+
       try {
         const response = await fetch("/api/admin/push", { cache: "no-store" });
         if (!response.ok) return;
