@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, X } from "lucide-react";
+import { AdminPushDeviceControl } from "@/components/admin/admin-push-device-control";
 
 type AdminNotification = {
   id: string;
@@ -86,6 +87,7 @@ export function AdminNotificationBell({ adminPath }: { adminPath: string }) {
             <span>{unread ? `${unread} sin leer` : "Todo al dia"}</span>
             <button type="button" onClick={markAllRead} disabled={!unread}><CheckCheck size={15} /> Marcar leidas</button>
           </div>
+          <AdminPushDeviceControl />
           <div className="admin-notification-list">
             {notifications.length ? notifications.slice(0, 20).map((notification) => (
               <Link
