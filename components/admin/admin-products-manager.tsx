@@ -61,7 +61,7 @@ const emptyProduct: ProductForm = {
   active: true
 };
 
-type CatalogFilter = "ALL" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK";
+type CatalogFilter = "ALL" | "OFFERS" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK";
 
 function productForm(product: Product): ProductForm {
   return {
@@ -115,7 +115,14 @@ export function AdminProductsManager({
   });
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
 
-  const sortedRows = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
+  const sortedRows = useMemo(
+    () => [...rows].sort(
+      (a, b) =>
+        Number(b.on_sale || b.promotion_type !== "NONE") - Number(a.on_sale || a.promotion_type !== "NONE") ||
+        a.name.localeCompare(b.name, "es")
+    ),
+    [rows]
+  );
   const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories]);
   const categoryIds = useMemo(() => new Set(categories.map((category) => category.id)), [categories]);
   const brands = useMemo(() => Array.from(new Set(rows.map((product) => product.brand.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")), [rows]);
@@ -151,6 +158,7 @@ export function AdminProductsManager({
           .includes(normalizedQuery);
       const matchesFilter =
         catalogFilter === "ALL" ||
+        (catalogFilter === "OFFERS" && product.active && (product.on_sale || product.promotion_type !== "NONE")) ||
         (catalogFilter === "READY" && product.active && issues.length === 0) ||
         (catalogFilter === "ATTENTION" && product.active && issues.length > 0) ||
         (catalogFilter === "CONSULT" && product.active && availability === "CONSULT") ||
@@ -641,6 +649,7 @@ export function AdminProductsManager({
             <span>Estado</span>
             <select value={catalogFilter} onChange={(event) => setCatalogFilter(event.target.value as CatalogFilter)}>
               <option value="ALL">Todos</option>
+              <option value="OFFERS">Ofertas</option>
               <option value="READY">Listos para vender</option>
               <option value="ATTENTION">Requieren revision</option>
               <option value="CONSULT">Consultar disponibilidad</option>
@@ -678,6 +687,7 @@ export function AdminProductsManager({
                 <th>Precio venta</th>
                 <th>Stock</th>
                 <th>Proveedor</th>
+                <th>Oferta</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -698,6 +708,17 @@ export function AdminProductsManager({
                   <td>{currency(product.price)}</td>
                   <td>{availability === "CONSULT" ? "A consultar" : product.stock}</td>
                   <td>{product.supplier?.name ?? suppliers.find((supplier) => supplier.id === product.supplier_id)?.name ?? "Sin asignar"}</td>
+                  <td>
+                    {product.promotion_type === "TWO_FOR_ONE" ? (
+                      <span className="status-pill status-pill--warning">2x1</span>
+                    ) : product.promotion_type === "SECOND_UNIT_PERCENT" ? (
+                      <span className="status-pill status-pill--warning">2da -{Number(product.promotion_discount_percent ?? 0)}%</span>
+                    ) : product.on_sale ? (
+                      <span className="status-pill status-pill--warning">Oferta</span>
+                    ) : (
+                      <span className="status-pill">—</span>
+                    )}
+                  </td>
                   <td>
                     {!product.active ? (
                       <span className="status-pill">Inactivo</span>
@@ -729,7 +750,7 @@ export function AdminProductsManager({
               })}
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="admin-catalog-empty">
                       <PackageSearch size={24} />
                       <strong>No encontramos productos con estos filtros.</strong>
