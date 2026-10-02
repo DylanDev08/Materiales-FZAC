@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const context = await getAdminApiContext(request, { scope: "admin-push-read", limit: 60 });
   if (!context.ok) return context.response;
   const { admin, profile } = context;
-  const config = getAdminPushPublicConfig();
+  const config = await getAdminPushPublicConfig();
 
   const { data, error } = await admin
     .from("admin_push_subscriptions")
