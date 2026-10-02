@@ -58,10 +58,42 @@ function hkdfExpand(prk: Buffer, info: Buffer, length: number) {
   return Buffer.concat(blocks).subarray(0, length);
 }
 
-function vapidConfig() {
-  const publicKey = getEnv("WEB_PUSH_VAPID_PUBLIC_KEY");
-  const privateKey = getEnv("WEB_PUSH_VAPID_PRIVATE_KEY");
-  const subject = getEnv("WEB_PUSH_VAPID_SUBJECT") || "mailto:fortalezaconstruccionesrosario@gmail.com";
+type VapidConfig = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+  configured: boolean;
+};
+
+async function vapidConfig(): Promise<VapidConfig> {
+  const envPublicKey = getEnv("WEB_PUSH_VAPID_PUBLIC_KEY");
+  const envPrivateKey = getEnv("WEB_PUSH_VAPID_PRIVATE_KEY");
+  const envSubject = getEnv("WEB_PUSH_VAPID_SUBJECT");
+
+  if (hasRealValue(envPublicKey) && hasRealValue(envPrivateKey)) {
+    const subject = hasRealValue(envSubject) ? envSubject : "mailto:fortalezaconstruccionesrosario@gmail.com";
+    return {
+      publicKey: envPublicKey,
+      privateKey: envPrivateKey,
+      subject,
+      configured: true
+    };
+  }
+
+  const admin = getSupabaseAdminClient();
+  if (!admin) {
+    return { publicKey: "", privateKey: "", subject: "", configured: false };
+  }
+
+  const { data, error } = await admin.rpc("get_admin_web_push_config");
+  if (error || !data || typeof data !== "object") {
+    return { publicKey: "", privateKey: "", subject: "", configured: false };
+  }
+
+  const row = data as Record<string, unknown>;
+  const publicKey = String(row.publicKey ?? "");
+  const privateKey = String(row.privateKey ?? "");
+  const subject = String(row.subject ?? "") || "mailto:fortalezaconstruccionesrosario@gmail.com";
 
   return {
     publicKey,
@@ -71,8 +103,8 @@ function vapidConfig() {
   };
 }
 
-export function getAdminPushPublicConfig() {
-  const config = vapidConfig();
+export async function getAdminPushPublicConfig() {
+  const config = await vapidConfig();
   return {
     configured: config.configured,
     publicKey: config.configured ? config.publicKey : ""
@@ -142,8 +174,7 @@ function encryptPayload(subscription: Pick<PushSubscriptionRow, "p256dh" | "auth
   return Buffer.concat([header, ciphertext]);
 }
 
-async function deliver(subscription: PushSubscriptionRow, payload: AdminPushPayload) {
-  const config = vapidConfig();
+async function deliver(subscription: PushSubscriptionRow, payload: AdminPushPayload, config: VapidConfig) {
   if (!config.configured) return { ok: false as const, disabled: true as const };
 
   const privateKey = fromBase64Url(config.privateKey);
@@ -174,7 +205,7 @@ export async function sendAdminWebPush(
   options: { userIds?: string[] } = {}
 ) {
   const admin = getSupabaseAdminClient();
-  const config = vapidConfig();
+  const config = await vapidConfig();
   if (!admin || !config.configured) return { sent: 0, failed: 0, disabled: true };
 
   const { data: adminProfiles } = await admin.from("profiles").select("id").eq("role", "ADMIN");
@@ -201,7 +232,7 @@ export async function sendAdminWebPush(
   await Promise.all(
     (data as PushSubscriptionRow[]).map(async (subscription) => {
       try {
-        const result = await deliver(subscription, payload);
+        const result = await deliver(subscription, payload, config);
         if (result.ok) {
           sent += 1;
           return;
