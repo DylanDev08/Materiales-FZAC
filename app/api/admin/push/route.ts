@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const context = await getAdminApiContext(request, { scope: "admin-push-subscribe", limit: 20 });
   if (!context.ok) return context.response;
   const { admin, profile } = context;
-  const config = getAdminPushPublicConfig();
+  const config = await getAdminPushPublicConfig();
   if (!config.configured) return jsonError("Las notificaciones push todavía no están configuradas en el servidor.", 503);
 
   try {
