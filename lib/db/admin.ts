@@ -155,6 +155,8 @@ export async function getAdminProducts() {
       .from("products")
       .select("*, supplier:suppliers(id,name), category:categories(id,name,slug,description,image_url,parent_id,active,sort_order)")
       .eq("active", true)
+      .order("on_sale", { ascending: false })
+      .order("featured", { ascending: false })
       .order("name", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) return [];
