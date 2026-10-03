@@ -77,10 +77,9 @@ export async function notifyAdminPaymentApproved(order: { id: string; customerNa
     link_to: linkTo
   });
 
-  const amount = order.total != null ? ` · ${Math.round(order.total).toLocaleString("es-AR")}` : "";
   await sendAdminWebPush({
-    title: "FZAC Materiales · Pago aprobado",
-    body: `${order.customerName}${amount}${order.ticketNumber ? ` · Ticket ${order.ticketNumber}` : ""}`,
+    title: "FZAC Materiales",
+    body: `Pago realizado de ${order.customerName}`,
     url: linkTo,
     tag: `fzac-payment-${order.id}`
   }).catch(() => undefined);
