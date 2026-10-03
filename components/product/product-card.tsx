@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, ShieldCheck, ShoppingCart } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import {
@@ -12,7 +12,7 @@ import {
   getProductAvailabilityStatus,
   productAvailabilityLabel
 } from "@/lib/products/availability";
-import { promotionLabel } from "@/lib/products/promotions";
+import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
@@ -20,6 +20,7 @@ import type { Product } from "@/types/domain";
 export function ProductCard({ product }: { product: Product }) {
   const { addItem, hydrated } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [addError, setAddError] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
@@ -32,13 +33,23 @@ export function ProductCard({ product }: { product: Product }) {
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
   const promotion = promotionLabel(product);
   const whatsappOnly = isWhatsAppOnlyProduct(product);
-  const whatsappHref = getWhatsAppHref(`Hola FZAC, quiero comprar el ${product.name}. Quiero coordinar el pago inmediato por WhatsApp.`);
+  const maxQuantity = purchasable ? product.stock : whatsappOnly ? Math.max(product.stock, 1) : 999;
+  const pricing = productLinePricing(product, quantity);
+  const whatsappHref = getWhatsAppHref(
+    `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "unidad" : "unidades"} de ${product.name}. Total estimado: ${currency(pricing.total)}. Quiero coordinar el pago inmediato por WhatsApp.`
+  );
+
+  function setSafeQuantity(next: number) {
+    setQuantity(Math.min(maxQuantity, Math.max(1, Number.isFinite(next) ? next : 1)));
+    setAdded(false);
+    setAddError(false);
+  }
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
     setIsAdding(true);
     setAddError(false);
-    const success = addItem(product, 1);
+    const success = addItem(product, quantity);
     setAdded(success);
     setAddError(!success);
     window.requestAnimationFrame(() => setIsAdding(false));
@@ -86,6 +97,7 @@ export function ProductCard({ product }: { product: Product }) {
         <Link href={`/producto/${product.slug}`} prefetch={false}>
           <h3>{product.name}</h3>
         </Link>
+        <p className="product-card__description">{product.description}</p>
         <span className="product-card__seller">Vendido por FZAC</span>
         <div className="product-card__price">
           <strong>{currency(product.price)}</strong>
@@ -112,6 +124,25 @@ export function ProductCard({ product }: { product: Product }) {
             <><MessageCircle size={14} /> Confirmamos stock antes del pago</>
           )}
         </span>
+
+        {(cartEligible || whatsappOnly) ? (
+          <div className="product-card__quantity" aria-label="Cantidad">
+            <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
+              <Minus size={14} />
+            </button>
+            <input
+              aria-label="Cantidad"
+              min={1}
+              max={maxQuantity}
+              type="number"
+              value={quantity}
+              onChange={(event) => setSafeQuantity(Number(event.target.value))}
+            />
+            <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity} aria-label="Sumar una unidad">
+              <Plus size={14} />
+            </button>
+          </div>
+        ) : null}
 
         <div className="product-card__actions">
           {whatsappOnly ? (
@@ -145,7 +176,7 @@ export function ProductCard({ product }: { product: Product }) {
               <CheckCircle size={15} /> Producto añadido al carrito
             </strong>
             <small>
-              {product.name} · Cantidad 1
+              {product.name} · Cantidad {quantity}
             </small>
             <span>
               <Link href="/carrito" prefetch={false}>Ver carrito</Link>
