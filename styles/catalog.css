@@ -349,13 +349,13 @@
 }
 
 .product-card__quantity {
-  min-height: 36px;
+  min-height: 40px;
   display: grid;
-  grid-template-columns: 36px minmax(42px, 1fr) 36px;
+  grid-template-columns: 36px minmax(52px, 1fr) 36px;
   overflow: hidden;
-  border: 1px solid rgba(17, 17, 17, 0.18);
-  border-radius: 6px;
-  background: rgba(17, 17, 17, 0.04);
+  border: 1px solid rgba(244, 196, 0, 0.22);
+  border-radius: 8px;
+  background: #111111;
 }
 
 .product-card__quantity button {
@@ -374,8 +374,8 @@
   width: 100%;
   min-width: 0;
   border: 0;
-  background: #ffffff;
-  color: #111111;
+  background: #111111;
+  color: #f5f5f0;
   text-align: center;
   font-weight: 850;
   appearance: textfield;
@@ -443,15 +443,20 @@
 
 .product-card__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.45fr) minmax(110px, 0.95fr);
   gap: 7px;
   margin-top: auto;
 }
 
 .product-card__actions .btn {
-  min-height: 44px;
-  padding: 0 10px;
-  font-size: 0.8rem;
+  min-height: 46px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.product-card__primary-action {
+  white-space: nowrap;
+  justify-content: center;
 }
 
 .product-card__detail {
@@ -1570,6 +1575,10 @@
 
   .product-card__actions {
     grid-template-columns: 1fr;
+  }
+
+  .product-card__primary-action {
+    white-space: normal;
   }
 
   .product-card__detail {
