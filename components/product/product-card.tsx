@@ -151,7 +151,7 @@ export function ProductCard({ product }: { product: Product }) {
               Comprar por WhatsApp
             </a>
           ) : cartEligible ? (
-            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
+            <button className="btn product-card__primary-action" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
               <ShoppingCart size={18} />
               {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
             </button>
