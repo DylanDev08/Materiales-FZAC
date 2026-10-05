@@ -29,18 +29,19 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (paymentError || !payment) return jsonError("El pedido no tiene un registro de pago para confirmar.", 409);
   if (String(order.status) === "CANCELLED") return jsonError("No se puede confirmar el pago de una orden cancelada.", 409);
 
+  const confirmedAt = new Date().toISOString();
   const existingRaw = payment.raw && typeof payment.raw === "object" ? payment.raw as Record<string, unknown> : {};
   const manualRaw = {
     ...existingRaw,
     checkout_provider: payment.provider,
     manual_transfer_confirmation: true,
     confirmed_by: profile.id,
-    confirmed_at: new Date().toISOString()
+    confirmed_at: confirmedAt
   };
 
   const { error: providerUpdateError } = await admin
     .from("payments")
-    .update({ provider: "BANK_TRANSFER", raw: manualRaw, updated_at: new Date().toISOString() })
+    .update({ provider: "BANK_TRANSFER", raw: manualRaw, updated_at: confirmedAt })
     .eq("id", payment.id);
   if (providerUpdateError) return jsonError("No pudimos preparar el registro de transferencia.", 409);
 
@@ -58,6 +59,12 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
     }
     return jsonError(message, 409);
   }
+
+  await admin
+    .from("whatsapp_payment_proofs")
+    .update({ status: "ACCEPTED", reviewed_at: confirmedAt, reviewed_by: profile.id })
+    .eq("order_id", orderId)
+    .eq("status", "PENDING_REVIEW");
 
   try {
     const procurement = await ensureSupplierPurchaseOrdersForCustomerOrder(orderId, profile.id);
