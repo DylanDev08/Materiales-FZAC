@@ -10,6 +10,23 @@ const messageSchema = z.object({
   interactive: z.object({
     button_reply: z.object({ title: z.string().max(500) }).optional(),
     list_reply: z.object({ title: z.string().max(500) }).optional()
+  }).optional(),
+  image: z.object({
+    id: z.string().max(220),
+    mime_type: z.string().max(120).optional(),
+    caption: z.string().max(2000).optional()
+  }).optional(),
+  document: z.object({
+    id: z.string().max(220),
+    mime_type: z.string().max(120).optional(),
+    filename: z.string().max(240).optional(),
+    caption: z.string().max(2000).optional()
+  }).optional(),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    name: z.string().max(500).optional(),
+    address: z.string().max(1000).optional()
   }).optional()
 });
 
@@ -32,9 +49,16 @@ export type WhatsAppInboundMessage = {
   id: string;
   from: string;
   body: string;
-  type: "TEXT" | "BUTTON" | "INTERACTIVE" | "UNSUPPORTED";
+  type: "TEXT" | "BUTTON" | "INTERACTIVE" | "IMAGE" | "DOCUMENT" | "LOCATION" | "UNSUPPORTED";
   customerName: string | null;
   timestamp: string | null;
+  mediaId: string | null;
+  mimeType: string | null;
+  filename: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationName: string | null;
+  locationAddress: string | null;
 };
 
 function bodyFor(message: z.infer<typeof messageSchema>) {
@@ -43,6 +67,12 @@ function bodyFor(message: z.infer<typeof messageSchema>) {
   if (message.type === "interactive") {
     return message.interactive?.button_reply?.title ?? message.interactive?.list_reply?.title ?? "";
   }
+  if (message.type === "image") return message.image?.caption ?? "";
+  if (message.type === "document") return message.document?.caption ?? message.document?.filename ?? "";
+  if (message.type === "location") {
+    const location = message.location;
+    return [location?.name, location?.address].filter(Boolean).join(" - ");
+  }
   return "";
 }
 
@@ -50,6 +80,9 @@ function typeFor(value: string): WhatsAppInboundMessage["type"] {
   if (value === "text") return "TEXT";
   if (value === "button") return "BUTTON";
   if (value === "interactive") return "INTERACTIVE";
+  if (value === "image") return "IMAGE";
+  if (value === "document") return "DOCUMENT";
+  if (value === "location") return "LOCATION";
   return "UNSUPPORTED";
 }
 
@@ -68,7 +101,14 @@ export function parseWhatsAppPayload(value: unknown): WhatsAppInboundMessage[] {
           body: bodyFor(message).trim().slice(0, 500),
           type: typeFor(message.type),
           customerName: contact?.profile?.name?.trim().slice(0, 160) || null,
-          timestamp: message.timestamp ?? null
+          timestamp: message.timestamp ?? null,
+          mediaId: message.image?.id ?? message.document?.id ?? null,
+          mimeType: message.image?.mime_type ?? message.document?.mime_type ?? null,
+          filename: message.document?.filename ?? null,
+          latitude: message.location?.latitude ?? null,
+          longitude: message.location?.longitude ?? null,
+          locationName: message.location?.name?.trim().slice(0, 500) || null,
+          locationAddress: message.location?.address?.trim().slice(0, 1000) || null
         });
       }
     }
