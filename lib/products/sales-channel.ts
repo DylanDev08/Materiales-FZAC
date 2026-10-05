@@ -1,12 +1,14 @@
 import type { Product } from "@/types/domain";
 
+/**
+ * Legacy compatibility helper.
+ *
+ * The storefront now sends every product through the same checkout and the
+ * checkout itself finishes on WhatsApp. No product needs to bypass the cart
+ * with a separate WhatsApp-only sales channel anymore.
+ */
 export function isWhatsAppOnlyProduct(
-  product: Pick<Product, "specifications" | "sku" | "slug">
+  _product: Pick<Product, "specifications" | "sku" | "slug">
 ) {
-  const channel = String(product.specifications?.sale_channel ?? "").trim().toUpperCase();
-  return (
-    channel === "WHATSAPP_ONLY" ||
-    product.sku === "FZAC-COMBO-CHAU-FILTRACIONES" ||
-    product.slug === "combo-chau-filtraciones"
-  );
+  return false;
 }
