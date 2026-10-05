@@ -11,12 +11,12 @@ export function getProductAvailabilityStatus(product: Pick<Product, "stock" | "a
 }
 
 export function canPurchaseProduct(product: Pick<Product, "stock" | "availability_status">) {
-  return getProductAvailabilityStatus(product) === "IN_STOCK" && product.stock > 0;
+  const status = getProductAvailabilityStatus(product);
+  return status === "CONSULT" || (status === "IN_STOCK" && product.stock > 0);
 }
 
 export function canAddProductToCart(product: Pick<Product, "stock" | "availability_status">) {
-  const status = getProductAvailabilityStatus(product);
-  return (status === "IN_STOCK" && product.stock > 0) || status === "CONSULT";
+  return canPurchaseProduct(product);
 }
 
 export function productAvailabilityLabel(
