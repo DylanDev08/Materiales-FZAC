@@ -62,7 +62,8 @@ export async function sendWhatsAppDocument(
     const form = new FormData();
     form.set("messaging_product", "whatsapp");
     form.set("type", "application/pdf");
-    form.set("file", new Blob([bytes], { type: "application/pdf" }), filename.slice(0, 180));
+    const pdfBuffer = bytes.slice().buffer as ArrayBuffer;
+    form.set("file", new Blob([pdfBuffer], { type: "application/pdf" }), filename.slice(0, 180));
 
     const upload = await fetch(`https://graph.facebook.com/${config.version}/${config.phoneNumberId}/media`, {
       method: "POST",
