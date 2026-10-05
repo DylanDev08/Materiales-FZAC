@@ -39,6 +39,18 @@ async function handlePost(request: Request) {
 
   try {
     const payload = checkoutCreateSchema.parse(body.data);
+
+    if (payload.paymentMethod !== "WHATSAPP") {
+      return Response.json(
+        {
+          ok: false,
+          error: "PAYMENT_FLOW_ARCHIVED",
+          message: "Los pagos nuevos por Mercado Pago o transferencia directa desde la web fueron archivados. Confirmá el pedido por WhatsApp para recibir los datos de transferencia."
+        },
+        { status: 410 }
+      );
+    }
+
     const currentUser = await getCurrentUser();
     if (!currentUser?.id || !currentUser.email) return jsonError("Necesitás iniciar sesión para comprar.", 401);
     if (currentUser.email.trim().toLowerCase() !== payload.customer.email.trim().toLowerCase()) {
@@ -158,7 +170,6 @@ async function handlePost(request: Request) {
     return jsonError("No pudimos crear el checkout. Revisá los datos e intentá nuevamente.", 400);
   }
 }
-
 
 export async function POST(request: Request) {
   return withApiTelemetry("checkout.create", request, () => handlePost(request));
