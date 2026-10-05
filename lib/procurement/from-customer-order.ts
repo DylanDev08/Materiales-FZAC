@@ -14,6 +14,14 @@ type SupplierLine = {
   unitCost: number;
 };
 
+type SupplierSourceRow = {
+  product_id: string;
+  supplier_id: string;
+  original_price: number | string | null;
+  checked_at: string | null;
+  manual_review_required: boolean | null;
+};
+
 function deterministicRequestKey(orderId: string, supplierId: string) {
   const hex = createHash("sha256").update(`fzac-procurement:${orderId}:${supplierId}`).digest("hex").slice(0, 32);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
@@ -79,8 +87,9 @@ export async function ensureSupplierPurchaseOrdersForCustomerOrder(orderId: stri
   if (productError || sourceError) throw new Error("No pudimos resolver proveedores y costos para el pedido.");
 
   const productsById = new Map((products ?? []).map((product) => [String(product.id), product]));
-  const sourcesByProduct = new Map<string, typeof sources>();
-  for (const source of sources ?? []) {
+  const sourceRows = (sources ?? []) as SupplierSourceRow[];
+  const sourcesByProduct = new Map<string, SupplierSourceRow[]>();
+  for (const source of sourceRows) {
     const productId = String(source.product_id);
     const current = sourcesByProduct.get(productId) ?? [];
     current.push(source);
