@@ -15,6 +15,7 @@
 @import "../styles/ui-ux-hardening.css";
 @import "../styles/resilience.css";
 @import "../styles/experience-innovation.css";
+@import "../styles/checkout-priority.css";
 
 * {
   box-sizing: border-box;
