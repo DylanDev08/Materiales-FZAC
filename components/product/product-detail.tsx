@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, CreditCard, MessageCircle, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { ChevronRight, MessageCircle, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import { ProductBuyBox } from "@/components/product/product-buybox";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductGrid } from "@/components/catalog/product-grid";
@@ -38,11 +38,11 @@ export function ProductDetail({ product, related }: { product: Product; related:
             {availabilityStatus === "CONSULT" ? <MessageCircle size={19} /> : <PackageCheck size={19} />}
             <span>
               {availabilityStatus === "CONSULT" ? (
-                <><strong>Stock a confirmar</strong> antes del pago</>
+                <><strong>Stock a confirmar</strong> antes de coordinar</>
               ) : availabilityStatus === "OUT_OF_STOCK" ? (
                 <><strong>Sin stock</strong> para compra directa</>
               ) : (
-                <><strong>Stock validado</strong> antes de cobrar</>
+                <><strong>Stock validado</strong> antes de confirmar</>
               )}
             </span>
           </div>
@@ -51,8 +51,8 @@ export function ProductDetail({ product, related }: { product: Product; related:
             <span><strong>Retiro o envío</strong> según zona</span>
           </div>
           <div>
-            <CreditCard size={19} />
-            <span><strong>Pago seguro</strong> con Mercado Pago</span>
+            <MessageCircle size={19} />
+            <span><strong>Pago coordinado</strong> por WhatsApp</span>
           </div>
           <div>
             <ShieldCheck size={19} />
@@ -88,7 +88,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
           <details>
             <summary>Medios de pago</summary>
             <div>
-              <p>Tarjeta, Mercado Pago, transferencia o coordinación por WhatsApp.</p>
+              <p>El pago se coordina directamente por WhatsApp con el equipo de FZAC una vez confirmado el pedido.</p>
             </div>
           </details>
         </section>
