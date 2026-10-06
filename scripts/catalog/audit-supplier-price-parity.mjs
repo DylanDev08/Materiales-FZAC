@@ -41,7 +41,7 @@ async function readAll(queryFactory, pageSize = 1000) {
 export function expectedMargin(supplierCode, originalPrice) {
   const price = Number(originalPrice);
   if (!Number.isFinite(price) || price <= 0) return null;
-  if (supplierCode === YESERA_CODE) return price > 60_000 ? 8 : 10;
+  if (supplierCode === YESERA_CODE) return 5;
   if (supplierCode === UNIVERSO_CODE) return 0;
   return null;
 }
@@ -119,8 +119,7 @@ async function audit() {
     rows: rows.length,
     yesera: rows.filter((row) => row.supplier_code === YESERA_CODE).length,
     universo: rows.filter((row) => row.supplier_code === UNIVERSO_CODE).length,
-    margin_10: rows.filter((row) => row.expected_margin_percent === 10).length,
-    margin_20: rows.filter((row) => row.expected_margin_percent === 20).length,
+    margin_5: rows.filter((row) => row.expected_margin_percent === 5).length,
     margin_0: rows.filter((row) => row.expected_margin_percent === 0).length,
     missing_image: rows.filter((row) => row.missing_image).length,
     missing_description: rows.filter((row) => row.missing_description).length,
