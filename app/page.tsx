@@ -25,7 +25,7 @@ export default function Page() {
     image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
     currenciesAccepted: "ARS",
-    paymentAccepted: "Mercado Pago, tarjeta, transferencia bancaria",
+    paymentAccepted: "Transferencia bancaria coordinada por WhatsApp con FZAC",
     address: {
       "@type": "PostalAddress",
       streetAddress: identity.address,
