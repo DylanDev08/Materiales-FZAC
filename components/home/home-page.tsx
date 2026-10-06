@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
-  CreditCard,
   Hammer,
   Headphones,
   Layers3,
@@ -24,7 +23,7 @@ const primaryCategories = [
   { label: "Construcción en Seco", helper: "Placas, perfiles, masillas y terminaciones", href: "/categoria/construccion-en-seco", icon: PanelsTopLeft },
   { label: "Steel Framing", helper: "Estructuras y soluciones para sistemas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
   { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench },
-  { label: "Materiales de obra", helper: "Cemento y materiales con stock informado", href: "/categoria/materiales-de-obra", icon: Hammer }
+  { label: "Materiales de obra", helper: "Cemento y materiales con disponibilidad informada", href: "/categoria/materiales-de-obra", icon: Hammer }
 ];
 
 const buyingNeeds = [
@@ -53,7 +52,7 @@ export async function HomePage() {
       <section className="home-promo storefront-promo" aria-label="Beneficios de compra">
         <div className="container home-promo__inner">
           <span><Truck size={18} /> Envíos y retiro coordinados</span>
-          <span><ShieldCheck size={18} /> Compra protegida</span>
+          <span><ShieldCheck size={18} /> Pedido protegido</span>
           <span><BadgeCheck size={18} /> Disponibilidad informada</span>
           <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={18} /> Botón de arrepentimiento</Link>
         </div>
@@ -75,7 +74,7 @@ export async function HomePage() {
             </div>
             <div className="storefront-hero__facts" aria-label="Condiciones de compra">
               <span><BadgeCheck size={17} /> Disponibilidad informada</span>
-              <span><CreditCard size={17} /> Pago seguro</span>
+              <span><MessageCircle size={17} /> Pago coordinado</span>
               <span><Truck size={17} /> Entrega coordinada</span>
             </div>
           </div>
@@ -134,9 +133,9 @@ export async function HomePage() {
 
       <section className="storefront-benefits" aria-label="Servicios FZAC">
         <div className="container storefront-benefits__grid">
-          <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y disponibilidad.</small></span></div>
+          <div><ShieldCheck size={22} /><span><strong>Pedido protegido</strong><small>Validamos precio y disponibilidad.</small></span></div>
           <div><Truck size={22} /><span><strong>Entrega o retiro</strong><small>Coordinación según tu pedido.</small></span></div>
-          <div><CreditCard size={22} /><span><strong>Medios de pago</strong><small>Online, transferencia o coordinación.</small></span></div>
+          <div><MessageCircle size={22} /><span><strong>Pago coordinado</strong><small>Transferencia acordada por WhatsApp con FZAC.</small></span></div>
           <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Ayuda antes y después de comprar.</small></span></div>
         </div>
       </section>
@@ -152,7 +151,7 @@ export async function HomePage() {
           <ol className="storefront-projects__steps">
             <li><span>1</span><div><strong>Elegí</strong><small>Buscá por producto, rubro u oferta.</small></div></li>
             <li><span>2</span><div><strong>Revisá</strong><small>Confirmá cantidades y forma de entrega.</small></div></li>
-            <li><span>3</span><div><strong>Pagá o coordiná</strong><small>Elegí el medio que mejor se adapte.</small></div></li>
+            <li><span>3</span><div><strong>Coordiná</strong><small>Confirmá stock y transferencia con FZAC por WhatsApp.</small></div></li>
             <li><span>4</span><div><strong>Recibí</strong><small>Seguí el pedido desde tu cuenta.</small></div></li>
           </ol>
         </div>
