@@ -4,7 +4,7 @@ const materialPhotos: Record<string, string> = {
   drywallBoard: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=82",
   metalProfile: "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1100&q=82",
   ceilingPvc: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&w=1100&q=82",
-  screwsFasteners: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=1100&q=82",
+  screwsFasteners: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8e?auto=format&fit=crop&w=1100&q=82",
   jointCompound: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1100&q=82",
   insulation: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1100&q=82",
   cementBoard: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=1100&q=82",
@@ -60,7 +60,9 @@ function isSupportedProductImage(value: string) {
       url.hostname.endsWith(".cloudfront.net") ||
       url.hostname.endsWith(".tiendanube.com") ||
       url.hostname === "universopinturerias.vtexassets.com" ||
-      url.hostname.endsWith(".vtexassets.com")
+      url.hostname.endsWith(".vtexassets.com") ||
+      url.hostname === "durlock.com" ||
+      url.hostname.endsWith(".durlock.com")
     );
   } catch {
     return false;
