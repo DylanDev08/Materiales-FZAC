@@ -93,8 +93,7 @@ export function isAroProduct(product = {}) {
 export function marginPercent(product = {}) {
   const sourcePrice = Number(product.original_price ?? product.source_price ?? product.price ?? 0);
   if (!Number.isFinite(sourcePrice) || sourcePrice <= 0) return 0;
-  // Commercial policy: Yesera products may carry at most 5% over the verified source price.
-  return 5;
+  return sourcePrice > 60_000 ? 8 : 10;
 }
 
 export function salePrice(sourcePrice, product = {}) {
@@ -161,4 +160,281 @@ export function parseProducts(html, subcategoryById) {
   });
 }
 
-// Remaining import/apply helpers intentionally preserve existing behavior below this point.
+async function discoverSubcategories() {
+  const byId = new Map();
+  for (const [label, slug] of CATEGORY_CHILDREN) {
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const html = await fetchHtml(`${SOURCE_CATEGORY_URL}${slug}/?page=${page}`);
+      const ids = [...html.matchAll(/data-product-id="(\d+)"/g)].map((match) => match[1]);
+      [...new Set(ids)].forEach((id) => byId.set(id, label));
+      if (new Set(ids).size < PAGE_SIZE) break;
+    }
+  }
+  return byId;
+}
+
+async function discoverProducts(subcategoryById) {
+  const scopedRows = [];
+  const sourceScopes = [
+    [SOURCE_CATEGORY_URL, "CONSTRUCCION_EN_SECO"],
+    [SOURCE_STEEL_FRAMING_URL, "STEEL_FRAMING"]
+  ];
+  for (const [sourceUrl, scope] of sourceScopes) {
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const html = await fetchHtml(`${sourceUrl}?page=${page}`);
+      const pageRows = parseProducts(html, subcategoryById);
+      if (!pageRows.length) break;
+      scopedRows.push(...pageRows.map((row) => ({ ...row, source_scope: scope })));
+      if (pageRows.length < PAGE_SIZE) break;
+    }
+  }
+
+  const supplementalRows = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const html = await fetchHtml(`${SOURCE_CATALOG_URL}?page=${page}`);
+    const pageRows = parseProducts(html, subcategoryById);
+    if (!pageRows.length) break;
+    supplementalRows.push(...pageRows
+      .filter(isSupplementalDryProduct)
+      .map((row) => ({ ...row, source_scope: "CATALOG_RELATED" })));
+    if (pageRows.length < PAGE_SIZE) break;
+  }
+
+  const uniqueRows = new Map();
+  for (const row of [...scopedRows, ...supplementalRows]) {
+    if (!uniqueRows.has(row.source_product_id)) uniqueRows.set(row.source_product_id, row);
+  }
+  return {
+    rows: [...uniqueRows.values()],
+    categoryCount: new Set(scopedRows.filter((row) => row.source_scope === "CONSTRUCCION_EN_SECO").map((row) => row.source_product_id)).size,
+    steelFramingCount: new Set(scopedRows.filter((row) => row.source_scope === "STEEL_FRAMING").map((row) => row.source_product_id)).size,
+    supplementalCount: [...uniqueRows.values()].filter((row) => row.source_scope === "CATALOG_RELATED").length
+  };
+}
+
+function supabaseClient() {
+  const requiredNames = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "DATABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL && !process.env.DATABASE_URL)) {
+    for (const name of requiredNames) {
+      if (!process.env[name]) delete process.env[name];
+    }
+    try {
+      process.loadEnvFile(".env");
+    } catch {
+      // The explicit error below remains the single safe failure mode.
+    }
+  }
+  const databaseProjectRef = process.env.DATABASE_URL?.match(/db\.([a-z0-9-]+)\.supabase\.co/i)?.[1];
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env["\uFEFFNEXT_PUBLIC_SUPABASE_URL"] || process.env.SUPABASE_URL || (databaseProjectRef ? `https://${databaseProjectRef}.supabase.co` : ""))
+    .replace(/^['"]|['"]$/g, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Falta configuración Supabase server-side.");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+async function readAll(queryFactory, pageSize = 1000) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await queryFactory().range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < pageSize) return rows;
+  }
+}
+
+async function loadFzacState(db) {
+  let products;
+  try {
+    products = await readAll(() => db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url,supplier_id,availability_status"));
+  } catch (error) {
+    if (!String(error?.message ?? "").match(/supplier_id|availability_status/)) throw error;
+    products = await readAll(() => db.from("products").select("id,name,slug,sku,brand,subcategory,price,stock,image_url"));
+  }
+  const [{ data: categories, error: categoryError }, { data: supplier, error: supplierError }] = await Promise.all([
+    db.from("categories").select("id,slug").in("slug", ["construccion-en-seco", "steel-framing", "ferreteria"]),
+    db.from("suppliers").select("id").eq("code", "LA-YESERA-ROSARINA").single()
+  ]);
+  if (categoryError || supplierError) throw categoryError || supplierError;
+  const sources = await readAll(() => db.from("product_supplier_sources")
+    .select("product_id,supplier_id,source_product_id,source_url,source_sku,original_price")
+    .eq("supplier_id", supplier.id));
+  return {
+    products,
+    categoryBySlug: new Map((categories ?? []).map((category) => [category.slug, category.id])),
+    supplierId: supplier.id,
+    sources
+  };
+}
+
+function errorMessage(error) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    return [error.message, error.details, error.hint, error.code].filter(Boolean).join(" | ") || JSON.stringify(error);
+  }
+  return String(error);
+}
+
+export function classify(rows, state) {
+  const sourceByExternalId = new Map(state.sources.map((source) => [source.source_product_id, source]));
+  const sourceByUrl = new Map(state.sources.filter((source) => source.source_url).map((source) => [source.source_url, source]));
+  const sourceBySku = new Map(state.sources.filter((source) => source.source_sku).map((source) => [source.source_sku, source]));
+  return rows.map((row) => {
+    const source = sourceByExternalId.get(row.source_product_id)
+      ?? sourceByUrl.get(row.source_url)
+      ?? (row.source_sku ? sourceBySku.get(row.source_sku) : null);
+    if (source) {
+      const reason = source.source_product_id === row.source_product_id
+        ? "source_product_id"
+        : source.source_url === row.source_url ? "source_url" : "source_sku";
+      return { ...row, decision: "UPDATE_IMPORTED", existing_product_id: source.product_id, duplicate_reasons: [reason] };
+    }
+
+    const candidates = state.products.flatMap((product) => {
+      const reasons = [];
+      if (product.sku === row.source_sku || product.sku === row.import_sku) reasons.push("sku");
+      if (product.slug === row.slug) reasons.push("slug");
+      if (normalizeText(product.name) === normalizeText(row.original_name)) reasons.push("normalized_name");
+      const similarity = tokenSimilarity(product.name, row.original_name);
+      if (similarity >= 0.72) reasons.push(`name_similarity:${similarity.toFixed(2)}`);
+      return reasons.length ? [{ id: product.id, name: product.name, reasons }] : [];
+    });
+    return {
+      ...row,
+      decision: candidates.some((candidate) => candidate.reasons.some((reason) => !reason.startsWith("name_similarity")))
+        ? "SKIP_DUPLICATE"
+        : candidates.length ? "REVIEW_POTENTIAL_DUPLICATE" : "INSERT",
+      duplicate_candidates: candidates
+    };
+  });
+}
+
+async function upsertSuppliers(db) {
+  const rows = [
+    { code: "LA-YESERA-ROSARINA", name: "Yesera Rosarina", active: true },
+    { code: "URBE-SRL", name: "Urbe SRL", active: true },
+    { code: "MAQUINARIA-SORRENTOS", name: "Maquinaria Sorrentos", active: true }
+  ];
+  const { data, error } = await db.from("suppliers").upsert(rows, { onConflict: "code" }).select("id,code,name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function applyImport(db, preview, state) {
+  const suppliers = await upsertSuppliers(db);
+  const supplier = suppliers.find((item) => item.code === "LA-YESERA-ROSARINA");
+  if (!supplier) throw new Error("No se pudo registrar La Yesera Rosarina.");
+  const result = { inserted: [], updated: [], skipped: [], errors: [] };
+
+  for (const row of preview.products) {
+    try {
+      if (row.decision === "SKIP_DUPLICATE" || row.decision === "REVIEW_POTENTIAL_DUPLICATE") {
+        result.skipped.push({ source_product_id: row.source_product_id, name: row.original_name, reason: row.decision });
+        continue;
+      }
+      const productPayload = {
+        name: row.original_name,
+        slug: row.slug,
+        sku: row.import_sku,
+        description: "",
+        category_id: state.categoryBySlug.get(row.target_category_slug),
+        subcategory: row.subcategory,
+        brand: row.brand ?? "Sin marca informada",
+        price: row.sale_price,
+        stock: 0,
+        stock_minimum: 0,
+        unit: row.unit,
+        image_url: "",
+        gallery: [],
+        specifications: row.specifications,
+        featured: false,
+        on_sale: false,
+        active: true,
+        supplier_id: supplier.id,
+        availability_status: "CONSULT"
+      };
+
+      let product;
+      if (row.decision === "UPDATE_IMPORTED") {
+        const { data, error } = await db.from("products")
+          // Preserve any stock and availability decision recorded by FZAC
+          // after the initial import while refreshing source-linked prices.
+          .update({
+            price: row.sale_price,
+            supplier_id: supplier.id,
+            category_id: state.categoryBySlug.get(row.target_category_slug),
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", row.existing_product_id).select("id,name,price").single();
+        if (error) throw error;
+        product = data;
+        result.updated.push(product);
+      } else {
+        const { data, error } = await db.from("products").insert(productPayload).select("id,name,price").single();
+        if (error) throw error;
+        product = data;
+        result.inserted.push(product);
+      }
+
+      const { error: provenanceError } = await db.from("product_supplier_sources").upsert({
+        product_id: product.id,
+        supplier_id: supplier.id,
+        source: row.source,
+        source_product_id: row.source_product_id,
+        source_url: row.source_url,
+        source_image_url: row.source_image_url,
+        source_sku: row.source_sku,
+        original_name: row.original_name,
+        original_price: row.original_price,
+        margin_percent: row.margin_percent,
+        checked_at: new Date().toISOString()
+      }, { onConflict: "product_id" });
+      if (provenanceError) throw provenanceError;
+    } catch (error) {
+      result.errors.push({ source_product_id: row.source_product_id, name: row.original_name, error: errorMessage(error) });
+    }
+  }
+  return { suppliers, ...result };
+}
+
+async function main() {
+  const db = supabaseClient();
+  const subcategoryById = await discoverSubcategories();
+  const discovery = await discoverProducts(subcategoryById);
+  const sourceRows = discovery.rows;
+  const state = await loadFzacState(db);
+  const products = classify(sourceRows, state);
+  const preview = {
+    generated_at: new Date().toISOString(),
+    source: SOURCE,
+    source_category_url: SOURCE_CATEGORY_URL,
+    source_requests: "Bounded Construcción en Seco, child-category and full-catalog pagination; supplemental rows require an explicit dry-construction product signal.",
+    pricing_rule: "Regla comercial conservadora: hasta $60.000 +10%; mayores a $60.000 +8%.",
+    image_policy: "El propietario de FZAC autorizó el uso comercial. La copia optimizada a Storage se ejecuta con catalog:la-yesera:images:apply; no se permite hotlink permanente.",
+    summary: {
+      found: products.length,
+      category_found: discovery.categoryCount,
+      steel_framing_found: discovery.steelFramingCount,
+      supplemental_related: discovery.supplementalCount,
+      margin_20: products.filter((row) => row.margin_percent === 20).length,
+      margin_10: products.filter((row) => row.margin_percent === 10).length,
+      insert: products.filter((row) => row.decision === "INSERT").length,
+      update_imported: products.filter((row) => row.decision === "UPDATE_IMPORTED").length,
+      skip_duplicate: products.filter((row) => row.decision === "SKIP_DUPLICATE").length,
+      review_potential_duplicate: products.filter((row) => row.decision === "REVIEW_POTENTIAL_DUPLICATE").length
+    },
+    products
+  };
+
+  await mkdir("data/imports", { recursive: true });
+  await writeFile(OUTPUT_PATH, `${JSON.stringify(preview, null, 2)}\n`, "utf8");
+  console.log(JSON.stringify({ output: OUTPUT_PATH, summary: preview.summary }, null, 2));
+
+  if (APPLY) {
+    if (products.length < 1) throw new Error("Dataset vacío: importación cancelada.");
+    const result = await applyImport(db, preview, state);
+    console.log(JSON.stringify({ applied: true, ...result }, null, 2));
+    if (result.errors.length) process.exitCode = 1;
+  }
+}
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) await main();
