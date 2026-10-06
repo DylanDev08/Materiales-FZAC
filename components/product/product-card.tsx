@@ -9,8 +9,7 @@ import { currency, percentOff } from "@/lib/formatters/currency";
 import {
   canAddProductToCart,
   canPurchaseProduct,
-  getProductAvailabilityStatus,
-  productAvailabilityLabel
+  getProductAvailabilityStatus
 } from "@/lib/products/availability";
 import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
@@ -28,13 +27,18 @@ export function ProductCard({ product }: { product: Product }) {
   const availabilityStatus = getProductAvailabilityStatus(product);
   const purchasable = canPurchaseProduct(product);
   const cartEligible = canAddProductToCart(product);
-  const availabilityLabel = productAvailabilityLabel(product, { includeQuantity: true });
   const hasProductImage = Boolean(product.image_url?.trim());
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
   const promotion = promotionLabel(product);
   const whatsappOnly = isWhatsAppOnlyProduct(product);
   const maxQuantity = purchasable ? product.stock : whatsappOnly ? Math.max(product.stock, 1) : 999;
   const pricing = productLinePricing(product, quantity);
+  const quantityLabel =
+    availabilityStatus === "OUT_OF_STOCK"
+      ? "Cantidad disponible: 0"
+      : availabilityStatus === "CONSULT"
+        ? "Cantidad disponible: a confirmar"
+        : `Cantidad disponible: ${product.stock}`;
   const whatsappHref = getWhatsAppHref(
     `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "unidad" : "unidades"} de ${product.name}. Total estimado: ${currency(pricing.total)}. Quiero coordinar el pago inmediato por WhatsApp.`
   );
@@ -77,9 +81,6 @@ export function ProductCard({ product }: { product: Product }) {
           {!hasProductImage ? <span className="status-pill product-card__image-pending">Imagen pendiente</span> : null}
           {promotion ? <span className="status-pill status-pill--warning">{promotion}</span> : null}
           {!promotion && discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
-          {purchasable && product.stock <= product.stock_minimum ? (
-            <span className="status-pill status-pill--danger">Stock bajo</span>
-          ) : null}
           {availabilityStatus === "CONSULT" ? (
             <span className="status-pill status-pill--warning product-card__availability-consult">Stock a confirmar</span>
           ) : null}
@@ -113,7 +114,7 @@ export function ProductCard({ product }: { product: Product }) {
                 : ""
           }`}
         >
-          {availabilityLabel}
+          {quantityLabel}
         </span>
         <span className="product-card__finance">
           {whatsappOnly ? (
