@@ -58,7 +58,9 @@ function isSupportedProductImage(value: string) {
       url.hostname === "res.cloudinary.com" ||
       url.hostname.endsWith(".mitiendanube.com") ||
       url.hostname.endsWith(".cloudfront.net") ||
-      url.hostname.endsWith(".tiendanube.com")
+      url.hostname.endsWith(".tiendanube.com") ||
+      url.hostname === "universopinturerias.vtexassets.com" ||
+      url.hostname.endsWith(".vtexassets.com")
     );
   } catch {
     return false;
