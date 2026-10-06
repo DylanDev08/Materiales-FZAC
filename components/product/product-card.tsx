@@ -31,7 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
   const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
   const promotion = promotionLabel(product);
   const whatsappOnly = isWhatsAppOnlyProduct(product);
-  const maxQuantity = purchasable ? product.stock : whatsappOnly ? Math.max(product.stock, 1) : 999;
+  const maxQuantity = availabilityStatus === "CONSULT" ? 999 : Math.max(1, product.stock);
   const pricing = productLinePricing(product, quantity);
   const quantityLabel =
     availabilityStatus === "OUT_OF_STOCK"
@@ -40,7 +40,7 @@ export function ProductCard({ product }: { product: Product }) {
         ? "Cantidad disponible: a confirmar"
         : `Cantidad disponible: ${product.stock}`;
   const whatsappHref = getWhatsAppHref(
-    `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "unidad" : "unidades"} de ${product.name}. Total estimado: ${currency(pricing.total)}. Quiero coordinar el pago inmediato por WhatsApp.`
+    `Hola FZAC, quiero consultar por ${quantity} ${quantity === 1 ? "unidad" : "unidades"} de ${product.name}. Total estimado: ${currency(pricing.total)}. Quiero coordinar stock, transferencia y entrega o retiro.`
   );
 
   function setSafeQuantity(next: number) {
@@ -117,12 +117,12 @@ export function ProductCard({ product }: { product: Product }) {
           {quantityLabel}
         </span>
         <span className="product-card__finance">
-          {whatsappOnly ? (
-            <><MessageCircle size={14} /> Venta y pago coordinados por WhatsApp</>
+          {availabilityStatus === "CONSULT" ? (
+            <><MessageCircle size={14} /> Stock y transferencia se confirman por WhatsApp</>
           ) : purchasable ? (
-            <><ShieldCheck size={14} /> Pago seguro y stock validado</>
+            <><ShieldCheck size={14} /> Pedido registrado y pago coordinado con FZAC</>
           ) : (
-            <><MessageCircle size={14} /> Confirmamos stock antes del pago</>
+            <><MessageCircle size={14} /> Consultá reposición con FZAC</>
           )}
         </span>
 
