@@ -3,6 +3,11 @@ packages:
 
 # Reduce exposure to newly published dependency versions during routine updates.
 minimumReleaseAge: 1440
+# Security fixes below are explicitly allowed through the age window.
+minimumReleaseAgeExclude:
+  - source-map-js
+  - sharp
+  - "@img/*"
 strictPeerDependencies: false
 
 allowBuilds:
@@ -12,4 +17,5 @@ overrides:
   js-yaml: 4.3.2
   nanoid: 3.3.18
   postcss: 8.5.23
-  sharp: ^0.35.4
+  "source-map-js@>=1.0.0 <1.2.2": ">=1.2.2"
+  sharp: 0.35.5

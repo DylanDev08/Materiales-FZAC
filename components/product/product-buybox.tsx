@@ -29,7 +29,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const [isAdding, setIsAdding] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
-  const maxQuantity = purchasable ? product.stock : 999;
+  const maxQuantity = availabilityStatus === "CONSULT" ? 999 : Math.max(1, product.stock);
   const pricing = productLinePricing(product, quantity);
   const subtotal = pricing.total;
   const promotion = promotionLabel(product);
@@ -37,8 +37,10 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(
     whatsappOnly
-      ? `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "combo" : "combos"} de ${product.name} (${product.sku}). Total promocional estimado: ${currency(pricing.total)}. Quiero coordinar el pago inmediato por WhatsApp. Si llevo 2 combos, el primero va a precio completo y el segundo con 30% de descuento.`
-      : `Hola FZAC, quiero confirmar stock de ${product.name} (${product.sku}).`
+      ? `Hola FZAC, quiero comprar ${quantity} ${quantity === 1 ? "combo" : "combos"} de ${product.name} (${product.sku}). Total promocional estimado: ${currency(pricing.total)}.`
+      : availabilityStatus === "CONSULT"
+        ? `Hola FZAC, quiero confirmar disponibilidad de ${quantity} ${product.unit} de ${product.name} (${product.sku}).`
+        : `Hola FZAC, quiero consultar por ${product.name} (${product.sku}).`
   );
 
   function setSafeQuantity(next: number) {
@@ -63,10 +65,11 @@ export function ProductBuyBox({ product }: { product: Product }) {
   function buyNow() {
     if (!hydrated || isAdding || !purchasable) return;
     setIsAdding(true);
-    addItem(product, quantity);
-    setAdded(true);
+    const success = addItem(product, quantity);
+    setAdded(success);
+    setAddError(!success);
     window.requestAnimationFrame(() => setIsAdding(false));
-    router.push("/checkout");
+    if (success) router.push("/checkout");
   }
 
   return (
@@ -95,9 +98,9 @@ export function ProductBuyBox({ product }: { product: Product }) {
               : "status-pill status-pill--danger"
         }
       >
-        {productAvailabilityLabel(product, { includeQuantity: true })}
+        {productAvailabilityLabel(product, { includeQuantity: availabilityStatus === "IN_STOCK" })}
       </span>
-      {purchasable && product.stock <= lowStockThreshold ? (
+      {availabilityStatus === "IN_STOCK" && product.stock > 0 && product.stock <= lowStockThreshold ? (
         <span className="status-pill status-pill--warning">Últimas unidades</span>
       ) : null}
 
@@ -105,95 +108,39 @@ export function ProductBuyBox({ product }: { product: Product }) {
         <>
           <div className="product-actions">
             <div className="quantity-stepper" aria-label="Cantidad">
-              <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
-                <Minus size={16} />
-              </button>
-              <input
-                aria-label="Cantidad"
-                min={1}
-                max={product.stock || 10}
-                type="number"
-                value={quantity || 1}
-                onChange={(event) => setSafeQuantity(Number(event.target.value))}
-              />
-              <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= (product.stock || 10)} aria-label="Sumar una unidad">
-                <Plus size={16} />
-              </button>
+              <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad"><Minus size={16} /></button>
+              <input aria-label="Cantidad" min={1} max={maxQuantity} type="number" value={quantity || 1} onChange={(event) => setSafeQuantity(Number(event.target.value))} />
+              <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity} aria-label="Sumar una unidad"><Plus size={16} /></button>
             </div>
-            <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
-              <MessageCircle size={18} />
-              Comprar y pagar por WhatsApp
-            </a>
+            <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer"><MessageCircle size={18} /> Comprar por WhatsApp</a>
           </div>
-          <p className="product-subtotal">
-            Total estimado <strong>{currency(pricing.total)}</strong>
-            {pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)}.</small> : null}
-          </p>
-          <p className="notice">
-            Venta exclusiva por WhatsApp. Si llevás 2 combos, el primero va a precio completo y el segundo tiene 30% de descuento.
-          </p>
+          <p className="product-subtotal">Total estimado <strong>{currency(pricing.total)}</strong>{pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)}.</small> : null}</p>
         </>
       ) : cartEligible ? (
         <>
           <div className="product-actions">
             <div className="quantity-stepper" aria-label="Cantidad">
-              <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
-                <Minus size={16} />
-              </button>
-              <input
-                aria-label="Cantidad"
-                min={1}
-                max={purchasable ? product.stock : undefined}
-                type="number"
-                value={quantity}
-                onChange={(event) => setSafeQuantity(Number(event.target.value))}
-              />
-              <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity} aria-label="Sumar una unidad">
-                <Plus size={16} />
-              </button>
+              <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad"><Minus size={16} /></button>
+              <input aria-label="Cantidad" min={1} max={maxQuantity} type="number" value={quantity} onChange={(event) => setSafeQuantity(Number(event.target.value))} />
+              <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity} aria-label="Sumar una unidad"><Plus size={16} /></button>
             </div>
-            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
-              <ShoppingCart size={18} />
-              {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
-            </button>
+            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}><ShoppingCart size={18} />{!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}</button>
           </div>
 
-          <p className="product-subtotal">
-            Total estimado <strong>{currency(subtotal)}</strong>
-            {pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)} con la promoción.</small> : null}
-          </p>
+          <p className="product-subtotal">Total estimado <strong>{currency(subtotal)}</strong>{pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)} con la promoción.</small> : null}</p>
 
-          {quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
-          {availabilityStatus === "CONSULT" ? (
-            <p className="notice">
-              Podés agregarlo al carrito. Antes de cobrar, FZAC confirma la cantidad disponible.
-            </p>
-          ) : null}
+          {availabilityStatus === "IN_STOCK" && quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
+          {availabilityStatus === "CONSULT" ? <p className="notice">Podés agregar la cantidad que necesitás. FZAC confirma la disponibilidad final por WhatsApp antes del pago.</p> : null}
         </>
       ) : (
-        <p className="notice">
-          {availabilityStatus === "CONSULT"
-            ? "Stock a confirmar antes del pago."
-            : "Sin stock por el momento. Consultanos por reposición o alternativas."}
-        </p>
+        <p className="notice">{availabilityStatus === "CONSULT" ? "Stock a confirmar antes del pago." : "Sin stock por el momento. Consultanos por reposición o alternativas."}</p>
       )}
 
       {added ? (
         <div className="product-added-toast" role="status" aria-live="polite">
-          <strong>
-            <CheckCircle size={18} /> Producto añadido al carrito
-          </strong>
-          <span>
-            {product.name} · Cantidad: {quantity}
-          </span>
-          <div>
-            <Link className="btn" href="/carrito" prefetch={false}>
-              Ver carrito
-            </Link>
-            <Link className="btn btn--ghost" href="/productos" prefetch={false}>
-              Seguir comprando
-            </Link>
-          </div>
+          <strong><CheckCircle size={18} /> Producto añadido al carrito</strong>
+          <span>{product.name} · Cantidad: {quantity}</span>
+          <div><Link className="btn" href="/carrito" prefetch={false}>Ver carrito</Link><Link className="btn btn--ghost" href="/productos" prefetch={false}>Seguir comprando</Link></div>
         </div>
       ) : null}
 
@@ -205,21 +152,15 @@ export function ProductBuyBox({ product }: { product: Product }) {
       ) : null}
 
       {purchasable && !whatsappOnly ? (
-        <button className="btn btn--ghost" type="button" onClick={buyNow} disabled={!hydrated || isAdding}>
-          <Zap size={18} />
-          {hydrated ? "Comprar ahora" : "Cargando carrito"}
-        </button>
+        <button className="btn btn--ghost" type="button" onClick={buyNow} disabled={!hydrated || isAdding}><Zap size={18} />{hydrated ? "Comprar ahora" : "Cargando carrito"}</button>
       ) : null}
 
-      <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer">
-        <MessageCircle size={18} />
-        {whatsappOnly ? "Comprar por WhatsApp" : availabilityStatus === "CONSULT" ? "Confirmar stock por WhatsApp" : "Consultar por WhatsApp"}
-      </a>
+      <a className="btn btn--ghost" href={whatsappHref} target="_blank" rel="noreferrer"><MessageCircle size={18} />{availabilityStatus === "CONSULT" ? "Confirmar stock por WhatsApp" : "Consultar por WhatsApp"}</a>
 
       <div className="product-buybox__trust">
         <span>Retiro en FZAC</span>
         <span>Envío según zona</span>
-        <span>{purchasable ? "Stock listo para comprar" : "Stock confirmado antes del pago"}</span>
+        <span>{availabilityStatus === "IN_STOCK" ? "Stock disponible" : availabilityStatus === "CONSULT" ? "Stock a confirmar" : "Consultá reposición"}</span>
       </div>
     </aside>
   );

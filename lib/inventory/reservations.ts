@@ -15,6 +15,8 @@ export type StockReservationState = {
   expiresAt: string | null;
 };
 
+const CONSULT_CHECKOUT_LIMIT = 999;
+
 export async function getAvailableStockForProductIds(productIds: string[]) {
   const ids = Array.from(new Set(productIds.filter(Boolean)));
   const admin = getSupabaseAdminClient();
@@ -41,21 +43,32 @@ export async function getAvailableStockForProductIds(productIds: string[]) {
 
 export async function applyAvailableStockToProducts(products: Product[]) {
   if (!products.length) return products;
-  const availability = await getAvailableStockForProductIds(products.map((product) => product.id));
-  if (!availability.size) return products;
 
-  return products.map((product): Product => {
+  // CONSULT is a commercial availability state, not a physical-stock number.
+  // Checkout accepts up to the schema limit and FZAC confirms the final quantity
+  // during WhatsApp coordination. The atomic DB checkout already skips the
+  // physical-stock constraint for CONSULT products.
+  const checkoutProducts = products.map((product): Product =>
+    product.availability_status === "CONSULT"
+      ? { ...product, stock: Math.max(product.stock, CONSULT_CHECKOUT_LIMIT), availability_status: "CONSULT" }
+      : product
+  );
+
+  const availability = await getAvailableStockForProductIds(checkoutProducts.map((product) => product.id));
+  if (!availability.size) return checkoutProducts;
+
+  return checkoutProducts.map((product): Product => {
+    if (product.availability_status === "CONSULT") return product;
+
     const stock = availability.get(product.id);
     if (!stock) return product;
     const available = Math.max(0, stock.availableStock);
     const availabilityStatus: Product["availability_status"] =
-      product.availability_status === "CONSULT"
-        ? "CONSULT"
-        : available > 0
-          ? product.availability_status === "OUT_OF_STOCK"
-            ? "OUT_OF_STOCK"
-            : "IN_STOCK"
-          : "OUT_OF_STOCK";
+      available > 0
+        ? product.availability_status === "OUT_OF_STOCK"
+          ? "OUT_OF_STOCK"
+          : "IN_STOCK"
+        : "OUT_OF_STOCK";
 
     return {
       ...product,

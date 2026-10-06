@@ -93,7 +93,7 @@ export function isAroProduct(product = {}) {
 export function marginPercent(product = {}) {
   const sourcePrice = Number(product.original_price ?? product.source_price ?? product.price ?? 0);
   if (!Number.isFinite(sourcePrice) || sourcePrice <= 0) return 0;
-  return sourcePrice > 60_000 ? 8 : 10;
+  return 5;
 }
 
 export function salePrice(sourcePrice, product = {}) {
