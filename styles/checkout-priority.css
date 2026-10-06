@@ -1,0 +1,290 @@
+/* Priority UX pass: simpler checkout, clearer WhatsApp CTA, better mobile density. */
+
+/* Product imagery should always read as a packshot, never as a cropped hero. */
+.cart-line img,
+.checkout-summary img,
+.checkout-panel img {
+  object-fit: contain !important;
+  background: #f2f2f2;
+  padding: 6px;
+}
+
+.cart-line {
+  align-items: center;
+}
+
+.cart-line__meta,
+.cart-validation span,
+.checkout-field-help,
+.checkout-panel__hint,
+.checkout-subpanel p,
+.payment-note p {
+  color: #b8b8b8;
+}
+
+.cart-line__stock {
+  color: #d8d8d8 !important;
+}
+
+.cart-line__price strong {
+  letter-spacing: -0.02em;
+}
+
+/* WhatsApp-only checkout: reduce visual noise from the archived payment flows. */
+.fzac-whatsapp-checkout .payment-choice-head,
+.fzac-whatsapp-checkout .payment-mode-grid,
+.fzac-whatsapp-checkout .payment-env-badge,
+.fzac-whatsapp-checkout .payment-mode-button--card,
+.fzac-whatsapp-checkout .payment-mode-button--redirect,
+.fzac-whatsapp-checkout .payment-mode-button--transfer {
+  display: none !important;
+}
+
+.fzac-whatsapp-checkout > .container:first-child {
+  margin-bottom: 14px !important;
+}
+
+.fzac-whatsapp-checkout > .container:first-child .notice {
+  border-color: rgba(37, 211, 102, 0.34);
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(244, 196, 0, 0.05));
+  padding: 13px 15px;
+}
+
+.fzac-whatsapp-checkout > .container:first-child .notice strong {
+  font-size: 0.98rem;
+}
+
+.fzac-whatsapp-checkout > .container:first-child .notice p {
+  margin-top: 3px;
+  color: #c9c9c9;
+  line-height: 1.45;
+}
+
+.fzac-whatsapp-checkout .checkout-layout {
+  gap: 18px;
+}
+
+.fzac-whatsapp-checkout .checkout-panel,
+.fzac-whatsapp-checkout .checkout-summary {
+  border-color: rgba(244, 196, 0, 0.16);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+}
+
+.fzac-whatsapp-checkout .checkout-panel {
+  padding: clamp(17px, 2vw, 22px);
+}
+
+.fzac-whatsapp-checkout .checkout-panel h2 {
+  margin-bottom: 13px;
+  font-size: clamp(1.08rem, 2.2vw, 1.32rem);
+}
+
+.fzac-whatsapp-checkout .checkout-panel__hint {
+  margin-bottom: 14px;
+  border-color: rgba(244, 196, 0, 0.18);
+  background: rgba(244, 196, 0, 0.045);
+  padding: 9px 11px;
+}
+
+.fzac-whatsapp-checkout .checkout-panel .form-grid {
+  gap: 13px 15px;
+}
+
+.fzac-whatsapp-checkout .checkout-panel input,
+.fzac-whatsapp-checkout .checkout-panel textarea,
+.fzac-whatsapp-checkout .checkout-panel select {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #101010;
+}
+
+.fzac-whatsapp-checkout .checkout-panel__actions {
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.fzac-whatsapp-checkout .checkout-panel__actions .btn:last-child,
+.fzac-whatsapp-checkout .checkout-panel__actions .btn:only-child {
+  min-height: 50px;
+  min-width: min(100%, 250px);
+  justify-content: center;
+  border-color: var(--color-yellow);
+  background: var(--color-yellow);
+  color: #080808;
+  font-weight: 900;
+}
+
+.fzac-whatsapp-checkout .checkout-subpanel {
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+}
+
+.fzac-whatsapp-checkout .payment-note {
+  border-color: rgba(37, 211, 102, 0.28);
+  background: rgba(37, 211, 102, 0.07);
+}
+
+.fzac-whatsapp-checkout .payment-note svg {
+  color: #42d87b;
+}
+
+.fzac-whatsapp-checkout .checkout-summary {
+  position: sticky;
+  top: 122px;
+}
+
+.fzac-whatsapp-checkout .checkout-summary .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Keep checkout progress compact and secondary to the task itself. */
+.fzac-whatsapp-checkout .checkout-progress {
+  opacity: 0.9;
+}
+
+.fzac-whatsapp-checkout .checkout-progress span {
+  border-color: rgba(244, 196, 0, 0.14);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+/* Header: less crowded on phones. */
+@media (max-width: 620px) {
+  .site-header__main {
+    gap: 6px;
+    padding-block: 7px;
+  }
+
+  .brand {
+    min-height: 44px;
+    gap: 6px;
+    padding: 3px 6px 3px 3px;
+  }
+
+  .brand__mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand__text strong {
+    font-size: 0.8rem;
+  }
+
+  .header-actions {
+    gap: 4px;
+    margin-right: 46px;
+  }
+
+  .icon-link,
+  .account-menu__trigger,
+  .mobile-menu-trigger {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .header-search {
+    min-height: 40px;
+  }
+
+  .header-search input {
+    min-height: 40px;
+  }
+
+  .fzac-whatsapp-checkout .checkout-layout {
+    gap: 11px;
+  }
+
+  .fzac-whatsapp-checkout .checkout-progress {
+    margin: 10px 0 12px;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel,
+  .fzac-whatsapp-checkout .checkout-summary {
+    padding: 13px;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel h2 {
+    margin-bottom: 11px;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel__hint {
+    margin-bottom: 11px;
+    font-size: 0.82rem;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel__actions .btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .fzac-whatsapp-checkout .checkout-summary {
+    position: static;
+  }
+
+  .cart-line {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 11px;
+    padding: 11px;
+  }
+
+  .cart-line img {
+    width: 72px;
+    height: 72px;
+    padding: 4px;
+  }
+
+  .cart-line__price {
+    grid-column: 2;
+    justify-self: start;
+    justify-items: start;
+    margin-top: -2px;
+  }
+
+  .cart-line__actions {
+    gap: 8px;
+    margin-top: 9px;
+  }
+
+  .quantity-control button,
+  .cart-remove {
+    min-height: 40px;
+    height: 40px;
+  }
+
+  .quantity-control button {
+    width: 40px;
+  }
+}
+
+@media (max-width: 430px) {
+  .fzac-whatsapp-checkout > .container:first-child .notice {
+    padding: 11px 12px;
+  }
+
+  .fzac-whatsapp-checkout > .container:first-child .notice p {
+    font-size: 0.82rem;
+  }
+
+  .fzac-whatsapp-checkout .checkout-panel,
+  .fzac-whatsapp-checkout .checkout-summary {
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .cart-line h3 {
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  .cart-line__meta,
+  .cart-line__stock {
+    font-size: 0.74rem;
+  }
+}
