@@ -86,8 +86,18 @@ async function handlePost(request: Request) {
 
     try {
       const result = await createCheckout(payload);
-      logCheckoutResult(result);
-      return Response.json(result, { status: 201 });
+      const whatsappUrl = String(result.whatsapp_url ?? result.whatsappUrl ?? "").trim();
+      const response = whatsappUrl
+        ? {
+            ...result,
+            requires_admin_approval: false,
+            redirect_url: whatsappUrl,
+            url: whatsappUrl
+          }
+        : result;
+
+      logCheckoutResult(response);
+      return Response.json(response, { status: 201 });
     } finally {
       slot.release();
     }
