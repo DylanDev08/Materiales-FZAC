@@ -3,6 +3,7 @@ packages:
 
 # Reduce exposure to newly published dependency versions during routine updates.
 minimumReleaseAge: 1440
+# Security fixes below are explicitly allowed through the age window.
 minimumReleaseAgeExclude:
   - source-map-js
   - sharp
