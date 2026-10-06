@@ -28,12 +28,15 @@ export function OrderConfirmed({ orderId }: { orderId: string }) {
   const whatsappUrl = snapshot?.whatsappUrl || fallbackWhatsApp;
 
   useEffect(() => {
-    try {
-      const parsed = JSON.parse(window.sessionStorage.getItem(LAST_ORDER_KEY) || "null") as LastOrderSnapshot | null;
-      if (parsed?.orderId === orderId) setSnapshot(parsed);
-    } catch {
-      setSnapshot(null);
-    }
+    const timer = window.setTimeout(() => {
+      try {
+        const parsed = JSON.parse(window.sessionStorage.getItem(LAST_ORDER_KEY) || "null") as LastOrderSnapshot | null;
+        setSnapshot(parsed?.orderId === orderId ? parsed : null);
+      } catch {
+        setSnapshot(null);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [orderId]);
 
   useEffect(() => {
