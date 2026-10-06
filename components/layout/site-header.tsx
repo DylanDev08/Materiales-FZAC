@@ -18,7 +18,7 @@ export async function SiteHeader() {
       <div className="topbar">
         <div className="container topbar__inner">
           <span className="topbar__location"><MapPin size={14} /> Rosario y zona</span>
-          <span className="topbar__message">Comprá online con stock validado y entrega coordinada.</span>
+          <span className="topbar__message">Armá tu pedido online y coordiná stock, pago y entrega con FZAC.</span>
           <Link className="topbar__consumer-link" href="/arrepentimiento" prefetch={false}>
             <RotateCcw size={14} aria-hidden="true" />
             Botón de arrepentimiento
