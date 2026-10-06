@@ -40,7 +40,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.tiendanube.com" },
       { protocol: "https", hostname: "*.cloudfront.net" },
       { protocol: "https", hostname: "universopinturerias.vtexassets.com" },
-      { protocol: "https", hostname: "www.sinteplast.com.ar" }
+      { protocol: "https", hostname: "www.sinteplast.com.ar" },
+      { protocol: "https", hostname: "durlock.com" },
+      { protocol: "https", hostname: "*.durlock.com" }
     ]
   },
   async headers() {
