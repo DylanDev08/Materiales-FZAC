@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { canAddProductToCart } from "@/lib/products/availability";
 import { resolveProductImageUrl } from "@/lib/products/images";
@@ -39,9 +39,20 @@ function sanitize(items: CartLine[]) {
     .filter((item) => item.quantity > 0);
 }
 
+function mergeCurrentProducts(items: CartLine[], products: Product[]) {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  return sanitize(
+    items.map((item) => {
+      const product = byId.get(item.productId);
+      return product ? { ...item, product } : item;
+    })
+  );
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const lastCatalogRefreshRef = useRef("");
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -55,6 +66,48 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     });
   }, []);
+
+  const cartFingerprint = useMemo(
+    () => items.map((item) => `${item.productId}:${item.quantity}`).sort().join("|"),
+    [items]
+  );
+
+  useEffect(() => {
+    if (!hydrated || !items.length || lastCatalogRefreshRef.current === cartFingerprint) return;
+
+    const controller = new AbortController();
+    lastCatalogRefreshRef.current = cartFingerprint;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/cart/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              product_id: item.productId,
+              sku: item.product.sku,
+              slug: item.product.slug,
+              quantity: item.quantity
+            }))
+          }),
+          signal: controller.signal
+        });
+
+        const data = (await response.json()) as {
+          products?: Array<{ product: Product; quantity: number }>;
+        };
+
+        if (!data.products?.length) return;
+
+        setItems((current) => mergeCurrentProducts(current, data.products!.map((entry) => entry.product)));
+      } catch {
+        if (!controller.signal.aborted) lastCatalogRefreshRef.current = "";
+      }
+    })();
+
+    return () => controller.abort();
+  }, [cartFingerprint, hydrated, items]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -125,15 +178,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setItems([]);
       },
       refreshProducts(products) {
-        const byId = new Map(products.map((product) => [product.id, product]));
-        setItems((current) =>
-          sanitize(
-            current.map((item) => {
-              const product = byId.get(item.productId);
-              return product ? { ...item, product } : item;
-            })
-          )
-        );
+        setItems((current) => mergeCurrentProducts(current, products));
       }
     };
   }, [hydrated, items]);
