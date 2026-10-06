@@ -165,18 +165,6 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   const destination = addressLine(address);
-  const placeId = cleanAddressPart(address.placeId, 256);
-
-  if (!placeId) {
-    return {
-      available: false,
-      amount: 0,
-      reason: withShippingFallback("Seleccioná una dirección de las sugerencias de Google Maps antes de cotizar el envío."),
-      origin,
-      destination,
-      provider: "GOOGLE_ROUTES"
-    };
-  }
 
   if (!hasRealValue(key)) {
     return {
@@ -245,16 +233,19 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
   const distanceMeters = Number(route?.distanceMeters ?? 0);
   const distanceKm = distanceMeters / 1000;
 
+  // The address can come from Places Autocomplete or be typed manually. In both
+  // cases Google Routes must geocode the complete address exactly enough to
+  // produce a non-partial destination. placeId is therefore only a client hint,
+  // not a hard requirement or equality constraint after the user edits the height.
   if (
     !geocodedPlaceId
-    || geocodedPlaceId !== placeId
     || geocodedDestination?.partialMatch
     || Number(geocodedDestination?.geocoderStatus?.code ?? 0) !== 0
   ) {
     return {
       available: false,
       amount: 0,
-      reason: withShippingFallback("La dirección escrita no coincide exactamente con la ubicación seleccionada en Google Maps."),
+      reason: withShippingFallback("No pudimos validar la dirección exacta con Google Maps. Revisá calle, altura, ciudad y provincia."),
       origin,
       destination,
       provider: "GOOGLE_ROUTES"

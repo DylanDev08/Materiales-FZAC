@@ -83,6 +83,17 @@ type LastOrderSnapshot = {
   createdAt: number;
 };
 
+type CheckoutAddressState = {
+  placeId: string;
+  street: string;
+  number: string;
+  apartment: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  notes: string;
+};
+
 const GOOGLE_MAPS_BROWSER_KEY =
   process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const GOOGLE_MAPS_SCRIPT_ID = "fzac-google-maps-places";
@@ -130,6 +141,25 @@ function nameIsValid(value: string) {
 
 function emailIsValid(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function normalizeManualAddress(value: CheckoutAddressState): CheckoutAddressState {
+  const street = value.street.trim().replace(/\s+/g, " ");
+  const number = value.number.trim();
+  if (number) return { ...value, street, number };
+
+  // Mobile-friendly shortcut: typing "Av. Rivarola 8002" in Calle fills the
+  // height automatically. Requiring 3+ digits avoids treating names such as
+  // "Ruta 33" as a house number.
+  const match = street.match(/^(.+?)[,\s]+(\d{3,5}[A-Za-z]?(?:[/-][0-9A-Za-z]+)?)$/);
+  if (!match) return { ...value, street };
+
+  return {
+    ...value,
+    placeId: "",
+    street: match[1].replace(/,\s*$/, "").trim(),
+    number: match[2].trim()
+  };
 }
 
 function placePart(
@@ -184,7 +214,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
     phone: profile?.phone ?? ""
   });
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("PICKUP");
-  const [address, setAddress] = useState({
+  const [address, setAddress] = useState<CheckoutAddressState>({
     placeId: "",
     street: "",
     number: "",
@@ -248,13 +278,6 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
   const orderNotesState = useMemo(() => noteState(notes, 500), [notes]);
   const basicCustomerComplete =
     customerStates.name.status === "valid" && customerStates.email.status === "valid" && customerStates.phone.status === "valid";
-  const addressComplete = Boolean(address.street.trim() && address.number.trim() && address.city.trim() && address.province.trim());
-  const addressValidated =
-    Boolean(address.placeId.trim()) &&
-    addressStates.street.status === "valid" &&
-    addressStates.number.status === "valid" &&
-    addressStates.city.status === "valid" &&
-    addressStates.province.status === "valid";
   const cartFingerprint = useMemo(
     () => items.map((item) => `${item.productId}:${item.quantity}`).sort().join("|"),
     [items]
@@ -264,7 +287,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
       cart: cartFingerprint,
       shippingMethod,
       customer: [customer.name.trim(), customer.email.trim().toLowerCase(), customer.phone.trim()],
-      address: shippingMethod === "DELIVERY" ? address : null,
+      address: shippingMethod === "DELIVERY" ? normalizeManualAddress(address) : null,
       notes: normalizeUserNote(notes, 500)
     }),
     [address, cartFingerprint, customer.email, customer.name, customer.phone, notes, shippingMethod]
@@ -275,16 +298,19 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
     return <span className={`checkout-field-message checkout-field-message--${state.status}`}>{state.message}</span>;
   }
 
-  function updateAddressField(field: keyof typeof address, value: string) {
+  function updateAddressField(field: keyof CheckoutAddressState, value: string) {
     setAddress((current) => ({
       ...current,
       [field]: value,
-      // Editing the house number must not invalidate the Google Place selected for the street.
-      // This fixes the mobile flow where selecting "Av. Rivarola" and then typing "8002"
-      // used to erase placeId and made a valid address impossible to quote.
+      // Editing these textual parts switches to server-side geocoding. Editing
+      // only the house number can keep the selected Places hint safely.
       ...(field === "street" || field === "city" || field === "province" ? { placeId: "" } : {})
     }));
     setShippingQuote({ status: "idle" });
+  }
+
+  function normalizeStreetAndNumber() {
+    setAddress((current) => normalizeManualAddress(current));
   }
 
   function getIntentKey() {
@@ -307,7 +333,8 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
   }
 
   function checkoutAddressSnapshot() {
-    return { ...address, notes: normalizeUserNote(address.notes, 240) };
+    const normalized = normalizeManualAddress(address);
+    return { ...normalized, notes: normalizeUserNote(normalized.notes, 240) };
   }
 
   async function validateStock(signal?: AbortSignal) {
@@ -337,12 +364,25 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
       setShippingQuote({ status: "idle" });
       return true;
     }
-    if (!addressComplete || !addressValidated) {
+
+    const quoteAddress = normalizeManualAddress(address);
+    const streetValid = quoteAddress.street.length >= 2 && isSafeUserNote(quoteAddress.street);
+    const numberValid = /^[0-9A-Za-z\s/-]{1,30}$/.test(quoteAddress.number);
+    const cityValid = quoteAddress.city.trim().length >= 2 && isSafeUserNote(quoteAddress.city);
+    const provinceValid = quoteAddress.province.trim().length >= 2 && isSafeUserNote(quoteAddress.province);
+
+    if (
+      quoteAddress.street !== address.street
+      || quoteAddress.number !== address.number
+      || quoteAddress.placeId !== address.placeId
+    ) {
+      setAddress(quoteAddress);
+    }
+
+    if (!streetValid || !numberValid || !cityValid || !provinceValid) {
       setShippingQuote({
         status: "error",
-        message: address.placeId
-          ? "Completá número, ciudad y provincia para cotizar el envío."
-          : "Seleccioná la calle desde una sugerencia de Google Maps. Después podés completar o corregir el número sin perder la dirección seleccionada."
+        message: "Completá calle, número, ciudad y provincia. Podés escribir la dirección manualmente (por ejemplo, Av. Rivarola 8002) o elegir una sugerencia de Google Maps."
       });
       return false;
     }
@@ -351,7 +391,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
     const response = await fetch("/api/shipping/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(address)
+      body: JSON.stringify(quoteAddress)
     });
     const data = (await response.json()) as {
       available?: boolean;
@@ -377,7 +417,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
       distanceKm: Number(data.distanceKm ?? 0),
       durationText: data.durationText,
       origin: String(data.origin || "FZAC Materiales, Rosario"),
-      destination: String(data.destination || [address.street, address.number, address.city, address.province].filter(Boolean).join(", "))
+      destination: String(data.destination || [quoteAddress.street, quoteAddress.number, quoteAddress.city, quoteAddress.province].filter(Boolean).join(", "))
     });
     return true;
   }
@@ -653,16 +693,16 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
                   <h2><Truck size={18} /> Entrega o retiro</h2>
                   <div className="checkout-methods">
                     <button type="button" className="method-button" aria-pressed={shippingMethod === "PICKUP"} onClick={choosePickup}><Package size={20} /><strong>Retiro coordinado</strong><span>Retirás en FZAC cuando confirmemos disponibilidad.</span></button>
-                    <button type="button" className="method-button" aria-pressed={shippingMethod === "DELIVERY"} onClick={() => { setShippingMethod("DELIVERY"); setShippingQuote({ status: "idle" }); setError(""); }}><Truck size={20} /><strong>Envío cotizado</strong><span>Calculamos el costo según la dirección seleccionada.</span></button>
+                    <button type="button" className="method-button" aria-pressed={shippingMethod === "DELIVERY"} onClick={() => { setShippingMethod("DELIVERY"); setShippingQuote({ status: "idle" }); setError(""); }}><Truck size={20} /><strong>Envío cotizado</strong><span>Calculamos el costo según la dirección que escribas o selecciones.</span></button>
                     <a className="method-button" href={deliveryHref} target="_blank" rel="noreferrer"><MessageCircle size={20} /><strong>Consultar antes</strong><span>Para pedidos o zonas especiales.</span></a>
                   </div>
 
                   {shippingMethod === "DELIVERY" ? (
                     <div className="checkout-subpanel">
                       <h3><MapPin size={17} /> Dirección de entrega</h3>
-                      <p>Elegí la calle desde Google Maps. Después podés completar o corregir la altura sin que se pierda la selección.</p>
+                      <p>Podés escribir la dirección manualmente o elegir una sugerencia de Google Maps. Si escribís “Av. Rivarola 8002”, completamos la altura automáticamente.</p>
                       <div className="form-grid checkout-address-grid">
-                        <label>Calle<input ref={streetInputRef} value={address.street} onChange={(event) => updateAddressField("street", event.target.value)} autoComplete="address-line1" />{validationMessage(addressStates.street)}<small className="checkout-field-help">{address.placeId ? "Dirección vinculada con Google Maps." : placesReady ? "Seleccioná una sugerencia de Google Maps." : "Cargando sugerencias de ubicación..."}</small></label>
+                        <label>Calle<input ref={streetInputRef} value={address.street} onChange={(event) => updateAddressField("street", event.target.value)} onBlur={normalizeStreetAndNumber} autoComplete="address-line1" placeholder="Ej.: Av. Rivarola 8002" />{validationMessage(addressStates.street)}<small className="checkout-field-help">{address.placeId ? "Dirección vinculada con Google Maps." : placesReady ? "Podés elegir una sugerencia o escribir la dirección manualmente." : "Podés escribir la dirección completa manualmente."}</small></label>
                         <label>Número<input value={address.number} onChange={(event) => updateAddressField("number", event.target.value)} inputMode="numeric" maxLength={30} />{validationMessage(addressStates.number)}</label>
                         <label>Departamento (opcional)<input value={address.apartment} onChange={(event) => updateAddressField("apartment", event.target.value)} autoComplete="address-line2" /></label>
                         <label>Ciudad<input value={address.city} onChange={(event) => updateAddressField("city", event.target.value)} autoComplete="address-level2" />{validationMessage(addressStates.city)}</label>
@@ -748,7 +788,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
             <div className="terms-modal__content">
               <section><h3>Pedido y pago</h3><p>La confirmación web genera una solicitud de pedido. FZAC confirma disponibilidad y envía por WhatsApp los datos para coordinar la transferencia. El pedido no se considera pagado hasta que FZAC verifica el ingreso.</p></section>
               <section><h3>Stock a confirmar</h3><p>Los productos marcados como “Stock a confirmar” pueden incluirse en el pedido. La cantidad definitiva se valida con FZAC antes del pago.</p></section>
-              <section><h3>Entrega y retiro</h3><p>El envío se cotiza con la dirección seleccionada. Los horarios y condiciones finales se coordinan luego de confirmar el pedido.</p></section>
+              <section><h3>Entrega y retiro</h3><p>El envío se cotiza con la dirección escrita o seleccionada. Los horarios y condiciones finales se coordinan luego de confirmar el pedido.</p></section>
               <section><h3>Derecho de revocación</h3><p>Conforme a la normativa aplicable, las compras a distancia cuentan con los derechos de revocación que correspondan según el producto y la operación.</p></section>
               <section><h3>Privacidad</h3><p>FZAC no solicita ni almacena datos de tarjeta en este flujo. Solo se procesan los datos necesarios para identificar, coordinar y entregar el pedido.</p></section>
             </div>

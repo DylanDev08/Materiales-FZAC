@@ -14,7 +14,9 @@ import { hasSqlMeta } from "@/lib/validations/security";
 
 const addressSchema = z
   .object({
-    placeId: z.string().trim().min(10, "Seleccioná una dirección sugerida por Google Maps.").max(256, "La referencia de Google Maps es inválida."),
+    // placeId is an optional hint. If the customer types the address manually,
+    // Google Routes geocodes the complete street/number/city/province server-side.
+    placeId: z.string().trim().max(256, "La referencia de Google Maps es inválida.").optional().default(""),
     street: z.string().trim().min(2, "Ingresá una calle válida.").max(120, "La calle es demasiado larga.").refine((value) => {
       const letters = value.normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
       return letters.length >= 3 && new Set(letters).size >= 2;

@@ -77,8 +77,7 @@ const checkoutAddressSchema = addressSchema.optional().transform((value) => valu
 
 function addressIsComplete(value: { placeId?: string; street?: string; number?: string; city?: string; province?: string }) {
   return Boolean(
-    value.placeId?.trim()
-      && value.street?.trim()
+    value.street?.trim()
       && value.number?.trim()
       && value.city?.trim()
       && value.province?.trim()
@@ -113,7 +112,7 @@ export const checkoutSchema = checkoutBaseSchema.superRefine((value, context) =>
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["address"],
-      message: "Seleccioná una dirección sugerida por Google y completá número, ciudad y provincia para cotizar el envío."
+      message: "Completá calle, número, ciudad y provincia para cotizar el envío. Podés escribir la dirección manualmente o elegir una sugerencia de Google Maps."
     });
   }
 });
@@ -164,7 +163,7 @@ function validateCreateAddress(
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["address_snapshot"],
-      message: "Seleccioná una dirección sugerida por Google y completá número, ciudad y provincia para cotizar el envío."
+      message: "Completá calle, número, ciudad y provincia para cotizar el envío. Podés escribir la dirección manualmente o elegir una sugerencia de Google Maps."
     });
   }
 }
