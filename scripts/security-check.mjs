@@ -209,9 +209,11 @@ const shippingQuote = await readFile(path.join(root, "lib/shipping/quote.ts"), "
 if (
   !shippingQuote.includes("directions/v2:computeRoutes")
   || !shippingQuote.includes("geocodingResults.destination.placeId")
-  || !shippingQuote.includes("geocodedPlaceId !== placeId")
+  || !shippingQuote.includes("!geocodedPlaceId")
+  || !shippingQuote.includes("geocodedDestination?.partialMatch")
+  || !shippingQuote.includes("geocodedDestination?.geocoderStatus?.code")
 ) {
-  failures.push("Envios: la tarifa debe vincular el Place ID seleccionado con la direccion geocodificada por Google Routes.");
+  failures.push("Envios: la tarifa debe validar la direccion completa mediante geocodificacion no parcial de Google Routes, tanto para Places como para ingreso manual.");
 }
 
 const rootLayout = await readFile(path.join(root, "app/layout.tsx"), "utf8").catch(() => "");
