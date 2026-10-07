@@ -508,7 +508,8 @@ export async function inspectCheckoutStock(input: unknown) {
 
   const issues = Array.from(requestedByProduct.entries()).flatMap(([productId, requested]) => {
     const available = requested.product?.stock ?? 0;
-    return !requested.product || !canPurchaseProduct(requested.product) || requested.quantity > available
+    const consult = requested.product?.availability_status === "CONSULT";
+    return !requested.product || !canPurchaseProduct(requested.product) || (!consult && requested.quantity > available)
       ? [{ productId, requested: requested.quantity, available, name: requested.fallbackName }]
       : [];
   });
@@ -591,11 +592,12 @@ export async function createCheckout(input: unknown) {
       409
     );
   }
-  const stockIssues = lines.flatMap(({ product, quantity }) =>
-    !canPurchaseProduct(product) || quantity > product.stock
+  const stockIssues = lines.flatMap(({ product, quantity }) => {
+    const consult = product.availability_status === "CONSULT";
+    return !canPurchaseProduct(product) || (!consult && quantity > product.stock)
       ? [{ productId: product.id, requested: quantity, available: product.stock, name: product.name }]
-      : []
-  );
+      : [];
+  });
 
   if (stockIssues.length) throw new InsufficientStockError(stockIssues);
 
