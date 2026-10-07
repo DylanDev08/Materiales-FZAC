@@ -578,6 +578,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
         message?: string;
         error?: string;
         items?: StockIssue[];
+        total?: number;
       };
 
       if (!response.ok) {
@@ -601,13 +602,38 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
       }
 
       const orderId = String(data.orderId || data.order_id || "").trim();
-      const whatsappUrl = String(data.whatsapp_url || data.whatsappUrl || data.redirect_url || data.url || "").trim();
       if (!orderId) throw new Error("El pedido se creó sin una referencia válida.");
+
+      const reference = orderId.slice(0, 8).toUpperCase();
+      const authoritativeTotal = Number.isFinite(Number(data.total)) ? Number(data.total) : total;
+      const productMessageLines = items.flatMap((item) => {
+        const pricing = productLinePricing(item.product, item.quantity);
+        const regularLineTotal = item.product.price * item.quantity;
+        const promotionApplied = Math.abs(regularLineTotal - pricing.total) >= 1;
+        return [
+          `• ${item.product.name} (${item.product.sku})`,
+          `  ${item.quantity} x ${currency(item.product.price)} c/u = ${currency(pricing.total)}${promotionApplied ? " (promo aplicada)" : ""}`
+        ];
+      });
+      const whatsappUrl = getWhatsAppHref([
+        `Hola FZAC, generé el pedido #${reference} a nombre de ${customer.name.trim()}.`,
+        "",
+        "Productos:",
+        ...productMessageLines,
+        "",
+        `Subtotal productos: ${currency(subtotal)}`,
+        shippingMethod === "DELIVERY" ? `Envío: ${currency(shippingCost)}` : "Retiro: sin costo",
+        shippingMethod === "DELIVERY"
+          ? `Total con envío: ${currency(authoritativeTotal)}`
+          : `Total final: ${currency(authoritativeTotal)}`,
+        "",
+        "Quiero coordinar el pago por transferencia y la entrega/retiro."
+      ].join("\n"));
 
       const snapshot: LastOrderSnapshot = {
         orderId,
         whatsappUrl,
-        total,
+        total: authoritativeTotal,
         shippingMethod,
         message: data.message || "Pedido generado correctamente. Coordiná el pago y la entrega con FZAC por WhatsApp.",
         createdAt: Date.now()
