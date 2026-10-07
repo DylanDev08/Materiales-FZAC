@@ -12,6 +12,7 @@ import {
   getProductAvailabilityStatus
 } from "@/lib/products/availability";
 import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
+import { resolveProductImageUrl } from "@/lib/products/images";
 import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
@@ -22,16 +23,23 @@ export function ProductCard({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [addError, setAddError] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
   const availabilityStatus = getProductAvailabilityStatus(product);
   const purchasable = canPurchaseProduct(product);
   const cartEligible = canAddProductToCart(product);
   const hasProductImage = Boolean(product.image_url?.trim());
-  const imageSrc = hasProductImage ? product.image_url.trim() : "/logoFZAC.jpg";
+  const imageSrc = imageFailed ? "/logoFZAC.jpg" : resolveProductImageUrl(product);
   const promotion = promotionLabel(product);
   const whatsappOnly = isWhatsAppOnlyProduct(product);
-  const maxQuantity = purchasable ? product.stock : whatsappOnly ? Math.max(product.stock, 1) : 999;
+  const maxQuantity = availabilityStatus === "CONSULT"
+    ? 999
+    : purchasable
+      ? Math.max(product.stock, 1)
+      : whatsappOnly
+        ? Math.max(product.stock, 1)
+        : 999;
   const pricing = productLinePricing(product, quantity);
   const quantityLabel =
     availabilityStatus === "OUT_OF_STOCK"
@@ -76,9 +84,10 @@ export function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           fill
           sizes="(max-width: 400px) 100vw, (max-width: 820px) 50vw, (max-width: 1200px) 25vw, 220px"
+          onError={() => setImageFailed(true)}
         />
         <div className="product-card__badges">
-          {!hasProductImage ? <span className="status-pill product-card__image-pending">Imagen pendiente</span> : null}
+          {!hasProductImage || imageFailed ? <span className="status-pill product-card__image-pending">Imagen no disponible</span> : null}
           {promotion ? <span className="status-pill status-pill--warning">{promotion}</span> : null}
           {!promotion && discount ? <span className="status-pill status-pill--warning">{discount}% OFF</span> : null}
           {availabilityStatus === "CONSULT" ? (
@@ -127,6 +136,7 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
 
         {(cartEligible || whatsappOnly) ? (
+          <>
           <div className="product-card__quantity" aria-label="Cantidad">
             <button type="button" onClick={() => setSafeQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Restar una unidad">
               <Minus size={14} />
@@ -143,6 +153,12 @@ export function ProductCard({ product }: { product: Product }) {
               <Plus size={14} />
             </button>
           </div>
+          <div className="product-card__selected-total" aria-live="polite">
+            <span>{quantity === 1 ? "Total" : `Total por ${quantity}`}</span>
+            <strong>{currency(pricing.total)}</strong>
+            {pricing.savings > 0 ? <small>Ahorrás {currency(pricing.savings)}</small> : null}
+          </div>
+          </>
         ) : null}
 
         <div className="product-card__actions">
