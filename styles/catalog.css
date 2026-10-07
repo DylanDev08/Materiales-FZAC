@@ -1718,3 +1718,39 @@
   flex-basis: 100%;
   color: #72d5a1;
 }
+
+
+/* Keep the primary cart CTA readable even in narrow product cards. */
+.product-card__primary-action {
+  min-width: 0;
+  gap: 5px;
+  padding-inline: 7px !important;
+  font-size: 0.74rem !important;
+  letter-spacing: -0.01em;
+  white-space: nowrap !important;
+}
+
+.product-card__primary-action svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .product-card__primary-action {
+    gap: 4px;
+    padding-inline: 5px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .product-card__primary-action svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-card__primary-action svg {
+    display: none;
+  }
+}
