@@ -11,6 +11,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
   const hasProductImage = gallery.length > 0;
   const displayGallery = hasProductImage ? gallery : ["/logoFZAC.jpg"];
   const availabilityStatus = product.availability_status ?? (product.stock > 0 ? "IN_STOCK" : "OUT_OF_STOCK");
+  const specificationEntries = Object.entries(product.specifications);
 
   return (
     <main className="page-section">
@@ -70,13 +71,17 @@ export function ProductDetail({ product, related }: { product: Product; related:
           <details>
             <summary>Ficha técnica</summary>
             <div>
-              <ul>
-                {Object.entries(product.specifications).map(([key, value]) => (
-                  <li key={key}>
-                    <strong>{key}:</strong> {String(value)}
-                  </li>
-                ))}
-              </ul>
+              {specificationEntries.length ? (
+                <ul>
+                  {specificationEntries.map(([key, value]) => (
+                    <li key={key}>
+                      <strong>{key}:</strong> {String(value)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Consultá con FZAC para confirmar medidas, presentación y especificaciones técnicas del producto.</p>
+              )}
             </div>
           </details>
           <details>
