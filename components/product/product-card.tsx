@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, Minus, Plus, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import {
@@ -32,6 +32,8 @@ export function ProductCard({ product }: { product: Product }) {
   const hasProductImage = Boolean(product.image_url?.trim());
   const imageSrc = imageFailed ? "/logoFZAC.jpg" : resolveProductImageUrl(product);
   const promotion = promotionLabel(product);
+  const normalizedBrand = product.brand.trim().toLowerCase();
+  const displayBrand = ["sin marca informada", "sin marca", "generico", "genérico"].includes(normalizedBrand) ? null : product.brand;
   const whatsappOnly = isWhatsAppOnlyProduct(product);
   const maxQuantity = availabilityStatus === "CONSULT"
     ? 999
@@ -101,7 +103,7 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="product-card__body">
         <div className="product-card__meta">
-          <span>{product.brand}</span>
+          {displayBrand ? <span>{displayBrand}</span> : null}
           <span>{product.category?.name ?? product.subcategory}</span>
         </div>
         <Link href={`/producto/${product.slug}`} prefetch={false}>
@@ -126,12 +128,12 @@ export function ProductCard({ product }: { product: Product }) {
           {quantityLabel}
         </span>
         <span className="product-card__finance">
-          {whatsappOnly ? (
-            <><MessageCircle size={14} /> Venta y pago coordinados por WhatsApp</>
-          ) : purchasable ? (
-            <><ShieldCheck size={14} /> Pago seguro y stock validado</>
+          {availabilityStatus === "OUT_OF_STOCK" ? (
+            <><MessageCircle size={14} /> Consultá reposición por WhatsApp</>
+          ) : availabilityStatus === "CONSULT" ? (
+            <><MessageCircle size={14} /> Stock y pago coordinados por WhatsApp</>
           ) : (
-            <><MessageCircle size={14} /> Confirmamos stock antes del pago</>
+            <><MessageCircle size={14} /> Pago coordinado por WhatsApp</>
           )}
         </span>
 
