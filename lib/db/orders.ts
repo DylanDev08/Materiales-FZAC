@@ -20,6 +20,7 @@ import {
 } from "@/lib/inventory/reservations";
 import { quoteDeliveryForAddress, type ShippingQuote } from "@/lib/shipping/quote";
 import { getWhatsAppHref } from "@/lib/utils/contact";
+import { currency } from "@/lib/formatters/currency";
 import {
   notifyAdminLargePurchase,
   notifyAdminNewOrder,
@@ -252,6 +253,87 @@ function checkoutSuccessResponse(input: {
   };
 }
 
+
+type WhatsAppOrderLine = {
+  name: string;
+  sku?: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+};
+
+function buildWhatsAppOrderMessage(input: {
+  orderId: string;
+  customerName?: string | null;
+  lines: WhatsAppOrderLine[];
+  subtotal: number;
+  shippingCost: number;
+  total: number;
+  shippingMethod?: string | null;
+}) {
+  const reference = String(input.orderId).slice(0, 8).toUpperCase();
+  const productLines = input.lines.flatMap((line) => {
+    const regularLineTotal = line.unitPrice * line.quantity;
+    const promotionApplied = Math.abs(regularLineTotal - line.lineTotal) >= 1;
+    return [
+      `• ${line.name}${line.sku ? ` (${line.sku})` : ""}`,
+      `  ${line.quantity} x ${currency(line.unitPrice)} c/u = ${currency(line.lineTotal)}${promotionApplied ? " (promo aplicada)" : ""}`
+    ];
+  });
+  const delivery = String(input.shippingMethod ?? "").toUpperCase() === "DELIVERY";
+
+  return [
+    `Hola FZAC, generé el pedido #${reference}${input.customerName ? ` a nombre de ${input.customerName}` : ""}.`,
+    "",
+    "Productos:",
+    ...productLines,
+    "",
+    `Subtotal productos: ${currency(input.subtotal)}`,
+    delivery ? `Envío: ${currency(input.shippingCost)}` : "Retiro: sin costo",
+    delivery ? `Total con envío: ${currency(input.total)}` : `Total final: ${currency(input.total)}`,
+    "",
+    "Quiero coordinar el pago por transferencia y la entrega/retiro."
+  ].join("\n");
+}
+
+async function storedOrderWhatsAppUrl(
+  admin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  order: {
+    id: string;
+    customer_name?: string | null;
+    shipping_method?: string | null;
+    shipping_cost?: number | string | null;
+    subtotal?: number | string | null;
+    total?: number | string | null;
+  }
+) {
+  const { data: orderItems } = await admin
+    .from("order_items")
+    .select("sku,name,unit_price,quantity,subtotal")
+    .eq("order_id", order.id);
+
+  const lines: WhatsAppOrderLine[] = (orderItems ?? []).map((item) => ({
+    name: String(item.name ?? "Producto"),
+    sku: item.sku ? String(item.sku) : null,
+    quantity: Number(item.quantity ?? 1),
+    unitPrice: Number(item.unit_price ?? 0),
+    lineTotal: Number(item.subtotal ?? Number(item.unit_price ?? 0) * Number(item.quantity ?? 1))
+  }));
+  const shippingCost = Number(order.shipping_cost ?? 0);
+  const subtotal = Number(order.subtotal ?? lines.reduce((sum, line) => sum + line.lineTotal, 0));
+  const total = Number(order.total ?? subtotal + shippingCost);
+
+  return getWhatsAppHref(buildWhatsAppOrderMessage({
+    orderId: order.id,
+    customerName: order.customer_name,
+    lines,
+    subtotal,
+    shippingCost,
+    total,
+    shippingMethod: order.shipping_method
+  }));
+}
+
 async function getProductsForItems(items: CheckoutInput["items"]) {
   const admin = getSupabaseAdminClient();
   const normalizedItems = items.map(enrichLegacyItem);
@@ -315,7 +397,7 @@ async function resumeCheckoutByIdempotencyKey(
   const { data: order } = await admin
     .from("orders")
     .select(
-      "id,user_id,status,customer_name,customer_email,customer_phone,shipping_cost,total"
+      "id,user_id,status,customer_name,customer_email,customer_phone,shipping_method,shipping_cost,subtotal,total"
     )
     .eq("id", payment.order_id)
     .maybeSingle();
@@ -346,6 +428,7 @@ async function resumeCheckoutByIdempotencyKey(
 
   if (String(order.status) === "PENDING_ADMIN_APPROVAL") {
     const coordinationFlow = paymentMethod === "BANK_TRANSFER" || paymentMethod === "WHATSAPP";
+    const whatsappUrl = paymentMethod === "WHATSAPP" ? await storedOrderWhatsAppUrl(admin, order) : null;
     return checkoutSuccessResponse({
       orderId: order.id,
       paymentId: payment.id,
@@ -358,7 +441,8 @@ async function resumeCheckoutByIdempotencyKey(
         ? paymentMethod === "WHATSAPP"
           ? "Pedido generado. Podés coordinar el pago y la entrega con FZAC por WhatsApp."
           : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia."
-        : "Compra creada correctamente. Requiere aprobación del administrador."
+        : "Compra creada correctamente. Requiere aprobación del administrador.",
+      whatsappUrl
     });
   }
 
@@ -377,7 +461,7 @@ async function resumeCheckoutByIdempotencyKey(
           : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia.",
       whatsappUrl:
         provider === "WHATSAPP"
-          ? getWhatsAppHref(`Hola FZAC, generé un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
+          ? await storedOrderWhatsAppUrl(admin, order)
           : null
     });
   }
@@ -760,7 +844,21 @@ export async function createCheckout(input: unknown) {
             ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
             : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
         whatsappUrl: isWhatsApp
-          ? getWhatsAppHref(`Hola FZAC, genere un pedido con referencia ${String(order.id).slice(0, 8).toUpperCase()} y quiero coordinar el pago y la entrega.`)
+          ? getWhatsAppHref(buildWhatsAppOrderMessage({
+              orderId: order.id,
+              customerName: payload.customer.name,
+              lines: lines.map(({ product, quantity, subtotal: lineSubtotal }) => ({
+                name: product.name,
+                sku: product.sku,
+                quantity,
+                unitPrice: product.price,
+                lineTotal: lineSubtotal
+              })),
+              subtotal,
+              shippingCost: delivery,
+              total,
+              shippingMethod: payload.shippingMethod
+            }))
           : null
       })
     };
