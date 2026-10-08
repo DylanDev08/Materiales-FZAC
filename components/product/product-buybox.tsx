@@ -33,6 +33,8 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const pricing = productLinePricing(product, quantity);
   const subtotal = pricing.total;
   const promotion = promotionLabel(product);
+  const normalizedBrand = product.brand.trim().toLowerCase();
+  const displayBrand = ["sin marca informada", "sin marca", "generico", "genérico"].includes(normalizedBrand) ? "FZAC Materiales" : product.brand;
   const whatsappOnly = isWhatsAppOnlyProduct(product);
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(
@@ -74,7 +76,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
   return (
     <aside className="product-buybox">
-      <span className="kicker">{product.brand}</span>
+      <span className="kicker">{displayBrand}</span>
       <h1>{product.name}</h1>
       <p className="product-buybox__meta">
         SKU {product.sku} - Categoría {product.category?.name ?? product.subcategory}
