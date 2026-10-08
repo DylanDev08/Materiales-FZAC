@@ -1,0 +1,41 @@
+name: One-time Next security refresh
+
+on:
+  push:
+    paths:
+      - ".github/workflows/refresh-next-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: main
+      - name: Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "22.22.0"
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.21.0 --activate
+      - name: Refresh patched Next.js and lockfile
+        run: pnpm up next@16.3.8 eslint-config-next@16.3.8 --save-exact
+      - name: Verify production audit
+        run: pnpm audit --prod --audit-level moderate
+      - name: Commit regenerated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit."
+          else
+            git commit -m "chore(security): upgrade Next.js to 16.3.8"
+            git push origin HEAD:main
+          fi
