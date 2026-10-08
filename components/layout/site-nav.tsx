@@ -10,7 +10,7 @@ import { isHomeRoute, isProductsRoute } from "@/lib/utils/navigation";
 const productLinks = [
   { href: "/productos", label: "Todos los productos" },
   { href: "/productos?featured=true", label: "Destacados" },
-  { href: "/productos?order=price_desc", label: "Más vendidos" },
+  { href: "/productos?order=newest", label: "Novedades" },
   { href: "/ofertas", label: "Ofertas" },
   { href: "/productos?inStock=true", label: "Stock disponible" }
 ];
@@ -125,7 +125,7 @@ export function SiteNav({ categories }: { categories: Category[] }) {
 
       <button className="mobile-menu-trigger" type="button" aria-expanded={mobileOpen} disabled={!ready} onClick={() => setMobileOpen(!mobileOpen)}>
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        <span>Menu</span>
+        <span>Menú</span>
       </button>
       {mobileOpen ? (
         <div className="mobile-nav-panel">
