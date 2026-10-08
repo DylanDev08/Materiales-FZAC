@@ -37,5 +37,5 @@ jobs:
             echo "No dependency changes to commit."
           else
             git commit -m "chore(security): upgrade Next.js to 16.3.8"
-            git push origin HEAD:main
+            git push --force origin HEAD:refs/heads/automation/next-16.3.8-lock
           fi
