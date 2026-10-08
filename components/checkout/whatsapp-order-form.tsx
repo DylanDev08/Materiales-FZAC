@@ -148,7 +148,7 @@ function normalizeManualAddress(value: CheckoutAddressState): CheckoutAddressSta
   const number = value.number.trim();
   if (number) return { ...value, street, number };
 
-  // Mobile-friendly shortcut: typing "Av. Rivarola 8002" in Calle fills the
+  // Mobile-friendly shortcut: typing "Córdoba 1452" in Calle fills the
   // height automatically. Requiring 3+ digits avoids treating names such as
   // "Ruta 33" as a house number.
   const match = street.match(/^(.+?)[,\s]+(\d{3,5}[A-Za-z]?(?:[/-][0-9A-Za-z]+)?)$/);
@@ -382,7 +382,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
     if (!streetValid || !numberValid || !cityValid || !provinceValid) {
       setShippingQuote({
         status: "error",
-        message: "Completá calle, número, ciudad y provincia. Podés escribir la dirección manualmente (por ejemplo, Av. Rivarola 8002) o elegir una sugerencia de Google Maps."
+        message: "Completá calle, número, ciudad y provincia. Podés escribir la dirección manualmente (por ejemplo, Córdoba 1452) o elegir una sugerencia de Google Maps."
       });
       return false;
     }
@@ -726,9 +726,9 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
                   {shippingMethod === "DELIVERY" ? (
                     <div className="checkout-subpanel">
                       <h3><MapPin size={17} /> Dirección de entrega</h3>
-                      <p>Podés escribir la dirección manualmente o elegir una sugerencia de Google Maps. Si escribís “Av. Rivarola 8002”, completamos la altura automáticamente.</p>
+                      <p>Podés escribir la dirección manualmente o elegir una sugerencia de Google Maps. Si escribís “Córdoba 1452”, completamos la altura automáticamente.</p>
                       <div className="form-grid checkout-address-grid">
-                        <label>Calle<input ref={streetInputRef} value={address.street} onChange={(event) => updateAddressField("street", event.target.value)} onBlur={normalizeStreetAndNumber} autoComplete="address-line1" placeholder="Ej.: Av. Rivarola 8002" />{validationMessage(addressStates.street)}<small className="checkout-field-help">{address.placeId ? "Dirección vinculada con Google Maps." : placesReady ? "Podés elegir una sugerencia o escribir la dirección manualmente." : "Podés escribir la dirección completa manualmente."}</small></label>
+                        <label>Calle<input ref={streetInputRef} value={address.street} onChange={(event) => updateAddressField("street", event.target.value)} onBlur={normalizeStreetAndNumber} autoComplete="address-line1" placeholder="Ej.: Córdoba 1452" />{validationMessage(addressStates.street)}<small className="checkout-field-help">{address.placeId ? "Dirección vinculada con Google Maps." : placesReady ? "Podés elegir una sugerencia o escribir la dirección manualmente." : "Podés escribir la dirección completa manualmente."}</small></label>
                         <label>Número<input value={address.number} onChange={(event) => updateAddressField("number", event.target.value)} inputMode="numeric" maxLength={30} />{validationMessage(addressStates.number)}</label>
                         <label>Departamento (opcional)<input value={address.apartment} onChange={(event) => updateAddressField("apartment", event.target.value)} autoComplete="address-line2" /></label>
                         <label>Ciudad<input value={address.city} onChange={(event) => updateAddressField("city", event.target.value)} autoComplete="address-level2" />{validationMessage(addressStates.city)}</label>
