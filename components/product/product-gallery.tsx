@@ -8,8 +8,11 @@ export function ProductGallery({ name, images, placeholder = false }: { name: st
   const gallery = useMemo(() => Array.from(new Set(images.filter(Boolean))).slice(0, 5), [images]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const touchStartX = useRef<number | null>(null);
   const selected = gallery[selectedIndex] ?? gallery[0] ?? "";
+  const selectedFailed = Boolean(selected && failedImages.has(selected));
+  const selectedSrc = selectedFailed ? "/logoFZAC.jpg" : selected;
 
   const selectRelative = useCallback((direction: -1 | 1) => {
     setSelectedIndex((current) => (current + direction + gallery.length) % gallery.length);
@@ -48,8 +51,8 @@ export function ProductGallery({ name, images, placeholder = false }: { name: st
         onTouchStart={(event) => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
         onTouchEnd={handleTouchEnd}
       >
-        <Image src={selected} alt={placeholder ? `${name} - imagen pendiente` : name} fill sizes="(max-width: 900px) 100vw, 52vw" priority />
-        {placeholder ? <span className="product-gallery__placeholder">Imagen pendiente</span> : null}
+        <Image src={selectedSrc} alt={placeholder || selectedFailed ? `${name} - imagen no disponible` : name} fill sizes="(max-width: 900px) 100vw, 52vw" priority onError={() => selected && setFailedImages((current) => new Set(current).add(selected))} />
+        {placeholder || selectedFailed ? <span className="product-gallery__placeholder">{selectedFailed ? "Imagen no disponible" : "Imagen pendiente"}</span> : null}
         <span className="product-gallery__counter">{selectedIndex + 1} / {gallery.length}</span>
         <button className="product-gallery__zoom" type="button" onClick={() => setLightboxOpen(true)} aria-label={`Ampliar foto de ${name}`}>
           <Expand size={18} />
@@ -73,7 +76,7 @@ export function ProductGallery({ name, images, placeholder = false }: { name: st
               aria-pressed={selectedIndex === index}
               key={image}
             >
-              <Image src={image} alt="" fill sizes="92px" />
+              <Image src={failedImages.has(image) ? "/logoFZAC.jpg" : image} alt="" fill sizes="92px" onError={() => setFailedImages((current) => new Set(current).add(image))} />
             </button>
           ))}
         </div>
@@ -82,7 +85,7 @@ export function ProductGallery({ name, images, placeholder = false }: { name: st
         <div className="product-gallery-lightbox" role="dialog" aria-modal="true" aria-label={`Vista ampliada de ${name}`}>
           <button className="product-gallery-lightbox__close" type="button" onClick={() => setLightboxOpen(false)} aria-label="Cerrar imagen ampliada"><X size={22} /></button>
           <div className="product-gallery-lightbox__stage">
-            <Image src={selected} alt={`${name}, imagen ${selectedIndex + 1} de ${gallery.length}`} fill sizes="100vw" />
+            <Image src={selectedSrc} alt={`${name}, imagen ${selectedIndex + 1} de ${gallery.length}`} fill sizes="100vw" onError={() => selected && setFailedImages((current) => new Set(current).add(selected))} />
           </div>
           {gallery.length > 1 ? (
             <div className="product-gallery__arrows">
