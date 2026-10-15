@@ -172,7 +172,13 @@ export function ProductCard({ product }: { product: Product }) {
           ) : cartEligible ? (
             <button className="btn product-card__primary-action" type="button" disabled={!hydrated || isAdding} onClick={addToCart}>
               <ShoppingCart size={18} />
-              {!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}
+              {!hydrated
+                ? "Cargando..."
+                : isAdding
+                  ? "Añadiendo..."
+                  : availabilityStatus === "OUT_OF_STOCK"
+                    ? "Agregar para consultar"
+                    : "Añadir al carrito"}
             </button>
           ) : (
             <Link className="btn" href={`/producto/${product.slug}`} prefetch={false}>
