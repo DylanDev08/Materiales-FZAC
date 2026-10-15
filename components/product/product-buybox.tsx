@@ -126,13 +126,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
               <input aria-label="Cantidad" min={1} max={maxQuantity} type="number" value={quantity} onChange={(event) => setSafeQuantity(Number(event.target.value))} />
               <button type="button" onClick={() => setSafeQuantity(quantity + 1)} disabled={quantity >= maxQuantity} aria-label="Sumar una unidad"><Plus size={16} /></button>
             </div>
-            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}><ShoppingCart size={18} />{!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : "Añadir al carrito"}</button>
+            <button className="btn" type="button" disabled={!hydrated || isAdding} onClick={addToCart}><ShoppingCart size={18} />{!hydrated ? "Cargando..." : isAdding ? "Añadiendo..." : availabilityStatus === "OUT_OF_STOCK" ? "Agregar para consultar" : "Añadir al carrito"}</button>
           </div>
 
           <p className="product-subtotal">Total estimado <strong>{currency(subtotal)}</strong>{pricing.savings > 0 ? <small> Ahorrás {currency(pricing.savings)} con la promoción.</small> : null}</p>
 
           {availabilityStatus === "IN_STOCK" && quantity >= product.stock && product.stock > 0 ? <p className="notice">Estás seleccionando el máximo disponible.</p> : null}
-          {availabilityStatus === "CONSULT" ? <p className="notice">Podés agregar la cantidad que necesitás. FZAC confirma la disponibilidad final por WhatsApp antes del pago.</p> : null}
+          {availabilityStatus === "CONSULT" || availabilityStatus === "OUT_OF_STOCK" ? <p className="notice">Podés agregar la cantidad que necesitás. FZAC confirma disponibilidad o reposición por WhatsApp antes de coordinar el pago.</p> : null}
         </>
       ) : (
         <p className="notice">{availabilityStatus === "CONSULT" ? "Stock a confirmar antes del pago." : "Sin stock por el momento. Consultanos por reposición o alternativas."}</p>
