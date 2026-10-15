@@ -49,7 +49,7 @@ const projectShortcuts = [
   }
 ];
 
-const CATALOG_PAGE_SIZE = 120;
+const CATALOG_PAGE_SIZE = 200;
 
 function value(params: SearchParams, key: string) {
   const raw = params[key];
