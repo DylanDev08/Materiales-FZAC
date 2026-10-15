@@ -669,7 +669,8 @@ export async function createCheckout(input: unknown) {
   }
 
   const lines = Array.from(linesByProduct.values());
-  if (lines.some(({ product }) => isWhatsAppOnlyProduct(product))) {
+  const isWhatsApp = paymentMethod === "WHATSAPP";
+  if (!isWhatsApp && lines.some(({ product }) => isWhatsAppOnlyProduct(product))) {
     throw new CheckoutIntegrityError(
       "CHECKOUT_CREATE_FAILED",
       "Este combo se vende únicamente por WhatsApp. Volvé a la ficha del producto para coordinar el pago.",
@@ -677,6 +678,7 @@ export async function createCheckout(input: unknown) {
     );
   }
   const stockIssues = lines.flatMap(({ product, quantity }) => {
+    if (isWhatsApp) return [];
     const consult = product.availability_status === "CONSULT";
     return !canPurchaseProduct(product) || (!consult && quantity > product.stock)
       ? [{ productId: product.id, requested: quantity, available: product.stock, name: product.name }]
@@ -698,7 +700,6 @@ export async function createCheckout(input: unknown) {
   const total = subtotal + delivery;
   const approvalLimit = getPurchaseAutoApprovalLimit();
   const isBankTransfer = paymentMethod === "BANK_TRANSFER";
-  const isWhatsApp = paymentMethod === "WHATSAPP";
   const isLargePurchase = requiresAdminPurchaseApproval(total);
   const requiresAdminApproval = isLargePurchase || isBankTransfer || isWhatsApp;
   const orderStatus = isLargePurchase
