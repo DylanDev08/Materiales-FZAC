@@ -198,7 +198,8 @@ function loadGoogleMapsPlaces() {
 }
 
 function productQuantityLimit(product: Product) {
-  return getProductAvailabilityStatus(product) === "CONSULT" ? 999 : Math.max(1, product.stock);
+  const status = getProductAvailabilityStatus(product);
+  return status === "CONSULT" || status === "OUT_OF_STOCK" ? 999 : Math.max(1, product.stock);
 }
 
 export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null }) {
@@ -757,7 +758,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
               {step === "review" ? (
                 <section className="checkout-panel">
                   <h2><ShieldCheck size={18} /> Revisión del pedido</h2>
-                  <div className="payment-note"><ShieldCheck size={18} /><p>Los productos con “Stock a confirmar” pueden pedirse normalmente. FZAC confirma la cantidad final por WhatsApp antes de cobrar.</p></div>
+                  <div className="payment-note"><ShieldCheck size={18} /><p>Podés generar el pedido aunque un producto figure sin stock o “Stock a confirmar”. FZAC valida disponibilidad, reposición y cantidad final por WhatsApp antes de coordinar el pago.</p></div>
                   <label className="field" style={{ marginTop: 14 }}>Notas del pedido<textarea value={notes} onChange={(event) => setNotes(event.target.value.slice(0, 500))} maxLength={500} placeholder="Ej.: horario de retiro, aclaración de obra o referencia." />{validationMessage(orderNotesState)}</label>
                   {stockState.status === "loading" ? <p className="notice">Validando disponibilidad...</p> : null}
                   {stockState.status === "ok" ? <p className="notice notice--success">Pedido validado. Podés continuar.</p> : null}
@@ -813,7 +814,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
             <header><div className="terms-modal__brand"><span><Image src="/logoFZAC.jpg" alt="FZAC" width={58} height={58} /></span><div><span className="kicker">Legal FZAC</span><h2 id="terms-modal-title">Términos y condiciones</h2></div></div><button className="terms-modal__close" type="button" onClick={() => setTermsOpen(false)} aria-label="Cerrar términos"><X size={19} /></button><p>Revisá las condiciones antes de generar el pedido.</p></header>
             <div className="terms-modal__content">
               <section><h3>Pedido y pago</h3><p>La confirmación web genera una solicitud de pedido. FZAC confirma disponibilidad y envía por WhatsApp los datos para coordinar la transferencia. El pedido no se considera pagado hasta que FZAC verifica el ingreso.</p></section>
-              <section><h3>Stock a confirmar</h3><p>Los productos marcados como “Stock a confirmar” pueden incluirse en el pedido. La cantidad definitiva se valida con FZAC antes del pago.</p></section>
+              <section><h3>Disponibilidad a confirmar</h3><p>Los productos sin stock o marcados como “Stock a confirmar” pueden incluirse en el pedido. FZAC valida disponibilidad, reposición y cantidad definitiva antes de coordinar el pago.</p></section>
               <section><h3>Entrega y retiro</h3><p>El envío se cotiza con la dirección escrita o seleccionada. Los horarios y condiciones finales se coordinan luego de confirmar el pedido.</p></section>
               <section><h3>Derecho de revocación</h3><p>Conforme a la normativa aplicable, las compras a distancia cuentan con los derechos de revocación que correspondan según el producto y la operación.</p></section>
               <section><h3>Privacidad</h3><p>FZAC no solicita ni almacena datos de tarjeta en este flujo. Solo se procesan los datos necesarios para identificar, coordinar y entregar el pedido.</p></section>
