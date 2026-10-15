@@ -486,3 +486,14 @@
   text-transform: uppercase;
   backdrop-filter: blur(6px);
 }
+
+
+.product-card__sku {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .035em;
+  line-height: 1.25;
+}
