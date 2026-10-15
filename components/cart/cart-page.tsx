@@ -30,10 +30,13 @@ export function CartPage() {
   const [message, setMessage] = useState("");
   const [validation, setValidation] = useState<CartValidationState>({ status: "idle" });
   const lastValidationRef = useRef("");
-  const hasConsultItems = items.some((item) => getProductAvailabilityStatus(item.product) === "CONSULT");
+  const hasAvailabilityToCoordinate = items.some((item) => {
+    const status = getProductAvailabilityStatus(item.product);
+    return status === "CONSULT" || status === "OUT_OF_STOCK";
+  });
   const helpHref = getWhatsAppHref(
-    hasConsultItems
-      ? `Hola FZAC, quiero confirmar disponibilidad de este carrito:\n${items.map((item) => `- ${item.quantity} x ${item.product.name}`).join("\n")}`
+    hasAvailabilityToCoordinate
+      ? `Hola FZAC, quiero confirmar disponibilidad o reposición de este carrito:\n${items.map((item) => `- ${item.quantity} x ${item.product.name} (${item.product.sku})`).join("\n")}`
       : "Hola FZAC, necesito ayuda para revisar mi carrito antes de comprar."
   );
   const cartFingerprint = useMemo(
@@ -178,7 +181,7 @@ export function CartPage() {
                       {needsAvailabilityCheck
                         ? "Stock a confirmar antes del pago."
                         : availabilityStatus === "OUT_OF_STOCK"
-                          ? "Sin stock para compra directa."
+                          ? "Sin stock directo. Podés incluirlo igual y FZAC coordina reposición por WhatsApp."
                           : issue
                         ? `Pediste ${issue.requested}; disponibles ${issue.available}`
                         : `${item.product.stock} ${item.product.unit} disponibles`}
@@ -260,9 +263,9 @@ export function CartPage() {
                 <Link className="btn" href="/checkout">
                   Continuar al checkout
                 </Link>
-              ) : hasConsultItems ? (
+              ) : hasAvailabilityToCoordinate ? (
                 <a className="btn" href={helpHref} target="_blank" rel="noreferrer">
-                  <MessageCircle size={17} /> Confirmar stock
+                  <MessageCircle size={17} /> Coordinar disponibilidad
                 </a>
               ) : (
                 <span className="btn is-disabled" aria-disabled="true">
