@@ -149,9 +149,35 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
   }
 
   const approvalRows = useMemo(()=>rows.filter((row) => row.__statusRaw === "PENDING_ADMIN_APPROVAL"),[rows]);
+  const coordinateRows = useMemo(()=>rows.filter((row) => row.__statusRaw === "COORDINATE"),[rows]);
   const fulfillmentRows = useMemo(()=>rows.filter((row) => ["PAID","CONFIRMED","PREPARING","READY_FOR_PICKUP","READY_FOR_DELIVERY","OUT_FOR_DELIVERY"].includes(String(row.__statusRaw))),[rows]);
 
   return <>
+    {coordinateRows.length ? <section className="admin-large-purchases" aria-label="Pedidos para coordinar por WhatsApp">
+      {coordinateRows.map((row)=>{
+        const delivery=row.__shippingMethod==="DELIVERY";
+        return <article className="admin-large-purchase-card" key={`coordinate-${row.Id}`}>
+          <div>
+            <span className="kicker">WHATSAPP · PEDIDO PARA COORDINAR</span>
+            <h2>{row.Cliente}</h2>
+            <p>Pedido #{row.Referencia}. Confirmá disponibilidad o reposición, pago y {delivery ? "envío" : "retiro"}.</p>
+          </div>
+          <strong>{row.Total}</strong>
+          <small>{row.Productos}</small>
+          <div className="admin-order-quick-actions">
+            <a
+              className="btn"
+              href={getWhatsAppHref(`Hola ${row.Cliente}, te contactamos desde FZAC por el pedido #${row.Referencia}. Vamos a confirmar disponibilidad o reposición de los productos, forma de pago y ${delivery ? "envío" : "retiro"}.`)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <MessageCircle size={17}/> Continuar por WhatsApp
+            </a>
+          </div>
+        </article>;
+      })}
+    </section> : null}
+
     {fulfillmentRows.length ? <section className="admin-large-purchases">
       {fulfillmentRows.map((row)=>{
         const delivery=row.__shippingMethod==="DELIVERY";
