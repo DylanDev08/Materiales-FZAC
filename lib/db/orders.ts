@@ -574,8 +574,9 @@ async function resumeCheckoutByIdempotencyKey(
   });
 }
 
-export async function inspectCheckoutStock(input: unknown) {
+export async function inspectCheckoutStock(input: unknown, options: { allowCoordination?: boolean } = {}) {
   const payload = checkoutStockSchema.parse(input);
+  const allowCoordination = Boolean(options.allowCoordination);
   const { products, items } = await getProductsForItems(payload.items);
   const requestedByProduct = new Map<string, { product?: Product; quantity: number; fallbackName: string }>();
 
@@ -593,7 +594,11 @@ export async function inspectCheckoutStock(input: unknown) {
   const issues = Array.from(requestedByProduct.entries()).flatMap(([productId, requested]) => {
     const available = requested.product?.stock ?? 0;
     const consult = requested.product?.availability_status === "CONSULT";
-    return !requested.product || !canPurchaseProduct(requested.product) || (!consult && requested.quantity > available)
+    if (!requested.product) {
+      return [{ productId, requested: requested.quantity, available, name: requested.fallbackName }];
+    }
+    if (allowCoordination) return [];
+    return !canPurchaseProduct(requested.product) || (!consult && requested.quantity > available)
       ? [{ productId, requested: requested.quantity, available, name: requested.fallbackName }]
       : [];
   });
