@@ -16,7 +16,8 @@ export function canPurchaseProduct(product: Pick<Product, "stock" | "availabilit
 }
 
 export function canAddProductToCart(product: Pick<Product, "stock" | "availability_status">) {
-  return canPurchaseProduct(product);
+  const status = getProductAvailabilityStatus(product);
+  return status === "IN_STOCK" || status === "CONSULT" || status === "OUT_OF_STOCK";
 }
 
 export function productAvailabilityLabel(
