@@ -109,6 +109,7 @@ export function ProductCard({ product }: { product: Product }) {
         <Link href={`/producto/${product.slug}`} prefetch={false}>
           <h3>{product.name}</h3>
         </Link>
+        <span className="product-card__sku">SKU {product.sku}</span>
         <p className="product-card__description">{product.description}</p>
         <span className="product-card__seller">Vendido por FZAC</span>
         <div className="product-card__price">
