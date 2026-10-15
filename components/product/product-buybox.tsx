@@ -29,7 +29,9 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const [isAdding, setIsAdding] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
-  const maxQuantity = availabilityStatus === "CONSULT" ? 999 : Math.max(1, product.stock);
+  const maxQuantity = availabilityStatus === "CONSULT" || availabilityStatus === "OUT_OF_STOCK"
+    ? 999
+    : Math.max(1, product.stock);
   const pricing = productLinePricing(product, quantity);
   const subtotal = pricing.total;
   const promotion = promotionLabel(product);
