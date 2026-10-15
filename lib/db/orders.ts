@@ -292,7 +292,7 @@ function buildWhatsAppOrderMessage(input: {
     delivery ? `Envío: ${currency(input.shippingCost)}` : "Retiro: sin costo",
     delivery ? `Total con envío: ${currency(input.total)}` : `Total final: ${currency(input.total)}`,
     "",
-    "Quiero coordinar el pago por transferencia y la entrega/retiro."
+    "Quiero confirmar disponibilidad o reposición y coordinar el pago por transferencia y la entrega/retiro."
   ].join("\n");
 }
 
