@@ -407,10 +407,12 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
     if (!response.ok || !data.available) {
       setShippingQuote({
         status: "error",
-        message: data.reason || data.message || "No pudimos cotizar el envío con esa dirección.",
+        message:
+          (data.reason || data.message || "No pudimos cotizar el envío automáticamente.") +
+          " Podés continuar: FZAC cotiza el envío por WhatsApp antes de confirmar el pago.",
         distanceKm: data.distanceKm
       });
-      return false;
+      return true;
     }
     setShippingQuote({
       status: "ok",
@@ -616,19 +618,26 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
           `  ${item.quantity} x ${currency(item.product.price)} c/u = ${currency(pricing.total)}${promotionApplied ? " (promo aplicada)" : ""}`
         ];
       });
-      const whatsappUrl = getWhatsAppHref([
+      const serverWhatsAppUrl = String(data.whatsapp_url || data.whatsappUrl || data.redirect_url || data.url || "").trim();
+      const whatsappUrl = serverWhatsAppUrl || getWhatsAppHref([
         `Hola FZAC, generé el pedido #${reference} a nombre de ${customer.name.trim()}.`,
         "",
         "Productos:",
         ...productMessageLines,
         "",
         `Subtotal productos: ${currency(subtotal)}`,
-        shippingMethod === "DELIVERY" ? `Envío: ${currency(shippingCost)}` : "Retiro: sin costo",
         shippingMethod === "DELIVERY"
-          ? `Total con envío: ${currency(authoritativeTotal)}`
-          : `Total final: ${currency(authoritativeTotal)}`,
+          ? shippingQuote.status === "ok"
+            ? `Envío: ${currency(shippingCost)}`
+            : "Envío: a cotizar por WhatsApp"
+          : "Retiro: sin costo",
+        shippingMethod === "DELIVERY" && shippingQuote.status !== "ok"
+          ? `Total productos: ${currency(authoritativeTotal)} + envío a cotizar`
+          : shippingMethod === "DELIVERY"
+            ? `Total con envío: ${currency(authoritativeTotal)}`
+            : `Total final: ${currency(authoritativeTotal)}`,
         "",
-        "Quiero coordinar el pago por transferencia y la entrega/retiro."
+        "Quiero confirmar disponibilidad y coordinar pago, envío o retiro por WhatsApp."
       ].join("\n"));
 
       const snapshot: LastOrderSnapshot = {
@@ -636,7 +645,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
         whatsappUrl,
         total: authoritativeTotal,
         shippingMethod,
-        message: data.message || "Pedido generado correctamente. Coordiná el pago y la entrega con FZAC por WhatsApp.",
+        message: data.message || "Pedido generado correctamente. Coordiná stock, pago, envío o retiro con FZAC por WhatsApp.",
         createdAt: Date.now()
       };
       window.sessionStorage.setItem(LAST_ORDER_KEY, JSON.stringify(snapshot));
@@ -745,7 +754,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
                         </div>
                       ) : null}
                       {shippingQuote.status === "error" ? (
-                        <div className="notice notice--danger checkout-shipping-fallback"><p>{shippingQuote.message}{shippingQuote.distanceKm ? ` Distancia detectada: ${shippingQuote.distanceKm} km.` : ""}</p><div><button type="button" onClick={choosePickup}><Package size={16} /> Elegir retiro $0</button><a href={deliveryHref} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Coordinar por WhatsApp</a></div></div>
+                        <div className="notice checkout-shipping-fallback"><p>{shippingQuote.message}{shippingQuote.distanceKm ? ` Distancia detectada: ${shippingQuote.distanceKm} km.` : ""}</p><div><button type="button" onClick={choosePickup}><Package size={16} /> Elegir retiro $0</button><a href={deliveryHref} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Coordinar por WhatsApp</a></div></div>
                       ) : null}
                     </div>
                   ) : null}
@@ -799,7 +808,7 @@ export function WhatsAppOrderForm({ profile }: { profile: SessionProfile | null 
                 <div className="payment-method-hint"><MessageCircle size={18} /><div><strong>Coordinación por WhatsApp</strong><p>Al confirmar creamos el pedido y te llevamos a WhatsApp con la referencia. Ahí FZAC confirma stock, datos de transferencia y entrega o retiro.</p><span>No ingresás datos de tarjeta en la web.</span></div></div>
                 <div className="terms-checkbox"><input type="checkbox" id="accept-terms" checked={accepted} onChange={(event) => event.target.checked ? setTermsOpen(true) : setAccepted(false)} /><div className="terms-checkbox__copy"><span>Acepto los </span><button className="terms-inline-button" type="button" onClick={() => setTermsOpen(true)}>Términos y condiciones</button><span> y la </span><Link href="/privacidad" target="_blank" rel="noopener noreferrer">Política de privacidad</Link>.</div></div>
                 {error ? <p className="notice notice--danger">{error}</p> : null}
-                <button className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`} ref={primaryActionRef} type="button" disabled={!accepted || loading || stockState.status !== "ok" || (shippingMethod === "DELIVERY" && shippingQuote.status !== "ok")} aria-busy={loading} onClick={() => void submitOrder()}>{loading ? <Loader2 size={18} /> : <MessageCircle size={18} />}{loading ? "Generando pedido..." : "Confirmar pedido y abrir WhatsApp"}</button>
+                <button className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`} ref={primaryActionRef} type="button" disabled={!accepted || loading || stockState.status !== "ok" || (shippingMethod === "DELIVERY" && shippingQuote.status === "loading")} aria-busy={loading} onClick={() => void submitOrder()}>{loading ? <Loader2 size={18} /> : <MessageCircle size={18} />}{loading ? "Generando pedido..." : "Confirmar pedido y abrir WhatsApp"}</button>
                 <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("review")}><ArrowLeft size={17} /> Revisar datos</button>
               </>
             ) : <p className="checkout-summary__payment">Completá los pasos para confirmar el pedido por WhatsApp.</p>}
