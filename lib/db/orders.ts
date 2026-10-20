@@ -314,6 +314,7 @@ async function storedOrderWhatsAppUrl(
     shipping_cost?: number | string | null;
     subtotal?: number | string | null;
     total?: number | string | null;
+    address_snapshot?: unknown;
   }
 ) {
   const { data: orderItems } = await admin
@@ -332,6 +333,17 @@ async function storedOrderWhatsAppUrl(
   const subtotal = Number(order.subtotal ?? lines.reduce((sum, line) => sum + line.lineTotal, 0));
   const total = Number(order.total ?? subtotal + shippingCost);
 
+  const addressSnapshot =
+    order.address_snapshot && typeof order.address_snapshot === "object"
+      ? (order.address_snapshot as Record<string, unknown>)
+      : null;
+  const storedQuote =
+    addressSnapshot?.shippingQuote && typeof addressSnapshot.shippingQuote === "object"
+      ? (addressSnapshot.shippingQuote as Record<string, unknown>)
+      : null;
+  const shippingQuoted =
+    String(order.shipping_method ?? "").toUpperCase() !== "DELIVERY" || storedQuote?.available === true;
+
   return getWhatsAppHref(buildWhatsAppOrderMessage({
     orderId: order.id,
     customerName: order.customer_name,
@@ -339,7 +351,8 @@ async function storedOrderWhatsAppUrl(
     subtotal,
     shippingCost,
     total,
-    shippingMethod: order.shipping_method
+    shippingMethod: order.shipping_method,
+    shippingQuoted
   }));
 }
 
@@ -406,7 +419,7 @@ async function resumeCheckoutByIdempotencyKey(
   const { data: order } = await admin
     .from("orders")
     .select(
-      "id,user_id,status,customer_name,customer_email,customer_phone,shipping_method,shipping_cost,subtotal,total"
+      "id,user_id,status,customer_name,customer_email,customer_phone,shipping_method,shipping_cost,subtotal,total,address_snapshot"
     )
     .eq("id", payment.order_id)
     .maybeSingle();
