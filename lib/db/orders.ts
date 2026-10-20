@@ -642,7 +642,14 @@ export async function validateCheckoutStock(input: unknown) {
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  const paymentMethod = payload.paymentMethod ?? "WHATSAPP";
+  if (paymentMethod !== "WHATSAPP") {
+    throw new CheckoutIntegrityError(
+      "CHECKOUT_CREATE_FAILED",
+      "Los pedidos nuevos de Materiales FZAC se coordinan exclusivamente por WhatsApp.",
+      409
+    );
+  }
   const provider: PaymentProvider =
     paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : paymentMethod === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
   const idempotencyKey = payload.idempotencyKey?.trim();
