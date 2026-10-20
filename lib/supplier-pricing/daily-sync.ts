@@ -215,7 +215,9 @@ export async function runDailySupplierPricingSync() {
     const previousSeen=lastObserved.get(product.id) ?? previousSource;
     const changePct=previousSeen > 0 ? ((observed-previousSeen)/previousSeen)*100 : 0;
     const rule=ruleByCategory.get(String(product.category_id));
-    const margin=Number(rule?.target_margin_pct ?? 5);
+    const sourceMargin=Number(raw.margin_percent);
+    const categoryMargin=Number(rule?.target_margin_pct ?? 5);
+    const margin=Number.isFinite(sourceMargin) && sourceMargin >= 0 ? sourceMargin : categoryMargin;
     const threshold=Number(rule?.auto_update_threshold_pct ?? 15);
     const marketAlert=Number(rule?.alert_over_market_pct ?? 15);
     const expected=Math.round(observed*(1+margin/100));
@@ -241,7 +243,7 @@ export async function runDailySupplierPricingSync() {
       const saleChanged=Math.abs(currentPrice-expected) >= 1;
       if (sourceChanged || saleChanged) {
         action="AUTO_UPDATED";
-        reason=`Costo actualizado ${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%. Margen categoría: ${margin}%.`;
+        reason=`Costo actualizado ${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%. Margen comercial aplicado: ${margin}%.`;
         await Promise.all([
           admin.from("product_supplier_sources").update({
             original_price:observed,margin_percent:margin,checked_at:new Date().toISOString(),
