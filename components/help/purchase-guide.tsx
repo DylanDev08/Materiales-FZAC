@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, CreditCard, PackageSearch, ShoppingCart, Truck } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, PackageSearch, ShoppingCart, Truck } from "lucide-react";
 import { AssistantLauncher } from "@/components/chatbot/assistant-launcher";
 
 const steps = [
@@ -27,20 +27,20 @@ const steps = [
     icon: ShoppingCart
   },
   {
-    title: "Elegí entrega y pago",
-    short: "Retiro, envío o coordinación.",
-    text: "Completá tus datos, elegí retiro o envío y seleccioná Mercado Pago, transferencia o coordinación por WhatsApp.",
-    details: ["Retiro no exige dirección", "El envío requiere domicilio", "Cada método conserva su propio flujo"],
+    title: "Generá el pedido",
+    short: "Retiro o envío + WhatsApp.",
+    text: "Completá tus datos, elegí retiro o envío y generá la referencia FZAC. Después continuás por WhatsApp para confirmar disponibilidad, envío y pago.",
+    details: ["Retiro no exige dirección", "El envío puede cotizarse en la web o por WhatsApp", "No ingresás datos de tarjeta en la tienda"],
     href: "/medios-de-pago",
-    action: "Ver medios de pago",
-    prompt: "Quiero entender las opciones de entrega y los medios de pago antes de comprar.",
-    icon: CreditCard
+    action: "Ver cómo se coordina",
+    prompt: "Quiero entender cómo generar el pedido y coordinarlo por WhatsApp.",
+    icon: MessageCircle
   },
   {
     title: "Seguí el pedido",
     short: "Estado, comprobante y preparación.",
-    text: "Después de crear el pedido podés revisar su estado desde Mi cuenta. El stock se descuenta solo tras la confirmación correspondiente.",
-    details: ["Pago pendiente no descuenta stock", "El comprobante aparece al confirmarse", "La preparación se actualiza desde FZAC"],
+    text: "Después de generar el pedido, guardá el código FZAC y seguí la coordinación por WhatsApp. También podés revisar el pedido desde Mi cuenta.",
+    details: ["El código identifica tu pedido", "FZAC confirma disponibilidad antes de cerrar la compra", "La preparación se actualiza desde FZAC"],
     href: "/cuenta/pedidos",
     action: "Ver mis pedidos",
     prompt: "Quiero saber cómo seguir un pedido y dónde encontrar el comprobante.",
