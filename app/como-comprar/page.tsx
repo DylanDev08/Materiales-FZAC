@@ -5,7 +5,7 @@ import { publicPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = publicPageMetadata({
   title: "Cómo comprar materiales online",
-  description: "Elegí materiales, confirmá stock, seleccioná entrega y pagá o coordiná tu pedido con Materiales FZAC.",
+  description: "Elegí materiales, generá tu pedido y coordiná stock, pago, envío o retiro por WhatsApp con Materiales FZAC.",
   path: "/como-comprar"
 });
 
@@ -17,9 +17,9 @@ export default function Page() {
           <div>
             <span className="kicker">Cómo comprar</span>
             <h1>De elegir el material a seguir el pedido, sin vueltas</h1>
-            <p>Avanzá por cada etapa y revisá exactamente qué necesita FZAC para validar stock, pago y preparación.</p>
+            <p>Armá el carrito, generá una referencia FZAC y continuá por WhatsApp para confirmar stock, pago y preparación.</p>
           </div>
-          <span className="help-page__trust"><ShieldCheck size={20} /> Stock y total validados en servidor</span>
+          <span className="help-page__trust"><ShieldCheck size={20} /> Pedido identificado y coordinado por WhatsApp</span>
         </div>
       </section>
       <section className="page-section">
