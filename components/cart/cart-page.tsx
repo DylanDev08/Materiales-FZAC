@@ -126,7 +126,7 @@ export function CartPage() {
           <div>
             <span className="kicker">Carrito</span>
             <h1>Revisá tus materiales</h1>
-            <p>Las cantidades y el stock final se validan nuevamente antes de crear la orden.</p>
+            <p>Armá el pedido con las cantidades que necesitás. FZAC confirma stock, envío y pago por WhatsApp.</p>
           </div>
         </div>
 
@@ -155,7 +155,7 @@ export function CartPage() {
                 <span>
                   {validation.status === "error"
                     ? validation.message
-                    : "La validación definitiva se repite al crear el pedido."}
+                    : "Podés continuar aunque el stock sea a confirmar: FZAC lo coordina por WhatsApp."}
                 </span>
               </div>
             </div>
@@ -261,7 +261,7 @@ export function CartPage() {
             <div className="cart-summary-actions">
               {validation.status === "ok" ? (
                 <Link className="btn" href="/checkout">
-                  Continuar al checkout
+                  <MessageCircle size={17} /> Continuar por WhatsApp
                 </Link>
               ) : hasAvailabilityToCoordinate ? (
                 <a className="btn" href={helpHref} target="_blank" rel="noreferrer">
