@@ -270,6 +270,7 @@ function buildWhatsAppOrderMessage(input: {
   shippingCost: number;
   total: number;
   shippingMethod?: string | null;
+  shippingQuoted?: boolean;
 }) {
   const reference = String(input.orderId).slice(0, 8).toUpperCase();
   const productLines = input.lines.flatMap((line) => {
@@ -289,8 +290,16 @@ function buildWhatsAppOrderMessage(input: {
     ...productLines,
     "",
     `Subtotal productos: ${currency(input.subtotal)}`,
-    delivery ? `Envío: ${currency(input.shippingCost)}` : "Retiro: sin costo",
-    delivery ? `Total con envío: ${currency(input.total)}` : `Total final: ${currency(input.total)}`,
+    delivery
+      ? input.shippingQuoted === false
+        ? "Envío: a cotizar por WhatsApp"
+        : `Envío: ${currency(input.shippingCost)}`
+      : "Retiro: sin costo",
+    delivery && input.shippingQuoted === false
+      ? `Total productos: ${currency(input.total)} + envío a cotizar`
+      : delivery
+        ? `Total con envío: ${currency(input.total)}`
+        : `Total final: ${currency(input.total)}`,
     "",
     "Quiero confirmar disponibilidad o reposición y coordinar el pago por transferencia y la entrega/retiro."
   ].join("\n");
@@ -694,13 +703,15 @@ export async function createCheckout(input: unknown) {
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
   const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
-  if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available)) {
+  if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available) && !isWhatsApp) {
     throw new ShippingQuoteError(
       shippingQuote?.reason || "No pudimos cotizar el envío con datos reales. Revisá la dirección o elegí retiro.",
       shippingQuote ?? undefined
     );
   }
 
+  // WhatsApp orders never get blocked by an unavailable automatic quote.
+  // When Google Routes cannot quote, shipping remains pending and FZAC coordinates it in chat.
   const delivery = shippingQuote?.available ? shippingQuote.amount : 0;
   const total = subtotal + delivery;
   const approvalLimit = getPurchaseAutoApprovalLimit();
@@ -847,7 +858,9 @@ export async function createCheckout(input: unknown) {
         provider,
         message:
           isWhatsApp
-            ? "Pedido generado. Podes coordinar el pago y la entrega con FZAC por WhatsApp."
+            ? payload.shippingMethod === "DELIVERY" && !shippingQuote?.available
+              ? "Pedido generado. FZAC cotiza el envío y coordina stock, pago y entrega por WhatsApp."
+              : "Pedido generado. Podés coordinar stock, pago y entrega con FZAC por WhatsApp."
             : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
         whatsappUrl: isWhatsApp
           ? getWhatsAppHref(buildWhatsAppOrderMessage({
@@ -863,7 +876,8 @@ export async function createCheckout(input: unknown) {
               subtotal,
               shippingCost: delivery,
               total,
-              shippingMethod: payload.shippingMethod
+              shippingMethod: payload.shippingMethod,
+              shippingQuoted: payload.shippingMethod !== "DELIVERY" || Boolean(shippingQuote?.available)
             }))
           : null
       })
