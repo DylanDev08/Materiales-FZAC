@@ -11,9 +11,8 @@ type CategoryPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params, searchParams }: CategoryPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: Pick<CategoryPageProps, "params">): Promise<Metadata> {
   const { slug } = await params;
-  const resolvedSearchParams = await searchParams;
   const categories = await getCategories();
   const category = categories.find((item) => item.slug === slug);
 
@@ -29,17 +28,10 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const description = seo.description;
   const socialImage = toAbsoluteUrl(category.image_url || SOCIAL_IMAGE);
 
-  const hasFilters = Object.entries(resolvedSearchParams).some(([key, raw]) => {
-    if (key === "view") return false;
-    const value = Array.isArray(raw) ? raw[0] : raw;
-    return Boolean(String(value ?? "").trim());
-  });
-
   return {
     title: seo.title,
     description,
     alternates: { canonical },
-    ...(hasFilters ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       type: "website",
       locale: "es_AR",
