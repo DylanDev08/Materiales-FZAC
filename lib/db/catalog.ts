@@ -228,6 +228,41 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
   };
 }
 
+/**
+ * Production Merchant Center source.
+ * Unlike the storefront's development fallback, never send fallback catalog
+ * data or an empty source if Supabase has an outage.
+ */
+export async function getMerchantFeedProducts(): Promise<Product[]> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) throw new Error("Merchant catalog database unavailable.");
+
+  const categories = await getCategories();
+  if (!categories.length) throw new Error("Merchant catalog categories unavailable.");
+
+  const result: Product[] = [];
+  const pageSize = 250;
+  for (let offset = 0; offset < 10_000; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("products")
+      .select(PUBLIC_PRODUCT_SELECT)
+      .eq("active", true)
+      .in("category_id", categories.map((category) => category.id))
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw new Error("Merchant catalog product query failed.");
+    const products = (data ?? []).map(normalizeProduct);
+    result.push(...products);
+    if (products.length < pageSize) break;
+    if (offset + pageSize >= 10_000) throw new Error("Merchant catalog exceeded safety page limit.");
+  }
+
+  if (!result.length) throw new Error("Merchant catalog empty; refusing to overwrite the previous feed.");
+  return applyAvailableStockToProducts(result);
+}
+
 export async function getProducts(filters: ProductFilters = {}) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return applyFallbackFilters(fallbackProducts, filters);
