@@ -15,24 +15,16 @@ export function generateStaticParams() {
   return BRAND_SEO.map((item) => ({ slug: item.slug }));
 }
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
   const { slug } = await params;
-  const resolvedSearchParams = await searchParams;
   const brand = getBrandSeo(slug);
   if (!brand) return { title: "Marca no encontrada", robots: { index: false, follow: false } };
 
   const canonical = `/marca/${brand.slug}`;
-  const hasFilters = Object.entries(resolvedSearchParams).some(([key, raw]) => {
-    if (key === "view") return false;
-    const value = Array.isArray(raw) ? raw[0] : raw;
-    return Boolean(String(value ?? "").trim());
-  });
-
   return {
     title: brand.title,
     description: brand.description,
     alternates: { canonical },
-    ...(hasFilters ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       type: "website",
       locale: "es_AR",
