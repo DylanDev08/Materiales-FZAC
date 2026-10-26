@@ -14,6 +14,12 @@ function productDescription(name: string, description: string) {
   return value.length > 160 ? `${value.slice(0, 157).trimEnd()}...` : value;
 }
 
+function schemaBrand(value?: string | null) {
+  const brand = String(value ?? "").trim();
+  if (!brand || /^sin marca( informada)?$/i.test(brand) || /^gen[eé]rico$/i.test(brand)) return null;
+  return brand;
+}
+
 function schemaAvailability(product: { stock: number; availability_status?: string | null }) {
   if (product.availability_status === "CONSULT") return "https://schema.org/OutOfStock";
   if (product.availability_status === "IN_STOCK" && product.stock > 0) return "https://schema.org/InStock";
@@ -73,6 +79,7 @@ export default async function Page({ params }: ProductPageProps) {
   const description = productDescription(product.name, product.description);
   const siteUrl = getPublicSiteUrl();
   const productUrl = `${siteUrl}/producto/${encodeURIComponent(product.slug)}`;
+  const brand = schemaBrand(product.brand);
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -83,10 +90,12 @@ export default async function Page({ params }: ProductPageProps) {
     image: [toAbsoluteUrl(product.image_url), ...product.gallery.map(toAbsoluteUrl)],
     sku: product.sku,
     category: product.category?.name ?? product.subcategory,
-    brand: {
-      "@type": "Brand",
-      name: product.brand
-    },
+    ...(brand ? {
+      brand: {
+        "@type": "Brand",
+        name: brand
+      }
+    } : {}),
     offers: {
       "@type": "Offer",
       url: productUrl,
