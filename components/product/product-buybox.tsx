@@ -15,6 +15,7 @@ import {
 import { getWhatsAppHref } from "@/lib/utils/contact";
 import { productLinePricing, promotionLabel } from "@/lib/products/promotions";
 import { isWhatsAppOnlyProduct } from "@/lib/products/sales-channel";
+import { getBrandSeoByName } from "@/lib/seo/brand-content";
 import type { Product } from "@/types/domain";
 
 export function ProductBuyBox({ product }: { product: Product }) {
@@ -37,6 +38,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
   const promotion = promotionLabel(product);
   const normalizedBrand = product.brand.trim().toLowerCase();
   const displayBrand = ["sin marca informada", "sin marca", "generico", "genérico"].includes(normalizedBrand) ? "FZAC Materiales" : product.brand;
+  const brandSeo = getBrandSeoByName(product.brand);
   const whatsappOnly = isWhatsAppOnlyProduct(product);
   const lowStockThreshold = Math.max(5, product.stock_minimum);
   const whatsappHref = getWhatsAppHref(
@@ -78,7 +80,11 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
   return (
     <aside className="product-buybox">
-      <span className="kicker">{displayBrand}</span>
+      {brandSeo ? (
+        <Link className="kicker" href={`/marca/${brandSeo.slug}`} prefetch={false}>{displayBrand}</Link>
+      ) : (
+        <span className="kicker">{displayBrand}</span>
+      )}
       <h1>{product.name}</h1>
       <p className="product-buybox__meta">
         SKU {product.sku} - Categoría {product.category?.name ?? product.subcategory}
