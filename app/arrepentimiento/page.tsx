@@ -12,7 +12,7 @@ export const metadata = publicPageMetadata({
 });
 
 export default function Page() {
-  const email = getEnv("FZAC_EMAIL") || "fortalezaconstruccionesrosario@gmail.com";
+  const email = getEnv("FZAC_EMAIL") || "fortalezaconstrucciones@gmail.com";
   const whatsappHref = getWhatsAppHref(
     "Hola FZAC, quiero iniciar una solicitud por botón de arrepentimiento. Tengo número de pedido, comprobante y datos de contacto."
   );
