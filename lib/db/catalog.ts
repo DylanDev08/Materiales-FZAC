@@ -272,7 +272,7 @@ export async function getProducts(filters: ProductFilters = {}) {
     if (category) query = query.eq("category_id", category.id);
   }
 
-  if (filters.brand) query = query.ilike("brand", sanitizeSearchTerm(filters.brand));
+  if (filters.brand) query = query.eq("brand", sanitizeSearchTerm(filters.brand));
   if (filters.minPrice) query = query.gte("price", filters.minPrice);
   if (filters.maxPrice) query = query.lte("price", filters.maxPrice);
   if (filters.inStock) query = query.eq("availability_status", "IN_STOCK").gt("stock", 0);
