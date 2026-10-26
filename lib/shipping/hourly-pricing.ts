@@ -9,6 +9,41 @@ export type HourlyShippingTariff = {
   roundTo: number;
 };
 
+type UnloadingLine = {
+  product: {
+    specifications: Record<string, string | number | boolean>;
+  };
+  quantity: number;
+};
+
+/**
+ * Only use explicitly configured per-SKU unloading estimates.
+ * Missing, invalid or special-handling products require a manual shipping quote.
+ * No estimated minutes are inferred from product names/categories.
+ */
+export function calculateCartUnloadingMinutes(lines: UnloadingLine[]): number | null {
+  if (!lines.length || lines.length > 100) return null;
+  let total = 0;
+  for (const line of lines) {
+    const specs = line.product.specifications ?? {};
+    if (specs.shipping_requires_manual_quote === true) return null;
+    const perUnit = specs.shipping_unload_minutes_per_unit;
+    if (
+      typeof perUnit !== "number" ||
+      !Number.isFinite(perUnit) ||
+      perUnit < 0 ||
+      perUnit > 240 ||
+      !Number.isInteger(line.quantity) ||
+      line.quantity < 1 ||
+      line.quantity > 999
+    ) return null;
+    total += perUnit * line.quantity;
+    // Large or complex loads need an individualized logistics quotation.
+    if (total > 480) return null;
+  }
+  return total;
+}
+
 export function calculateHourlyShippingQuote(oneWaySeconds: number, tariff: HourlyShippingTariff) {
   const { hourlyRate, unloadMinutes, roundTo } = tariff;
   if (
