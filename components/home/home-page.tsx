@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
-  CreditCard,
   Hammer,
   Headphones,
   Layers3,
@@ -75,7 +74,7 @@ export async function HomePage() {
             </div>
             <div className="storefront-hero__facts" aria-label="Condiciones de compra">
               <span><BadgeCheck size={17} /> Disponibilidad informada</span>
-              <span><CreditCard size={17} /> Pago seguro</span>
+              <span><MessageCircle size={17} /> Pedido por WhatsApp</span>
               <span><Truck size={17} /> Entrega coordinada</span>
             </div>
           </div>
@@ -136,7 +135,7 @@ export async function HomePage() {
         <div className="container storefront-benefits__grid">
           <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y disponibilidad.</small></span></div>
           <div><Truck size={22} /><span><strong>Entrega o retiro</strong><small>Coordinación según tu pedido.</small></span></div>
-          <div><CreditCard size={22} /><span><strong>Medios de pago</strong><small>Online, transferencia o coordinación.</small></span></div>
+          <div><MessageCircle size={22} /><span><strong>Pedido por WhatsApp</strong><small>Confirmamos stock, pago y entrega con vos.</small></span></div>
           <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Ayuda antes y después de comprar.</small></span></div>
         </div>
       </section>
@@ -152,9 +151,41 @@ export async function HomePage() {
           <ol className="storefront-projects__steps">
             <li><span>1</span><div><strong>Elegí</strong><small>Buscá por producto, rubro u oferta.</small></div></li>
             <li><span>2</span><div><strong>Revisá</strong><small>Confirmá cantidades y forma de entrega.</small></div></li>
-            <li><span>3</span><div><strong>Pagá o coordiná</strong><small>Elegí el medio que mejor se adapte.</small></div></li>
+            <li><span>3</span><div><strong>Coordiná</strong><small>Confirmá stock, pago y entrega por WhatsApp.</small></div></li>
             <li><span>4</span><div><strong>Recibí</strong><small>Seguí el pedido desde tu cuenta.</small></div></li>
           </ol>
+        </div>
+      </section>
+
+      <section className="storefront-section storefront-categories">
+        <div className="container">
+          <SectionHeader
+            eyebrow="Herramientas FZAC"
+            title="Calculá y elegí mejor antes de comprar"
+            text="Guías y calculadoras gratuitas para armar una lista de materiales más precisa."
+          />
+          <div className="storefront-category-rail">
+            <Link className="storefront-category" href="/calculadoras/placas-durlock" prefetch={false}>
+              <span className="storefront-category__icon"><Ruler size={22} /></span>
+              <strong>Calculadora Durlock</strong>
+              <small>Estimá cuántas placas necesitás.</small>
+            </Link>
+            <Link className="storefront-category" href="/calculadoras/pintura" prefetch={false}>
+              <span className="storefront-category__icon"><PanelsTopLeft size={22} /></span>
+              <strong>Calculadora de pintura</strong>
+              <small>Estimá litros según superficie y manos.</small>
+            </Link>
+            <Link className="storefront-category" href="/calculadoras/membrana-liquida" prefetch={false}>
+              <span className="storefront-category__icon"><ShieldCheck size={22} /></span>
+              <strong>Calculadora de membrana</strong>
+              <small>Estimá kilos para impermeabilizar techos.</small>
+            </Link>
+            <Link className="storefront-category" href="/guias" prefetch={false}>
+              <span className="storefront-category__icon"><Headphones size={22} /></span>
+              <strong>Guías de materiales</strong>
+              <small>Durlock, impermeabilización y compra de obra.</small>
+            </Link>
+          </div>
         </div>
       </section>
 
