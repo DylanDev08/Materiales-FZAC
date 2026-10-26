@@ -643,7 +643,7 @@ export async function validateCheckoutStock(input: unknown) {
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
   const paymentMethod = payload.paymentMethod ?? "WHATSAPP";
-  if (paymentMethod !== "WHATSAPP") {
+  if (String(paymentMethod) !== "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "CHECKOUT_CREATE_FAILED",
       "Los pedidos nuevos de Materiales FZAC se coordinan exclusivamente por WhatsApp.",
