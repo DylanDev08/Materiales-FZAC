@@ -8,6 +8,7 @@ import {
   Layers3,
   MessageCircle,
   PanelsTopLeft,
+  PaintRoller,
   Ruler,
   RotateCcw,
   ShieldCheck,
@@ -23,6 +24,7 @@ const primaryCategories = [
   { label: "Construcción en Seco", helper: "Placas, perfiles, masillas y terminaciones", href: "/categoria/construccion-en-seco", icon: PanelsTopLeft },
   { label: "Steel Framing", helper: "Estructuras y soluciones para sistemas exteriores", href: "/categoria/steel-framing", icon: Layers3 },
   { label: "Ferretería", helper: "Tornillos, tarugos y fijaciones", href: "/categoria/ferreteria", icon: Wrench },
+  { label: "Pintura e impermeabilización", helper: "Membranas, látex, selladores y aplicación", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller },
   { label: "Materiales de obra", helper: "Cemento y materiales con stock informado", href: "/categoria/materiales-de-obra", icon: Hammer }
 ];
 
@@ -33,6 +35,7 @@ const buyingNeeds = [
   { label: "Perfiles", helper: "Perfiles interiores y estructurales", href: "/productos?search=perfil", icon: Layers3 },
   { label: "Tornillos y accesorios", helper: "Fijaciones para completar el sistema", href: "/categoria/ferreteria", icon: Wrench },
   { label: "Masillas y cintas", helper: "Tomado de juntas y terminación", href: "/productos?search=masillas%20y%20cintas", icon: PanelsTopLeft },
+  { label: "Impermeabilizar techo", helper: "Membranas, selladores y refuerzos", href: "/categoria/pintura-impermeabilizacion", icon: PaintRoller },
   { label: "Materiales de obra", helper: "Cemento y básicos para avanzar la obra", href: "/categoria/materiales-de-obra", icon: Hammer }
 ];
 
