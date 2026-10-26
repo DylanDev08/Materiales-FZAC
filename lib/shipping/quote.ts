@@ -297,7 +297,7 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     available: true,
     amount: pricedQuote.amount,
     distanceKm: Number(distanceKm.toFixed(1)),
-    durationText: `${pricedQuote.estimatedTotalMinutes} min estimados (ida, descarga y regreso)`,
+    durationText: `${pricedQuote.estimatedTotalMinutes} min (ida, descarga y regreso)`,
     origin,
     destination,
     provider: "GOOGLE_ROUTES"
