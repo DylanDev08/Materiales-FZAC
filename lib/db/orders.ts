@@ -642,12 +642,12 @@ export async function validateCheckoutStock(input: unknown) {
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const paymentMethod = payload.paymentMethod ?? "WHATSAPP";
-  if (String(paymentMethod) !== "WHATSAPP") {
+  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  if (String(paymentMethod) === "WHATSAPP") {
     throw new CheckoutIntegrityError(
-      "CHECKOUT_CREATE_FAILED",
-      "Los pedidos nuevos de Materiales FZAC se coordinan exclusivamente por WhatsApp.",
-      409
+      "PAYMENT_METHOD_NOT_ALLOWED",
+      "WhatsApp no es un medio de pago. Elegí Mercado Pago o transferencia bancaria con comprobante.",
+      422
     );
   }
   const provider: PaymentProvider =
