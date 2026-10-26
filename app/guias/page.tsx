@@ -14,6 +14,16 @@ const guides = [
     title: "Qué materiales necesito para una pared de Durlock",
     description: "Placas, montantes, soleras, tornillos, cinta, masilla y aislación para armar una pared en seco.",
     href: "/guias/materiales-pared-durlock"
+  },
+  {
+    title: "Placa Durlock estándar, verde o roja",
+    description: "Qué cambia entre los tipos de placa y qué conviene revisar antes de elegir para cada ambiente.",
+    href: "/guias/placa-durlock-estandar-verde-roja"
+  },
+  {
+    title: "Membrana líquida para techo",
+    description: "Qué revisar antes de impermeabilizar y cómo diferenciar una membrana de un producto para grietas o juntas.",
+    href: "/guias/membrana-liquida-para-techo"
   }
 ];
 
