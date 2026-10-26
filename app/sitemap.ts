@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getCategories, getProducts } from "@/lib/db/catalog";
 import { getPublicSiteUrl, isSeoIndexingEnabled } from "@/lib/seo/site";
+import { BRAND_SEO } from "@/lib/seo/brand-content";
 
 export const revalidate = 3600;
 
@@ -8,6 +9,7 @@ const publicRoutes = [
   "",
   "/productos",
   "/categorias",
+  "/marcas",
   "/ofertas",
   "/como-comprar",
   "/guias",
@@ -50,6 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${siteUrl}/categoria/${encodeURIComponent(category.slug)}`,
       changeFrequency: "weekly" as const,
       priority: 0.8
+    })),
+    ...BRAND_SEO.map((brand) => ({
+      url: `${siteUrl}/marca/${brand.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.75
     })),
     ...products.map((product) => ({
       url: `${siteUrl}/producto/${encodeURIComponent(product.slug)}`,
