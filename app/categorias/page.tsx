@@ -16,8 +16,8 @@ import { getCategories } from "@/lib/db/catalog";
 import { publicPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = publicPageMetadata({
-  title: "Categorías de materiales",
-  description: "Encontrá materiales por rubro: construcción en seco, steel framing, ferretería y materiales de obra.",
+  title: "Categorías de materiales de construcción en Rosario",
+  description: "Encontrá materiales de construcción en Rosario por rubro: Durlock, Steel Framing, ferretería, pintura, impermeabilización, herramientas y materiales de obra.",
   path: "/categorias"
 });
 
@@ -33,7 +33,7 @@ export default async function Page() {
           <div>
             <span className="kicker">Rubros FZAC</span>
             <h1>Entrá por el trabajo que tenés que resolver</h1>
-            <p>Elegí un rubro y encontrá materiales, herramientas y complementos sin recorrer una lista interminable.</p>
+            <p>Elegí un rubro y encontrá materiales, herramientas y complementos para obra en Rosario sin recorrer una lista interminable.</p>
           </div>
           <Link className="btn" href="/productos" prefetch={false}>
             Ver todos los productos <ArrowRight size={17} />
@@ -45,7 +45,7 @@ export default async function Page() {
         <div className="container">
           <header className="category-directory__head">
             <span>{categories.length} rubros disponibles</span>
-            <small>Stock y precios se validan nuevamente al comprar</small>
+            <small>Precios, SKU y disponibilidad se confirman al generar el pedido</small>
           </header>
           {categories.length ? (
             <div className="category-directory__list">
