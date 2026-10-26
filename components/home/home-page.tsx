@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
+  CreditCard,
   Hammer,
   Headphones,
   Layers3,
