@@ -437,7 +437,8 @@ export function CheckoutForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: checkoutItems(items)
+        items: checkoutItems(items),
+        strict: true
       }),
       signal
     });
@@ -1355,7 +1356,7 @@ export function CheckoutForm({
                     {validationMessage(notesState)}
                   </label>
                   {stockState.status === "loading" ? <p className="notice">Validando productos y stock disponible...</p> : null}
-                  {stockState.status === "ok" ? <p className="notice notice--success">Productos disponibles. Podés continuar al pago.</p> : null}
+                  {stockState.status === "ok" ? <p className="notice notice--success">Stock validado. Podés continuar al pago.</p> : null}
                   {stockState.status === "error" ? (
                     <div className="notice notice--danger">
                       <strong>{stockState.message}</strong>
