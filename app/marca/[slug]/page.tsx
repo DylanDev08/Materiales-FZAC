@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 import { CatalogPage } from "@/components/catalog/catalog-page";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getProducts } from "@/lib/db/catalog";
-import { getBrandSeo } from "@/lib/seo/brand-content";
+import { BRAND_SEO, getBrandSeo } from "@/lib/seo/brand-content";
 import { getPublicSiteUrl, SITE_NAME } from "@/lib/seo/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export function generateStaticParams() {
+  return BRAND_SEO.map((item) => ({ slug: item.slug }));
+}
 
 export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
   const { slug } = await params;
@@ -37,8 +41,7 @@ export default async function Page({ params, searchParams }: Props) {
   const brand = getBrandSeo(slug);
   if (!brand) notFound();
 
-  const products = await getProducts({ brand: brand.brand, limit: 100, order: "name_asc" });
-  if (!products.length) notFound();
+  const products = await getProducts({ brand: brand.brand, limit: 250, order: "name_asc" });
 
   const siteUrl = getPublicSiteUrl();
   const brandUrl = `${siteUrl}/marca/${brand.slug}`;
