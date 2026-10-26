@@ -26,7 +26,11 @@ export function calculateCartUnloadingMinutes(lines: UnloadingLine[]): number | 
   let total = 0;
   for (const line of lines) {
     const specs = line.product.specifications ?? {};
-    if (specs.shipping_requires_manual_quote === true) return null;
+    // Fail closed for invalid values such as the string "true" or "false".
+    if (
+      specs.shipping_requires_manual_quote !== undefined &&
+      specs.shipping_requires_manual_quote !== false
+    ) return null;
     const perUnit = specs.shipping_unload_minutes_per_unit;
     if (
       typeof perUnit !== "number" ||
