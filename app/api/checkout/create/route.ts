@@ -40,14 +40,14 @@ async function handlePost(request: Request) {
   try {
     const payload = checkoutCreateSchema.parse(body.data);
 
-    if (payload.paymentMethod !== "WHATSAPP") {
+    if (payload.paymentMethod === "WHATSAPP") {
       return Response.json(
         {
           ok: false,
-          error: "PAYMENT_FLOW_ARCHIVED",
-          message: "Los pagos nuevos por Mercado Pago o transferencia directa desde la web fueron archivados. Confirmá el pedido por WhatsApp para recibir los datos de transferencia."
+          error: "PAYMENT_METHOD_NOT_ALLOWED",
+          message: "WhatsApp no es un medio de pago. Pagá online con Mercado Pago o elegí transferencia y enviá el comprobante por WhatsApp."
         },
-        { status: 410 }
+        { status: 422 }
       );
     }
 
@@ -86,18 +86,8 @@ async function handlePost(request: Request) {
 
     try {
       const result = await createCheckout(payload);
-      const whatsappUrl = String(result.whatsapp_url ?? result.whatsappUrl ?? "").trim();
-      const response = whatsappUrl
-        ? {
-            ...result,
-            requires_admin_approval: false,
-            redirect_url: whatsappUrl,
-            url: whatsappUrl
-          }
-        : result;
-
-      logCheckoutResult(response);
-      return Response.json(response, { status: 201 });
+      logCheckoutResult(result);
+      return Response.json(result, { status: 201 });
     } finally {
       slot.release();
     }
