@@ -28,6 +28,23 @@ async function handlePost(request: Request, context: { params: Promise<{ id: str
   if (orderError || !order) return jsonError("Orden no encontrada.", 404);
   if (paymentError || !payment) return jsonError("El pedido no tiene un registro de pago para confirmar.", 409);
   if (String(order.status) === "CANCELLED") return jsonError("No se puede confirmar el pago de una orden cancelada.", 409);
+  if (String(payment.provider) !== "BANK_TRANSFER") {
+    return jsonError("Los pagos online se confirman automáticamente desde el proveedor. Esta acción es solo para transferencias.", 409);
+  }
+
+  const { data: proof, error: proofError } = await admin
+    .from("whatsapp_payment_proofs")
+    .select("id,status,media_id")
+    .eq("order_id", orderId)
+    .eq("status", "PENDING_REVIEW")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (proofError) return jsonError("No pudimos verificar el comprobante asociado al pedido.", 409);
+  if (!proof?.id || !proof.media_id) {
+    return jsonError("No podés validar esta transferencia hasta que el cliente envíe el comprobante por WhatsApp.", 409);
+  }
 
   const confirmedAt = new Date().toISOString();
   const existingRaw = payment.raw && typeof payment.raw === "object" ? payment.raw as Record<string, unknown> : {};
