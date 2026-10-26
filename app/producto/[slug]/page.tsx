@@ -108,11 +108,15 @@ export default async function Page({ params }: ProductPageProps) {
         "@id": `${siteUrl}/#store`
       }
     },
-    additionalProperty: Object.entries(product.specifications).map(([name, value]) => ({
-      "@type": "PropertyValue",
-      name,
-      value: String(value)
-    }))
+    // Merchant structured data should describe the merchandise, not internal
+    // delivery quoting flags or warehouse handling metrics.
+    additionalProperty: Object.entries(product.specifications)
+      .filter(([name]) => !/^(shipping_|internal_)/i.test(name))
+      .map(([name, value]) => ({
+        "@type": "PropertyValue",
+        name,
+        value: String(value)
+      }))
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org",
