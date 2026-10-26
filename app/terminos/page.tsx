@@ -53,20 +53,20 @@ export default function Page() {
             alternativas legales disponibles, incluida la restitución de lo pagado cuando corresponda.
           </p>
 
-          <h2>4. Pagos y comprobantes</h2>
+          <h2>4. Pedido, pago y comprobantes</h2>
           <p>
-            Los pagos online son procesados por proveedores habilitados. FZAC no solicita ni almacena el número completo
-            de tarjeta, vencimiento ni código de seguridad. El stock se descuenta y el comprobante interno se emite
-            únicamente después de una confirmación válida del pago o de la aprobación administrativa aplicable.
+            La web permite armar el carrito, registrar el pedido y generar una referencia FZAC. La disponibilidad final,
+            la modalidad de pago y la entrega o retiro se confirman con FZAC por WhatsApp antes de cerrar la operación.
+            FZAC no solicita contraseñas ni datos completos de tarjeta por WhatsApp, notas o formularios.
           </p>
           <p>
-            El comprobante interno FZAC documenta el pedido y el pago, pero no debe interpretarse como factura fiscal.
-            La documentación fiscal se emitirá por el medio habilitado cuando corresponda.
+            El comprobante interno FZAC documenta el pedido y, cuando corresponda, el pago confirmado, pero no debe
+            interpretarse como factura fiscal. La documentación fiscal se emite por el medio habilitado cuando corresponda.
           </p>
 
           <h2>5. Entrega y retiro</h2>
           <p>
-            La modalidad, dirección y costo de entrega se informan antes de confirmar. En el retiro, la persona autorizada
+            La modalidad y dirección de entrega se informan al generar el pedido. Cuando el envío no pueda cotizarse automáticamente, su costo se confirma por WhatsApp antes del pago. En el retiro, la persona autorizada
             debe acreditar los datos del pedido. Al recibir mercadería conviene revisar cantidades y daños visibles y
             dejar constancia inmediata, sin que la firma del remito implique renunciar a garantías, reclamos por defectos
             ocultos ni otros derechos legales.
@@ -115,9 +115,9 @@ export default function Page() {
           <h2>9. Reembolsos</h2>
           <p>
             Una solicitud aprobada no ejecuta por sí sola un reembolso. FZAC verifica el pedido, el estado del pago y la
-            mercadería y, cuando corresponde, procesa la devolución por el proveedor original. Los plazos de acreditación
-            pueden depender del medio de pago. El sistema evita repetir un mismo reembolso y conserva un registro de la
-            decisión administrativa.
+            mercadería y, cuando corresponde, coordina la devolución por el mismo medio utilizado o por otro medio acordado.
+            Los plazos de acreditación pueden depender de la entidad financiera o del medio de pago. El sistema conserva un
+            registro de la decisión administrativa y evita duplicar una misma devolución.
           </p>
 
           <h2>10. Datos personales</h2>
