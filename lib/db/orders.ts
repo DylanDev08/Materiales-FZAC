@@ -86,13 +86,13 @@ export class CheckoutIdempotencyError extends Error {
 }
 
 export class CheckoutIntegrityError extends Error {
-  code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED";
-  status: 409 | 500 | 503;
+  code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED" | "PAYMENT_METHOD_NOT_ALLOWED";
+  status: 409 | 422 | 500 | 503;
 
   constructor(
-    code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED",
+    code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED" | "PAYMENT_METHOD_NOT_ALLOWED",
     message: string,
-    status: 409 | 500 | 503
+    status: 409 | 422 | 500 | 503
   ) {
     super(message);
     this.name = "CheckoutIntegrityError";
@@ -711,7 +711,7 @@ export async function createCheckout(input: unknown) {
   if (stockIssues.length) throw new InsufficientStockError(stockIssues);
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
+  const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address, lines) : null;
   if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available) && !isWhatsApp) {
     throw new ShippingQuoteError(
       shippingQuote?.reason || "No pudimos cotizar el envío con datos reales. Revisá la dirección o elegí retiro.",
