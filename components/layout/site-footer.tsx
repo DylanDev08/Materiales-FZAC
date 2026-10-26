@@ -21,7 +21,7 @@ export function SiteFooter() {
       <div className="site-footer__trust">
         <div className="container site-footer__trust-grid">
           <div><ShieldCheck size={22} /><span><strong>Pedido protegido</strong><small>Datos y stock validados</small></span></div>
-          <div><MessageCircle size={22} /><span><strong>Compra coordinada</strong><small>Stock, pago y entrega por WhatsApp</small></span></div>
+          <div><CreditCard size={22} /><span><strong>Pago seguro</strong><small>Mercado Pago o transferencia con comprobante</small></span></div>
           <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Asistencia antes y después de comprar</small></span></div>
           <Link href="/arrepentimiento" prefetch={false}><RotateCcw size={22} /><span><strong>Arrepentimiento</strong><small>Acceso directo al trámite</small></span></Link>
         </div>
@@ -39,7 +39,7 @@ export function SiteFooter() {
           </Link>
           <p>
             E-commerce de materiales para obra, mantenimiento y construcción en Rosario. Armá tu pedido online y coordiná
-            disponibilidad, pago, entrega o retiro directamente con FZAC por WhatsApp.
+            disponibilidad y entrega con FZAC. El pago se realiza online o por transferencia con comprobante enviado por WhatsApp.
           </p>
           <a
             className="site-footer__portfolio-link"
@@ -97,7 +97,7 @@ export function SiteFooter() {
       </div>
 
       <div className="site-footer__bottom">
-        <div className="container">Materiales FZAC. El pedido queda registrado online y la disponibilidad, el pago y la entrega se coordinan con FZAC por WhatsApp.</div>
+        <div className="container">Materiales FZAC. Pagá online con Mercado Pago o por transferencia enviando el comprobante a FZAC por WhatsApp.</div>
       </div>
     </footer>
   );
