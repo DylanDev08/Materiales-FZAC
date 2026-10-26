@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { AddressPayload } from "@/types/domain";
+import { calculateHourlyShippingQuote } from "@/lib/shipping/hourly-pricing";
 
 type ComputeRoutesPayload = {
   routes?: Array<{
@@ -93,24 +94,15 @@ function shippingApiKey() {
 }
 
 function shippingTariff() {
-  const base = numberEnv("FZAC_SHIPPING_BASE_PRICE");
-  const perKm = numberEnv("FZAC_SHIPPING_PRICE_PER_KM");
-  const min = numberEnv("FZAC_SHIPPING_MIN_PRICE") ?? 0;
+  // No assumed prices: require a confirmed hourly rate and a configured
+  // unloading allowance before enabling automated delivery quotes.
+  const hourlyRate = numberEnv("FZAC_SHIPPING_PRICE_PER_HOUR");
+  const unloadMinutes = numberEnv("FZAC_SHIPPING_UNLOAD_MINUTES");
   const roundTo = Math.max(numberEnv("FZAC_SHIPPING_ROUND_TO") ?? 10, 1);
   const maxKm = Math.max(numberEnv("FZAC_SHIPPING_MAX_KM") ?? 30, 1);
 
-  if (base === null || perKm === null || base < 0 || perKm < 0 || min < 0) return null;
-  return { base, perKm, min, roundTo, maxKm };
-}
-
-function roundShipping(value: number, roundTo: number) {
-  return Math.ceil(value / roundTo) * roundTo;
-}
-
-function durationLabel(value?: string) {
-  const seconds = Number(value?.replace(/s$/, ""));
-  if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  return `${Math.max(1, Math.round(seconds / 60))} min`;
+  if (hourlyRate === null || unloadMinutes === null || hourlyRate <= 0 || unloadMinutes < 0 || unloadMinutes > 240) return null;
+  return { hourlyRate, unloadMinutes, roundTo, maxKm };
 }
 
 export function canQuoteShipping() {
@@ -287,13 +279,25 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  const rawAmount = Math.max(tariff.min, tariff.base + distanceKm * tariff.perKm);
+  const oneWaySeconds = Number(route?.duration?.replace(/s$/, ""));
+  const pricedQuote = calculateHourlyShippingQuote(oneWaySeconds, tariff);
+  if (!pricedQuote) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("Google Maps no devolvió un tiempo de viaje válido para calcular el envío."),
+      distanceKm: Number(distanceKm.toFixed(1)),
+      origin,
+      destination,
+      provider: "GOOGLE_ROUTES"
+    };
+  }
 
   return {
     available: true,
-    amount: roundShipping(rawAmount, tariff.roundTo),
+    amount: pricedQuote.amount,
     distanceKm: Number(distanceKm.toFixed(1)),
-    durationText: durationLabel(route?.duration),
+    durationText: `${pricedQuote.estimatedTotalMinutes} min estimados (ida, descarga y regreso)`,
     origin,
     destination,
     provider: "GOOGLE_ROUTES"
