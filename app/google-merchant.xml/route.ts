@@ -1,5 +1,6 @@
 import { getProducts } from "@/lib/db/catalog";
 import { getPublicSiteUrl, toAbsoluteUrl } from "@/lib/seo/site";
+import type { Product } from "@/types/domain";
 
 export const revalidate = 3600;
 
@@ -19,7 +20,7 @@ function merchantAvailability(status?: string | null, stock?: number) {
 
 export async function GET() {
   const siteUrl = getPublicSiteUrl();
-  const products = [];
+  const products: Product[] = [];
   const pageSize = 250;
 
   for (let offset = 0; ; offset += pageSize) {
