@@ -70,6 +70,7 @@ export default async function Page({ params }: ProductPageProps) {
   if (!product) notFound();
 
   const related = await getRelatedProducts(product);
+  const description = productDescription(product.name, product.description);
   const siteUrl = getPublicSiteUrl();
   const productUrl = `${siteUrl}/producto/${encodeURIComponent(product.slug)}`;
   const productSchema = {
