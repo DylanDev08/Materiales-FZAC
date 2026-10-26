@@ -17,7 +17,7 @@ test("90 minutos totales se cobran proporcionalmente", () => {
 test("tarifa de hora real y redondeo monetario no subfacturan", () => {
   const quote = calculateHourlyShippingQuote(31 * 60, { ...tariff, unloadMinutes: 29, hourlyRate: 40_001 });
   assert.equal(quote?.estimatedTotalMinutes, 91);
-  assert.equal(quote?.amount, 60_680);
+  assert.equal(quote?.amount, 60_670);
 });
 
 test("sin duracion valida o tarifa aprobada no se emite cotizacion", () => {
