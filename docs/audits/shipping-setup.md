@@ -26,21 +26,25 @@ Proyecto Google Cloud: `fzac-manejo-de-obras`.
 
 La browser key debe conservar restricciones HTTP referrer para el dominio de producción y desarrollo autorizado, y limitarse a Maps JavaScript API/Places API según el uso real. Nunca debe reutilizarse como server key.
 
-## Tarifa comercial pendiente
+## Tarifa horaria acordada — propuesta 26/10/2026 (no desplegada)
 
-Variables preparadas:
+- La política comercial ahora es **aproximadamente ARS 40.000 por hora**, con **mínimo de una hora**, incluyendo ida, descarga y regreso al depósito.
+- No se toma ARS 40.000 como valor exacto de producción sin confirmación final en variables.
+- La implementación en esta rama usa la duración de **ida** de Google Routes, la duplica como aproximación de regreso y suma los minutos de descarga configurados.
+- **El tiempo de descarga sigue pendiente de definición**: no hay un número predeterminado inventado.
+- La distancia de Google Routes continúa comprobando el radio de reparto (por defecto 30 km de ida).
+- Fórmula: `importe = ceil(max(60, 2 * minutos_ida + minutos_descarga) / 60 * tarifa_hora / redondeo) * redondeo`.
+- No se descuenta stock ni se confirma un pago por el mero cálculo del envío.
+- Si falta el precio por hora o los minutos de descarga, o Google Routes no devuelve una duración válida, se bloquea la cotización automática con importe cero y se deriva a coordinación por WhatsApp.
 
-- `FZAC_SHIPPING_BASE_PRICE`: pendiente de aprobación.
-- `FZAC_SHIPPING_PRICE_PER_KM`: pendiente de aprobación.
-- `FZAC_SHIPPING_MIN_PRICE`: pendiente de aprobación.
-- `FZAC_SHIPPING_ROUND_TO`: valor técnico actual `10`; revisar junto con la tarifa.
-- `FZAC_SHIPPING_MAX_KM`: valor técnico actual `30`; requiere confirmación comercial antes de habilitar delivery.
-- `FZAC_STORE_ADDRESS`: `Hermana Paula 3164, Rosario, Santa Fe, Argentina`.
+Nuevas variables privadas para Vercel:
 
-Fórmula ya implementada, pero inactiva hasta definir base y precio por kilómetro:
+- `FZAC_SHIPPING_PRICE_PER_HOUR`: tarifa definitiva; importe orientativo informado por el comercio: 40000 ARS/h
+- `FZAC_SHIPPING_UNLOAD_MINUTES`: tiempo operativo promedio de descarga, por confirmar
+- `FZAC_SHIPPING_ROUND_TO`: redondeo monetario, valor técnico 10
+- `FZAC_SHIPPING_MAX_KM`: cobertura máxima medida por recorrido de ida; por defecto 30
+- `FZAC_STORE_ADDRESS`: origen de Google Routes
 
-```text
-importe = redondear_hacia_arriba(max(mínimo, base + distancia_km × precio_por_km), redondeo)
-```
+Las anteriores `FZAC_SHIPPING_BASE_PRICE`, `FZAC_SHIPPING_PRICE_PER_KM` y `FZAC_SHIPPING_MIN_PRICE` ya no participan del cálculo en esta rama. No borrarlas de producción hasta validar la migración.
 
-No deben cargarse importes de ejemplo en Render. Después de recibir los cinco valores aprobados, cargarlos como variables privadas, desplegar y probar retiro, dirección válida, dirección inválida, timeout, fuera de radio y error de Google antes de habilitar compras con delivery.
+Antes de habilitar delivery, verificar disponibilidad de Google Routes, fijar minutos de descarga con el comercio, probar cotizaciones de distintos destinos (ida y regreso real pueden diferir) y revisar capacidad de reparto. Merchant Center no puede representar esta tarifa horaria por distancia exacta y no se debe publicar una tarifa nacional engañosa.
