@@ -36,10 +36,8 @@ const shippingConfigured =
   (configured("GOOGLE_MAPS_SERVER_KEY") ||
     configured("GOOGLE_MAPS_SERVER_API_KEY") ||
     configured("GOOGLE_DISTANCE_MATRIX_KEY")) &&
-  Number(value("FZAC_SHIPPING_PRICE_PER_HOUR")) > 0 &&
-  value("FZAC_SHIPPING_UNLOAD_MINUTES") !== "" &&
-  Number.isFinite(Number(value("FZAC_SHIPPING_UNLOAD_MINUTES"))) &&
-  Number(value("FZAC_SHIPPING_UNLOAD_MINUTES")) >= 0;
+  Number.isFinite(Number(value("FZAC_SHIPPING_PRICE_PER_HOUR"))) &&
+  Number(value("FZAC_SHIPPING_PRICE_PER_HOUR")) > 0;
 
 const checks = [
   {
