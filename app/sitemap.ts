@@ -10,6 +10,8 @@ const publicRoutes = [
   "/categorias",
   "/ofertas",
   "/como-comprar",
+  "/guias",
+  "/guias/materiales-pared-durlock",
   "/contacto",
   "/envios-y-retiros",
   "/medios-de-pago",
