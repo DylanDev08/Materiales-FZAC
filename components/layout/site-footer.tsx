@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, Headphones, Instagram, Mail, MessageCircle, RotateCcw, ShieldCheck } from "lucide-react";
+import { Building2, CreditCard, Headphones, Instagram, Mail, MessageCircle, RotateCcw, ShieldCheck } from "lucide-react";
 import { CookieSettingsButton } from "@/components/privacy/cookie-settings-button";
 import { WhatsappIcon } from "@/components/ui/whatsapp-icon";
 import { getEnv } from "@/lib/utils/env";
