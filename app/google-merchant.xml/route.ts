@@ -18,6 +18,12 @@ function merchantAvailability(status?: string | null, stock?: number) {
   return "out_of_stock";
 }
 
+function merchantBrand(value?: string | null) {
+  const brand = String(value ?? "").trim();
+  if (!brand || /^sin marca( informada)?$/i.test(brand) || /^gen[eé]rico$/i.test(brand)) return null;
+  return brand;
+}
+
 export async function GET() {
   const siteUrl = getPublicSiteUrl();
   const products: Product[] = [];
@@ -32,6 +38,7 @@ export async function GET() {
   const items = products.map((product) => {
     const category = product.category?.name || product.subcategory || "Materiales de construcción";
     const availability = merchantAvailability(product.availability_status, product.stock);
+    const brand = merchantBrand(product.brand);
     const customAvailability =
       product.availability_status === "CONSULT"
         ? "stock-a-confirmar"
@@ -49,7 +56,7 @@ export async function GET() {
       `<g:availability>${availability}</g:availability>`,
       `<g:price>${product.price.toFixed(2)} ARS</g:price>`,
       "<g:condition>new</g:condition>",
-      `<g:brand>${xmlEscape(product.brand || "FZAC")}</g:brand>`,
+      ...(brand ? [`<g:brand>${xmlEscape(brand)}</g:brand>`] : []),
       `<g:product_type>${xmlEscape(category)}</g:product_type>`,
       `<g:custom_label_0>${customAvailability}</g:custom_label_0>`,
       `<g:custom_label_1>${xmlEscape(category)}</g:custom_label_1>`,
