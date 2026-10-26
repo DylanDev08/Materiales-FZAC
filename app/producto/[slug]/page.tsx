@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductDetail } from "@/components/product/product-detail";
@@ -142,10 +143,46 @@ export default async function Page({ params }: ProductPageProps) {
     ]
   };
 
+  const categorySlug = product.category?.slug ?? "";
+  const helpfulLinks =
+    categorySlug === "construccion-en-seco"
+      ? [
+          { href: "/guias/materiales-pared-durlock", label: "Qué materiales necesito para una pared de Durlock" },
+          { href: "/guias/placa-durlock-estandar-verde-roja", label: "Diferencias entre placas Durlock" },
+          { href: "/calculadoras/placas-durlock", label: "Calculadora de placas Durlock" }
+        ]
+      : categorySlug === "pintura-impermeabilizacion"
+        ? [
+            { href: "/guias/membrana-liquida-para-techo", label: "Guía de membrana líquida para techo" },
+            { href: "/calculadoras/membrana-liquida", label: "Calculadora de membrana líquida" },
+            { href: "/calculadoras/pintura", label: "Calculadora de pintura" }
+          ]
+        : categorySlug === "steel-framing"
+          ? [
+              { href: "/guias/materiales-steel-framing", label: "Qué materiales se usan en Steel Framing" },
+              { href: "/categoria/steel-framing", label: "Ver materiales para Steel Framing" }
+            ]
+          : [];
+
   return (
     <>
       <JsonLd data={[productSchema, breadcrumbSchema]} />
       <ProductDetail product={product} related={related} />
+      {helpfulLinks.length ? (
+        <section className="page-section" aria-label="Guías y herramientas relacionadas">
+          <div className="container">
+            <div className="catalog-seo-copy">
+              <span className="kicker">También te puede servir</span>
+              <h2>Guías y calculadoras relacionadas</h2>
+              <div className="catalog-seo-copy__highlights">
+                {helpfulLinks.map((item) => (
+                  <Link key={item.href} href={item.href}>{item.label}</Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
