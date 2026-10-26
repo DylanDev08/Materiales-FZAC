@@ -48,7 +48,7 @@ Regla comercial informada: aproximadamente **ARS 40.000 por hora de vehículo**,
 ### Despliegue pendiente
 
 1. Confirmar precio por hora definitivo y etiquetar explícitamente los tiempos de descarga de los productos que FZAC quiera cotizar automáticamente.
-2. Revisar los productos pesados, largos, frágiles y pedidos voluminosos para marcarlos como manuales cuando corresponda.
+2. Revisar los productos pesados, largos, frágiles y pedidos voluminosos para marcarlos como manuales cuando corresponda. El panel administrativo de productos ahora incluye **Cotización de envío** y **Minutos de descarga por unidad** dentro de Opciones avanzadas, sin tener que editar JSON.
 3. Cargar `FZAC_SHIPPING_PRICE_PER_HOUR` en Vercel Production **solo después** de aprobar la tarifa. No se requiere el viejo `FZAC_SHIPPING_UNLOAD_MINUTES`.
 4. Verificar que `GOOGLE_MAPS_SERVER_KEY` funciona con Routes API (ver auditoría del 15/09 anterior).
 5. Probar cotización precompra y recotización al crear orden; precio coincidente, carritos mixtos, cambios de cantidad, errores de Google, fuera de cobertura y retiros.
