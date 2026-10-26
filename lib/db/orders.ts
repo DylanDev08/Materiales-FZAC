@@ -449,8 +449,7 @@ async function resumeCheckoutByIdempotencyKey(
   }
 
   if (String(order.status) === "PENDING_ADMIN_APPROVAL") {
-    const coordinationFlow = paymentMethod === "BANK_TRANSFER" || paymentMethod === "WHATSAPP";
-    const whatsappUrl = paymentMethod === "WHATSAPP" ? await storedOrderWhatsAppUrl(admin, order) : null;
+    const coordinationFlow = paymentMethod === "BANK_TRANSFER";
     return checkoutSuccessResponse({
       orderId: order.id,
       paymentId: payment.id,
@@ -460,31 +459,21 @@ async function resumeCheckoutByIdempotencyKey(
       total: Number(order.total ?? payment.amount ?? 0),
       provider,
       message: coordinationFlow
-        ? paymentMethod === "WHATSAPP"
-          ? "Pedido generado. Podés coordinar el pago y la entrega con FZAC por WhatsApp."
-          : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia."
-        : "Compra creada correctamente. Requiere aprobación del administrador.",
-      whatsappUrl
+        ? "La compra requiere aprobación por el monto antes de habilitar la transferencia."
+        : "Compra creada correctamente. Requiere aprobación del administrador."
     });
   }
 
-  if (provider === "BANK_TRANSFER" || provider === "WHATSAPP") {
+  if (provider === "BANK_TRANSFER") {
     return checkoutSuccessResponse({
       orderId: order.id,
       paymentId: payment.id,
       orderStatus: String(order.status),
-      requiresAdminApproval: true,
+      requiresAdminApproval: false,
       pending: true,
       total: Number(order.total ?? payment.amount ?? 0),
       provider,
-      message:
-        provider === "WHATSAPP"
-          ? "Pedido generado. Podés coordinar el pago y la entrega con FZAC por WhatsApp."
-          : "Pedido generado correctamente. FZAC revisará tu pedido y te enviará los datos para realizar la transferencia.",
-      whatsappUrl:
-        provider === "WHATSAPP"
-          ? await storedOrderWhatsAppUrl(admin, order)
-          : null
+      message: "Pedido generado. Realizá la transferencia y enviá el comprobante a FZAC por WhatsApp."
     });
   }
 
@@ -737,7 +726,7 @@ export async function createCheckout(input: unknown) {
   const approvalLimit = getPurchaseAutoApprovalLimit();
   const isBankTransfer = paymentMethod === "BANK_TRANSFER";
   const isLargePurchase = requiresAdminPurchaseApproval(total);
-  const requiresAdminApproval = isLargePurchase || isBankTransfer || isWhatsApp;
+  const requiresAdminApproval = isLargePurchase;
   const orderStatus = isLargePurchase
     ? "PENDING_ADMIN_APPROVAL"
     : isBankTransfer
@@ -860,46 +849,23 @@ export async function createCheckout(input: unknown) {
 
   await notifyAdminNewOrder({ id: order.id, customerName: payload.customer.name, total });
 
-  if (isBankTransfer || isWhatsApp) {
+  if (isBankTransfer) {
     await notifyAdminTransferPending({
       id: order.id,
       customerName: payload.customer.name,
       total,
-      flow: isWhatsApp ? "WHATSAPP" : "BANK_TRANSFER"
+      flow: "BANK_TRANSFER"
     });
     return {
       ...checkoutSuccessResponse({
         orderId: order.id,
         paymentId: payment.id,
         orderStatus,
-        requiresAdminApproval: true,
+        requiresAdminApproval: false,
         pending: true,
         total,
         provider,
-        message:
-          isWhatsApp
-            ? payload.shippingMethod === "DELIVERY" && !shippingQuote?.available
-              ? "Pedido generado. FZAC cotiza el envío y coordina stock, pago y entrega por WhatsApp."
-              : "Pedido generado. Podés coordinar stock, pago y entrega con FZAC por WhatsApp."
-            : "Pedido generado correctamente. FZAC revisara tu pedido y te enviara los datos para realizar la transferencia.",
-        whatsappUrl: isWhatsApp
-          ? getWhatsAppHref(buildWhatsAppOrderMessage({
-              orderId: order.id,
-              customerName: payload.customer.name,
-              lines: lines.map(({ product, quantity, subtotal: lineSubtotal }) => ({
-                name: product.name,
-                sku: product.sku,
-                quantity,
-                unitPrice: product.price,
-                lineTotal: lineSubtotal
-              })),
-              subtotal,
-              shippingCost: delivery,
-              total,
-              shippingMethod: payload.shippingMethod,
-              shippingQuoted: payload.shippingMethod !== "DELIVERY" || Boolean(shippingQuote?.available)
-            }))
-          : null
+        message: "Pedido generado. Realizá la transferencia y enviá el comprobante a FZAC por WhatsApp."
       })
     };
   }
