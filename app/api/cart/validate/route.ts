@@ -19,8 +19,8 @@ export async function POST(request: Request) {
   if (!slot.ok) return jsonError("Ya estamos validando tu carrito.", 429, retryAfterHeaders(slot));
 
   try {
-    const payload = body.data;
-    const result = await inspectCheckoutStock(payload, { allowCoordination: true });
+    const payload = body.data as { strict?: boolean; items?: unknown };
+    const result = await inspectCheckoutStock(payload, { allowCoordination: !payload.strict });
     if (!result.ok) {
       return Response.json(
         {
@@ -36,7 +36,9 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       products: result.items,
-      message: "Carrito listo para coordinar. FZAC confirma disponibilidad final por WhatsApp antes del pago."
+      message: payload.strict
+        ? "Stock validado para continuar al pago."
+        : "Carrito listo para consultar. La disponibilidad puede confirmarse por WhatsApp antes de pagar."
     });
   } catch (error) {
     if (error instanceof ZodError) return jsonError(error.issues[0]?.message ?? "Carrito invalido.", 422);
