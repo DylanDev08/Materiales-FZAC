@@ -42,6 +42,11 @@ export default function Page() {
 
       <section className="page-section">
         <div className="container">
+          <div className="legal-action-row" style={{ marginBottom: 24 }}>
+            <Link className="btn" href="/calculadoras/placas-durlock">
+              Calculadora de placas Durlock <ArrowRight size={16} />
+            </Link>
+          </div>
           <div className="payment-method-grid">
             {guides.map((guide) => (
               <article className="payment-method-card" key={guide.href}>
