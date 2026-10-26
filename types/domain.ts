@@ -59,7 +59,6 @@ export type Product = {
   promotion_type?: ProductPromotionType;
   promotion_discount_percent?: number | null;
   active: boolean;
-  updated_at?: string | null;
 };
 
 export type CartLine = {
