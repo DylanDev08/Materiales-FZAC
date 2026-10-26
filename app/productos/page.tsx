@@ -2,9 +2,9 @@ import { CatalogPage } from "@/components/catalog/catalog-page";
 import { publicPageMetadata } from "@/lib/seo/metadata";
 
 export const metadata = publicPageMetadata({
-  title: "Construcción en seco, Steel Framing y Ferretería",
+  title: "Materiales de construcción en Rosario: precios y catálogo",
   description:
-    "Explorá construcción en seco, steel framing, ferretería y materiales de obra con precios FZAC y disponibilidad informada.",
+    "Explorá materiales de construcción en Rosario: Durlock, Steel Framing, ferretería, pintura, impermeabilización y materiales de obra con precios, SKU y pedido por WhatsApp.",
   path: "/productos"
 });
 
@@ -13,5 +13,5 @@ export default async function Page({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <CatalogPage searchParams={await searchParams} title="Productos" />;
+  return <CatalogPage searchParams={await searchParams} title="Materiales de construcción en Rosario" description="Catálogo FZAC con precios, SKU y disponibilidad para construcción en seco, Steel Framing, ferretería, pintura, impermeabilización y materiales de obra." />;
 }
