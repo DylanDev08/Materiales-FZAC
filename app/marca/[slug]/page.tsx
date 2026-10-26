@@ -15,16 +15,24 @@ export function generateStaticParams() {
   return BRAND_SEO.map((item) => ({ slug: item.slug }));
 }
 
-export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const brand = getBrandSeo(slug);
   if (!brand) return { title: "Marca no encontrada", robots: { index: false, follow: false } };
 
   const canonical = `/marca/${brand.slug}`;
+  const hasFilters = Object.entries(resolvedSearchParams).some(([key, raw]) => {
+    if (key === "view") return false;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    return Boolean(String(value ?? "").trim());
+  });
+
   return {
     title: brand.title,
     description: brand.description,
     alternates: { canonical },
+    ...(hasFilters ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       type: "website",
       locale: "es_AR",
@@ -66,9 +74,19 @@ export default async function Page({ params, searchParams }: Props) {
     }
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Marcas", item: `${siteUrl}/marcas` },
+      { "@type": "ListItem", position: 3, name: brand.brand, item: brandUrl }
+    ]
+  };
+
   return (
     <>
-      <JsonLd data={schema} />
+      <JsonLd data={[schema, breadcrumbSchema]} />
       <CatalogPage
         searchParams={await searchParams}
         title={brand.heading}
