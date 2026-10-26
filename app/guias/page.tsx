@@ -24,6 +24,11 @@ const guides = [
     title: "Membrana líquida para techo",
     description: "Qué revisar antes de impermeabilizar y cómo diferenciar una membrana de un producto para grietas o juntas.",
     href: "/guias/membrana-liquida-para-techo"
+  },
+  {
+    title: "Qué materiales se usan en Steel Framing",
+    description: "Perfiles PGC y PGU, placas, barreras, aislación y fijaciones que forman parte del sistema.",
+    href: "/guias/materiales-steel-framing"
   }
 ];
 
