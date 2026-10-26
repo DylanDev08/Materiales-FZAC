@@ -61,3 +61,9 @@ export const BRAND_SEO: BrandSeoContent[] = [
 export function getBrandSeo(slug: string) {
   return BRAND_SEO.find((item) => item.slug === slug) ?? null;
 }
+
+
+export function getBrandSeoByName(name: string) {
+  const normalized = name.trim().toLowerCase();
+  return BRAND_SEO.find((item) => item.brand.toLowerCase() === normalized) ?? null;
+}
