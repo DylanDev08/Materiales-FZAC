@@ -41,7 +41,7 @@ export default function Page() {
           <LegalIdentity />
           <p>
             Este responsable decide para qué y cómo se tratan los datos personales vinculados con el sitio, las cuentas,
-            los pedidos y la atención al consumidor.
+            los pedidos, la coordinación comercial y la atención al consumidor.
           </p>
 
           <h2>2. Datos que podemos recopilar</h2>
@@ -80,7 +80,7 @@ export default function Page() {
           <p>
             Para operar la tienda pueden intervenir Supabase en autenticación y base de datos, Render en backend y
             alojamiento, Vercel en la entrega del frontend y —solo si autorizás “Analítica de uso”— en Web Analytics,
-            Mercado Pago en pagos, Resend en email transaccional y Google en OAuth o mapas cuando esas funciones estén
+            Resend en email transaccional y Google en OAuth o mapas cuando esas funciones estén
             habilitadas. Cada proveedor recibe solo los datos necesarios para prestar su servicio y aplica sus propias
             condiciones de seguridad y privacidad.
           </p>
