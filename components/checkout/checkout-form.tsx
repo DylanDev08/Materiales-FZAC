@@ -44,7 +44,7 @@ import type { SessionProfile } from "@/lib/auth/get-user";
 import type { ShippingMethod } from "@/types/domain";
 
 type CheckoutStep = "customer" | "delivery" | "review" | "payment";
-type PaymentMode = "CARD_BRICK" | "MERCADOPAGO" | "BANK_TRANSFER" | "WHATSAPP";
+type PaymentMode = "CARD_BRICK" | "MERCADOPAGO" | "BANK_TRANSFER";
 type CheckoutProcessPhase = CheckoutLoadingPhase | "idle";
 type CartItems = ReturnType<typeof useCart>["items"];
 
@@ -119,18 +119,11 @@ const paymentModeContent: Record<PaymentMode, { title: string; eyebrow: string; 
     benefit: "Continuás en Mercado Pago"
   },
   BANK_TRANSFER: {
-    title: "Transferencia FZAC",
-    eyebrow: "Revisión manual",
-    description: "Generás el pedido y FZAC revisa stock y total antes de enviarte los datos bancarios.",
-    reassurance: "No abre Mercado Pago ni solicita tarjeta.",
-    benefit: "FZAC confirma total y stock"
-  },
-  WHATSAPP: {
-    title: "WhatsApp",
-    eyebrow: "Coordinación",
-    description: "Generás el pedido y coordinás pago, entrega o retiro con el equipo de FZAC.",
-    reassurance: "No abre Mercado Pago; queda como pedido pendiente.",
-    benefit: "Coordinación personalizada"
+    title: "Transferencia bancaria",
+    eyebrow: "Comprobante por WhatsApp",
+    description: "Generás el pedido, realizás la transferencia y enviás el comprobante a FZAC por WhatsApp.",
+    reassurance: "El pedido se prepara cuando FZAC verifica la acreditación. No hay pago contra entrega.",
+    benefit: "Transferís y enviás el comprobante"
   }
 };
 
@@ -964,7 +957,7 @@ export function CheckoutForm({
     }
   }
 
-  async function startCoordinatedPayment(method: "BANK_TRANSFER" | "WHATSAPP") {
+  async function startBankTransferPayment() {
     if (!canSubmit || loading || checkoutInFlightRef.current) return;
 
     checkoutInFlightRef.current = true;
@@ -994,7 +987,7 @@ export function CheckoutForm({
           shipping_method: shippingMethod,
           address_snapshot: checkoutAddressSnapshot(),
           notes: normalizeUserNote(notes, 500),
-          payment_method: method,
+          payment_method: "BANK_TRANSFER",
           accepted_terms: accepted,
           idempotency_key: checkoutIntentKey()
         })
@@ -1033,11 +1026,11 @@ export function CheckoutForm({
       if (orderId) {
         setProcessPhase("confirming");
         keepBusy = true;
-        router.push(`/checkout/pending?orderId=${orderId}&${method === "BANK_TRANSFER" ? "transfer" : "whatsapp"}=1`);
+        router.push(`/checkout/pending?orderId=${orderId}&transfer=1`);
         return;
       }
 
-      setInfo(data.message || "Pedido generado correctamente. FZAC revisara la informacion para coordinar el pago.");
+      setInfo(data.message || "Pedido generado. Realizá la transferencia y enviá el comprobante a FZAC por WhatsApp.");
     } catch (coordinationError) {
       setProcessPhase("error");
       setError(coordinationError instanceof Error ? coordinationError.message : "No pudimos generar el pedido.");
@@ -1545,18 +1538,7 @@ export function CheckoutForm({
                     <strong>{paymentModeContent.BANK_TRANSFER.title}</strong>
                     <small>{paymentModeContent.BANK_TRANSFER.benefit}</small>
                   </button>
-                  <button
-                    type="button"
-                    className="payment-mode-button payment-mode-button--whatsapp"
-                    aria-pressed={paymentMode === "WHATSAPP"}
-                    disabled={loading}
-                    onClick={() => selectPaymentMode("WHATSAPP")}
-                  >
-                    <MessageCircle size={18} />
-                    <span>{paymentModeContent.WHATSAPP.eyebrow}</span>
-                    <strong>{paymentModeContent.WHATSAPP.title}</strong>
-                    <small>{paymentModeContent.WHATSAPP.benefit}</small>
-                  </button>
+
                 </div>
                 <div className="payment-method-hint">
                   <ShieldCheck size={18} />
@@ -1621,24 +1603,12 @@ export function CheckoutForm({
                     type="button"
                     disabled={!canSubmit || loading}
                     aria-busy={loading}
-                    onClick={() => void startCoordinatedPayment("BANK_TRANSFER")}
+                    onClick={() => void startBankTransferPayment()}
                   >
                     {loading ? <Loader2 size={18} /> : <Landmark size={18} />}
-                    {loading ? "Generando pedido..." : "Generar pedido por transferencia"}
+                    {loading ? "Generando pedido..." : "Pagar por transferencia"}
                   </button>
-                ) : (
-                  <button
-                    className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
-                    ref={primaryActionRef}
-                    type="button"
-                    disabled={!canSubmit || loading}
-                    aria-busy={loading}
-                    onClick={() => void startCoordinatedPayment("WHATSAPP")}
-                  >
-                    {loading ? <Loader2 size={18} /> : <MessageCircle size={18} />}
-                    {loading ? "Generando pedido..." : "Coordinar por WhatsApp"}
-                  </button>
-                )}
+                ) : null}
                 <button className="btn btn--ghost" type="button" disabled={loading} onClick={() => setStep("review")}>
                   <ArrowLeft size={17} /> Revisar datos
                 </button>
@@ -1680,8 +1650,7 @@ export function CheckoutForm({
               <section>
                 <h3>Compra y comprobante</h3>
                 <p>
-                  La compra se confirma solo cuando el proveedor de pago aprueba la operación. No se descuenta stock ni
-                  se emite comprobante hasta que el pago queda aprobado.
+                  La compra se confirma cuando Mercado Pago aprueba la operación o cuando FZAC verifica la acreditación de una transferencia con comprobante enviado por WhatsApp. No existe pago contra entrega.
                 </p>
               </section>
               <section>
