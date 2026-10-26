@@ -61,6 +61,7 @@ export function SiteFooter() {
           <nav>
             <Link href="/productos" prefetch={false}>Productos</Link>
             <Link href="/categorias" prefetch={false}>Categorías</Link>
+            <Link href="/marcas" prefetch={false}>Marcas</Link>
             <Link href="/ofertas" prefetch={false}>Ofertas</Link>
             <Link href="/carrito" prefetch={false}>Carrito</Link>
           </nav>
