@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -234,11 +236,19 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
  * data or an empty source if Supabase has an outage.
  */
 export async function getMerchantFeedProducts(): Promise<Product[]> {
-  const supabase = await getSupabaseServerClient();
-  if (!supabase) throw new Error("Merchant catalog database unavailable.");
+  // Public credentials only, never cookies or a user session. This keeps the
+  // scheduled Google fetch independent of whichever customer is browsing.
+  const config = getSupabaseConfig();
+  if (!config.hasPublicConfig) throw new Error("Merchant catalog database unavailable.");
+  const supabase = createClient(config.url, config.anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
 
-  const categories = await getCategories();
-  if (!categories.length) throw new Error("Merchant catalog categories unavailable.");
+  const { data: categories, error: categoryError } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("active", true);
+  if (categoryError || !categories?.length) throw new Error("Merchant catalog categories unavailable.");
 
   const result: Product[] = [];
   const pageSize = 250;
