@@ -12,6 +12,8 @@ const publicRoutes = [
   "/como-comprar",
   "/guias",
   "/guias/materiales-pared-durlock",
+  "/guias/placa-durlock-estandar-verde-roja",
+  "/guias/membrana-liquida-para-techo",
   "/contacto",
   "/envios-y-retiros",
   "/medios-de-pago",
