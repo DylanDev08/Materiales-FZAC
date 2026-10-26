@@ -41,7 +41,7 @@ const requestSchema = addressSchema.and(
     items: z.array(z.object({
       product_id: z.string().trim().min(1).max(140),
       quantity: z.number().int().min(1).max(999)
-    })).min(1).max(100)
+    })).min(1, "El carrito está vacío.").max(100)
   })
 );
 
