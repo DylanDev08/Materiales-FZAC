@@ -15,7 +15,7 @@ function productDescription(name: string, description: string) {
 }
 
 function schemaAvailability(product: { stock: number; availability_status?: string | null }) {
-  if (product.availability_status === "CONSULT") return "https://schema.org/LimitedAvailability";
+  if (product.availability_status === "CONSULT") return "https://schema.org/OutOfStock";
   if (product.availability_status === "IN_STOCK" && product.stock > 0) return "https://schema.org/InStock";
   return "https://schema.org/OutOfStock";
 }
