@@ -15,7 +15,8 @@ export function AdminPaymentConfirmation({ rows }: { rows: OrderRow[] }) {
       rows.filter((row) => {
         const status = String(row.__statusRaw ?? "");
         const payment = String(row.__paymentStatus ?? "");
-        return payment !== "PAID" && ["COORDINATE", "PENDING_TRANSFER", "PENDING_PAYMENT"].includes(status);
+        const provider = String(row.__paymentProvider ?? "");
+        return payment !== "PAID" && provider === "BANK_TRANSFER" && status === "PENDING_TRANSFER";
       }),
     [rows]
   );
@@ -51,7 +52,7 @@ export function AdminPaymentConfirmation({ rows }: { rows: OrderRow[] }) {
         return (
           <article className="admin-large-purchase-card" key={`payment-${String(row.Id)}`}>
             <div>
-              <span className="kicker">WHATSAPP · PAGO PENDIENTE DE VALIDACIÓN</span>
+              <span className="kicker">TRANSFERENCIA · COMPROBANTE REQUERIDO</span>
               <h2>{String(row.Cliente || "Cliente")}</h2>
               <p>
                 Confirmá únicamente cuando la transferencia figure acreditada. Al aprobarla, FZAC genera automáticamente
@@ -86,11 +87,11 @@ export function AdminPaymentConfirmation({ rows }: { rows: OrderRow[] }) {
               <button
                 className="btn"
                 type="button"
-                disabled={Boolean(busy)}
+                disabled={Boolean(busy) || !proofMediaId}
                 onClick={() => void confirmPayment(String(row.Id))}
               >
                 {busy === String(row.Id) ? <Landmark size={17} /> : <CheckCircle2 size={17} />}
-                {busy === String(row.Id) ? "Confirmando..." : "Aceptar pago"}
+                {busy === String(row.Id) ? "Confirmando..." : proofMediaId ? "Validar acreditación" : "Esperando comprobante"}
               </button>
               <a
                 className="btn btn--ghost"
