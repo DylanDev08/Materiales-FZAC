@@ -4,7 +4,7 @@ const FALLBACK_SITE_URL = "http://localhost:3000";
 
 export const SITE_NAME = "Materiales FZAC";
 export const SITE_DESCRIPTION =
-  "Materiales para construcción, ferretería y obra en Rosario con stock validado, retiro coordinado y pago seguro.";
+  "Materiales para construcción en Rosario: Durlock, Steel Framing, ferretería, pintura e impermeabilización. Consultá precios, SKU y armá tu pedido por WhatsApp.";
 export const SOCIAL_IMAGE = "/fzac-storefront-hero.webp";
 export const SOCIAL_IMAGE_WIDTH = 1920;
 export const SOCIAL_IMAGE_HEIGHT = 789;
@@ -12,7 +12,11 @@ export const SITE_KEYWORDS = [
   "materiales de construcción Rosario",
   "corralón Rosario",
   "ferretería Rosario",
-  "construcción en seco",
+  "construcción en seco Rosario",
+  "Durlock Rosario",
+  "Steel Framing Rosario",
+  "impermeabilizantes Rosario",
+  "pinturas Rosario",
   "cemento y materiales para obra",
   "Fortaleza Construcciones",
   "Materiales FZAC"
