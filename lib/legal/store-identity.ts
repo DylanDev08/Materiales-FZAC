@@ -1,12 +1,12 @@
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 
 const DEFAULT_ADDRESS = "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
-const DEFAULT_EMAIL = "fortalezaconstruccionesrosario@gmail.com";
+const DEFAULT_EMAIL = "fortalezaconstrucciones@gmail.com";
 const DEFAULT_PHONE = "+54 341 584 7000";
 const DEFAULT_CUIT = "20-36454125-3";
 const DEFAULT_COMMERCIAL_NAME = "Fortaleza Construcciones";
 const DEFAULT_BRAND_NAME = "FZACONSTRUCCIONES";
-const DEFAULT_CUSTOMER_SERVICE_HOURS = "Lunes a sábado de 08:00 a 17:00";
+const DEFAULT_CUSTOMER_SERVICE_HOURS = "";
 
 function formatCuit(value: string) {
   const digits = value.replace(/\D/g, "");
