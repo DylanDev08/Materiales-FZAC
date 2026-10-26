@@ -1,85 +1,41 @@
-import { getProducts } from "@/lib/db/catalog";
-import { getPublicSiteUrl, toAbsoluteUrl } from "@/lib/seo/site";
-import type { Product } from "@/types/domain";
+import { getMerchantFeedProducts } from "@/lib/db/catalog";
+import { buildMerchantFeed } from "@/lib/merchant/feed";
+import { getPublicSiteUrl } from "@/lib/seo/site";
 
-export const revalidate = 3600;
-
-function xmlEscape(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function merchantAvailability(status?: string | null, stock?: number) {
-  if (status === "IN_STOCK" && Number(stock ?? 0) > 0) return "in_stock";
-  return "out_of_stock";
-}
-
-function merchantBrand(value?: string | null) {
-  const brand = String(value ?? "").trim();
-  if (!brand || /^sin marca( informada)?$/i.test(brand) || /^gen[eé]rico$/i.test(brand)) return null;
-  return brand;
-}
+// Keep the same public URL and IDs previously linked in Google Merchant Center.
+export const revalidate = 600;
 
 export async function GET() {
-  const siteUrl = getPublicSiteUrl();
-  const products: Product[] = [];
-  const pageSize = 250;
+  try {
+    const siteUrl = getPublicSiteUrl();
+    const products = await getMerchantFeedProducts();
+    const result = buildMerchantFeed(products, siteUrl);
 
-  for (let offset = 0; ; offset += pageSize) {
-    const page = await getProducts({ limit: pageSize, offset, order: "name_asc" });
-    products.push(...page);
-    if (page.length < pageSize) break;
-  }
-
-  const items = products.map((product) => {
-    const category = product.category?.name || product.subcategory || "Materiales de construcción";
-    const availability = merchantAvailability(product.availability_status, product.stock);
-    const brand = merchantBrand(product.brand);
-    const customAvailability =
-      product.availability_status === "CONSULT"
-        ? "stock-a-confirmar"
-        : product.availability_status === "OUT_OF_STOCK"
-          ? "sin-stock"
-          : "stock-disponible";
-
-    return [
-      "<item>",
-      `<g:id>${xmlEscape(product.sku)}</g:id>`,
-      `<title>${xmlEscape(product.name)}</title>`,
-      `<description>${xmlEscape(product.description || `${product.name} disponible en Materiales FZAC.`)}</description>`,
-      `<link>${xmlEscape(`${siteUrl}/producto/${encodeURIComponent(product.slug)}`)}</link>`,
-      `<g:image_link>${xmlEscape(toAbsoluteUrl(product.image_url))}</g:image_link>`,
-      `<g:availability>${availability}</g:availability>`,
-      `<g:price>${product.price.toFixed(2)} ARS</g:price>`,
-      "<g:condition>new</g:condition>",
-      ...(brand ? [`<g:brand>${xmlEscape(brand)}</g:brand>`] : []),
-      `<g:product_type>${xmlEscape(category)}</g:product_type>`,
-      `<g:custom_label_0>${customAvailability}</g:custom_label_0>`,
-      `<g:custom_label_1>${xmlEscape(category)}</g:custom_label_1>`,
-      "</item>"
-    ].join("");
-  });
-
-  const xml = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">',
-    "<channel>",
-    "<title>Materiales FZAC</title>",
-    `<link>${xmlEscape(siteUrl)}</link>`,
-    "<description>Catálogo de materiales para construcción de Materiales FZAC</description>",
-    ...items,
-    "</channel>",
-    "</rss>"
-  ].join("");
-
-  return new Response(xml, {
-    headers: {
-      "Content-Type": "application/xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
+    if (result.skipped.length) {
+      console.warn("[merchant-feed] products skipped due to missing/invalid required data", {
+        count: result.skipped.length,
+        fields: [...new Set(result.skipped.map((issue) => issue.field))]
+      });
     }
-  });
+
+    return new Response(result.xml, {
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=60",
+        "X-Content-Type-Options": "nosniff"
+      }
+    });
+  } catch {
+    // Do not return an empty/synthetic XML feed on database errors: Google may
+    // interpret it as a request to remove all current products.
+    console.error("[merchant-feed] generation failed; preserving existing source until next refresh");
+    return new Response("Catálogo temporalmente no disponible.", {
+      status: 503,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff"
+      }
+    });
+  }
 }
