@@ -61,11 +61,12 @@ type StockState =
   | { status: "ok" }
   | { status: "error"; message: string; items: StockIssue[] };
 
+type ShippingQuoteKey = { cartFingerprint: string; addressFingerprint: string };
 type ShippingQuoteState =
   | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ok"; amount: number; distanceKm: number; durationText?: string; origin: string; destination: string }
-  | { status: "error"; message: string; distanceKm?: number };
+  | ({ status: "loading" } & ShippingQuoteKey)
+  | ({ status: "ok"; amount: number; distanceKm: number; durationText?: string; origin: string; destination: string } & ShippingQuoteKey)
+  | ({ status: "error"; message: string; distanceKm?: number } & ShippingQuoteKey);
 
 type FieldState = { status: "idle" | "valid" | "invalid"; message: string };
 type GoogleMapsWindow = typeof window & {
@@ -249,6 +250,7 @@ export function CheckoutForm({
 }) {
   const router = useRouter();
   const { hydrated, items, subtotal, updateQuantity, removeItem } = useCart();
+  const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
   const streetInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState<CheckoutStep>("customer");
@@ -273,7 +275,15 @@ export function CheckoutForm({
   const [termsOpen, setTermsOpen] = useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [stockState, setStockState] = useState<StockState>({ status: "idle" });
-  const [shippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
+  const [rawShippingQuote, setShippingQuote] = useState<ShippingQuoteState>({ status: "idle" });
+  const addressFingerprint = JSON.stringify(address);
+  // Never display/reuse a quote from an older cart or destination, including
+  // when a request finishes after quantities or address have changed.
+  const shippingQuote: ShippingQuoteState =
+    rawShippingQuote.status !== "idle" &&
+    (rawShippingQuote.cartFingerprint !== cartFingerprint || rawShippingQuote.addressFingerprint !== addressFingerprint)
+      ? { status: "idle" }
+      : rawShippingQuote;
   const [placesReady, setPlacesReady] = useState(false);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
   const [runtimeCardPublicKey, setRuntimeCardPublicKey] = useState(cardPublicKey);
@@ -371,11 +381,6 @@ export function CheckoutForm({
     addressFieldStates.city.status === "valid" &&
     addressFieldStates.province.status === "valid";
   const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || (addressComplete && addressValidated));
-  const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
-  // A previously quoted delivery price must not survive a cart/quantity edit.
-  useEffect(() => {
-    setShippingQuote({ status: "idle" });
-  }, [cartFingerprint]);
   const checkoutFingerprint = useMemo(
     () =>
       JSON.stringify({
@@ -467,15 +472,17 @@ export function CheckoutForm({
       return true;
     }
 
+    const quoteKey = { cartFingerprint, addressFingerprint };
     if (!addressComplete || !addressValidated) {
       setShippingQuote({
         status: "error",
+        ...quoteKey,
         message: "Seleccioná una dirección de las sugerencias de Google Maps y completá número, ciudad y provincia."
       });
       return false;
     }
 
-    setShippingQuote({ status: "loading" });
+    setShippingQuote({ status: "loading", ...quoteKey });
     const response = await fetch("/api/shipping/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -495,6 +502,7 @@ export function CheckoutForm({
     if (!response.ok || !data.available) {
       setShippingQuote({
         status: "error",
+        ...quoteKey,
         message: data.reason || data.message || "No pudimos cotizar el envio con datos reales.",
         distanceKm: data.distanceKm
       });
@@ -503,6 +511,7 @@ export function CheckoutForm({
 
     setShippingQuote({
       status: "ok",
+      ...quoteKey,
       amount: Number(data.amount ?? 0),
       distanceKm: Number(data.distanceKm ?? 0),
       durationText: data.durationText,
