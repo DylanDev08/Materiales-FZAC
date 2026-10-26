@@ -1,5 +1,6 @@
 import { ZodError, z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-user";
+import { inspectCheckoutStock } from "@/lib/db/orders";
 import { quoteDeliveryForAddress } from "@/lib/shipping/quote";
 import { jsonError } from "@/lib/utils/api";
 import {
@@ -33,6 +34,17 @@ const addressSchema = z
   })
   .refine((value) => !Object.values(value).some((item) => hasSqlMeta(item)), "La dirección contiene caracteres no permitidos.");
 
+const requestSchema = addressSchema.and(
+  z.object({
+    // Product IDs/quantities are treated as hints only; pricing metadata is read
+    // again on the server and cannot be supplied by the browser.
+    items: z.array(z.object({
+      product_id: z.string().trim().min(1).max(140),
+      quantity: z.number().int().min(1).max(999)
+    })).min(1).max(100)
+  })
+);
+
 export async function POST(request: Request) {
   const limit = rateLimit(getRequestKey(request, "shipping-quote"), 12, 60_000);
   if (!limit.ok) return jsonError("Demasiadas cotizaciones. Probá nuevamente en un minuto.", 429, retryAfterHeaders(limit));
@@ -40,7 +52,7 @@ export async function POST(request: Request) {
   if (!body.ok) return jsonError(body.message, body.status);
 
   try {
-    const payload = addressSchema.parse(body.data);
+    const payload = requestSchema.parse(body.data);
     const user = await getCurrentUser();
     if (user?.id) {
       const identityLimit = rateLimitIdentity("shipping-quote", user.id, 18, 10 * 60_000);
@@ -66,7 +78,17 @@ export async function POST(request: Request) {
     }
 
     try {
-      const quote = await quoteDeliveryForAddress(payload);
+      const inspected = await inspectCheckoutStock({ items: payload.items });
+      if (!inspected.ok) {
+        return Response.json({
+          available: false,
+          amount: 0,
+          error: "CART_UNAVAILABLE",
+          message: "Revisá los productos o el stock del carrito antes de cotizar el envío.",
+          items: inspected.issues
+        }, { status: 409 });
+      }
+      const quote = await quoteDeliveryForAddress(payload, inspected.items);
       return Response.json(quote, { status: quote.available ? 200 : 422 });
     } finally {
       slot.release();
