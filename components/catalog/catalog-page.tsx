@@ -7,6 +7,7 @@ import { CatalogFiltersSkeleton, CatalogViewToggleSkeleton } from "@/components/
 import { CatalogViewToggle } from "@/components/catalog/catalog-view-toggle";
 import { getCatalogFacets, getCategories, getProducts } from "@/lib/db/catalog";
 import type { ProductFilters } from "@/lib/db/catalog";
+import type { CategorySeoContent } from "@/lib/seo/category-content";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -71,12 +72,14 @@ export async function CatalogPage({
   searchParams,
   title = "Catálogo FZAC",
   description,
-  forcedFilters = {}
+  forcedFilters = {},
+  seoContent
 }: {
   searchParams: SearchParams;
   title?: string;
   description?: string;
   forcedFilters?: ProductFilters;
+  seoContent?: CategorySeoContent;
 }) {
   const requestedPage = Number.parseInt(value(searchParams, "page") ?? "1", 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 100) : 1;
@@ -230,6 +233,19 @@ export async function CatalogPage({
                 Centro de ayuda <ArrowRight size={17} />
               </Link>
             </div>
+
+            {seoContent ? (
+              <section className="catalog-seo-copy" aria-labelledby="catalog-seo-title">
+                <span className="kicker">Materiales FZAC · Rosario</span>
+                <h2 id="catalog-seo-title">{seoContent.heading}</h2>
+                <div className="catalog-seo-copy__body">
+                  {seoContent.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                </div>
+                <div className="catalog-seo-copy__highlights" aria-label="Productos y servicios destacados">
+                  {seoContent.highlights.map((highlight) => <span key={highlight}>{highlight}</span>)}
+                </div>
+              </section>
+            ) : null}
           </div>
         </div>
       </section>
