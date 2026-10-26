@@ -77,7 +77,7 @@ export async function HomePage() {
             </div>
             <div className="storefront-hero__facts" aria-label="Condiciones de compra">
               <span><BadgeCheck size={17} /> Disponibilidad informada</span>
-              <span><MessageCircle size={17} /> Pedido por WhatsApp</span>
+              <span><CreditCard size={17} /> Pago online o transferencia</span>
               <span><Truck size={17} /> Entrega coordinada</span>
             </div>
           </div>
@@ -138,7 +138,7 @@ export async function HomePage() {
         <div className="container storefront-benefits__grid">
           <div><ShieldCheck size={22} /><span><strong>Compra protegida</strong><small>Validamos precio y disponibilidad.</small></span></div>
           <div><Truck size={22} /><span><strong>Entrega o retiro</strong><small>Coordinación según tu pedido.</small></span></div>
-          <div><MessageCircle size={22} /><span><strong>Pedido por WhatsApp</strong><small>Confirmamos stock, pago y entrega con vos.</small></span></div>
+          <div><CreditCard size={22} /><span><strong>Pago seguro</strong><small>Mercado Pago o transferencia con comprobante.</small></span></div>
           <div><Headphones size={22} /><span><strong>Atención FZAC</strong><small>Ayuda antes y después de comprar.</small></span></div>
         </div>
       </section>
@@ -154,7 +154,7 @@ export async function HomePage() {
           <ol className="storefront-projects__steps">
             <li><span>1</span><div><strong>Elegí</strong><small>Buscá por producto, rubro u oferta.</small></div></li>
             <li><span>2</span><div><strong>Revisá</strong><small>Confirmá cantidades y forma de entrega.</small></div></li>
-            <li><span>3</span><div><strong>Coordiná</strong><small>Confirmá stock, pago y entrega por WhatsApp.</small></div></li>
+            <li><span>3</span><div><strong>Pagá</strong><small>Mercado Pago online o transferencia con comprobante por WhatsApp.</small></div></li>
             <li><span>4</span><div><strong>Recibí</strong><small>Seguí el pedido desde tu cuenta.</small></div></li>
           </ol>
         </div>
