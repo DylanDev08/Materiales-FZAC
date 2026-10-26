@@ -32,17 +32,20 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   }
 
   const canonical = `/producto/${product.slug}`;
-  const description = productDescription(product.name, product.description);
+  const baseDescription = productDescription(product.name, product.description);
+  const description = baseDescription.toLowerCase().includes("rosario")
+    ? baseDescription
+    : `${baseDescription.replace(/[.\s]+$/, "")}. Consultá precio y disponibilidad en Materiales FZAC, Rosario.`.slice(0, 160);
 
   return {
-    title: product.name,
+    title: `${product.name} en Rosario`,
     description,
     alternates: { canonical },
     openGraph: {
       type: "website",
       locale: "es_AR",
       siteName: SITE_NAME,
-      title: `${product.name} | ${SITE_NAME}`,
+      title: `${product.name} en Rosario | ${SITE_NAME}`,
       description,
       url: canonical,
       images: [
@@ -54,7 +57,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     },
     twitter: {
       card: "summary_large_image",
-      title: `${product.name} | ${SITE_NAME}`,
+      title: `${product.name} en Rosario | ${SITE_NAME}`,
       description,
       images: [toAbsoluteUrl(product.image_url)]
     }
@@ -74,7 +77,8 @@ export default async function Page({ params }: ProductPageProps) {
     "@type": "Product",
     "@id": `${productUrl}#product`,
     name: product.name,
-    description: productDescription(product.name, product.description),
+    url: productUrl,
+    description,
     image: [toAbsoluteUrl(product.image_url), ...product.gallery.map(toAbsoluteUrl)],
     sku: product.sku,
     category: product.category?.name ?? product.subcategory,
