@@ -372,6 +372,10 @@ export function CheckoutForm({
     addressFieldStates.province.status === "valid";
   const customerComplete = basicCustomerComplete && (shippingMethod !== "DELIVERY" || (addressComplete && addressValidated));
   const cartFingerprint = useMemo(() => checkoutCartFingerprint(items), [items]);
+  // A previously quoted delivery price must not survive a cart/quantity edit.
+  useEffect(() => {
+    setShippingQuote({ status: "idle" });
+  }, [cartFingerprint]);
   const checkoutFingerprint = useMemo(
     () =>
       JSON.stringify({
@@ -475,7 +479,7 @@ export function CheckoutForm({
     const response = await fetch("/api/shipping/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(address)
+      body: JSON.stringify({ ...address, items: checkoutItems(items) })
     });
     const data = (await response.json()) as {
       available?: boolean;
