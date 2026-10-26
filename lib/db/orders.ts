@@ -86,13 +86,13 @@ export class CheckoutIdempotencyError extends Error {
 }
 
 export class CheckoutIntegrityError extends Error {
-  code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED";
-  status: 409 | 500 | 503;
+  code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED" | "PAYMENT_METHOD_NOT_ALLOWED";
+  status: 409 | 422 | 500 | 503;
 
   constructor(
-    code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED",
+    code: "CHECKOUT_PERSISTENCE_UNAVAILABLE" | "PRICE_CHANGED" | "CHECKOUT_CREATE_FAILED" | "PAYMENT_METHOD_NOT_ALLOWED",
     message: string,
-    status: 409 | 500 | 503
+    status: 409 | 422 | 500 | 503
   ) {
     super(message);
     this.name = "CheckoutIntegrityError";
