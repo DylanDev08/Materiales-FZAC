@@ -16,6 +16,7 @@ const publicRoutes = [
   "/guias/materiales-pared-durlock",
   "/guias/placa-durlock-estandar-verde-roja",
   "/guias/membrana-liquida-para-techo",
+  "/guias/materiales-steel-framing",
   "/calculadoras",
   "/calculadoras/placas-durlock",
   "/calculadoras/pintura",
