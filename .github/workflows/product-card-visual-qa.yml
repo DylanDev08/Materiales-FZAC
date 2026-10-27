@@ -38,17 +38,5 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Chromium browser
         run: pnpm exec playwright install --with-deps chromium
-      # Main currently has an unrelated checkout typecheck failure.
-      # Exercise the real interface using the isolated dev server instead;
-      # do not modify payment code or production to test this layout fix.
-      - name: Start isolated storefront
-        run: |
-          (pnpm run dev > /tmp/fzac-product-card.log 2>&1 &)
-          for i in $(seq 1 50); do
-            if curl --fail --silent 'http://127.0.0.1:3000/productos?availability=IN_STOCK' >/dev/null; then exit 0; fi
-            sleep 2
-          done
-          tail -100 /tmp/fzac-product-card.log
-          exit 1
-      - name: Test label bounds and button collision across screen widths
-        run: pnpm exec playwright test tests/e2e/storefront-catalog.spec.ts --project=desktop-chromium --grep "el botón Añadir al carrito no invade Detalle" --workers=1 --reporter=line
+      - name: Test responsive product buttons using real stylesheet in Chromium
+        run: pnpm exec playwright test tests/e2e/product-card-responsive.spec.ts --project=desktop-chromium --workers=1 --reporter=line
