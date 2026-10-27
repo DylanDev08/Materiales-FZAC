@@ -25,7 +25,7 @@ export default function Page() {
     image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
     currenciesAccepted: "ARS",
-    paymentAccepted: "Pago coordinado por WhatsApp",
+    paymentAccepted: "Mercado Pago, transferencia bancaria o pago coordinado según disponibilidad",
     address: {
       "@type": "PostalAddress",
       streetAddress: identity.address,
