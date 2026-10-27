@@ -1,0 +1,53 @@
+name: One-time product card CTA visual QA
+
+on:
+  push:
+    branches: [fix/product-card-cta-overflow-20261027]
+    paths: [.github/workflows/product-card-visual-qa.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  card-responsive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      BASE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SITE_URL: https://example.invalid
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3000/api
+      SEO_INDEXING_ENABLED: "false"
+      PAYMENTS_ENABLED: "false"
+      PAYMENT_ENABLED: "false"
+      PAYMENTS_ENV: test
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Install pnpm from lockfile
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.21.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Chromium browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Next.js build
+        run: pnpm run build
+      - name: Start isolated storefront
+        run: |
+          (pnpm run start > /tmp/fzac-product-card.log 2>&1 &)
+          for i in $(seq 1 50); do
+            if curl --fail --silent 'http://127.0.0.1:3000/productos?availability=IN_STOCK' >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          tail -100 /tmp/fzac-product-card.log
+          exit 1
+      - name: Test label bounds and button collision across screen widths
+        run: pnpm exec playwright test tests/e2e/storefront-catalog.spec.ts --project=desktop-chromium --grep "el botón Añadir al carrito no invade Detalle" --workers=1 --reporter=line
