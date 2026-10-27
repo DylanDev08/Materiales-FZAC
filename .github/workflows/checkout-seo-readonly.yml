@@ -1,0 +1,76 @@
+name: Checkout y SEO - pruebas sin pagos
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "tests/e2e/checkout-seo-readonly.spec.ts"
+      - ".github/workflows/checkout-seo-readonly.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkout-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Checkout seguro y SEO en entorno aislado
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      BASE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SITE_URL: https://example.invalid
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3000/api
+      SEO_INDEXING_ENABLED: "false"
+      MAINTENANCE_MODE: "false"
+      VERCEL_ENV: preview
+      PAYMENTS_ENABLED: "false"
+      PAYMENT_ENABLED: "false"
+      PAYMENTS_ENV: test
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.21.0 --activate
+
+      - name: Install from lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build without external credentials
+        run: pnpm run build
+
+      - name: Start ephemeral Next.js instance
+        run: |
+          (pnpm run start -- -p 3000 > /tmp/fzac-checkout-seo.log 2>&1 &)
+          for attempt in $(seq 1 50); do
+            if curl --fail --silent http://127.0.0.1:3000/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          tail -60 /tmp/fzac-checkout-seo.log
+          exit 1
+
+      - name: Run strictly non-mutating UI/API tests
+        run: pnpm exec playwright test tests/e2e/checkout-seo-readonly.spec.ts --project=desktop-chromium --workers=1 --reporter=line
