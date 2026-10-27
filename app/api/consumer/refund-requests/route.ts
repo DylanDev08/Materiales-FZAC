@@ -42,9 +42,7 @@ const requestSchema = z.object({
     .transform((value) => normalizeUserNote(value, 900))
     .refine((value) => value.length >= 10, "Contanos brevemente qué necesitás revisar.")
     .refine(isSafeUserNote, "El comentario contiene caracteres no permitidos."),
-  accepted: z.literal(true, {
-    errorMap: () => ({ message: "Debés confirmar que querés iniciar la solicitud." })
-  })
+  accepted: z.literal(true, { error: "Debés confirmar que querés iniciar la solicitud." })
 });
 
 const reasonLabels: Record<z.infer<typeof requestSchema>["reason"], string> = {
