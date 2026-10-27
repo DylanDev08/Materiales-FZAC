@@ -67,11 +67,12 @@ jobs:
           set -euo pipefail
           for file in package.json pnpm-lock.yaml; do
             sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${file}?ref=${GITHUB_REF_NAME}" --jq .sha)"
+            base64 -w0 "$file" > /tmp/fzac-base64.txt
             jq -n \
               --arg message "fix(security): update audited Next.js and Zod dependencies" \
               --arg branch "${GITHUB_REF_NAME}" \
               --arg sha "$sha" \
-              --arg content "$(base64 -w0 "$file")" \
+              --rawfile content /tmp/fzac-base64.txt \
               '{message:$message,branch:$branch,sha:$sha,content:$content}' > /tmp/fzac-update.json
             gh api --silent -X PUT "repos/${GITHUB_REPOSITORY}/contents/${file}" --input /tmp/fzac-update.json
           done
