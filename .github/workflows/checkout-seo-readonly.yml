@@ -62,9 +62,9 @@ jobs:
 
       - name: Start ephemeral Next.js instance
         run: |
-          (pnpm run start -- -p 3000 > /tmp/fzac-checkout-seo.log 2>&1 &)
+          (pnpm run start > /tmp/fzac-checkout-seo.log 2>&1 &)
           for attempt in $(seq 1 50); do
-            if curl --fail --silent http://127.0.0.1:3000/login >/dev/null; then
+            if curl --fail --silent http://127.0.0.1:3000/robots.txt >/dev/null; then
               exit 0
             fi
             sleep 2
