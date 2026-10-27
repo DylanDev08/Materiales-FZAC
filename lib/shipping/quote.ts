@@ -3,6 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getEnv, hasRealValue } from "@/lib/utils/env";
 import type { AddressPayload } from "@/types/domain";
+import { calculateCartUnloadingMinutes, calculateHourlyShippingQuote } from "@/lib/shipping/hourly-pricing";
+import type { Product } from "@/types/domain";
+
+type ShippingLine = { product: Pick<Product, "specifications">; quantity: number };
 
 type ComputeRoutesPayload = {
   routes?: Array<{
@@ -93,24 +97,14 @@ function shippingApiKey() {
 }
 
 function shippingTariff() {
-  const base = numberEnv("FZAC_SHIPPING_BASE_PRICE");
-  const perKm = numberEnv("FZAC_SHIPPING_PRICE_PER_KM");
-  const min = numberEnv("FZAC_SHIPPING_MIN_PRICE") ?? 0;
+  // No assumed prices: require a confirmed hourly rate.
+  // Unloading time is derived from validated product metadata per cart.
+  const hourlyRate = numberEnv("FZAC_SHIPPING_PRICE_PER_HOUR");
   const roundTo = Math.max(numberEnv("FZAC_SHIPPING_ROUND_TO") ?? 10, 1);
   const maxKm = Math.max(numberEnv("FZAC_SHIPPING_MAX_KM") ?? 30, 1);
 
-  if (base === null || perKm === null || base < 0 || perKm < 0 || min < 0) return null;
-  return { base, perKm, min, roundTo, maxKm };
-}
-
-function roundShipping(value: number, roundTo: number) {
-  return Math.ceil(value / roundTo) * roundTo;
-}
-
-function durationLabel(value?: string) {
-  const seconds = Number(value?.replace(/s$/, ""));
-  if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  return `${Math.max(1, Math.round(seconds / 60))} min`;
+  if (hourlyRate === null || hourlyRate <= 0) return null;
+  return { hourlyRate, roundTo, maxKm };
 }
 
 export function canQuoteShipping() {
@@ -143,11 +137,11 @@ export function googleRoutesFailureReason(status: number, payload: GoogleRoutesE
   return withShippingFallback("No pudimos consultar la distancia real del envío.");
 }
 
-function quoteCacheKey(address: AddressPayload) {
+function quoteCacheKey(address: AddressPayload, unloadMinutes: number) {
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   return createHash("sha256")
-    .update(JSON.stringify({ origin, placeId: cleanAddressPart(address.placeId, 256), destination: addressLine(address).toLowerCase(), tariff }))
+    .update(JSON.stringify({ origin, placeId: cleanAddressPart(address.placeId, 256), destination: addressLine(address).toLowerCase(), tariff, unloadMinutes }))
     .digest("hex");
 }
 
@@ -160,11 +154,22 @@ function trimQuoteCache(now: number) {
   [...quoteCache.keys()].slice(0, overflow).forEach((key) => quoteCache.delete(key));
 }
 
-async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuote> {
+async function fetchDeliveryQuote(address: AddressPayload, unloadMinutes: number): Promise<ShippingQuote> {
   const key = shippingApiKey();
   const tariff = shippingTariff();
   const origin = getEnv("FZAC_STORE_ADDRESS") || "Hermana Paula 3164, Rosario, Santa Fe, Argentina";
   const destination = addressLine(address);
+
+  // Avoid paying for a Google Routes request if logistics cannot yet be quoted.
+  if (!tariff) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("Falta confirmar la tarifa horaria de envío."),
+      origin,
+      destination
+    };
+  }
 
   if (!hasRealValue(key)) {
     return {
@@ -275,11 +280,13 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  if (!tariff) {
+  const oneWaySeconds = Number(route?.duration?.replace(/s$/, ""));
+  const pricedQuote = calculateHourlyShippingQuote(oneWaySeconds, { ...tariff, unloadMinutes });
+  if (!pricedQuote) {
     return {
       available: false,
       amount: 0,
-      reason: withShippingFallback("No pudimos calcular el envío automático todavía porque falta configurar la tarifa vigente de FZAC."),
+      reason: withShippingFallback("Google Maps no devolvió un tiempo de viaje válido para calcular el envío."),
       distanceKm: Number(distanceKm.toFixed(1)),
       origin,
       destination,
@@ -287,29 +294,36 @@ async function fetchDeliveryQuote(address: AddressPayload): Promise<ShippingQuot
     };
   }
 
-  const rawAmount = Math.max(tariff.min, tariff.base + distanceKm * tariff.perKm);
-
   return {
     available: true,
-    amount: roundShipping(rawAmount, tariff.roundTo),
+    amount: pricedQuote.amount,
     distanceKm: Number(distanceKm.toFixed(1)),
-    durationText: durationLabel(route?.duration),
+    durationText: `${pricedQuote.estimatedTotalMinutes} min (ida, descarga y regreso)`,
     origin,
     destination,
     provider: "GOOGLE_ROUTES"
   };
 }
 
-export async function quoteDeliveryForAddress(address: AddressPayload): Promise<ShippingQuote> {
+export async function quoteDeliveryForAddress(address: AddressPayload, lines: ShippingLine[]): Promise<ShippingQuote> {
+  const unloadMinutes = calculateCartUnloadingMinutes(lines);
+  if (unloadMinutes === null) {
+    return {
+      available: false,
+      amount: 0,
+      reason: withShippingFallback("El tiempo de descarga depende de los materiales. Este carrito necesita cotización personalizada.")
+    };
+  }
+
   const now = Date.now();
-  const key = quoteCacheKey(address);
+  const key = quoteCacheKey(address, unloadMinutes);
   const cached = quoteCache.get(key);
   if (cached && cached.expiresAt > now) return cached.quote;
 
   const pending = pendingQuotes.get(key);
   if (pending) return pending;
 
-  const request = fetchDeliveryQuote(address)
+  const request = fetchDeliveryQuote(address, unloadMinutes)
     .then((quote) => {
       trimQuoteCache(Date.now());
       quoteCache.set(key, {

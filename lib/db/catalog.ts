@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 import { cache } from "react";
 import { fallbackCategories, fallbackProducts } from "@/lib/db/fallback-data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -226,6 +228,49 @@ export async function getCatalogFacets(): Promise<CatalogFacets> {
       a.localeCompare(b, "es")
     )
   };
+}
+
+/**
+ * Production Merchant Center source.
+ * Unlike the storefront's development fallback, never send fallback catalog
+ * data or an empty source if Supabase has an outage.
+ */
+export async function getMerchantFeedProducts(): Promise<Product[]> {
+  // Public credentials only, never cookies or a user session. This keeps the
+  // scheduled Google fetch independent of whichever customer is browsing.
+  const config = getSupabaseConfig();
+  if (!config.hasPublicConfig) throw new Error("Merchant catalog database unavailable.");
+  const supabase = createClient(config.url, config.anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+
+  const { data: categories, error: categoryError } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("active", true);
+  if (categoryError || !categories?.length) throw new Error("Merchant catalog categories unavailable.");
+
+  const result: Product[] = [];
+  const pageSize = 250;
+  for (let offset = 0; offset < 10_000; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("products")
+      .select(PUBLIC_PRODUCT_SELECT)
+      .eq("active", true)
+      .in("category_id", categories.map((category) => category.id))
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw new Error("Merchant catalog product query failed.");
+    const products = (data ?? []).map(normalizeProduct);
+    result.push(...products);
+    if (products.length < pageSize) break;
+    if (offset + pageSize >= 10_000) throw new Error("Merchant catalog exceeded safety page limit.");
+  }
+
+  if (!result.length) throw new Error("Merchant catalog empty; refusing to overwrite the previous feed.");
+  return applyAvailableStockToProducts(result);
 }
 
 export async function getProducts(filters: ProductFilters = {}) {
