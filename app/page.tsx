@@ -26,6 +26,12 @@ export default function Page() {
     description: SITE_DESCRIPTION,
     currenciesAccepted: "ARS",
     paymentAccepted: "Mercado Pago, transferencia bancaria o pago coordinado según disponibilidad",
+    // Google's return-policy markup can link to the complete published terms
+    // without pretending that all materials share identical return conditions.
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      merchantReturnLink: `${siteUrl}/cambios-y-devoluciones`
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: identity.address,
