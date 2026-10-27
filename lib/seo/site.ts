@@ -4,7 +4,7 @@ const FALLBACK_SITE_URL = "http://localhost:3000";
 
 export const SITE_NAME = "Materiales FZAC";
 export const SITE_DESCRIPTION =
-  "Materiales para construcción en Rosario: Durlock, Steel Framing, ferretería, pintura e impermeabilización. Consultá precios y disponibilidad, armá tu pedido y coordiná el retiro o envío.";
+  "Materiales de construcción en Rosario: placas, Steel Framing, ferretería, cemento, pintura e impermeabilización. Consultá precios, disponibilidad y coordiná tu pedido en FZAC.";
 export const SOCIAL_IMAGE = "/fzac-storefront-hero.webp";
 export const SOCIAL_IMAGE_WIDTH = 1920;
 export const SOCIAL_IMAGE_HEIGHT = 789;
