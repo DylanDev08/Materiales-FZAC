@@ -54,9 +54,6 @@ jobs:
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
       - name: Build without external credentials
         run: pnpm run build
 
