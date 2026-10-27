@@ -97,6 +97,8 @@ test("SEO: la tienda describe la política real de devoluciones y usa URL canón
   expect(home.status()).toBe(200);
   const body = await home.text();
   expect(body).toContain("MerchantReturnPolicy");
+  expect(body).toContain("Materiales de construcción en Rosario");
+  expect(body).toContain("materiales de construcción en Rosario");
   expect(body).toContain("/cambios-y-devoluciones");
   expect(body).not.toMatch(/<meta[^>]+name=["']robots["'][^>]+content=["']index, follow/i);
 
