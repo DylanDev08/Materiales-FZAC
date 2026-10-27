@@ -83,7 +83,7 @@ export const registerSchema = z
     email: z.string().trim().email("Ingresá un email válido.").transform(normalizeEmail),
     password: passwordSchema,
     confirmPassword: z.string().min(8, "Confirmá la contraseña con al menos 8 caracteres."),
-    acceptedTerms: z.literal(true, { errorMap: () => ({ message: "Aceptá términos y privacidad." }) }),
+    acceptedTerms: z.literal(true, { error: "Aceptá términos y privacidad." }),
     hp: z.string().max(0).optional(),
     captchaToken: z.string().max(4096).optional()
   })
