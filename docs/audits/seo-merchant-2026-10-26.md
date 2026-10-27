@@ -35,3 +35,13 @@ Fecha: 26 de octubre de 2026. Alcance: e-commerce público `https://www.fzacmate
 ## Estado del despliegue
 
 Documento preparado dentro del PR #47. No está en la publicación de producción hasta que ese PR sea revisado, aprobado y desplegado. Que un test pase no sustituye las pruebas con el checkout, retorno de Mercado Pago, conexión Maps/Routes y valores reales de entrega.
+
+## Comprobación de despliegue / conectividad
+
+- El frontend principal usa Vercel y el código `next.config.ts` redirige `/api/*` a `API_PROXY_ORIGIN` o, por defecto en Vercel, `https://materiales-fzac.onrender.com`.
+- En Render (workspace actual) existen **tres** servicios `Materiales-FZAC` conectados a `main` con auto deploy: `materiales-fzac` (`srv-d9btk2u1a83c73c8fp8g`), `materiales-fzac-8xmp` (`srv-d9ekcnbrjlhs73cjtmbg`) y `materiales-fzac-8xmp-8xmp` (`srv-d9gdopbrjlhs739hpemg`).
+- El servicio principal `materiales-fzac` usa pnpm y URL compatible con la reescritura; otro servicio heredado utiliza `npm ci` y no coincide con el lockfile pnpm vigente. **No se deben eliminar ni desactivar servicios sin revisar dependencias y tráfico.**
+- Vercel conserva variables antiguas de tarifa por kilómetro; aún no aparecen las variables horarias `FZAC_SHIPPING_PRICE_PER_HOUR` en ese proyecto. Como el endpoint de checkout puede resolverse en Render, hay que validar las variables reales del **servicio backend efectivo** antes de publicar. No se inspeccionaron ni se exponen valores secretos.
+- `GOOGLE_SITE_VERIFICATION` figura configurado en entornos Production y Preview de Vercel, y `SEO_INDEXING_ENABLED` en Production. Estos nombres de variables no prueban que Search Console haya indexado el sitio; esa verificación requiere informes de cobertura.
+- Vercel tuvo limitaciones de compilación preview en ejecuciones recientes. El PR conjunto pasó build en GitHub Actions, pero eso no es lo mismo que un preview accesible.
+- Para liberar: identificar el backend que realmente recibe `/api/shipping/quote`, probar Routes API y cotización por SKU, verificar compatibilidad de despliegues Render, preparar preview/staging, realizar E2E de login + pago (sin compras reales) y recién entonces aprobar el merge.
