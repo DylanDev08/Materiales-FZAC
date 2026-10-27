@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductDetail } from "@/components/product/product-detail";
 import { getProductBySlug, getRelatedProducts } from "@/lib/db/catalog";
-import { getPublicSiteUrl, SITE_NAME, toAbsoluteUrl } from "@/lib/seo/site";
+import { getPublicSiteUrl, SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -19,6 +19,22 @@ function schemaBrand(value?: string | null) {
   const brand = String(value ?? "").trim();
   if (!brand || /^sin marca( informada)?$/i.test(brand) || /^gen[eé]rico$/i.test(brand)) return null;
   return brand;
+}
+
+function actualProductImages(primary: string, gallery: string[]) {
+  // Empty paths resolve to the site homepage; never advertise that as a
+  // product image in the structured data Google reads.
+  return [...new Set([primary, ...gallery]
+    .map((value) => value?.trim() ?? "")
+    .filter(Boolean)
+    .map(toAbsoluteUrl)
+    .filter((url) => {
+      try {
+        return new URL(url).protocol === "https:";
+      } catch {
+        return false;
+      }
+    }))];
 }
 
 function schemaAvailability(product: { stock: number; availability_status?: string | null }) {
@@ -39,6 +55,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   }
 
   const canonical = `/producto/${product.slug}`;
+  const socialImage = actualProductImages(product.image_url, [])[0] ?? toAbsoluteUrl(SOCIAL_IMAGE);
   const baseDescription = productDescription(product.name, product.description);
   const description = baseDescription.toLowerCase().includes("rosario")
     ? baseDescription
@@ -57,7 +74,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       url: canonical,
       images: [
         {
-          url: toAbsoluteUrl(product.image_url),
+          url: socialImage,
           alt: product.name
         }
       ]
@@ -66,7 +83,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       card: "summary_large_image",
       title: `${product.name} en Rosario | ${SITE_NAME}`,
       description,
-      images: [toAbsoluteUrl(product.image_url)]
+      images: [socialImage]
     }
   };
 }
@@ -81,6 +98,7 @@ export default async function Page({ params }: ProductPageProps) {
   const siteUrl = getPublicSiteUrl();
   const productUrl = `${siteUrl}/producto/${encodeURIComponent(product.slug)}`;
   const brand = schemaBrand(product.brand);
+  const imageUrls = actualProductImages(product.image_url, product.gallery);
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -88,7 +106,7 @@ export default async function Page({ params }: ProductPageProps) {
     name: product.name,
     url: productUrl,
     description,
-    image: [toAbsoluteUrl(product.image_url), ...product.gallery.map(toAbsoluteUrl)],
+    ...(imageUrls.length ? { image: imageUrls } : {}),
     sku: product.sku,
     category: product.category?.name ?? product.subcategory,
     ...(brand ? {
