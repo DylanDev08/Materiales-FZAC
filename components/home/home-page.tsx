@@ -66,8 +66,8 @@ export async function HomePage() {
         <div className="container storefront-hero__inner">
           <div className="storefront-hero__content">
             <span className="storefront-hero__eyebrow">Materiales FZAC · Rosario</span>
-            <h1>Materiales para avanzar con tu obra.</h1>
-            <p>Construcción en seco, steel framing, ferretería y materiales de obra, con precios online, carrito y asesoramiento.</p>
+            <h1>Materiales de construcción en Rosario para tu obra.</h1>
+            <p>Encontrá materiales para construcción en seco, Steel Framing, ferretería y obra en Rosario. Consultá precios y disponibilidad, armá tu pedido y coordiná el retiro o envío según los materiales.</p>
             <div className="storefront-hero__actions">
               <Link className="btn" href="/productos" prefetch={false}>
                 Ver productos <ArrowRight size={18} />
@@ -197,8 +197,8 @@ export async function HomePage() {
         <div className="container storefront-support__inner">
           <div>
             <span className="kicker">Asesoramiento comercial</span>
-            <h2>¿No encontrás el material o la medida?</h2>
-            <p>Contanos qué estás construyendo y te ayudamos a completar el pedido.</p>
+            <h2>Materiales para construcción en Rosario, con atención para tu obra</h2>
+            <p>Encontrá cemento, placas, perfiles, fijaciones y soluciones de construcción en seco según el catálogo vigente. Si buscás un material o una medida específica en Rosario o alrededores, consultanos: confirmamos disponibilidad y coordinamos retiro o entrega según la carga. El costo del envío se cotiza según el tiempo de transporte y descarga, no es una tarifa gratuita ni fija para todos los pedidos.</p>
           </div>
           <a className="btn" href={materialHelpHref} target="_blank" rel="noreferrer">
             <MessageCircle size={18} /> Consultar por WhatsApp
