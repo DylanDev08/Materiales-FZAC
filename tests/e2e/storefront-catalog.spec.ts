@@ -135,3 +135,37 @@ test("manifest instala iconos grandes y maskable", async ({ request }) => {
     expect.objectContaining({ src: "/icons/maskable-512.png", purpose: "maskable" })
   ]));
 });
+
+
+test("el botón Añadir al carrito no invade Detalle en tarjetas estrechas", async ({ page }) => {
+  for (const width of [360, 430, 620, 960, 1366]) {
+    await page.setViewportSize({ width, height: 850 });
+    await page.goto("/productos?availability=IN_STOCK", { waitUntil: "domcontentloaded" });
+
+    const card = page.locator(".product-card").filter({ has: page.locator(".product-card__primary-action") }).first();
+    await expect(card).toBeVisible();
+
+    const geometry = await card.evaluate((element) => {
+      const cart = element.querySelector<HTMLElement>(".product-card__primary-action");
+      const label = element.querySelector<HTMLElement>(".product-card__primary-label");
+      const detail = element.querySelector<HTMLElement>(".product-card__detail");
+      if (!cart || !label || !detail) throw new Error("Missing product actions");
+      const cartRect = cart.getBoundingClientRect();
+      const labelRect = label.getBoundingClientRect();
+      const detailRect = detail.getBoundingClientRect();
+      return {
+        labelFits: label.scrollWidth <= label.clientWidth + 1 &&
+          label.scrollHeight <= label.clientHeight + 1 &&
+          labelRect.left >= cartRect.left - 1 &&
+          labelRect.right <= cartRect.right + 1,
+        buttonsOverlap: getComputedStyle(detail).display !== "none" &&
+          cartRect.right > detailRect.left + 1 &&
+          cartRect.left < detailRect.right - 1 &&
+          cartRect.top < detailRect.bottom - 1 &&
+          detailRect.top < cartRect.bottom - 1
+      };
+    });
+    expect(geometry.labelFits, `Etiqueta desbordada con viewport ${width}px`).toBe(true);
+    expect(geometry.buttonsOverlap, `Botones superpuestos con viewport ${width}px`).toBe(false);
+  }
+});
