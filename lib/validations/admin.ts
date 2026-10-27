@@ -30,7 +30,7 @@ const moneySchema = z.coerce
   .multipleOf(0.01, "Usa como maximo dos decimales.");
 
 const specificationsSchema = z
-  .record(z.union([z.string().max(300), z.number().finite(), z.boolean()]))
+  .record(z.string(), z.union([z.string().max(300), z.number().finite(), z.boolean()]))
   .refine((value) => Object.keys(value).length <= 40, "La ficha tecnica supera 40 campos.");
 
 export const adminProductSchema = z.object({
@@ -111,7 +111,7 @@ export const financialMovementSchema = z.object({
   category: safeText("Categoría", 2, 80),
   description: safeText("Descripción", 3, 240),
   amount: z.coerce
-    .number({ invalid_type_error: "Ingresá un importe válido." })
+    .number({ error: "Ingresá un importe válido." })
     .positive("El importe debe ser mayor a cero.")
     .max(999_999_999_999, "El importe supera el máximo permitido."),
   occurred_at: z.string().datetime({ offset: true, message: "Elegí una fecha válida." })
@@ -126,7 +126,5 @@ export const bulkVoidFinancialMovementsSchema = z.object({
   type: z.enum(["ALL", "INCOME", "EXPENSE"]),
   before: z.string().datetime({ offset: true, message: "Elegí una fecha límite válida." }),
   reason: safeText("Motivo", 8, 240),
-  confirmation: z.literal("ANULAR", {
-    errorMap: () => ({ message: "Escribí ANULAR para confirmar la operación." })
-  })
+  confirmation: z.literal("ANULAR", { error: "Escribí ANULAR para confirmar la operación." })
 });
