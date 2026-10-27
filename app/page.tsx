@@ -5,7 +5,7 @@ import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getPublicContact, getPublicSiteUrl, SITE_DESCRIPTION, SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
 export const metadata = publicPageMetadata({
-  title: "Materiales para construcción en Rosario",
+  title: "Materiales de construcción en Rosario",
   description: SITE_DESCRIPTION,
   path: "/"
 });
