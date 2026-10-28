@@ -711,7 +711,7 @@ export async function createCheckout(input: unknown) {
   if (stockIssues.length) throw new InsufficientStockError(stockIssues);
 
   const subtotal = lines.reduce((sum, line) => sum + line.subtotal, 0);
-  const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address) : null;
+  const shippingQuote = payload.shippingMethod === "DELIVERY" ? await quoteDeliveryForAddress(payload.address, lines) : null;
   if (payload.shippingMethod === "DELIVERY" && (!shippingQuote || !shippingQuote.available) && !isWhatsApp) {
     throw new ShippingQuoteError(
       shippingQuote?.reason || "No pudimos cotizar el envío con datos reales. Revisá la dirección o elegí retiro.",

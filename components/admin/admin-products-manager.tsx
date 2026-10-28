@@ -62,6 +62,18 @@ const emptyProduct: ProductForm = {
 };
 
 type CatalogFilter = "ALL" | "OFFERS" | "READY" | "ATTENTION" | "CONSULT" | "OUT_OF_STOCK";
+type ShippingEstimateMode = "PENDING" | "AUTOMATIC" | "MANUAL";
+
+function productShippingSettings(specifications: Product["specifications"]) {
+  if (specifications.shipping_requires_manual_quote === true) {
+    return { mode: "MANUAL" as ShippingEstimateMode, minutes: "" };
+  }
+  const minutes = specifications.shipping_unload_minutes_per_unit;
+  if (typeof minutes === "number" && Number.isFinite(minutes) && minutes >= 0 && minutes <= 240) {
+    return { mode: "AUTOMATIC" as ShippingEstimateMode, minutes: String(minutes) };
+  }
+  return { mode: "PENDING" as ShippingEstimateMode, minutes: "" };
+}
 
 function productForm(product: Product): ProductForm {
   return {
@@ -113,6 +125,12 @@ export function AdminProductsManager({
     const selected = products.find((product) => product.id === initialProductId);
     return JSON.stringify(selected?.specifications ?? {}, null, 2);
   });
+  const [shippingMode, setShippingMode] = useState<ShippingEstimateMode>(() =>
+    productShippingSettings(products.find((product) => product.id === initialProductId)?.specifications ?? {}).mode
+  );
+  const [shippingMinutes, setShippingMinutes] = useState(() =>
+    productShippingSettings(products.find((product) => product.id === initialProductId)?.specifications ?? {}).minutes
+  );
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
 
   const sortedRows = useMemo(
@@ -204,6 +222,23 @@ export function AdminProductsManager({
       return;
     }
 
+    // The logistics controls are the source of truth for shipping metadata.
+    // Never infer zero minutes for a product that has not been reviewed.
+    delete parsedSpecifications.shipping_unload_minutes_per_unit;
+    delete parsedSpecifications.shipping_requires_manual_quote;
+    if (shippingMode === "MANUAL") {
+      parsedSpecifications.shipping_requires_manual_quote = true;
+    } else if (shippingMode === "AUTOMATIC") {
+      const minutes = shippingMinutes.trim() === "" ? NaN : Number(shippingMinutes);
+      if (!Number.isFinite(minutes) || minutes < 0 || minutes > 240) {
+        setMessage("Indicá un tiempo de descarga por unidad entre 0 y 240 minutos.");
+        setSaving(false);
+        return;
+      }
+      parsedSpecifications.shipping_unload_minutes_per_unit = minutes;
+      parsedSpecifications.shipping_requires_manual_quote = false;
+    }
+
     const generatedSlug = form.slug || slugify(form.name);
     const generatedSku = form.sku || `FZAC-${generatedSlug.slice(0, 48).toUpperCase()}`;
     const payload = {
@@ -239,6 +274,8 @@ export function AdminProductsManager({
       });
       setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
       setSpecificationsText("{}");
+      setShippingMode("PENDING");
+      setShippingMinutes("");
       setEditorOpen(false);
       setMessage("Producto guardado correctamente.");
     } catch (error) {
@@ -289,6 +326,8 @@ export function AdminProductsManager({
   function startNewProduct() {
     setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
     setSpecificationsText("{}");
+    setShippingMode("PENDING");
+    setShippingMinutes("");
     setMessage("");
     setEditorOpen(true);
     window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -297,6 +336,9 @@ export function AdminProductsManager({
   function editProduct(product: Product) {
     setForm(productForm(product));
     setSpecificationsText(JSON.stringify(product.specifications ?? {}, null, 2));
+    const shipping = productShippingSettings(product.specifications ?? {});
+    setShippingMode(shipping.mode);
+    setShippingMinutes(shipping.minutes);
     setMessage("");
     setEditorOpen(true);
     window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -306,6 +348,8 @@ export function AdminProductsManager({
     setEditorOpen(false);
     setMessage("");
     setSpecificationsText("{}");
+    setShippingMode("PENDING");
+    setShippingMinutes("");
     setForm({ ...emptyProduct, category_id: categories[0]?.id ?? "" });
   }
 
@@ -545,6 +589,36 @@ export function AdminProductsManager({
                   placeholder="Una URL HTTPS por línea"
                 />
               </label>
+              <label className="admin-product-field--wide">
+                Cotización de envío
+                <select value={shippingMode} onChange={(event) => setShippingMode(event.target.value as ShippingEstimateMode)}>
+                  <option value="PENDING">A cotizar (sin tiempo de descarga aprobado)</option>
+                  <option value="AUTOMATIC">Automático (tiempo validado por unidad)</option>
+                  <option value="MANUAL">Siempre cotización manual (material especial)</option>
+                </select>
+              </label>
+              {shippingMode === "AUTOMATIC" ? (
+                <label className="admin-product-field--wide">
+                  Minutos de descarga por unidad (aprobados por logística)
+                  <input
+                    type="number"
+                    min={0}
+                    max={240}
+                    step="any"
+                    required
+                    value={shippingMinutes}
+                    onChange={(event) => setShippingMinutes(event.target.value)}
+                    placeholder="Sin valor predeterminado"
+                  />
+                  <small>Se multiplica por la cantidad. Incluye únicamente descarga, no conducción.</small>
+                </label>
+              ) : (
+                <p className="admin-product-field--wide">
+                  {shippingMode === "MANUAL"
+                    ? "El pedido se cotizará con FZAC antes de confirmar la compra con envío."
+                    : "Sin un tiempo validado no se ofrecerá una tarifa automática. El cliente podrá coordinar por WhatsApp."}
+                </p>
+              )}
               <label className="admin-product-field--wide">
                 Ficha técnica (JSON)
                 <textarea

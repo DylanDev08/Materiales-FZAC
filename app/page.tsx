@@ -5,7 +5,7 @@ import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getPublicContact, getPublicSiteUrl, SITE_DESCRIPTION, SITE_NAME, SOCIAL_IMAGE, toAbsoluteUrl } from "@/lib/seo/site";
 
 export const metadata = publicPageMetadata({
-  title: "Materiales para construcción en Rosario",
+  title: "Materiales de construcción en Rosario",
   description: SITE_DESCRIPTION,
   path: "/"
 });
@@ -25,7 +25,13 @@ export default function Page() {
     image: toAbsoluteUrl(SOCIAL_IMAGE),
     description: SITE_DESCRIPTION,
     currenciesAccepted: "ARS",
-    paymentAccepted: "Pago coordinado por WhatsApp",
+    paymentAccepted: "Mercado Pago, transferencia bancaria o pago coordinado según disponibilidad",
+    // Google's return-policy markup can link to the complete published terms
+    // without pretending that all materials share identical return conditions.
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      merchantReturnLink: `${siteUrl}/cambios-y-devoluciones`
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: identity.address,

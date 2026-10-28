@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test("Home presenta el catálogo enfocado y productos reales", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Materiales para avanzar con tu obra." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Materiales de construcción en Rosario para tu obra." })).toBeVisible();
   await expect(page.locator(".product-card").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/La Yesera Rosarina|precio proveedor|margen comercial/i);
 

@@ -4,7 +4,7 @@ const FALLBACK_SITE_URL = "http://localhost:3000";
 
 export const SITE_NAME = "Materiales FZAC";
 export const SITE_DESCRIPTION =
-  "Materiales para construcción en Rosario: Durlock, Steel Framing, ferretería, pintura e impermeabilización. Consultá precios, SKU y armá tu pedido por WhatsApp.";
+  "Materiales de construcción en Rosario: placas, Steel Framing, ferretería, cemento, pintura e impermeabilización. Consultá precios, disponibilidad y coordiná tu pedido en FZAC.";
 export const SOCIAL_IMAGE = "/fzac-storefront-hero.webp";
 export const SOCIAL_IMAGE_WIDTH = 1920;
 export const SOCIAL_IMAGE_HEIGHT = 789;
@@ -42,13 +42,17 @@ export function toAbsoluteUrl(value: string) {
 
 export function isSeoIndexingEnabled() {
   const configured = getEnv("SEO_INDEXING_ENABLED").toLowerCase();
-  if (configured === "true") return true;
-
   const siteUrl = getPublicSiteUrl();
   const isProductionSite = siteUrl === "https://www.fzacmateriales.store" || siteUrl === "https://fzacmateriales.store";
   const maintenanceMode = getEnv("MAINTENANCE_MODE").toLowerCase() === "true";
+  const vercelEnvironment = getEnv("VERCEL_ENV").toLowerCase();
 
-  return isProductionSite && !maintenanceMode;
+  // Never let an explicit SEO override expose previews or maintenance pages
+  // to search crawlers. Preserve SEO_INDEXING_ENABLED=false as a kill switch.
+  return isProductionSite &&
+    !maintenanceMode &&
+    configured !== "false" &&
+    (!vercelEnvironment || vercelEnvironment === "production");
 }
 
 export function getPublicContact() {

@@ -6,7 +6,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
 export const metadata = publicPageMetadata({
   title: "Materiales de construcción en Rosario: precios y catálogo",
   description:
-    "Explorá materiales de construcción en Rosario: Durlock, Steel Framing, ferretería, pintura, impermeabilización y materiales de obra con precios, SKU y pedido por WhatsApp.",
+    "Explorá materiales de construcción en Rosario: Durlock, Steel Framing, ferretería, pintura e impermeabilización. Compará precios, consultá stock y coordiná retiro o envío.",
   path: "/productos"
 });
 
