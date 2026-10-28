@@ -1,23 +1,19 @@
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { assertCheckoutQaRuntime, assertCheckoutQaTarget } from "./lib/checkout-qa-safety.mjs";
 
 const baseUrl = (process.env.BASE_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
-const isLocal = /^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(baseUrl);
-const remoteQaEnabled =
-  process.env.ALLOW_REMOTE_CHECKOUT_QA === "true" &&
-  process.env.QA_CONFIRM_MUTATING_CHECKOUT === "I_UNDERSTAND";
-
-if (!isLocal && !remoteQaEnabled) {
-  throw new Error(
-    "Remote checkout QA is disabled. Set ALLOW_REMOTE_CHECKOUT_QA=true and QA_CONFIRM_MUTATING_CHECKOUT=I_UNDERSTAND explicitly."
-  );
-}
+assertCheckoutQaTarget(baseUrl);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env["\uFEFFNEXT_PUBLIC_SUPABASE_URL"];
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const mercadoPagoAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+const mercadoPagoAccessToken = process.env.MERCADOPAGO_CHECKOUT_PRO_ACCESS_TOKEN?.trim()
+  || process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
 
 if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase server configuration is missing.");
+if (!mercadoPagoAccessToken) throw new Error("Mercado Pago test checkout token is required for QA preference cleanup.");
+// A local frontend may proxy payments to a remote production backend.
+await assertCheckoutQaRuntime(baseUrl);
 
 const admin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false }
@@ -61,15 +57,14 @@ async function createCheckout(cookies, productId, method, idempotencyKey) {
       address_snapshot: {},
       notes: "QA automatizado FZAC no preparar mercaderia",
       payment_method: method,
-      payment_flow:
-        method === "MERCADOPAGO" ? "CHECKOUT_PRO" : method === "BANK_TRANSFER" ? "TRANSFER" : "WHATSAPP",
+      payment_flow: method === "MERCADOPAGO" ? "CHECKOUT_PRO" : "TRANSFER",
       accepted_terms: true,
       idempotency_key: idempotencyKey,
       items: [{ product_id: productId, quantity: 1 }]
     })
   });
   const body = await readJson(response);
-  if (body.order_id) orderIds.add(String(body.order_id));
+  if (body.order_id || body.orderId) orderIds.add(String(body.order_id || body.orderId));
   if (body.preference_id) preferenceIds.add(String(body.preference_id));
   if (!response.ok) {
     throw new Error(`Checkout ${method} failed with HTTP ${response.status}: ${String(body.code || body.error || "UNKNOWN")}`);
@@ -204,10 +199,22 @@ try {
   assert(transfer.redirect_url === null, "Bank transfer returned a Mercado Pago redirect.");
   assert(transfer.order_status === "PENDING_TRANSFER", "Bank transfer did not remain pending.");
 
-  const whatsapp = await createCheckout(cookies, product.id, "WHATSAPP", `fzac-qa-whatsapp-${crypto.randomUUID()}`);
-  assert(whatsapp.redirect_url === null, "WhatsApp returned a Mercado Pago redirect.");
-  assert(/^https:\/\/wa\.me\//.test(String(whatsapp.whatsapp_url)), "WhatsApp checkout did not return a valid URL.");
-  assert(whatsapp.order_status === "COORDINATE", "WhatsApp checkout did not remain coordinated.");
+  const whatsapp = await fetch(`${baseUrl}/api/checkout/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookies, Origin: baseUrl },
+    body: JSON.stringify({
+      customer_name: "FZAC Checkout QA", customer_email: email, customer_phone: "+5493410000000",
+      shipping_method: "PICKUP", address_snapshot: {}, payment_method: "WHATSAPP", payment_flow: "WHATSAPP",
+      accepted_terms: true, idempotency_key: `fzac-qa-whatsapp-${crypto.randomUUID()}`,
+      items: [{ product_id: product.id, quantity: 1 }]
+    })
+  });
+  const whatsappBody = await readJson(whatsapp);
+  assert(whatsapp.status === 422 && whatsappBody.error === "PAYMENT_METHOD_NOT_ALLOWED",
+    "WhatsApp must be rejected as a payment method.");
+  const { count: afterWhatsapp, error: whatsappCountError } = await admin.from("orders")
+    .select("id", { count: "exact", head: true }).eq("customer_email", email);
+  assert(!whatsappCountError && afterWhatsapp === orderIds.size, "Rejected WhatsApp request created an order.");
 
   const mercadoPago = await createCheckout(
     cookies,
@@ -217,7 +224,7 @@ try {
   );
   assert(mercadoPago.order_status === "PENDING_PAYMENT", "Mercado Pago order did not remain pending.");
   assert(Boolean(mercadoPago.sandbox_init_point), "Mercado Pago test checkout did not return sandbox_init_point.");
-  assert(/mercadopago/i.test(String(mercadoPago.redirect_url)), "Mercado Pago checkout did not return a provider redirect.");
+  assert(mercadoPago.redirect_url === mercadoPago.sandbox_init_point, "Mercado Pago QA must use the sandbox redirect.");
 
   let cardGuard = null;
   if (process.env.QA_EXPECT_CARD_ENABLED !== "true") {
@@ -268,8 +275,9 @@ try {
     productChecked: true,
     idempotency: true,
     bankTransfer: { status: 201, redirect: false, pending: true },
-    whatsapp: { status: 201, redirect: false, pending: true, url: true },
+    whatsapp: { status: 422, rejected: true, wroteOrder: false },
     mercadoPago: { status: 201, sandbox: true, pending: true },
+    paymentReturnVerified: false,
     cardGuard,
     createdOrders: orderIds.size
   };

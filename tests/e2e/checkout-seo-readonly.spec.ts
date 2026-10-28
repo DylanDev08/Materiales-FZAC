@@ -43,6 +43,26 @@ test("WhatsApp no puede confundirse con un medio de pago", async ({ request }) =
   expect(await response.json()).toMatchObject({ error: "PAYMENT_METHOD_NOT_ALLOWED" });
 });
 
+test("el retorno de pago no permite conciliar pedidos sin sesión", async ({ request }) => {
+  const response = await request.post("/api/payments/mercadopago/reconcile", {
+    data: { orderId: unreachableProduct, paymentId: "123456" }
+  });
+  expect(response.status()).toBe(401);
+  expect(await response.text()).toMatch(/iniciar sesi[oó]n/i);
+});
+
+test("ambos webhooks rechazan JSON e identificadores inválidos antes de registrar eventos", async ({ request }) => {
+  for (const endpoint of ["/api/webhooks/mercadopago", "/api/payments/mercadopago/webhook"]) {
+    const malformed = await request.post(endpoint, {
+      headers: { "Content-Type": "application/json" }, data: "{"
+    });
+    expect(malformed.status()).toBe(400);
+    const invalidId = await request.post(endpoint, { data: { type: "payment", data: { id: "invalid-qa-id" } } });
+    expect(invalidId.status()).toBe(400);
+    expect(await invalidId.json()).toMatchObject({ ok: false, received: false });
+  }
+});
+
 test("rechaza los términos no aceptados antes de procesar una compra", async ({ request }) => {
   const response = await request.post("/api/checkout/create", {
     data: { ...safeCheckout, accepted_terms: false }
