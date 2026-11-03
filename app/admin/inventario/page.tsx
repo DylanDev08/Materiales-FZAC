@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Package, ArrowRight } from "lucide-react";
-import { AdminInventoryForecast } from "@/components/admin/admin-inventory-forecast";
-import { AdminInventoryLocations } from "@/components/admin/admin-inventory-locations";
+import { AdminInventoryTools } from "@/components/admin/admin-inventory-tools";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getAdminConsolePath } from "@/lib/utils/env";
@@ -21,14 +20,7 @@ export default async function Page() {
           <Package size={17} /> Ir a productos <ArrowRight size={17} />
         </Link>
       </section>
-      <details className="admin-focus-details admin-focus-details--section">
-        <summary>Stock por depósito y movimientos internos</summary>
-        <AdminInventoryLocations />
-      </details>
-      <details className="admin-focus-details admin-focus-details--section">
-        <summary>Pronóstico y análisis de reposición</summary>
-        <AdminInventoryForecast adminPath={adminPath} />
-      </details>
+      <AdminInventoryTools adminPath={adminPath} />
     </AdminShell>
   );
 }
