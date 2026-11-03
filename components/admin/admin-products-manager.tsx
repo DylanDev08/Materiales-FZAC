@@ -814,6 +814,9 @@ export function AdminProductsManager({
               <option value="OUT_OF_STOCK">Sin stock</option>
             </select>
           </label>
+          <details className="admin-catalog-extra-filters">
+            <summary>Más filtros</summary>
+            <div className="admin-catalog-extra-filters__fields">
           <label className="admin-catalog-filter">
             <span>Categoría</span>
             <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
@@ -835,6 +838,8 @@ export function AdminProductsManager({
               {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </label>
+            </div>
+          </details>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
