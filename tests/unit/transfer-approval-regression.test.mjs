@@ -23,3 +23,17 @@ test("bank transfer confirmation routes to approval when required", () => {
   assert.match(checkout, /data\.requires_admin_approval\s*\?\s*"approval=1"\s*:\s*"transfer=1"/);
   assert.match(checkout, /encodeURIComponent\(orderId\)/);
 });
+
+const validations = readFileSync(new URL("../../lib/validations/checkout.ts", import.meta.url), "utf8");
+
+test("omitted payment method never defaults to Mercado Pago", () => {
+  assert.match(orders, /const paymentMethod = payload\.paymentMethod \?\? "BANK_TRANSFER"/);
+  assert.doesNotMatch(orders, /const paymentMethod = payload\.paymentMethod \?\? "MERCADOPAGO"/);
+  assert.match(validations, /value\.payment_flow === "CARD" \|\| value\.payment_flow === "CHECKOUT_PRO" \? "MERCADOPAGO" : "BANK_TRANSFER"/);
+  assert.match(validations, /=== "BANK_TRANSFER" \? "TRANSFER" : "CHECKOUT_PRO"/);
+});
+
+test("checkout starts with transfer selected", () => {
+  assert.match(checkout, /useState<PaymentMode>\("BANK_TRANSFER"\)/);
+  assert.match(checkout, /current === "CARD_BRICK" \? "BANK_TRANSFER" : current/);
+});
