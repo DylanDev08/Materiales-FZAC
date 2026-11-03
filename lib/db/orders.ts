@@ -631,7 +631,7 @@ export async function validateCheckoutStock(input: unknown) {
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  const paymentMethod = payload.paymentMethod ?? "BANK_TRANSFER";
   if (String(paymentMethod) === "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "PAYMENT_METHOD_NOT_ALLOWED",
