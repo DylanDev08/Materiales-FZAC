@@ -34,3 +34,30 @@ test("dashboard prioritizes storefront operations, not unused gateway metrics", 
 test("admin authorization is still required on server layout", () => {
   assert.match(layout, /await requireAdmin\(\)/);
 });
+
+const productsManager = read("../../components/admin/admin-products-manager.tsx");
+
+test("product editor opens in an accessible dialog without changing its create and edit APIs", () => {
+  assert.match(productsManager, /admin-product-dialog-backdrop/);
+  assert.match(productsManager, /role=\{mode === "full" \? "dialog"/);
+  assert.match(productsManager, /aria-modal=\{mode === "full" \? true/);
+  assert.match(productsManager, /aria-labelledby="admin-product-editor-title"/);
+  assert.match(productsManager, /method: form\.id \? "PATCH" : "POST"/);
+  assert.match(productsManager, /\/api\/admin\/products/);
+});
+
+test("deactivation requires an explicit confirmation and keeps historical records", () => {
+  assert.match(productsManager, /role="alertdialog"/);
+  assert.match(productsManager, /setPendingDeactivation\(product\)/);
+  assert.match(productsManager, /disabled=\{deactivating\}/);
+  assert.match(productsManager, /method: "DELETE"/);
+  assert.match(productsManager, /active: false/);
+});
+
+test("only common catalog filters are shown by default", () => {
+  assert.match(productsManager, /<details className="admin-catalog-extra-filters">/);
+  assert.match(productsManager, /<summary>Más filtros<\/summary>/);
+  for (const label of ["Categoría", "Marca", "Proveedor"]) {
+    assert.ok(productsManager.includes(`<span>${label}</span>`));
+  }
+});
