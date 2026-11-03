@@ -11024,3 +11024,64 @@ img[src*="logoFZAC"] {
     flex: 1 1 calc(50% - 10px);
   }
 }
+
+
+/* Clientes y stock: acciones principales primero, opciones secundarias a demanda. */
+.admin-customers-more-filters {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0 12px;
+}
+.admin-customers-more-filters > summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  cursor: pointer;
+  color: var(--color-white);
+  font-size: 0.8rem;
+  font-weight: 800;
+  list-style: none;
+}
+.admin-customers-more-filters > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-customers-more-filters__content {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 0 12px;
+}
+.admin-customers-more-filters__content > select {
+  min-height: 40px;
+}
+.admin-simple-stock-home {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.admin-simple-stock-home > div {
+  flex: 1 1 300px;
+}
+.admin-simple-stock-home h2 {
+  margin: 6px 0 8px;
+  color: var(--color-white);
+}
+.admin-simple-stock-home p {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+@media (max-width: 700px) {
+  .admin-customers-more-filters,
+  .admin-simple-stock-home .btn {
+    width: 100%;
+  }
+  .admin-customers-more-filters__content > select {
+    width: 100%;
+  }
+}
