@@ -45,7 +45,7 @@ async function handlePost(request: Request) {
         {
           ok: false,
           error: "PAYMENT_METHOD_NOT_ALLOWED",
-          message: "WhatsApp no es un medio de pago. Pagá online con Mercado Pago o elegí transferencia y enviá el comprobante por WhatsApp."
+          message: "WhatsApp es el canal para coordinar el pedido, no un medio de pago. Elegí transferencia y enviá el comprobante por WhatsApp."
         },
         { status: 422 }
       );
