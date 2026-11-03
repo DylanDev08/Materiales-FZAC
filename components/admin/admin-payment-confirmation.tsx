@@ -25,15 +25,20 @@ export function AdminPaymentConfirmation({ rows }: { rows: OrderRow[] }) {
     if (busy) return;
     setBusy(id);
     setMessage("");
-    const response = await fetch(`/api/admin/orders/${id}/confirm-payment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}"
-    });
-    const data = (await response.json().catch(() => ({}))) as { message?: string };
-    setBusy(null);
-    setMessage(data.message || (response.ok ? "Pago confirmado." : "No pudimos confirmar el pago."));
-    if (response.ok) window.location.reload();
+    try {
+      const response = await fetch(`/api/admin/orders/${encodeURIComponent(id)}/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}"
+      });
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      setMessage(data.message || (response.ok ? "Pago confirmado." : "No pudimos confirmar el pago."));
+      if (response.ok) window.location.reload();
+    } catch {
+      setMessage("No se pudo verificar la confirmación. Comprobá el estado antes de volver a intentar.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   if (!pendingRows.length) return message ? <p className="notice notice--success">{message}</p> : null;
