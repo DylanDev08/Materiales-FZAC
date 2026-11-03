@@ -135,6 +135,7 @@ export function AdminProductsManager({
   const [pendingDeactivation, setPendingDeactivation] = useState<Product | null>(null);
   const [deactivating, setDeactivating] = useState(false);
   const deactivateCancelRef = useRef<HTMLButtonElement | null>(null);
+  const deactivateConfirmRef = useRef<HTMLElement | null>(null);
   const editorPanelRef = useRef<HTMLElement | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
 
@@ -186,7 +187,25 @@ export function AdminProductsManager({
     if (!pendingDeactivation) return;
     const frame = window.requestAnimationFrame(() => deactivateCancelRef.current?.focus());
     function onConfirmKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !deactivating) setPendingDeactivation(null);
+      if (event.key === "Escape" && !deactivating) {
+        event.preventDefault();
+        setPendingDeactivation(null);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = Array.from(deactivateConfirmRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+      if (!controls.length) {
+        event.preventDefault();
+        deactivateConfirmRef.current?.focus();
+        return;
+      }
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault();
+        controls[controls.length - 1].focus();
+      } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+        event.preventDefault();
+        controls[0].focus();
+      }
     }
     window.addEventListener("keydown", onConfirmKeyDown);
     return () => {
@@ -742,7 +761,7 @@ export function AdminProductsManager({
 
       {mode === "full" && pendingDeactivation ? (
         <div className="admin-product-confirm-backdrop">
-          <section className="admin-product-confirm" role="alertdialog" aria-modal="true" aria-labelledby="admin-product-confirm-title" aria-describedby="admin-product-confirm-description">
+          <section className="admin-product-confirm" ref={deactivateConfirmRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="admin-product-confirm-title" aria-describedby="admin-product-confirm-description">
             <h2 id="admin-product-confirm-title">¿Desactivar producto?</h2>
             <p id="admin-product-confirm-description">“{pendingDeactivation.name}” dejará de mostrarse en la tienda. El historial de pedidos se conserva.</p>
             {message ? <p className="notice notice--danger" role="alert">{message}</p> : null}
