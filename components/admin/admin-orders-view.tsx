@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, MessageCircle, Save, UserRound, XCircle } from "lucide-react";
 import { AdminInteractiveTable } from "@/components/admin/admin-interactive-table";
-import { getWhatsAppHref } from "@/lib/utils/contact";
+import { getCustomerWhatsAppHref } from "@/lib/utils/contact";
 
 type OrderRow = Record<string, string | number | null | undefined>;
 type Assignee = { id: string; label: string; role: string };
 type FulfillmentStatus = "PREPARING" | "READY_FOR_PICKUP" | "READY_FOR_DELIVERY" | "OUT_FOR_DELIVERY" | "DELIVERED";
 
-const columns = ["Referencia", "Cliente", "Email", "Telefono", "Productos", "Total", "Estado", "Pago", "Envio", "Fecha"];
+const columns = ["Referencia", "Cliente", "Productos", "Total", "Estado", "Fecha"];
 
 const labels: Record<FulfillmentStatus,string> = {
   PREPARING:"Preparando",
@@ -94,6 +94,10 @@ function FulfillmentEditor({
   </div>;
 }
 
+function customerContactLink(row: OrderRow, message: string) {
+  return getCustomerWhatsAppHref(row.Telefono, message);
+}
+
 function MobileOrdersList({ rows }: { rows: OrderRow[] }) {
   return (
     <section className="admin-mobile-orders" aria-label="Pedidos">
@@ -117,6 +121,9 @@ function MobileOrdersList({ rows }: { rows: OrderRow[] }) {
             </div>
           </summary>
           <div className="admin-mobile-order-card__detail">
+            {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido ${String(row.Referencia || "")}.`) ? (
+              <a className="btn btn--ghost" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido ${String(row.Referencia || "")}.`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Contactar cliente</a>
+            ) : null}
             <dl>
               <div><dt>Email</dt><dd>{String(row.Email || "-")}</dd></div>
               <div><dt>Teléfono</dt><dd>{String(row.Telefono || "-")}</dd></div>
@@ -153,6 +160,15 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
   const fulfillmentRows = useMemo(()=>rows.filter((row) => ["PAID","CONFIRMED","PREPARING","READY_FOR_PICKUP","READY_FOR_DELIVERY","OUT_FOR_DELIVERY"].includes(String(row.__statusRaw))),[rows]);
 
   return <>
+    <section className="admin-orders-summary" aria-label="Resumen de pedidos">
+      <h2>Pedidos de la tienda</h2>
+      <p>Revisá primero las compras que requieren aprobación o coordinación. El detalle completo está al final.</p>
+      <div className="admin-orders-summary__counts">
+        <span><strong>{approvalRows.length}</strong> Por aprobar</span>
+        <span><strong>{coordinateRows.length}</strong> Para coordinar</span>
+        <span><strong>{fulfillmentRows.length}</strong> En preparación o entrega</span>
+      </div>
+    </section>
     {coordinateRows.length ? <section className="admin-large-purchases" aria-label="Pedidos para coordinar por WhatsApp">
       {coordinateRows.map((row)=>{
         const delivery=row.__shippingMethod==="DELIVERY";
@@ -165,20 +181,17 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
           <strong>{row.Total}</strong>
           <small>{row.Productos}</small>
           <div className="admin-order-quick-actions">
-            <a
-              className="btn"
-              href={getWhatsAppHref(`Hola ${row.Cliente}, te contactamos desde FZAC por el pedido #${row.Referencia}. Vamos a confirmar disponibilidad o reposición de los productos, forma de pago y ${delivery ? "envío" : "retiro"}.`)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <MessageCircle size={17}/> Continuar por WhatsApp
-            </a>
+            {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido #${String(row.Referencia || "")}. Vamos a confirmar disponibilidad, transferencia y ${delivery ? "envío" : "retiro"}.`) ? (
+              <a className="btn" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido #${String(row.Referencia || "")}. Vamos a confirmar disponibilidad, transferencia y ${delivery ? "envío" : "retiro"}.`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar cliente</a>
+            ) : <small>Sin teléfono válido para WhatsApp. Revisá los datos del cliente.</small>}
           </div>
         </article>;
       })}
     </section> : null}
 
-    {fulfillmentRows.length ? <section className="admin-large-purchases">
+    {fulfillmentRows.length ? <details className="admin-orders-fulfillment-group">
+      <summary>Preparación, retiros y entregas ({fulfillmentRows.length}) <ChevronDown size={18}/></summary>
+      <section className="admin-large-purchases">
       {fulfillmentRows.map((row)=>{
         const delivery=row.__shippingMethod==="DELIVERY";
         return <article className="admin-large-purchase-card admin-fulfillment-card" key={`fulfillment-${row.Id}`}>
@@ -193,9 +206,9 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
           <strong>{row.Total}</strong>
           <small>{row.Productos}</small>
           <div className="admin-order-quick-actions">
-            <a className="btn btn--ghost" href={getWhatsAppHref(`Hola ${row.Cliente}, te contactamos por el pedido ${row.Referencia}. ${delivery ? "Queremos coordinar el despacho." : "Queremos coordinar el retiro en nuestro local."}`)} target="_blank" rel="noreferrer">
-              <MessageCircle size={17}/> WhatsApp
-            </a>
+            {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos por el pedido ${String(row.Referencia || "")}. ${delivery ? "Queremos coordinar el despacho." : "Queremos coordinar el retiro en nuestro local."}`) ? (
+              <a className="btn btn--ghost" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos por el pedido ${String(row.Referencia || "")}. ${delivery ? "Queremos coordinar el despacho." : "Queremos coordinar el retiro en nuestro local."}`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar cliente</a>
+            ) : <small>Sin teléfono válido para WhatsApp.</small>}
           </div>
           <details className="admin-order-manage">
             <summary>
@@ -206,7 +219,8 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
           </details>
         </article>;
       })}
-    </section> : null}
+      </section>
+    </details> : null}
 
     {approvalRows.length ? <section className="admin-large-purchases">
       {approvalRows.map((row)=><article className="admin-large-purchase-card" key={String(row.Id)}>
@@ -215,7 +229,9 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
         <div>
           <button className="btn" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"approve")}><CheckCircle2 size={17}/> Aprobar compra</button>
           <button className="btn btn--ghost" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"reject")}><XCircle size={17}/> Rechazar</button>
-          <a className="btn btn--ghost" href={getWhatsAppHref(`Hola, te contactamos desde FZAC por la compra ${row.Referencia}.`)} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar</a>
+          {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ? (
+            <a className="btn btn--ghost" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar cliente</a>
+          ) : null}
         </div>
       </article>)}
     </section> : null}
