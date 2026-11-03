@@ -635,7 +635,7 @@ export async function createCheckout(input: unknown) {
   if (String(paymentMethod) === "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "PAYMENT_METHOD_NOT_ALLOWED",
-      "WhatsApp no es un medio de pago. Elegí Mercado Pago o transferencia bancaria con comprobante.",
+      "WhatsApp es el canal para coordinar el pedido, no un medio de pago. Elegí transferencia bancaria y enviá el comprobante por WhatsApp.",
       422
     );
   }
