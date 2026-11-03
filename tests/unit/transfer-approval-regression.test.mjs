@@ -37,3 +37,11 @@ test("checkout starts with transfer selected", () => {
   assert.match(checkout, /useState<PaymentMode>\("BANK_TRANSFER"\)/);
   assert.match(checkout, /current === "CARD_BRICK" \? "BANK_TRANSFER" : current/);
 });
+
+test("disabled online payments are hidden and transfer remains available", () => {
+  assert.match(checkout, /const mercadoPagoReady = data\.enabled === true/);
+  assert.match(checkout, /setRuntimeMercadoPagoEnabled\(mercadoPagoReady\)/);
+  assert.match(checkout, /runtimeMercadoPagoEnabled \? \(/);
+  assert.match(checkout, /runtimeMercadoPagoEnabled && paymentMode === "MERCADOPAGO"/);
+  assert.match(checkout, /setPaymentMode\("BANK_TRANSFER"\)/);
+});
