@@ -631,11 +631,11 @@ export async function validateCheckoutStock(input: unknown) {
 
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
-  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  const paymentMethod = payload.paymentMethod ?? "BANK_TRANSFER";
   if (String(paymentMethod) === "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "PAYMENT_METHOD_NOT_ALLOWED",
-      "WhatsApp no es un medio de pago. Elegí Mercado Pago o transferencia bancaria con comprobante.",
+      "WhatsApp es el canal para coordinar el pedido, no un medio de pago. Elegí transferencia bancaria y enviá el comprobante por WhatsApp.",
       422
     );
   }
@@ -849,6 +849,22 @@ export async function createCheckout(input: unknown) {
 
   await notifyAdminNewOrder({ id: order.id, customerName: payload.customer.name, total });
 
+  // La aprobación por monto se evalúa ANTES de indicar transferencia: nunca
+  // debe pedirse un comprobante para un pedido pendiente de aprobación.
+  if (requiresAdminApproval) {
+    await notifyAdminLargePurchase({ id: order.id, customerName: payload.customer.name, total, limit: approvalLimit });
+    return checkoutSuccessResponse({
+      orderId: order.id,
+      paymentId: payment.id,
+      orderStatus,
+      requiresAdminApproval: true,
+      pending: true,
+      total,
+      provider,
+      message: "Pedido registrado. FZAC debe aprobar el monto antes de coordinar la transferencia."
+    });
+  }
+
   if (isBankTransfer) {
     await notifyAdminTransferPending({
       id: order.id,
@@ -856,34 +872,16 @@ export async function createCheckout(input: unknown) {
       total,
       flow: "BANK_TRANSFER"
     });
-    return {
-      ...checkoutSuccessResponse({
-        orderId: order.id,
-        paymentId: payment.id,
-        orderStatus,
-        requiresAdminApproval: false,
-        pending: true,
-        total,
-        provider,
-        message: "Pedido generado. Realizá la transferencia y enviá el comprobante a FZAC por WhatsApp."
-      })
-    };
-  }
-
-  if (requiresAdminApproval) {
-    await notifyAdminLargePurchase({ id: order.id, customerName: payload.customer.name, total, limit: approvalLimit });
-    return {
-      ...checkoutSuccessResponse({
-        orderId: order.id,
-        paymentId: payment.id,
-        orderStatus,
-        requiresAdminApproval: true,
-        pending: true,
-        total,
-        provider,
-        message: "Compra creada correctamente. Requiere aprobacion del administrador."
-      })
-    };
+    return checkoutSuccessResponse({
+      orderId: order.id,
+      paymentId: payment.id,
+      orderStatus,
+      requiresAdminApproval: false,
+      pending: true,
+      total,
+      provider,
+      message: "Pedido generado. Realizá la transferencia y enviá el comprobante a FZAC por WhatsApp."
+    });
   }
 
   await notifyAdminPaymentPending({ id: order.id, customerName: payload.customer.name });

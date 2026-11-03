@@ -285,9 +285,10 @@ export function CheckoutForm({
       ? { status: "idle" }
       : rawShippingQuote;
   const [placesReady, setPlacesReady] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("BANK_TRANSFER");
+  const [runtimeMercadoPagoEnabled, setRuntimeMercadoPagoEnabled] = useState(false);
   const [runtimeCardPublicKey, setRuntimeCardPublicKey] = useState(cardPublicKey);
-  const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(cardPaymentsEnabled && Boolean(cardPublicKey.trim()));
+  const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(false);
   const [runtimePaymentsTestMode, setRuntimePaymentsTestMode] = useState(paymentsTestMode);
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
@@ -301,20 +302,26 @@ export function CheckoutForm({
     void fetch("/api/payments/mercadopago", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return;
-        const data = (await response.json()) as { cardEnabled?: boolean; cardPublicKey?: string; environment?: "test" | "production" };
+        const data = (await response.json()) as { enabled?: boolean; cardEnabled?: boolean; cardPublicKey?: string; environment?: "test" | "production" };
         if (!active) return;
         const publicKey = String(data.cardPublicKey || cardPublicKey).trim();
-        const cardReady = Boolean(data.cardEnabled && publicKey);
+        const mercadoPagoReady = data.enabled === true;
+        const cardReady = Boolean(mercadoPagoReady && data.cardEnabled && publicKey);
+        setRuntimeMercadoPagoEnabled(mercadoPagoReady);
         setRuntimeCardPublicKey(publicKey);
         setRuntimeCardPaymentsEnabled(cardReady);
         if (data.environment) setRuntimePaymentsTestMode(data.environment === "test");
-        if (!cardReady) {
-          setPaymentMode((current) => (current === "CARD_BRICK" ? "MERCADOPAGO" : current));
+        if (!mercadoPagoReady) {
+          setPaymentMode("BANK_TRANSFER");
+        } else if (!cardReady) {
+          setPaymentMode((current) => (current === "CARD_BRICK" ? "BANK_TRANSFER" : current));
         }
       })
       .catch(() => {
         if (!active) return;
         setRuntimeCardPaymentsEnabled(false);
+        setRuntimeMercadoPagoEnabled(false);
+        setPaymentMode("BANK_TRANSFER");
       });
 
     return () => {
@@ -1010,6 +1017,7 @@ export function CheckoutForm({
       const data = (await response.json()) as {
         orderId?: string;
         order_id?: string;
+        requires_admin_approval?: boolean;
         whatsapp_url?: string;
         whatsappUrl?: string;
         message?: string;
@@ -1040,7 +1048,7 @@ export function CheckoutForm({
       if (orderId) {
         setProcessPhase("confirming");
         keepBusy = true;
-        router.push(`/checkout/pending?orderId=${orderId}&transfer=1`);
+        router.push(`/checkout/pending?orderId=${encodeURIComponent(orderId)}&${data.requires_admin_approval ? "approval=1" : "transfer=1"}`);
         return;
       }
 
@@ -1528,6 +1536,7 @@ export function CheckoutForm({
                       <small>{paymentModeContent.CARD_BRICK.benefit}</small>
                     </button>
                   ) : null}
+                  {runtimeMercadoPagoEnabled ? (
                   <button
                     type="button"
                     className="payment-mode-button payment-mode-button--redirect"
@@ -1540,6 +1549,7 @@ export function CheckoutForm({
                     <strong>{paymentModeContent.MERCADOPAGO.title}</strong>
                     <small>{paymentModeContent.MERCADOPAGO.benefit}</small>
                   </button>
+                  ) : null}
                   <button
                     type="button"
                     className="payment-mode-button payment-mode-button--transfer"
@@ -1598,7 +1608,7 @@ export function CheckoutForm({
                     disabled={!canSubmit}
                     onSubmit={startCardPayment}
                   />
-                ) : paymentMode === "MERCADOPAGO" ? (
+                ) : runtimeMercadoPagoEnabled && paymentMode === "MERCADOPAGO" ? (
                   <button
                     className={`btn checkout-pay-button ${loading ? "checkout-pay-button--processing" : ""}`}
                     ref={primaryActionRef}
@@ -1664,7 +1674,7 @@ export function CheckoutForm({
               <section>
                 <h3>Compra y comprobante</h3>
                 <p>
-                  La compra se confirma cuando Mercado Pago aprueba la operación o cuando FZAC verifica la acreditación de una transferencia con comprobante enviado por WhatsApp. No existe pago contra entrega.
+                  La compra por transferencia se confirma cuando FZAC verifica la acreditación del pago y el comprobante enviado por WhatsApp. No existe pago contra entrega.
                 </p>
               </section>
               <section>

@@ -40,7 +40,10 @@ test("WhatsApp no puede confundirse con un medio de pago", async ({ request }) =
     data: { ...safeCheckout, payment_method: "WHATSAPP", payment_flow: "WHATSAPP" }
   });
   expect(response.status()).toBe(422);
-  expect(await response.json()).toMatchObject({ error: "PAYMENT_METHOD_NOT_ALLOWED" });
+  const payload = await response.json();
+  expect(payload).toMatchObject({ error: "PAYMENT_METHOD_NOT_ALLOWED" });
+  expect(payload.message).toMatch(/transferencia.*WhatsApp/i);
+  expect(payload.message).not.toMatch(/mercado\s*pago/i);
 });
 
 test("el retorno de pago no permite conciliar pedidos sin sesión", async ({ request }) => {
