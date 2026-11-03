@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CheckCircle2, FileCheck2, Landmark, MapPinned, MessageCircle } from "lucide-react";
-import { getWhatsAppHref } from "@/lib/utils/contact";
+import { getCustomerWhatsAppHref } from "@/lib/utils/contact";
 
 type OrderRow = Record<string, string | number | null | undefined>;
 
@@ -93,14 +93,16 @@ export function AdminPaymentConfirmation({ rows }: { rows: OrderRow[] }) {
                 {busy === String(row.Id) ? <Landmark size={17} /> : <CheckCircle2 size={17} />}
                 {busy === String(row.Id) ? "Confirmando..." : proofMediaId ? "Validar acreditación" : "Esperando comprobante"}
               </button>
-              <a
-                className="btn btn--ghost"
-                href={getWhatsAppHref(`Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido ${String(row.Referencia || "")}.`)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageCircle size={17} /> WhatsApp
-              </a>
+              {getCustomerWhatsAppHref(row.Telefono, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido ${String(row.Referencia || "")}.`) ? (
+                <a
+                  className="btn btn--ghost"
+                  href={getCustomerWhatsAppHref(row.Telefono, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por el pedido ${String(row.Referencia || "")}.`) ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle size={17} /> Contactar cliente
+                </a>
+              ) : null}
             </div>
           </article>
         );
