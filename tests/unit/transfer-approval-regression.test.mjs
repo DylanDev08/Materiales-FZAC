@@ -13,13 +13,13 @@ test("large purchases are handled before transfer instructions", () => {
   assert.ok(approvalPosition >= 0 && transferPosition > approvalPosition,
     "approval must precede the transfer-pending response");
   const approvalBranch = createdOrderBranch.slice(approvalPosition, transferPosition);
-  assert.match(approvalBranch, /requiresAdminApproval:\\s*true/);
+  assert.match(approvalBranch, /requiresAdminApproval:\s*true/);
   assert.match(approvalBranch, /notifyAdminLargePurchase/);
   assert.doesNotMatch(approvalBranch, /notifyAdminTransferPending/);
 });
 
 test("bank transfer confirmation routes to approval when required", () => {
-  assert.match(checkout, /requires_admin_approval\\?: boolean/);
-  assert.match(checkout, /data\\.requires_admin_approval\\s*\\?\\s*"approval=1"\\s*:\\s*"transfer=1"/);
-  assert.match(checkout, /encodeURIComponent\\(orderId\\)/);
+  assert.match(checkout, /requires_admin_approval\?: boolean/);
+  assert.match(checkout, /data\.requires_admin_approval\s*\?\s*"approval=1"\s*:\s*"transfer=1"/);
+  assert.match(checkout, /encodeURIComponent\(orderId\)/);
 });
