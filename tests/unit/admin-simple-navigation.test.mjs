@@ -110,9 +110,7 @@ test("customers screen starts with a simple list and no automatically opened cus
 test("stock screen prioritizes product availability and retains internal stock tools", () => {
   assert.match(stockPage, /Gestión diaria/);
   assert.match(stockPage, /Ir a productos/);
-  assert.match(stockPage, /Stock por depósito y movimientos internos/);
-  assert.match(stockPage, /<AdminInventoryLocations/);
-  assert.match(stockPage, /<AdminInventoryForecast/);
+  assert.match(stockPage, /<AdminInventoryTools adminPath=\{adminPath\}/);
   assert.match(stockPage, /await requireAdmin\(\)/);
 });
 
@@ -129,4 +127,15 @@ test("product editor keeps errors visible inside deactivation confirmation", () 
   assert.match(productsManager, /admin-product-confirm__actions/);
   assert.match(productsManager, /className="notice notice--danger" role="alert"/);
   assert.match(productsManager, /if \(deactivating\) return/);
+});
+
+const stockTools = read("../../components/admin/admin-inventory-tools.tsx");
+
+test("advanced stock requests only start after opening their section", () => {
+  assert.match(stockTools, /Stock por depósito y movimientos internos/);
+  assert.match(stockTools, /Pronóstico y análisis de reposición/);
+  assert.match(stockTools, /if \(event\.currentTarget\.open\) setShowLocations\(true\)/);
+  assert.match(stockTools, /if \(event\.currentTarget\.open\) setShowForecast\(true\)/);
+  assert.match(stockTools, /showLocations \? <AdminInventoryLocations/);
+  assert.match(stockTools, /showForecast \? <AdminInventoryForecast/);
 });
