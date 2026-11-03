@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Eye, ImageOff, PackageSearch, Plus, Save, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
@@ -132,6 +132,87 @@ export function AdminProductsManager({
     productShippingSettings(products.find((product) => product.id === initialProductId)?.specifications ?? {}).minutes
   );
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
+  const [pendingDeactivation, setPendingDeactivation] = useState<Product | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const deactivateCancelRef = useRef<HTMLButtonElement | null>(null);
+  const deactivateConfirmRef = useRef<HTMLElement | null>(null);
+  const editorPanelRef = useRef<HTMLElement | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (mode !== "full" || !editorOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusFrame = window.requestAnimationFrame(() => editorPanelRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+      openerRef.current?.focus();
+    };
+  }, [editorOpen, mode]);
+
+  useEffect(() => {
+    if (mode !== "full" || !editorOpen) return;
+    function onDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !saving && !uploadingImage) {
+        event.preventDefault();
+        setEditorOpen(false);
+      }
+      if (event.key !== "Tab") return;
+      const panel = editorPanelRef.current;
+      if (!panel) return;
+      const controls = Array.from(panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (!controls.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", onDialogKeyDown);
+    return () => window.removeEventListener("keydown", onDialogKeyDown);
+  }, [editorOpen, mode, saving, uploadingImage]);
+
+  useEffect(() => {
+    if (!pendingDeactivation) return;
+    const frame = window.requestAnimationFrame(() => deactivateCancelRef.current?.focus());
+    function onConfirmKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deactivating) {
+        event.preventDefault();
+        setPendingDeactivation(null);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = Array.from(deactivateConfirmRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+      if (!controls.length) {
+        event.preventDefault();
+        deactivateConfirmRef.current?.focus();
+        return;
+      }
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault();
+        controls[controls.length - 1].focus();
+      } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+        event.preventDefault();
+        controls[0].focus();
+      }
+    }
+    window.addEventListener("keydown", onConfirmKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onConfirmKeyDown);
+    };
+  }, [pendingDeactivation, deactivating]);
 
   const sortedRows = useMemo(
     () => [...rows].sort(
@@ -286,13 +367,19 @@ export function AdminProductsManager({
   }
 
   async function deactivate(product: Product) {
+    if (deactivating) return;
+    setDeactivating(true);
     setMessage("");
-    const response = await fetch(`/api/admin/products?id=${product.id}`, { method: "DELETE" });
-    if (response.ok) {
-      setRows((current) => current.filter((item) => item.id !== product.id));
-      setMessage("Producto desactivado.");
-    } else {
+    try {
+      const response = await fetch(`/api/admin/products?id=${encodeURIComponent(product.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("No pudimos desactivar el producto.");
+      setRows((current) => current.map((item) => item.id === product.id ? { ...item, active: false } : item));
+      setPendingDeactivation(null);
+      setMessage("Producto desactivado. Ya no aparecerá en el catálogo público.");
+    } catch {
       setMessage("No pudimos desactivar el producto.");
+    } finally {
+      setDeactivating(false);
     }
   }
 
@@ -329,8 +416,8 @@ export function AdminProductsManager({
     setShippingMode("PENDING");
     setShippingMinutes("");
     setMessage("");
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditorOpen(true);
-    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function editProduct(product: Product) {
@@ -340,11 +427,12 @@ export function AdminProductsManager({
     setShippingMode(shipping.mode);
     setShippingMinutes(shipping.minutes);
     setMessage("");
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditorOpen(true);
-    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function closeEditor() {
+    if (saving || uploadingImage) return;
     setEditorOpen(false);
     setMessage("");
     setSpecificationsText("{}");
@@ -373,11 +461,12 @@ export function AdminProductsManager({
         </section>
       ) : null}
       {editorOpen ? (
-      <section id="admin-product-editor" className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
+      <div className={mode === "full" ? "admin-product-dialog-backdrop" : undefined} onMouseDown={(event) => { if (mode === "full" && event.target === event.currentTarget) closeEditor(); }}>
+      <section id="admin-product-editor" ref={editorPanelRef} tabIndex={-1} role={mode === "full" ? "dialog" : undefined} aria-modal={mode === "full" ? true : undefined} aria-labelledby="admin-product-editor-title" className={`admin-panel admin-product-editor ${mode === "full" ? "admin-product-dialog" : "admin-product-editor--catalog"}`}>
         <div className="admin-product-editor__head">
           <div>
             <span className="kicker">Ficha administrativa</span>
-            <h2>{form.id ? form.name || "Editar producto" : "Nuevo producto"}</h2>
+            <h2 id="admin-product-editor-title">{form.id ? form.name || "Editar producto" : "Nuevo producto"}</h2>
             <p>
               Lo importante primero: nombre, precio, stock, categoría, proveedor, foto y descripción. Los datos técnicos quedan en “Opciones avanzadas”.
             </p>
@@ -667,10 +756,26 @@ export function AdminProductsManager({
         </form>
         {message ? <p className="notice">{message}</p> : null}
       </section>
+      </div>
+      ) : null}
+
+      {mode === "full" && pendingDeactivation ? (
+        <div className="admin-product-confirm-backdrop">
+          <section className="admin-product-confirm" ref={deactivateConfirmRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="admin-product-confirm-title" aria-describedby="admin-product-confirm-description">
+            <h2 id="admin-product-confirm-title">¿Desactivar producto?</h2>
+            <p id="admin-product-confirm-description">“{pendingDeactivation.name}” dejará de mostrarse en la tienda. El historial de pedidos se conserva.</p>
+            {message ? <p className="notice notice--danger" role="alert">{message}</p> : null}
+            <div className="admin-product-confirm__actions">
+              <button className="btn btn--ghost" type="button" ref={deactivateCancelRef} disabled={deactivating} onClick={() => setPendingDeactivation(null)}>Cancelar</button>
+              <button className="btn btn--danger" type="button" disabled={deactivating} onClick={() => void deactivate(pendingDeactivation)}>{deactivating ? "Desactivando..." : "Desactivar producto"}</button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {mode === "full" ? (
       <section className="admin-panel admin-panel--table">
+        {message && !editorOpen ? <p className="notice" role="status">{message}</p> : null}
         <div className="admin-catalog-readiness">
           <div className="admin-catalog-readiness__copy">
             <span className="kicker">Preparacion comercial</span>
@@ -730,6 +835,9 @@ export function AdminProductsManager({
               <option value="OUT_OF_STOCK">Sin stock</option>
             </select>
           </label>
+          <details className="admin-catalog-extra-filters">
+            <summary>Más filtros</summary>
+            <div className="admin-catalog-extra-filters__fields">
           <label className="admin-catalog-filter">
             <span>Categoría</span>
             <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
@@ -751,6 +859,8 @@ export function AdminProductsManager({
               {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </label>
+            </div>
+          </details>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -814,9 +924,11 @@ export function AdminProductsManager({
                       <button className="btn btn--ghost" type="button" onClick={() => editProduct(product)}>
                         Editar ficha
                       </button>
-                      <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>
-                        <Trash2 size={16} />
-                      </button>
+                      {product.active ? (
+                        <button className="btn btn--danger" type="button" aria-label={`Desactivar ${product.name}`} onClick={() => setPendingDeactivation(product)}>
+                          <Trash2 size={16} />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

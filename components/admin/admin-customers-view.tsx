@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronRight, Download, FileDown, Mail, MessageCircle, Search, SlidersHorizontal, UserRound, X } from "lucide-react";
-import { getWhatsAppHref } from "@/lib/utils/contact";
+import { getCustomerWhatsAppHref } from "@/lib/utils/contact";
 
 type CustomerRow = {
   Id?: string;
@@ -205,7 +205,7 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("recent");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<CustomerRow | null>(rows[0] ?? null);
+  const [selected, setSelected] = useState<CustomerRow | null>(null);
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -269,10 +269,10 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
       <section className="admin-panel">
         <div className="admin-users-head">
           <div>
-            <h2>Usuarios</h2>
-            <p className="admin-help">Gestiona y observa la actividad de tus usuarios.</p>
+            <h2>Clientes</h2>
+            <p className="admin-help">Encontrá clientes, revisá pedidos y contactalos cuando sea necesario.</p>
           </div>
-          <span>{filtered.length} usuarios</span>
+          <span>{filtered.length} clientes</span>
         </div>
 
         <div className="admin-toolbar admin-toolbar--users">
@@ -284,9 +284,12 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar usuario, email o telefono..."
+              placeholder="Buscar cliente, email o teléfono..."
             />
           </label>
+          <details className="admin-customers-more-filters">
+            <summary>Más filtros</summary>
+            <div className="admin-customers-more-filters__content">
           <label className="admin-select-label">
             <SlidersHorizontal size={16} />
             <select
@@ -311,6 +314,8 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
             <option value="spent">Mas gasto</option>
             <option value="login">Ultimo acceso</option>
           </select>
+            </div>
+          </details>
           <div className="admin-table-actions">
             <button className="btn btn--ghost" type="button" onClick={clearFilters} disabled={!search && filter === "all" && sort === "recent"}>
               <X size={16} /> Limpiar
@@ -328,7 +333,7 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
           <table className="admin-table admin-users-table">
             <thead>
               <tr>
-                {["Cliente", "Email", "Telefono", "Metodo login", "Ultimo acceso", "Pedidos", "Total gastado", "Estado", "Accion"].map((column) => (
+                {["Cliente", "Email", "Teléfono", "Pedidos", "Total gastado", "Acción"].map((column) => (
                   <th key={column}>{column}</th>
                 ))}
               </tr>
@@ -351,19 +356,10 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
                         <strong>{row.Email}</strong>
                       </div>
                     </td>
-                    <td data-label="Telefono">{row.Telefono || "-"}</td>
-                    <td data-label="Metodo login">
-                      <small className="status-pill">{row.AuthProvider}</small>
-                    </td>
-                    <td data-label="Ultimo acceso">{row.UltimoLogin || "-"}</td>
+                    <td data-label="Teléfono">{row.Telefono || "-"}</td>
                     <td data-label="Pedidos">{row.Pedidos ?? 0}</td>
                     <td data-label="Total gastado">{row.TotalGastado || "$0"}</td>
-                    <td data-label="Estado">
-                      <span className={`status-pill ${row.EstadoCliente === "Cliente frecuente" ? "status-pill--warning" : "status-pill--success"}`}>
-                        {row.EstadoCliente || "Sin compras"}
-                      </span>
-                    </td>
-                    <td data-label="Accion">
+                    <td data-label="Acción">
                       <button className="admin-icon-button" type="button" onClick={() => setSelected(row)} aria-label="Ver detalle">
                         <ChevronRight size={17} />
                       </button>
@@ -372,7 +368,7 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9}>No hay usuarios para esos filtros.</td>
+                  <td colSpan={6}>No hay clientes para esos filtros.</td>
                 </tr>
               )}
             </tbody>
@@ -402,15 +398,12 @@ export function AdminCustomersView({ rows, reportIdentity }: { rows: CustomerRow
 }
 
 function UserDetailDrawer({ row, onClose }: { row: CustomerRow; onClose: () => void }) {
-  const phone = String(row.Telefono || "").replace(/\D/g, "");
-  const whatsappHref = phone
-    ? `https://wa.me/${phone.startsWith("54") ? phone : `54${phone}`}`
-    : getWhatsAppHref(`Hola FZAC, quiero contactar a ${row.Nombre || row.Email}.`);
+  const whatsappHref = getCustomerWhatsAppHref(row.Telefono, `Hola ${row.Nombre || ""}, te contactamos desde Materiales FZAC.`);
 
   return (
-    <aside className="admin-user-drawer" aria-label="Detalle del usuario">
+    <aside className="admin-user-drawer" aria-label="Detalle del cliente">
       <header>
-        <h2>Detalle del usuario</h2>
+        <h2>Detalle del cliente</h2>
         <button className="admin-icon-button" type="button" onClick={onClose} aria-label="Cerrar detalle">
           <X size={18} />
         </button>
@@ -513,9 +506,11 @@ function UserDetailDrawer({ row, onClose }: { row: CustomerRow; onClose: () => v
       </section>
 
       <footer>
-        <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
-          <MessageCircle size={17} /> Contactar
-        </a>
+        {whatsappHref ? (
+          <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
+            <MessageCircle size={17} /> WhatsApp al cliente
+          </a>
+        ) : <span className="admin-help">No hay teléfono válido para contactar por WhatsApp.</span>}
         <button className="btn btn--ghost" type="button" onClick={onClose}>
           Cerrar
         </button>

@@ -1,635 +1,100 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { ArrowDownRight, CreditCard, Landmark, MessageCircle, PackageCheck, ReceiptText, Scale, Settings, ShoppingBag, TrendingUp, TriangleAlert } from "lucide-react";
-import { AdminDashboardAutoRefresh } from "@/components/admin/admin-dashboard-auto-refresh";
+import { ArrowRight, Building2, MessageCircle, Package, ShoppingBag, Users } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminDashboardData } from "@/lib/db/admin";
-import { isMercadoPagoConfigured, isMercadoPagoTestMode } from "@/lib/payments/config";
-import { getAdminConsolePath, getEnv, hasRealValue } from "@/lib/utils/env";
+import { getAdminConsolePath } from "@/lib/utils/env";
 
-type DashboardMetric = {
-  label: string;
-  value: string;
-  helper: string;
-};
+type Metric = { label: string; value: string; helper: string };
 
-type StatusSegment = {
-  label: string;
-  value: number;
-  color: string;
-};
+function metric(metrics: Metric[], label: string) {
+  return metrics.find((item) => item.label === label)?.value ?? "—";
+}
 
-type ChartSeries = {
-  label: string;
-  values: number[];
-  color: string;
-};
-
-type DashboardPeriod = "day" | "week" | "month";
-
-const periodOptions: Array<{ value: DashboardPeriod; label: string; helper: string }> = [
-  { value: "day", label: "Dia", helper: "Hoy" },
-  { value: "week", label: "Semana", helper: "Semana actual" },
-  { value: "month", label: "Mes", helper: "Mes actual" }
+const shortcuts = [
+  { path: "/pedidos", title: "Revisar pedidos", description: "Consultar pedidos y coordinar por WhatsApp", icon: ShoppingBag },
+  { path: "/productos", title: "Administrar productos", description: "Precios, fotos y publicaciones", icon: Package },
+  { path: "/inventario", title: "Controlar stock", description: "Disponibilidad y reposición", icon: Package },
+  { path: "/clientes", title: "Ver clientes", description: "Consultas y datos de contacto", icon: Users },
+  { path: "/proveedores", title: "Ver proveedores", description: "Catálogo y abastecimiento", icon: Building2 },
+  { path: "/chats", title: "Responder mensajes", description: "Conversaciones que necesitan atención", icon: MessageCircle }
 ];
 
-function normalizePeriod(period: string | undefined): DashboardPeriod {
-  if (period === "day" || period === "week" || period === "month") return period;
-  return "month";
-}
+export async function AdminDashboard({ period: _period }: { period?: string }) {
+  // Las estadísticas del inicio usan el mismo servicio que el resto del admin,
+  // pero no muestran métricas de pasarelas, gráficos ni finanzas internas.
+  const data = await getAdminDashboardData("month");
+  const adminPath = getAdminConsolePath();
+  const metrics = data.metrics as Metric[];
+  const recentOrders = data.recentOrders as Array<Record<string, unknown>>;
 
-function periodLabel(period: DashboardPeriod) {
-  return periodOptions.find((option) => option.value === period)?.helper ?? "Mes actual";
-}
-
-function getMetric(metrics: DashboardMetric[], label: string): DashboardMetric {
-  return metrics.find((metric) => metric.label === label) ?? { label, value: "0", helper: "Sin datos" };
-}
-
-function numericMetric(metrics: DashboardMetric[], label: string) {
-  const raw = getMetric(metrics, label).value;
-  const parsed = Number(String(raw).replace(/[^\d.-]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function plus(value: string) {
-  return value.startsWith("+") ? value : `+${value}`;
-}
-
-function segmentWidth(value: number, total: number) {
-  if (!total) return 0;
-  return Math.max(4, Math.round((value / total) * 100));
-}
-
-function chartPoints(values: number[], width = 520, height = 230) {
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const range = Math.max(max - min, 1);
-  const step = values.length > 1 ? width / (values.length - 1) : width;
-
-  return values
-    .map((value, index) => {
-      const x = Math.round(index * step);
-      const y = Math.round(height - ((value - min) / range) * (height - 30) - 15);
-      return `${x},${y}`;
-    })
-    .join(" ");
-}
-
-function DashboardCycleCard({
-  title,
-  amount,
-  primaryLabel,
-  primaryValue,
-  secondaryLabel,
-  secondaryValue,
-  caption,
-  footer,
-  rangeLabel,
-  tone,
-  icon: Icon
-}: {
-  title: string;
-  amount: string;
-  primaryLabel: string;
-  primaryValue: string;
-  secondaryLabel: string;
-  secondaryValue: string;
-  caption: string;
-  footer: string;
-  rangeLabel: string;
-  tone: "yellow" | "green" | "red";
-  icon: typeof TrendingUp;
-}) {
   return (
-    <article className={`admin-model-card admin-model-card--${tone}`}>
-      <div className="admin-model-card__top">
-        <span>
-          <i />
-          {title}
-        </span>
-        <small>{rangeLabel}</small>
-      </div>
-      <strong className="admin-model-card__amount">{amount}</strong>
-      <p>{caption}</p>
-      <div className="admin-model-card__counts">
-        <span>
-          <strong>{primaryValue}</strong>
-          {primaryLabel}
-        </span>
-        <span>
-          <strong>{secondaryValue}</strong>
-          {secondaryLabel}
-        </span>
-      </div>
-      <footer>{footer}</footer>
-      <Icon className="admin-model-card__icon" size={92} />
-      <span className="admin-model-card__watermark">FZAC</span>
-    </article>
-  );
-}
-
-function AdminModelLineChart({ labels, title, series }: { labels: string[]; title: string; series: ChartSeries[] }) {
-  return (
-    <article className="admin-model-chart">
-      <header>
-        <h3>{title}</h3>
+    <AdminShell title="Inicio" description="Gestioná productos, pedidos y consultas de la tienda desde un solo lugar.">
+      <section className="admin-quick-overview" aria-label="Resumen de la tienda">
+        <header>
+          <div>
+            <span className="kicker">Materiales FZAC</span>
+            <h2>Resumen de la tienda</h2>
+          </div>
+          <small>Los pagos se coordinan por transferencia y WhatsApp.</small>
+        </header>
         <div>
-          {series.map((item) => (
-            <span key={item.label}>
-              <i style={{ background: item.color }} />
-              {item.label}
-            </span>
+          {[
+            { label: "Pedidos a revisar", value: metric(metrics, "Aprobacion admin"), href: "/pedidos", helper: "Requieren aprobación" },
+            { label: "Productos activos", value: metric(metrics, "Productos activos"), href: "/productos", helper: "Publicados en la tienda" },
+            { label: "Bajo stock", value: metric(metrics, "Productos bajo stock"), href: "/inventario", helper: "Revisar disponibilidad" },
+            { label: "Mensajes pendientes", value: metric(metrics, "Chats pendientes"), href: "/chats", helper: "Consultas para responder" }
+          ].map((item) => (
+            <Link className="admin-quick-overview__item is-yellow" key={item.label} href={adminPath + item.href}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <small>{item.helper}</small>
+            </Link>
           ))}
         </div>
-      </header>
-      <svg viewBox="0 0 520 250" role="img" aria-label={title}>
-        <rect width="520" height="250" rx="8" fill="transparent" />
-        {[45, 90, 135, 180, 225].map((y) => (
-          <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="rgba(255,255,255,0.08)" />
-        ))}
-        {[0, 104, 208, 312, 416, 520].map((x) => (
-          <line key={x} x1={x} x2={x} y1="0" y2="250" stroke="rgba(255,255,255,0.035)" />
-        ))}
-        {series.map((item) => (
-          <g key={item.label}>
-            <polyline
-              fill="none"
-              points={chartPoints(item.values)}
-              stroke={item.color}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="4"
-            />
-            {item.values.map((_, index) => {
-              const [x, y] = chartPoints(item.values).split(" ")[index].split(",");
-              return <circle cx={x} cy={y} fill={item.color} key={`${item.label}-${index}`} r="5" />;
-            })}
-          </g>
-        ))}
-      </svg>
-      <div className="admin-model-chart__axis" aria-hidden="true">
-        {labels.map((label) => (
-          <span key={`${title}-${label}`}>{label}</span>
-        ))}
-      </div>
-    </article>
-  );
-}
+      </section>
 
-function AdminQuickOverview({ metrics }: { metrics: DashboardMetric[] }) {
-  const adminPath = getAdminConsolePath();
-  const items = [
-    { label: "Preparar", value: getMetric(metrics, "Pedidos para preparar").value, helper: "Pedidos pagos", href: `${adminPath}/pedidos`, tone: "yellow" },
-    { label: "Pagos aprobados", value: getMetric(metrics, "Pagos aprobados").value, helper: "Confirmados", href: `${adminPath}/pagos`, tone: "green" },
-    { label: "Pagos pendientes", value: getMetric(metrics, "Pagos pendientes").value, helper: "Revisar", href: `${adminPath}/pagos`, tone: "yellow" },
-    { label: "Bajo stock", value: getMetric(metrics, "Productos bajo stock").value, helper: "Reponer", href: `${adminPath}/inventario`, tone: "red" },
-    { label: "Prioridad alta", value: getMetric(metrics, "Prioridad alta").value, helper: "> $1.000.000", href: `${adminPath}/pedidos`, tone: "red" },
-    { label: "Balance", value: getMetric(metrics, "Balance del periodo").value, helper: "Periodo actual", href: `${adminPath}/finanzas`, tone: "green" }
-  ];
-
-  return (
-    <section className="admin-quick-overview" aria-label="Resumen rápido">
-      <header>
-        <div>
-          <span className="kicker">Control rápido</span>
-          <h2>Lo importante ahora</h2>
+      <section className="admin-task-center" aria-label="Accesos rápidos">
+        <header>
+          <div>
+            <span className="kicker">Acciones diarias</span>
+            <h2>¿Qué necesitás hacer?</h2>
+          </div>
+        </header>
+        <div className="admin-task-center__grid">
+          {shortcuts.map(({ path, title, description, icon: Icon }) => (
+            <Link className="admin-task-card" href={adminPath + path} key={path}>
+              <span><Icon size={19} /></span>
+              <div>
+                <strong>{title}</strong>
+                <p>{description}</p>
+              </div>
+              <ArrowRight size={17} />
+            </Link>
+          ))}
         </div>
-        <small>Entrá directo al dato que necesitás revisar.</small>
-      </header>
-      <div>
-        {items.map((item) => (
-          <Link className={`admin-quick-overview__item is-${item.tone}`} href={item.href} key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-            <small>{item.helper}</small>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function AdminTaskCenter({
-  metrics,
-  paymentsReady
-}: {
-  metrics: DashboardMetric[];
-  paymentsReady: boolean;
-}) {
-  const adminPath = getAdminConsolePath();
-  const tasks = [
-    {
-      label: "Pedidos para preparar",
-      value: numericMetric(metrics, "Pedidos para preparar"),
-      href: `${adminPath}/pedidos`,
-      icon: ShoppingBag,
-      helper: "Pagos aprobados que necesitan preparación."
-    },
-    {
-      label: "Retiros listos",
-      value: numericMetric(metrics, "Retiros listos"),
-      href: `${adminPath}/pedidos`,
-      icon: PackageCheck,
-      helper: "Mercadería lista para coordinar retiro."
-    },
-    {
-      label: "Despachos pendientes",
-      value: numericMetric(metrics, "Despachos pendientes"),
-      href: `${adminPath}/pedidos`,
-      icon: PackageCheck,
-      helper: "Asignar flete, horario y responsable."
-    },
-    {
-      label: "En camino",
-      value: numericMetric(metrics, "En camino"),
-      href: `${adminPath}/pedidos`,
-      icon: PackageCheck,
-      helper: "Entregas que todavía no fueron cerradas."
-    },
-    {
-      label: "Prioridad alta",
-      value: numericMetric(metrics, "Prioridad alta"),
-      href: `${adminPath}/pedidos`,
-      icon: TriangleAlert,
-      helper: "Compras mayores a $1.000.000 para revisar."
-    },
-    {
-      label: "Pagos pendientes",
-      value: numericMetric(metrics, "Pagos pendientes"),
-      href: `${adminPath}/pagos`,
-      icon: CreditCard,
-      helper: "Controlar cobros en espera, transferencias y rechazos."
-    },
-    {
-      label: "Bajo stock",
-      value: numericMetric(metrics, "Productos bajo stock"),
-      href: `${adminPath}/inventario`,
-      icon: PackageCheck,
-      helper: "Reponer productos antes de quedar sin disponibilidad."
-    },
-    {
-      label: "Precios a revisar",
-      value: numericMetric(metrics, "Precios a revisar"),
-      href: `${adminPath}/auditoria-precios`,
-      icon: TriangleAlert,
-      helper: "Cambios de costo fuera del umbral automático."
-    },
-    {
-      label: "Cuentas vencidas",
-      value: numericMetric(metrics, "Cuentas vencidas"),
-      href: `${adminPath}/cuentas-proveedores`,
-      icon: ReceiptText,
-      helper: "Revisar facturas vencidas y registrar pagos pendientes."
-    },
-    {
-      label: "Chats pendientes",
-      value: numericMetric(metrics, "Chats pendientes"),
-      href: `${adminPath}/chats`,
-      icon: MessageCircle,
-      helper: "Responder consultas que el asistente no resolvió."
-    },
-    {
-      label: "Sistema",
-      value: paymentsReady ? 0 : 1,
-      href: `${adminPath}/operaciones`,
-      icon: Settings,
-      helper: "Verificar Mercado Pago, Resend, Supabase y webhook."
-    }
-  ];
-  const activeTasks = tasks.filter((task) => task.value > 0);
-
-  return (
-    <section className="admin-task-center" aria-label="Tareas pendientes del administrador">
-      <header>
-        <div>
-          <span className="kicker">Operación diaria</span>
-          <h2>Qué resolver hoy</h2>
-        </div>
-        <strong>{activeTasks.length} alertas</strong>
-      </header>
-      <div className="admin-task-center__grid">
-        {(activeTasks.length ? activeTasks : tasks.slice(0, 3)).map(({ href, icon: Icon, label, value, helper }) => (
-          <Link className={value > 0 ? "admin-task-card is-active" : "admin-task-card"} href={href} key={label}>
-            <span>
-              <Icon size={19} />
-            </span>
-            <div>
-              <strong>{label}</strong>
-              <p>{value > 0 ? helper : "Sin urgencias en este momento."}</p>
+      <section className="admin-recent-control admin-simple-recent" aria-label="Pedidos recientes">
+        <header>
+          <div>
+            <span className="kicker">Seguimiento</span>
+            <h2>Últimos pedidos</h2>
+          </div>
+          <Link href={adminPath + "/pedidos"}>Ver todos los pedidos</Link>
+        </header>
+        <div className="admin-recent-control__grid">
+          <article>
+            <div className="admin-recent-control__list">
+              {recentOrders.length ? recentOrders.slice(0, 5).map((order, index) => (
+                <div key={index}>
+                  <span>{String(order.Cliente ?? "Cliente")}</span>
+                  <strong>{String(order.Total ?? "—")}</strong>
+                  <small>{String(order.Estado ?? "Pendiente")} · {String(order.Fecha ?? "")}</small>
+                </div>
+              )) : <p>Todavía no hay pedidos recientes.</p>}
             </div>
-            <em>{value}</em>
-          </Link>
-        ))}
-      </div>
-      {!paymentsReady ? (
-        <p className="admin-task-center__warning">
-          <TriangleAlert size={16} />
-          Revisá Mercado Pago antes de aceptar nuevos cobros.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-
-function AdminRecentControl({
-  orders,
-  movements,
-  tickets
-}: {
-  orders: Array<Record<string, unknown>>;
-  movements: Array<Record<string, unknown>>;
-  tickets: Array<Record<string, unknown>>;
-}) {
-  const adminPath = getAdminConsolePath();
-  return (
-    <section className="admin-recent-control" aria-label="Últimos movimientos">
-      <header>
-        <div>
-          <span className="kicker">Actividad reciente</span>
-          <h2>Qué pasó recién</h2>
+          </article>
         </div>
-        <small>Pedidos, dinero y comprobantes en una sola vista.</small>
-      </header>
-      <div className="admin-recent-control__grid">
-        <article>
-          <div className="admin-recent-control__heading">
-            <strong>Pedidos recientes</strong>
-            <Link href={`${adminPath}/pedidos`}>Ver todos</Link>
-          </div>
-          <div className="admin-recent-control__list">
-            {orders.length ? orders.slice(0, 5).map((row, index) => (
-              <div key={`order-${index}`}>
-                <span>{String(row.Cliente ?? "Cliente")}</span>
-                <strong>{String(row.Total ?? "-")}</strong>
-                <small>{String(row.Estado ?? "-")} · {String(row.Fecha ?? "-")}</small>
-              </div>
-            )) : <p>Sin pedidos recientes.</p>}
-          </div>
-        </article>
-
-        <article>
-          <div className="admin-recent-control__heading">
-            <strong>Dinero reciente</strong>
-            <Link href={`${adminPath}/finanzas`}>Ver finanzas</Link>
-          </div>
-          <div className="admin-recent-control__list">
-            {movements.length ? movements.slice(0, 5).map((row, index) => (
-              <div key={`movement-${index}`}>
-                <span>{String(row.Descripcion ?? row.Categoria ?? "Movimiento")}</span>
-                <strong>{String(row.Importe ?? "-")}</strong>
-                <small>{String(row.Tipo ?? "-")} · {String(row.Fecha ?? "-")}</small>
-              </div>
-            )) : <p>Sin movimientos recientes.</p>}
-          </div>
-        </article>
-
-        <article>
-          <div className="admin-recent-control__heading">
-            <strong>Tickets recientes</strong>
-            <Link href={`${adminPath}/tickets`}>Ver tickets</Link>
-          </div>
-          <div className="admin-recent-control__list">
-            {tickets.length ? tickets.slice(0, 5).map((row, index) => (
-              <div key={`ticket-${index}`}>
-                <span>{String(row.Numero ?? "Ticket")}</span>
-                <strong>{String(row.Total ?? "-")}</strong>
-                <small>{String(row.Cliente ?? "-")} · {String(row.Estado ?? "-")}</small>
-              </div>
-            )) : <p>Sin tickets recientes.</p>}
-          </div>
-        </article>
-      </div>
-    </section>
-  );
-}
-
-async function getDashboardPaymentState() {
-  const localReady = isMercadoPagoConfigured();
-  if (localReady) {
-    return { ready: true, testMode: isMercadoPagoTestMode() };
-  }
-
-  const configuredBackend = getEnv("API_PROXY_ORIGIN");
-  const backend = hasRealValue(configuredBackend) ? configuredBackend : "https://materiales-fzac.onrender.com";
-
-  try {
-    const response = await fetch(new URL("/api/payments/mercadopago", backend), { cache: "no-store" });
-    if (!response.ok) return { ready: false, testMode: false };
-    const body = await response.json() as {
-      enabled?: boolean;
-      environment?: string;
-      productionReadiness?: { ready?: boolean; active?: boolean };
-    };
-    return {
-      ready: Boolean(body.enabled && body.productionReadiness?.ready !== false),
-      testMode: body.environment === "test"
-    };
-  } catch {
-    return { ready: false, testMode: false };
-  }
-}
-
-export async function AdminDashboard({ period }: { period?: string }) {
-  const selectedPeriod = normalizePeriod(period);
-  const [data, paymentState] = await Promise.all([
-    getAdminDashboardData(selectedPeriod),
-    getDashboardPaymentState()
-  ]);
-  const metrics = data.metrics;
-  const paymentsReady = paymentState.ready;
-  const paymentsTestMode = paymentState.testMode;
-
-  const salesMonth = getMetric(metrics, "Ventas del mes");
-  const periodIncome = getMetric(metrics, "Ingresos del periodo");
-  const periodExpenses = getMetric(metrics, "Egresos del periodo");
-  const periodBalance = getMetric(metrics, "Balance del periodo");
-  const pendingTotal = getMetric(metrics, "Total pendiente");
-  const approvedPayments = getMetric(metrics, "Pagos aprobados");
-  const averageTicket = getMetric(metrics, "Ticket promedio");
-  const manualIncome = getMetric(metrics, "Ingresos manuales");
-  const financialMovements = getMetric(metrics, "Movimientos financieros");
-  const supplierOutstanding = getMetric(metrics, "Saldo proveedores");
-
-  const statusSegments: StatusSegment[] = [
-    { label: "Concretadas", value: numericMetric(metrics, "Pedidos pagados"), color: "#0f9d66" },
-    { label: "Revisión prioritaria", value: numericMetric(metrics, "Aprobacion admin"), color: "#0b84ff" },
-    { label: "Pago pendiente", value: numericMetric(metrics, "Pagos pendientes"), color: "#2f6bff" },
-    { label: "Pendientes", value: numericMetric(metrics, "Pedidos pendientes"), color: "#274060" },
-    { label: "Pago rechazado", value: numericMetric(metrics, "Pagos rechazados"), color: "#e5533d" },
-    { label: "Stock a revisar", value: numericMetric(metrics, "Productos bajo stock"), color: "#c2185b" },
-    { label: "Consultas abiertas", value: numericMetric(metrics, "Chats pendientes"), color: "#0057d9" }
-  ];
-  const statusTotal = statusSegments.reduce((sum, item) => sum + item.value, 0);
-  const visibleStatus = statusTotal
-    ? statusSegments
-    : [{ label: "Sin movimientos", value: 1, color: "#f4c400" }];
-
-  const chartData = data.charts;
-
-  return (
-    <AdminShell title="Dashboard" description="Ventas, cobros, pedidos, stock y caja para controlar la operación diaria.">
-      <section className="admin-dashboard-model" aria-label="Dashboard administrativo FZAC">
-        <div className="admin-model-control-row">
-          <div className="admin-model-payment-state">
-            <span className={paymentsReady ? (paymentsTestMode ? "is-test" : "is-ready") : "is-warning"} />
-            {paymentsReady
-              ? paymentsTestMode
-                ? "Mercado Pago no está cobrando ventas reales"
-                : "Mercado Pago activo para cobrar"
-              : "Mercado Pago requiere revisión"}
-          </div>
-          <AdminDashboardAutoRefresh />
-          <nav className="admin-model-period-tabs" aria-label="Periodo de ingresos y egresos">
-            <strong>Ingresos / egresos</strong>
-            {periodOptions.map((option) => (
-              <Link
-                aria-current={selectedPeriod === option.value ? "page" : undefined}
-                className={selectedPeriod === option.value ? "active" : undefined}
-                href={`?period=${option.value}`}
-                key={option.value}
-              >
-                {option.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <AdminQuickOverview metrics={metrics} />
-        <AdminTaskCenter metrics={metrics} paymentsReady={paymentsReady} />
-        <details className="admin-mobile-detail">
-          <summary>
-            <span>
-              <strong>Ver detalle del dashboard</strong>
-              <small>Actividad reciente, finanzas, estados y gráficos</small>
-            </span>
-            <span aria-hidden="true">+</span>
-          </summary>
-          <div className="admin-mobile-detail__content">
-            <AdminRecentControl
-              orders={data.recentOrders as Array<Record<string, unknown>>}
-              movements={data.recentFinancialMovements as Array<Record<string, unknown>>}
-              tickets={data.recentTickets as Array<Record<string, unknown>>}
-            />
-
-        <div className="admin-model-cards">
-          <DashboardCycleCard
-            amount={plus(periodIncome.value)}
-            caption={periodLabel(selectedPeriod)}
-            footer={periodIncome.helper}
-            icon={TrendingUp}
-            primaryLabel="ventas del mes"
-            primaryValue={salesMonth.value}
-            secondaryLabel="otros ingresos"
-            secondaryValue={manualIncome.value}
-            rangeLabel={periodLabel(selectedPeriod)}
-            title="INGRESOS"
-            tone="yellow"
-          />
-          <DashboardCycleCard
-            amount={periodExpenses.value}
-            caption={periodLabel(selectedPeriod)}
-            footer={periodExpenses.helper}
-            icon={ArrowDownRight}
-            primaryLabel="movimientos"
-            primaryValue={financialMovements.value}
-            secondaryLabel="ticket promedio"
-            secondaryValue={averageTicket.value}
-            rangeLabel={periodLabel(selectedPeriod)}
-            title="EGRESOS"
-            tone="red"
-          />
-          <DashboardCycleCard
-            amount={periodBalance.value}
-            caption="Resultado del periodo"
-            footer="Ingresos confirmados menos egresos vigentes"
-            icon={Scale}
-            primaryLabel="pendiente de cobrar"
-            primaryValue={pendingTotal.value}
-            secondaryLabel="pagos aprobados"
-            secondaryValue={approvedPayments.value}
-            rangeLabel={periodLabel(selectedPeriod)}
-            title="BALANCE"
-            tone="green"
-          />
-        </div>
-
-        {!data.financialModuleReady ? (
-          <section className="admin-model-finance-warning">
-            <TriangleAlert size={19} />
-            <div><strong>Caja incompleta</strong><p>No pudimos cargar todos los movimientos de caja. Revisá Gestión interna.</p></div>
-          </section>
-        ) : (
-          <Link className="admin-model-finance-link" href={`${getAdminConsolePath()}/finanzas`}>
-            <Landmark size={18} /><span><strong>Administrar ingresos y egresos</strong><small>Registrar movimientos, revisar historial y corregir mediante anulaciones.</small></span>
-          </Link>
-        )}
-
-        <section className="admin-model-status">
-          <header>
-            <h2>Estados de las ventas del mes</h2>
-            <strong>{statusTotal} ventas</strong>
-          </header>
-          <div className="admin-model-status__bar" aria-hidden="true">
-            {visibleStatus.map((item) => (
-              <span
-                key={item.label}
-                style={
-                  {
-                    "--status-color": item.color,
-                    "--status-width": `${segmentWidth(item.value, statusTotal || 1)}%`
-                  } as CSSProperties
-                }
-              />
-            ))}
-          </div>
-          <div className="admin-model-status__legend">
-            {statusSegments.map((item) => (
-              <span key={item.label}>
-                <i style={{ background: item.color }} />
-                {item.label}
-                <strong>{item.value}</strong>
-                <small>{statusTotal ? `${Math.round((item.value / statusTotal) * 100)}%` : "0%"}</small>
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <div className="admin-model-charts">
-          <AdminModelLineChart
-            labels={chartData.labels}
-            series={[
-              { label: "Pedidos", values: chartData.ordersCreated, color: "#0f9d66" },
-              { label: "Pagados", values: chartData.ordersPaid, color: "#2f6bff" },
-              { label: "Tickets", values: chartData.ticketsIssued, color: "#c2185b" }
-            ]}
-            title="Pedidos y tickets por periodo"
-          />
-          <AdminModelLineChart
-            labels={chartData.labels}
-            series={[
-              { label: "Ingresos", values: chartData.income, color: "#0f9d66" },
-              { label: "Egresos", values: chartData.expenses, color: "#e5533d" },
-              { label: "Balance", values: chartData.balance, color: "#f4c400" }
-            ]}
-            title="Evolución financiera"
-          />
-        </div>
-
-        <section className="admin-model-footer">
-          <PackageCheck size={19} />
-          <span>Periodo: {periodLabel(selectedPeriod)}</span>
-          <span>Mes: {salesMonth.value}</span>
-          <span>Ticket promedio: {averageTicket.value}</span>
-          <span>Proveedores: {supplierOutstanding.value}</span>
-          <span>Stock activo: {getMetric(metrics, "Productos activos").value}</span>
-          <span>Bajo stock: {getMetric(metrics, "Productos bajo stock").value}</span>
-          <span>Sin stock: {getMetric(metrics, "Productos sin stock").value}</span>
-          <span>Usuarios: {getMetric(metrics, "Usuarios registrados").value}</span>
-        </section>
-          </div>
-        </details>
       </section>
     </AdminShell>
   );
