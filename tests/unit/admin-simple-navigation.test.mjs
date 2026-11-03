@@ -139,3 +139,10 @@ test("advanced stock requests only start after opening their section", () => {
   assert.match(stockTools, /showLocations \? <AdminInventoryLocations/);
   assert.match(stockTools, /showForecast \? <AdminInventoryForecast/);
 });
+
+test("deactivation confirmation keeps keyboard navigation inside its modal", () => {
+  assert.match(productsManager, /ref=\{deactivateConfirmRef\}/);
+  assert.match(productsManager, /event\.key !== "Tab"/);
+  assert.match(productsManager, /controls\[controls\.length - 1\]\.focus\(\)/);
+  assert.match(productsManager, /controls\[0\]\.focus\(\)/);
+});
