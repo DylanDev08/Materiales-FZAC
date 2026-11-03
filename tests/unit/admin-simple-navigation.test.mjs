@@ -115,3 +115,18 @@ test("stock screen prioritizes product availability and retains internal stock t
   assert.match(stockPage, /<AdminInventoryForecast/);
   assert.match(stockPage, /await requireAdmin\(\)/);
 });
+
+test("admin actions recover safely after request failures", () => {
+  assert.match(ordersView, /Falló la conexión\. Verificá el estado del pedido/);
+  assert.match(ordersView, /No se pudo conectar\. No sabemos si el cambio se guardó/);
+  assert.match(ordersView, /finally \{\s*setBusy\(null\)/);
+  assert.match(ordersView, /finally \{\s*setSaving\(false\)/);
+  assert.match(paymentConfirmation, /No se pudo verificar la confirmación/);
+  assert.match(paymentConfirmation, /finally \{\s*setBusy\(null\)/);
+});
+
+test("product editor keeps errors visible inside deactivation confirmation", () => {
+  assert.match(productsManager, /admin-product-confirm__actions/);
+  assert.match(productsManager, /className="notice notice--danger" role="alert"/);
+  assert.match(productsManager, /if \(deactivating\) return/);
+});
