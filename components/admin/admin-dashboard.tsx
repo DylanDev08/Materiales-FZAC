@@ -26,7 +26,6 @@ export async function AdminDashboard({ period: _period }: { period?: string }) {
   const adminPath = getAdminConsolePath();
   const metrics = data.metrics as Metric[];
   const recentOrders = data.recentOrders as Array<Record<string, unknown>>;
-  const available = data.financialModuleReady !== false || recentOrders.length > 0;
 
   return (
     <AdminShell title="Inicio" description="Gestioná productos, pedidos y consultas de la tienda desde un solo lugar.">
@@ -92,7 +91,7 @@ export async function AdminDashboard({ period: _period }: { period?: string }) {
                   <strong>{String(order.Total ?? "—")}</strong>
                   <small>{String(order.Estado ?? "Pendiente")} · {String(order.Fecha ?? "")}</small>
                 </div>
-              )) : <p>{available ? "Todavía no hay pedidos recientes." : "No se pudo cargar la información. Revisá la conexión del servicio."}</p>}
+              )) : <p>Todavía no hay pedidos recientes.</p>}
             </div>
           </article>
         </div>
