@@ -745,6 +745,7 @@ export function AdminProductsManager({
           <section className="admin-product-confirm" role="alertdialog" aria-modal="true" aria-labelledby="admin-product-confirm-title" aria-describedby="admin-product-confirm-description">
             <h2 id="admin-product-confirm-title">¿Desactivar producto?</h2>
             <p id="admin-product-confirm-description">“{pendingDeactivation.name}” dejará de mostrarse en la tienda. El historial de pedidos se conserva.</p>
+            {message ? <p className="notice notice--danger" role="alert">{message}</p> : null}
             <div className="admin-product-confirm__actions">
               <button className="btn btn--ghost" type="button" ref={deactivateCancelRef} disabled={deactivating} onClick={() => setPendingDeactivation(null)}>Cancelar</button>
               <button className="btn btn--danger" type="button" disabled={deactivating} onClick={() => void deactivate(pendingDeactivation)}>{deactivating ? "Desactivando..." : "Desactivar producto"}</button>
