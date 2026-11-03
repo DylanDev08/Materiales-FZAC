@@ -54,26 +54,31 @@ function FulfillmentEditor({
   async function save(){
     if(saving) return;
     setSaving(true);
-    const response=await fetch(`/api/admin/orders/${row.Id}/fulfillment`,{
-      method:"PATCH",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        status,
-        assignedTo:assignedTo || null,
-        carrierName,
-        carrierPhone,
-        estimatedWindow,
-        recipientName,
-        recipientPhone,
-        actualShippingCost:Number(actualShippingCost || 0),
-        notes
-      })
-    });
-    const body=await response.json().catch(()=>({})) as {message?:string;whatsapp?:string};
-    setSaving(false);
-    if(!response.ok){onSaved(body.message || "No pudimos actualizar la logística.");return;}
-    onSaved(`Pedido actualizado a ${labels[status]}. WhatsApp: ${body.whatsapp || "sin envío"}.`);
-    window.location.reload();
+    try {
+      const response=await fetch(`/api/admin/orders/${encodeURIComponent(String(row.Id))}/fulfillment`,{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          status,
+          assignedTo:assignedTo || null,
+          carrierName,
+          carrierPhone,
+          estimatedWindow,
+          recipientName,
+          recipientPhone,
+          actualShippingCost:Number(actualShippingCost || 0),
+          notes
+        })
+      });
+      const body=await response.json().catch(()=>({})) as {message?:string;whatsapp?:string};
+      if(!response.ok){onSaved(body.message || "No pudimos actualizar la logística.");return;}
+      onSaved(`Pedido actualizado a ${labels[status]}. WhatsApp: ${body.whatsapp || "sin envío"}.`);
+      window.location.reload();
+    } catch {
+      onSaved("No se pudo conectar. No sabemos si el cambio se guardó; recargá y verificá antes de repetirlo.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return <div className="admin-fulfillment-editor">
@@ -144,15 +149,20 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
     if (busy) return;
     setBusy(`${action}-${id}`);
     setMessage("");
-    const response = await fetch(`/api/admin/orders/${id}/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: action === "reject" ? JSON.stringify({ reason: "Rechazada desde panel FZAC." }) : "{}"
-    });
-    const data = (await response.json().catch(() => ({}))) as { message?: string };
-    setMessage(data.message || (response.ok ? "Orden actualizada." : "No pudimos actualizar la orden."));
-    setBusy(null);
-    if (response.ok) window.location.reload();
+    try {
+      const response = await fetch(`/api/admin/orders/${encodeURIComponent(id)}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: action === "reject" ? JSON.stringify({ reason: "Rechazada desde panel FZAC." }) : "{}"
+      });
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      setMessage(data.message || (response.ok ? "Orden actualizada." : "No pudimos actualizar la orden."));
+      if (response.ok) window.location.reload();
+    } catch {
+      setMessage("Falló la conexión. Verificá el estado del pedido antes de volver a intentarlo.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   const approvalRows = useMemo(()=>rows.filter((row) => row.__statusRaw === "PENDING_ADMIN_APPROVAL"),[rows]);
