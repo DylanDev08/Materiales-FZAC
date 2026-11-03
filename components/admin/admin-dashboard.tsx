@@ -75,7 +75,7 @@ export async function AdminDashboard({ period: _period }: { period?: string }) {
         </div>
       </section>
 
-      <section className="admin-recent-control" aria-label="Pedidos recientes">
+      <section className="admin-recent-control admin-simple-recent" aria-label="Pedidos recientes">
         <header>
           <div>
             <span className="kicker">Seguimiento</span>
