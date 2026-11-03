@@ -10773,3 +10773,56 @@ img[src*="logoFZAC"] {
     min-height: 170px;
   }
 }
+
+
+/* Administración simplificada: las herramientas secundarias no saturan el menú. */
+.admin-sidebar__more-toggle {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--color-white);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+  text-align: left;
+}
+.admin-sidebar__more-toggle:hover,
+.admin-sidebar__more-toggle:focus-visible {
+  border-color: rgba(244, 196, 0, 0.4);
+  color: var(--color-yellow);
+}
+.admin-sidebar__more-toggle > svg:first-child {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.admin-sidebar__more-toggle > svg:last-child {
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+.admin-sidebar__more-toggle > svg.is-open {
+  transform: rotate(180deg);
+}
+#admin-additional-navigation {
+  display: grid;
+  gap: 4px;
+}
+.admin-sidebar.is-collapsed .admin-sidebar__more-toggle {
+  justify-content: center;
+  padding: 0;
+  min-height: 44px;
+}
+.admin-sidebar.is-collapsed .admin-sidebar__more-toggle > span,
+.admin-sidebar.is-collapsed .admin-sidebar__more-toggle > svg:last-child {
+  display: none;
+}
+.admin-simple-recent .admin-recent-control__grid {
+  grid-template-columns: minmax(0, 1fr);
+}
