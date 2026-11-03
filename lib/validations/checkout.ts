@@ -131,7 +131,7 @@ const checkoutCreateFieldsSchema = z.object({
 
 function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchema>) {
   const fallbackMethod =
-    value.payment_flow === "TRANSFER" ? "BANK_TRANSFER" : value.payment_flow === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
+    value.payment_flow === "TRANSFER" ? "BANK_TRANSFER" : value.payment_flow === "WHATSAPP" ? "WHATSAPP" : value.payment_flow === "CARD" || value.payment_flow === "CHECKOUT_PRO" ? "MERCADOPAGO" : "BANK_TRANSFER";
 
   return {
     items: value.items,
@@ -145,7 +145,7 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
     notes: value.notes,
     paymentProvider: "MERCADOPAGO" as PaymentProvider,
     paymentMethod: (value.payment_method ?? fallbackMethod) as PaymentMethod,
-    paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow,
+    paymentFlow: (value.payment_flow ?? ((value.payment_method ?? fallbackMethod) === "BANK_TRANSFER" ? "TRANSFER" : "CHECKOUT_PRO")) as PaymentFlow,
     acceptedTerms: value.accepted_terms,
     idempotencyKey: value.idempotency_key
   };
