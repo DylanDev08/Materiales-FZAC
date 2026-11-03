@@ -285,7 +285,7 @@ export function CheckoutForm({
       ? { status: "idle" }
       : rawShippingQuote;
   const [placesReady, setPlacesReady] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>(cardPaymentsEnabled ? "CARD_BRICK" : "MERCADOPAGO");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("BANK_TRANSFER");
   const [runtimeCardPublicKey, setRuntimeCardPublicKey] = useState(cardPublicKey);
   const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(cardPaymentsEnabled && Boolean(cardPublicKey.trim()));
   const [runtimePaymentsTestMode, setRuntimePaymentsTestMode] = useState(paymentsTestMode);
@@ -309,7 +309,7 @@ export function CheckoutForm({
         setRuntimeCardPaymentsEnabled(cardReady);
         if (data.environment) setRuntimePaymentsTestMode(data.environment === "test");
         if (!cardReady) {
-          setPaymentMode((current) => (current === "CARD_BRICK" ? "MERCADOPAGO" : current));
+          setPaymentMode((current) => (current === "CARD_BRICK" ? "BANK_TRANSFER" : current));
         }
       })
       .catch(() => {
@@ -1665,7 +1665,7 @@ export function CheckoutForm({
               <section>
                 <h3>Compra y comprobante</h3>
                 <p>
-                  La compra se confirma cuando Mercado Pago aprueba la operación o cuando FZAC verifica la acreditación de una transferencia con comprobante enviado por WhatsApp. No existe pago contra entrega.
+                  La compra por transferencia se confirma cuando FZAC verifica la acreditación del pago y el comprobante enviado por WhatsApp. No existe pago contra entrega.
                 </p>
               </section>
               <section>
