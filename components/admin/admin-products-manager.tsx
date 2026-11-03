@@ -755,6 +755,7 @@ export function AdminProductsManager({
 
       {mode === "full" ? (
       <section className="admin-panel admin-panel--table">
+        {message && !editorOpen ? <p className="notice" role="status">{message}</p> : null}
         <div className="admin-catalog-readiness">
           <div className="admin-catalog-readiness__copy">
             <span className="kicker">Preparacion comercial</span>
@@ -903,9 +904,11 @@ export function AdminProductsManager({
                       <button className="btn btn--ghost" type="button" onClick={() => editProduct(product)}>
                         Editar ficha
                       </button>
-                      <button className="btn btn--danger" type="button" aria-label={`Desactivar ${product.name}`} onClick={() => setPendingDeactivation(product)}>
-                        <Trash2 size={16} />
-                      </button>
+                      {product.active ? (
+                        <button className="btn btn--danger" type="button" aria-label={`Desactivar ${product.name}`} onClick={() => setPendingDeactivation(product)}>
+                          <Trash2 size={16} />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
