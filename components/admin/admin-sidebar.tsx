@@ -8,7 +8,6 @@ import {
   Activity,
   AreaChart,
   ChevronDown,
-  BarChart3,
   Building2,
   CreditCard,
   FileText,
