@@ -288,7 +288,7 @@ export function CheckoutForm({
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("BANK_TRANSFER");
   const [runtimeMercadoPagoEnabled, setRuntimeMercadoPagoEnabled] = useState(false);
   const [runtimeCardPublicKey, setRuntimeCardPublicKey] = useState(cardPublicKey);
-  const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(cardPaymentsEnabled && Boolean(cardPublicKey.trim()));
+  const [runtimeCardPaymentsEnabled, setRuntimeCardPaymentsEnabled] = useState(false);
   const [runtimePaymentsTestMode, setRuntimePaymentsTestMode] = useState(paymentsTestMode);
   const [loading, setLoading] = useState(false);
   const [processPhase, setProcessPhase] = useState<CheckoutProcessPhase>("idle");
