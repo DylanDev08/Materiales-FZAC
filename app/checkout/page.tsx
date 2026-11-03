@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = privatePageMetadata(
   "Finalizar compra",
-  "Pagá online con Mercado Pago o por transferencia enviando el comprobante a FZAC por WhatsApp."
+  "Generá tu pedido, coordiná la transferencia bancaria y enviá el comprobante por WhatsApp."
 );
 
 export default async function Page() {
