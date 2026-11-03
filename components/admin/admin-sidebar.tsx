@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   AreaChart,
+  ChevronDown,
   BarChart3,
   Building2,
   CreditCard,
@@ -30,45 +31,34 @@ import {
   X
 } from "lucide-react";
 
-const linkGroups = [
-  {
-    title: "Ventas y operación",
-    links: [
-      { path: "", label: "Dashboard", icon: BarChart3 },
-      { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
-      { path: "/pagos", label: "Cobros", icon: CreditCard },
-      { path: "/tickets", label: "Tickets", icon: FileText },
-      { path: "/reportes", label: "PDF y reportes", icon: FileText },
-      { path: "/finanzas", label: "Caja y gestión interna", icon: Landmark },
-      { path: "/inventario", label: "Stock", icon: Package },
-      { path: "/proveedores", label: "Proveedores", icon: Building2 },
-      { path: "/analiticas", label: "Analíticas", icon: AreaChart }
-    ]
-  },
-  {
-    title: "Compras y catálogo",
-    links: [
-      { path: "/compras", label: "Compras a proveedores", icon: ShoppingBasket },
-      { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
-      { path: "/auditoria-precios", label: "Control de precios", icon: ShieldCheck },
-      { path: "/productos", label: "Productos", icon: Package },
-      { path: "/categorias", label: "Categorías", icon: Grid3X3 },
-      { path: "/clientes", label: "Clientes", icon: Users },
-      { path: "/arrepentimientos", label: "Devoluciones", icon: RotateCcw }
-    ]
-  },
-  {
-    title: "Configuración y soporte",
-    links: [
-      { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
-      { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
-      { path: "/chats", label: "Mensajes", icon: MessageCircle },
-      { path: "/operaciones", label: "Estado de servicios", icon: Activity },
-      { path: "/sistema", label: "Configuración", icon: ShieldCheck },
-      { path: "public:/productos", label: "Ver tienda", icon: Home }
-    ]
-  }
+const primaryLinks = [
+  { path: "", label: "Inicio", icon: Home },
+  { path: "/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { path: "/productos", label: "Productos", icon: Package },
+  { path: "/inventario", label: "Stock", icon: Package },
+  { path: "/clientes", label: "Clientes", icon: Users },
+  { path: "/proveedores", label: "Proveedores", icon: Building2 },
+  { path: "/chats", label: "Mensajes", icon: MessageCircle }
 ];
+
+const additionalLinks = [
+  { path: "/categorias", label: "Categorías", icon: Grid3X3 },
+  { path: "/arrepentimientos", label: "Cambios y devoluciones", icon: RotateCcw },
+  { path: "/compras", label: "Compras a proveedores", icon: ShoppingBasket },
+  { path: "/cuentas-proveedores", label: "Cuentas por pagar", icon: ReceiptText },
+  { path: "/auditoria-precios", label: "Control de precios", icon: ShieldCheck },
+  { path: "/precios-mercado", label: "Precios de mercado", icon: TrendingUp },
+  { path: "/pagos", label: "Cobros y transferencias", icon: CreditCard },
+  { path: "/tickets", label: "Tickets", icon: FileText },
+  { path: "/reportes", label: "Reportes PDF", icon: FileText },
+  { path: "/finanzas", label: "Caja interna", icon: Landmark },
+  { path: "/rentabilidad", label: "Rentabilidad", icon: BadgeDollarSign },
+  { path: "/analiticas", label: "Analíticas", icon: AreaChart },
+  { path: "/operaciones", label: "Estado de servicios", icon: Activity },
+  { path: "/sistema", label: "Configuración", icon: ShieldCheck }
+];
+
+const allLinks = [...primaryLinks, ...additionalLinks];
 
 function normalizePath(value: string) {
   return value.replace(/\/+$/, "") || "/";
@@ -79,6 +69,7 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
   const normalizedAdminPath = normalizePath(adminPath);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [showMore, setShowMore] = useState(() => additionalLinks.some(({ path }) => pathname === `${normalizedAdminPath}${path}` || pathname.startsWith(`${normalizedAdminPath}${path}/`)));
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -115,8 +106,7 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
     const href = normalizePath(`${normalizedAdminPath}${path}`);
     if (!path) return pathname === normalizedAdminPath;
 
-    const matchingHrefs = linkGroups
-      .flatMap((group) => group.links)
+    const matchingHrefs = allLinks
       .map((link) => link.path)
       .filter((candidate) => candidate && !candidate.startsWith("?") && !candidate.startsWith("public:"))
       .map((candidate) => normalizePath(`${normalizedAdminPath}${candidate}`))
@@ -169,23 +159,55 @@ export function AdminSidebar({ adminPath }: { adminPath: string }) {
           </div>
         </Link>
         <nav aria-label="Secciones de administracion">
-          {linkGroups.map((group) => (
-            <div className="admin-sidebar__group" key={group.title}>
-              <p>{group.title}</p>
-              {group.links.map(({ path, label, icon: Icon }) => (
-                <Link
-                  className={isActive(path) ? "active" : undefined}
-                  key={`${group.title}-${path || "dashboard"}`}
-                  href={hrefFor(path)}
-                  onClick={() => setMobileOpen(false)}
-                  title={collapsed ? label : undefined}
-                >
-                  <Icon size={18} />
-                  <span>{label}</span>
-                </Link>
-              ))}
-            </div>
-          ))}
+          <div className="admin-sidebar__group">
+            <p>Gestión diaria</p>
+            {primaryLinks.map(({ path, label, icon: Icon }) => (
+              <Link
+                className={isActive(path) ? "active" : undefined}
+                key={path || "dashboard"}
+                href={hrefFor(path)}
+                onClick={() => setMobileOpen(false)}
+                title={collapsed ? label : undefined}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="admin-sidebar__group">
+            <button
+              className="admin-sidebar__more-toggle"
+              type="button"
+              aria-expanded={showMore}
+              aria-controls="admin-additional-navigation"
+              title={collapsed ? "Más herramientas" : undefined}
+              onClick={() => setShowMore((current) => !current)}
+            >
+              <Grid3X3 size={18} />
+              <span>Más herramientas</span>
+              <ChevronDown size={16} className={showMore ? "is-open" : undefined} />
+            </button>
+            {showMore ? (
+              <div id="admin-additional-navigation">
+                {additionalLinks.map(({ path, label, icon: Icon }) => (
+                  <Link
+                    className={isActive(path) ? "active" : undefined}
+                    key={path}
+                    href={hrefFor(path)}
+                    onClick={() => setMobileOpen(false)}
+                    title={collapsed ? label : undefined}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+            <Link href="/productos" onClick={() => setMobileOpen(false)}>
+              <Home size={18} />
+              <span>Ver tienda</span>
+            </Link>
+          </div>
         </nav>
         <button
           className="admin-sidebar__collapse"
