@@ -134,6 +134,7 @@ export function AdminProductsManager({
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
   const [pendingDeactivation, setPendingDeactivation] = useState<Product | null>(null);
   const [deactivating, setDeactivating] = useState(false);
+  const deactivateCancelRef = useRef<HTMLButtonElement | null>(null);
   const editorPanelRef = useRef<HTMLElement | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
 
@@ -141,17 +142,58 @@ export function AdminProductsManager({
     if (mode !== "full" || !editorOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    window.requestAnimationFrame(() => editorPanelRef.current?.focus());
-    function onEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && !saving && !uploadingImage) setEditorOpen(false);
-    }
-    window.addEventListener("keydown", onEscape);
+    const focusFrame = window.requestAnimationFrame(() => editorPanelRef.current?.focus());
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onEscape);
       openerRef.current?.focus();
     };
+  }, [editorOpen, mode]);
+
+  useEffect(() => {
+    if (mode !== "full" || !editorOpen) return;
+    function onDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !saving && !uploadingImage) {
+        event.preventDefault();
+        setEditorOpen(false);
+      }
+      if (event.key !== "Tab") return;
+      const panel = editorPanelRef.current;
+      if (!panel) return;
+      const controls = Array.from(panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (!controls.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", onDialogKeyDown);
+    return () => window.removeEventListener("keydown", onDialogKeyDown);
   }, [editorOpen, mode, saving, uploadingImage]);
+
+  useEffect(() => {
+    if (!pendingDeactivation) return;
+    const frame = window.requestAnimationFrame(() => deactivateCancelRef.current?.focus());
+    function onConfirmKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deactivating) setPendingDeactivation(null);
+    }
+    window.addEventListener("keydown", onConfirmKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onConfirmKeyDown);
+    };
+  }, [pendingDeactivation, deactivating]);
 
   const sortedRows = useMemo(
     () => [...rows].sort(
@@ -314,7 +356,7 @@ export function AdminProductsManager({
       if (!response.ok) throw new Error("No pudimos desactivar el producto.");
       setRows((current) => current.map((item) => item.id === product.id ? { ...item, active: false } : item));
       setPendingDeactivation(null);
-      setMessage("Producto desactivado. Podés encontrarlo en el listado filtrando por inactivos.");
+      setMessage("Producto desactivado. Ya no aparecerá en el catálogo público.");
     } catch {
       setMessage("No pudimos desactivar el producto.");
     } finally {
@@ -704,7 +746,7 @@ export function AdminProductsManager({
             <h2 id="admin-product-confirm-title">¿Desactivar producto?</h2>
             <p id="admin-product-confirm-description">“{pendingDeactivation.name}” dejará de mostrarse en la tienda. El historial de pedidos se conserva.</p>
             <div className="admin-product-confirm__actions">
-              <button className="btn btn--ghost" type="button" disabled={deactivating} onClick={() => setPendingDeactivation(null)}>Cancelar</button>
+              <button className="btn btn--ghost" type="button" ref={deactivateCancelRef} disabled={deactivating} onClick={() => setPendingDeactivation(null)}>Cancelar</button>
               <button className="btn btn--danger" type="button" disabled={deactivating} onClick={() => void deactivate(pendingDeactivation)}>{deactivating ? "Desactivando..." : "Desactivar producto"}</button>
             </div>
           </section>
