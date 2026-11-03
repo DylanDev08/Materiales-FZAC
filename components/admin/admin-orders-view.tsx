@@ -169,6 +169,20 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
         <span><strong>{fulfillmentRows.length}</strong> En preparación o entrega</span>
       </div>
     </section>
+    {approvalRows.length ? <section className="admin-large-purchases">
+      {approvalRows.map((row)=><article className="admin-large-purchase-card" key={String(row.Id)}>
+        <div><span className="kicker">COMPRA PENDIENTE DE APROBACIÓN</span><h2>{row.Cliente}</h2><p>Revisá monto, stock y contacto antes de habilitar el pago.</p></div>
+        <strong>{row.Total}</strong><small>{row.Productos}</small>
+        <div>
+          <button className="btn" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"approve")}><CheckCircle2 size={17}/> Aprobar compra</button>
+          <button className="btn btn--ghost" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"reject")}><XCircle size={17}/> Rechazar</button>
+          {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ? (
+            <a className="btn btn--ghost" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar cliente</a>
+          ) : null}
+        </div>
+      </article>)}
+    </section> : null}
+
     {coordinateRows.length ? <section className="admin-large-purchases" aria-label="Pedidos para coordinar por WhatsApp">
       {coordinateRows.map((row)=>{
         const delivery=row.__shippingMethod==="DELIVERY";
@@ -221,20 +235,6 @@ export function AdminOrdersView({ rows, assignees = [] }: { rows: OrderRow[]; as
       })}
       </section>
     </details> : null}
-
-    {approvalRows.length ? <section className="admin-large-purchases">
-      {approvalRows.map((row)=><article className="admin-large-purchase-card" key={String(row.Id)}>
-        <div><span className="kicker">PRIORIDAD ALTA · Compra &gt; $1.000.000</span><h2>{row.Cliente}</h2><p>Revisá monto, stock y contacto antes de habilitar el pago.</p></div>
-        <strong>{row.Total}</strong><small>{row.Productos}</small>
-        <div>
-          <button className="btn" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"approve")}><CheckCircle2 size={17}/> Aprobar compra</button>
-          <button className="btn btn--ghost" type="button" disabled={Boolean(busy)} onClick={()=>void updateOrder(String(row.Id),"reject")}><XCircle size={17}/> Rechazar</button>
-          {customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ? (
-            <a className="btn btn--ghost" href={customerContactLink(row, `Hola ${String(row.Cliente || "")}, te contactamos desde FZAC por la compra ${String(row.Referencia || "")}.`) ?? undefined} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Contactar cliente</a>
-          ) : null}
-        </div>
-      </article>)}
-    </section> : null}
 
     {message ? <p className="notice notice--success" role="status">{message}</p> : null}
     <div className="admin-orders-desktop-table">
