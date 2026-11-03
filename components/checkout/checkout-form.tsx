@@ -1010,6 +1010,7 @@ export function CheckoutForm({
       const data = (await response.json()) as {
         orderId?: string;
         order_id?: string;
+        requires_admin_approval?: boolean;
         whatsapp_url?: string;
         whatsappUrl?: string;
         message?: string;
@@ -1040,7 +1041,7 @@ export function CheckoutForm({
       if (orderId) {
         setProcessPhase("confirming");
         keepBusy = true;
-        router.push(`/checkout/pending?orderId=${orderId}&transfer=1`);
+        router.push(`/checkout/pending?orderId=${encodeURIComponent(orderId)}&${data.requires_admin_approval ? "approval=1" : "transfer=1"}`);
         return;
       }
 
