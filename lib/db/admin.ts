@@ -375,6 +375,7 @@ function formatAdminOrderRow(order: Record<string, unknown>, orderItems: Array<R
     Estado: friendlyStatus(String(order.status ?? "")),
     Pago: payment ? `${friendlyPaymentMethod(payment)} - ${friendlyStatus(String(payment.status ?? ""))}` : "Pendiente",
     __paymentStatus: String(payment?.status ?? ""),
+    __paymentProvider: String(payment?.provider ?? ""),
     Envio: order.shipping_method === "DELIVERY" ? "Envío / flete a coordinar" : "Retiro en local",
     __shippingMethod: String(order.shipping_method ?? "PICKUP"),
     __assignedTo: String(order.assigned_to ?? ""),
