@@ -16,8 +16,8 @@ export function getWhatsAppHref(message = "Hola FZAC, necesito ayuda con mi comp
  */
 export function getCustomerWhatsAppHref(phone: string | number | null | undefined, message: string): string | null {
   const raw = String(phone ?? "").trim();
-  if (!raw || !/^[+\\d().\\s-]+$/.test(raw)) return null;
-  const digits = raw.replace(/\\D/g, "");
+  if (!raw || !/^[+\d().\s-]+$/.test(raw)) return null;
+  const digits = raw.replace(/\D/g, "");
   const local = digits.length === 10
     ? digits
     : digits.length === 12 && digits.startsWith("54")
