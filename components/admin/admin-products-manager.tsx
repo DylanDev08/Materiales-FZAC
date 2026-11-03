@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Eye, ImageOff, PackageSearch, Plus, Save, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { currency } from "@/lib/formatters/currency";
@@ -132,6 +132,26 @@ export function AdminProductsManager({
     productShippingSettings(products.find((product) => product.id === initialProductId)?.specifications ?? {}).minutes
   );
   const [editorOpen, setEditorOpen] = useState(Boolean(initialProductId) || mode === "create-only");
+  const [pendingDeactivation, setPendingDeactivation] = useState<Product | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const editorPanelRef = useRef<HTMLElement | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (mode !== "full" || !editorOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.requestAnimationFrame(() => editorPanelRef.current?.focus());
+    function onEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !saving && !uploadingImage) setEditorOpen(false);
+    }
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onEscape);
+      openerRef.current?.focus();
+    };
+  }, [editorOpen, mode, saving, uploadingImage]);
 
   const sortedRows = useMemo(
     () => [...rows].sort(
@@ -286,13 +306,19 @@ export function AdminProductsManager({
   }
 
   async function deactivate(product: Product) {
+    if (deactivating) return;
+    setDeactivating(true);
     setMessage("");
-    const response = await fetch(`/api/admin/products?id=${product.id}`, { method: "DELETE" });
-    if (response.ok) {
-      setRows((current) => current.filter((item) => item.id !== product.id));
-      setMessage("Producto desactivado.");
-    } else {
+    try {
+      const response = await fetch(`/api/admin/products?id=${encodeURIComponent(product.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("No pudimos desactivar el producto.");
+      setRows((current) => current.map((item) => item.id === product.id ? { ...item, active: false } : item));
+      setPendingDeactivation(null);
+      setMessage("Producto desactivado. Podés encontrarlo en el listado filtrando por inactivos.");
+    } catch {
       setMessage("No pudimos desactivar el producto.");
+    } finally {
+      setDeactivating(false);
     }
   }
 
@@ -329,8 +355,8 @@ export function AdminProductsManager({
     setShippingMode("PENDING");
     setShippingMinutes("");
     setMessage("");
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditorOpen(true);
-    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function editProduct(product: Product) {
@@ -340,11 +366,12 @@ export function AdminProductsManager({
     setShippingMode(shipping.mode);
     setShippingMinutes(shipping.minutes);
     setMessage("");
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditorOpen(true);
-    window.requestAnimationFrame(() => document.getElementById("admin-product-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function closeEditor() {
+    if (saving || uploadingImage) return;
     setEditorOpen(false);
     setMessage("");
     setSpecificationsText("{}");
@@ -373,11 +400,12 @@ export function AdminProductsManager({
         </section>
       ) : null}
       {editorOpen ? (
-      <section id="admin-product-editor" className={`admin-panel admin-product-editor ${mode === "create-only" ? "admin-product-editor--catalog" : ""}`}>
+      <div className={mode === "full" ? "admin-product-dialog-backdrop" : undefined} onMouseDown={(event) => { if (mode === "full" && event.target === event.currentTarget) closeEditor(); }}>
+      <section id="admin-product-editor" ref={editorPanelRef} tabIndex={-1} role={mode === "full" ? "dialog" : undefined} aria-modal={mode === "full" ? true : undefined} aria-labelledby="admin-product-editor-title" className={`admin-panel admin-product-editor ${mode === "full" ? "admin-product-dialog" : "admin-product-editor--catalog"}`}>
         <div className="admin-product-editor__head">
           <div>
             <span className="kicker">Ficha administrativa</span>
-            <h2>{form.id ? form.name || "Editar producto" : "Nuevo producto"}</h2>
+            <h2 id="admin-product-editor-title">{form.id ? form.name || "Editar producto" : "Nuevo producto"}</h2>
             <p>
               Lo importante primero: nombre, precio, stock, categoría, proveedor, foto y descripción. Los datos técnicos quedan en “Opciones avanzadas”.
             </p>
@@ -667,6 +695,20 @@ export function AdminProductsManager({
         </form>
         {message ? <p className="notice">{message}</p> : null}
       </section>
+      </div>
+      ) : null}
+
+      {mode === "full" && pendingDeactivation ? (
+        <div className="admin-product-confirm-backdrop">
+          <section className="admin-product-confirm" role="alertdialog" aria-modal="true" aria-labelledby="admin-product-confirm-title" aria-describedby="admin-product-confirm-description">
+            <h2 id="admin-product-confirm-title">¿Desactivar producto?</h2>
+            <p id="admin-product-confirm-description">“{pendingDeactivation.name}” dejará de mostrarse en la tienda. El historial de pedidos se conserva.</p>
+            <div className="admin-product-confirm__actions">
+              <button className="btn btn--ghost" type="button" disabled={deactivating} onClick={() => setPendingDeactivation(null)}>Cancelar</button>
+              <button className="btn btn--danger" type="button" disabled={deactivating} onClick={() => void deactivate(pendingDeactivation)}>{deactivating ? "Desactivando..." : "Desactivar producto"}</button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {mode === "full" ? (
@@ -814,7 +856,7 @@ export function AdminProductsManager({
                       <button className="btn btn--ghost" type="button" onClick={() => editProduct(product)}>
                         Editar ficha
                       </button>
-                      <button className="btn btn--danger" type="button" onClick={() => deactivate(product)}>
+                      <button className="btn btn--danger" type="button" aria-label={`Desactivar ${product.name}`} onClick={() => setPendingDeactivation(product)}>
                         <Trash2 size={16} />
                       </button>
                     </div>
