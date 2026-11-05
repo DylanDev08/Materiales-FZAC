@@ -9,7 +9,7 @@
   width: min(365px, calc(100vw - 32px));
   max-height: min(320px, calc(100dvh - 32px));
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 32px;
+  grid-template-columns: 34px minmax(0, 1fr) 44px;
   align-items: start;
   gap: 10px;
   overflow: auto;
@@ -68,7 +68,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
+  min-height: 44px;
   margin-top: 2px;
   color: #f4c400;
   font-size: .79rem;
@@ -80,8 +80,8 @@
   text-decoration: underline;
 }
 .cart-notice__close {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 8px;
   display: grid;
