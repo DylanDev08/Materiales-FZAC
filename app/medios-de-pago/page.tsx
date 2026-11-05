@@ -1,27 +1,22 @@
-import { Banknote, CreditCard, MessageCircle, ShieldCheck } from "lucide-react";
+import { Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { publicPageMetadata } from "@/lib/seo/metadata";
 import { getWhatsAppHref } from "@/lib/utils/contact";
 
 export const metadata = publicPageMetadata({
-  title: "Medios de pago: Mercado Pago o transferencia",
-  description: "Pagá online con Mercado Pago o por transferencia enviando el comprobante a FZAC por WhatsApp. No hay pago contra entrega.",
+  title: "Cómo pagar: coordinación por WhatsApp",
+  description: "Armá tu pedido en Materiales FZAC y coordiná stock, transferencia y entrega por WhatsApp. No se cobra online.",
   path: "/medios-de-pago"
 });
 
 const methods = [
   {
-    title: "Tarjeta online",
-    text: "Pagás dentro del checkout seguro con Mercado Pago. FZAC no ve ni almacena los datos de tu tarjeta.",
-    icon: CreditCard
-  },
-  {
-    title: "Mercado Pago",
-    text: "Podés continuar al entorno seguro de Mercado Pago para completar el pago con los medios habilitados por la plataforma.",
-    icon: ShieldCheck
+    title: "Pedido por WhatsApp",
+    text: "Generás una referencia desde el carrito y la enviás por WhatsApp. FZAC confirma disponibilidad, monto y entrega o retiro.",
+    icon: MessageCircle
   },
   {
     title: "Transferencia bancaria",
-    text: "Generás el pedido, realizás la transferencia y enviás el comprobante por WhatsApp. FZAC prepara el pedido cuando verifica la acreditación.",
+    text: "Recibís los datos bancarios por WhatsApp y enviás el comprobante en la misma conversación. FZAC verifica la acreditación antes de preparar el pedido.",
     icon: Banknote
   }
 ];
@@ -34,11 +29,11 @@ export default function Page() {
   return (
     <main className="page-section payment-page">
       <div className="container">
-        <span className="kicker">Pago seguro</span>
-        <h1>Pagá online o por transferencia</h1>
+        <span className="kicker">Compra coordinada</span>
+        <h1>Confirmá el pedido y coordiná el pago por WhatsApp</h1>
         <p className="payment-page__lead">
-          No trabajamos con pago contra entrega ni con pedidos sin medio de pago definido. Elegís Mercado Pago o
-          transferencia bancaria desde el checkout.
+          No realizamos cobros online ni pagos contra entrega. Armá tu carrito, confirmá el pedido
+          y coordiná la transferencia y la entrega o retiro directamente con FZAC.
         </p>
 
         <section className="payment-method-grid">
@@ -57,21 +52,22 @@ export default function Page() {
         <section className="payment-transfer-panel">
           <div>
             <span className="kicker">Transferencias</span>
-            <h2>El comprobante se envía por WhatsApp</h2>
+            <h2>La transferencia se confirma por WhatsApp</h2>
             <p>
-              Al elegir transferencia generamos una referencia de pedido. Pedís los datos bancarios por WhatsApp,
-              transferís el total indicado y enviás el comprobante en ese mismo chat.
+              Te compartimos los datos bancarios después de confirmar disponibilidad y monto.
+              Transferís y enviás el comprobante en esa misma conversación.
             </p>
           </div>
           <div className="payment-transfer-panel__steps">
             <span>1. Generás el pedido</span>
-            <span>2. Recibís los datos bancarios</span>
-            <span>3. Transferís el total</span>
+            <span>2. Confirmamos stock y monto</span>
+            <span>3. Recibís los datos bancarios</span>
             <span>4. Enviás el comprobante por WhatsApp</span>
           </div>
           <a className="btn" href={whatsappHref} target="_blank" rel="noreferrer">
             <MessageCircle size={17} /> Consultar transferencia
           </a>
+          <p><ShieldCheck size={16} /> No ingresás datos de tarjeta en la web.</p>
         </section>
       </div>
     </main>
