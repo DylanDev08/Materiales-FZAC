@@ -22,10 +22,16 @@ export function CartNotice({ notice, onClose, onPauseChange }: { notice: CartNot
       aria-live={success ? "polite" : "assertive"}
       aria-atomic="true"
       onMouseEnter={() => onPauseChange(true)}
-      onMouseLeave={() => onPauseChange(false)}
+      onMouseLeave={(event) => {
+        // Keep the notice visible while a keyboard user is on a button or link.
+        onPauseChange(event.currentTarget.contains(document.activeElement));
+      }}
       onFocusCapture={() => onPauseChange(true)}
       onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) onPauseChange(false);
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          // Moving focus out must not resume dismissal while it is still hovered.
+          onPauseChange(event.currentTarget.matches(":hover"));
+        }
       }}
     >
       <span className="cart-notice__icon" aria-hidden="true">
