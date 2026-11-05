@@ -2,7 +2,9 @@
 .cart-notice {
   position: fixed;
   z-index: 110;
-  right: max(18px, env(safe-area-inset-right));
+  /* Keep the desktop toast away from FZAC's floating WhatsApp/assistant controls. */
+  left: max(18px, env(safe-area-inset-left));
+  right: auto;
   bottom: calc(22px + env(safe-area-inset-bottom));
   width: min(365px, calc(100vw - 32px));
   max-height: min(320px, calc(100dvh - 32px));
