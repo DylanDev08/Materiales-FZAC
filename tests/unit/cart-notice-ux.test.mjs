@@ -46,3 +46,9 @@ test("success notices are not shown when existing cart quantity reaches availabl
   assert.match(provider, /if \(\(existing\?\.quantity \?\? 0\) \+ quantity > limit\) return false/);
   assert.match(notice, /Revisá la cantidad o intentá nuevamente/);
 });
+
+test("desktop toast avoids floating assistant while mobile uses safe area", () => {
+  assert.match(styles, /left: max\(18px, env\(safe-area-inset-left\)\)/);
+  assert.match(styles, /right: auto/);
+  assert.match(styles, /bottom: calc\(80px \+ env\(safe-area-inset-bottom\)\)/);
+});
