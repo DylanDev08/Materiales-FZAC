@@ -37,3 +37,12 @@ test("individual product maintains gallery, detailed buybox and information", ()
   assert.match(buybox, /addItem\(product, quantity\)/);
   assert.match(buybox, /getWhatsAppHref\(/);
 });
+
+test("responsive safeguards retain readable prices and compact thumbnails", () => {
+  assert.match(catalogCss, /prevent large ARS values and long names/);
+  assert.match(catalogCss, /font-variant-numeric: tabular-nums/);
+  assert.match(catalogCss, /overflow-wrap: anywhere/);
+  assert.match(detailCss, /Gallery thumbnails stay thumbnail-sized/);
+  assert.match(detailCss, /grid-template-columns: repeat\(auto-fill, minmax\(76px, 94px\)\)/);
+  assert.match(detailCss, /grid-template-columns: repeat\(auto-fill, minmax\(58px, 74px\)\)/);
+});
