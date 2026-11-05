@@ -729,3 +729,34 @@
     transform: none;
   }
 }
+
+
+/* Gallery thumbnails stay thumbnail-sized when only one or two photos exist. */
+.product-gallery__thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 94px));
+  justify-content: start;
+  gap: 10px;
+}
+.product-gallery__main,
+.product-buybox {
+  min-width: 0;
+}
+.product-buybox h1,
+.product-buybox__meta,
+.product-price strong,
+.product-subtotal strong {
+  overflow-wrap: anywhere;
+}
+.product-price strong {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 520px) {
+  .product-gallery__thumbs {
+    grid-template-columns: repeat(auto-fill, minmax(58px, 74px));
+    gap: 7px;
+  }
+  .product-buybox h1 {
+    max-width: 100%;
+  }
+}
