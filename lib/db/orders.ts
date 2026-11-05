@@ -464,6 +464,19 @@ async function resumeCheckoutByIdempotencyKey(
     });
   }
 
+  if (provider === "WHATSAPP") {
+    return checkoutSuccessResponse({
+      orderId: order.id,
+      paymentId: payment.id,
+      orderStatus: String(order.status),
+      requiresAdminApproval: false,
+      pending: true,
+      total: Number(order.total ?? payment.amount ?? 0),
+      provider,
+      message: "Pedido registrado. Coordiná disponibilidad, transferencia y entrega o retiro por WhatsApp."
+    });
+  }
+
   if (provider === "BANK_TRANSFER") {
     return checkoutSuccessResponse({
       orderId: order.id,
@@ -632,10 +645,10 @@ export async function validateCheckoutStock(input: unknown) {
 export async function createCheckout(input: unknown) {
   const payload = checkoutSchema.parse(input);
   const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
-  if (String(paymentMethod) === "WHATSAPP") {
+  if (paymentMethod !== "WHATSAPP" || payload.paymentFlow !== "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "PAYMENT_METHOD_NOT_ALLOWED",
-      "WhatsApp no es un medio de pago. Elegí Mercado Pago o transferencia bancaria con comprobante.",
+      "Los pedidos nuevos se confirman por WhatsApp. Allí se coordina la transferencia; no se aceptan pagos online en la web.",
       422
     );
   }
@@ -884,6 +897,19 @@ export async function createCheckout(input: unknown) {
         message: "Compra creada correctamente. Requiere aprobacion del administrador."
       })
     };
+  }
+
+  if (isWhatsApp) {
+    return checkoutSuccessResponse({
+      orderId: order.id,
+      paymentId: payment.id,
+      orderStatus,
+      requiresAdminApproval: false,
+      pending: true,
+      total,
+      provider,
+      message: "Pedido registrado. Coordiná disponibilidad, transferencia y entrega o retiro por WhatsApp."
+    });
   }
 
   await notifyAdminPaymentPending({ id: order.id, customerName: payload.customer.name });
