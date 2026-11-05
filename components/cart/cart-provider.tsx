@@ -168,6 +168,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         ) {
           return false;
         }
+        // Do not report success when sanitize would silently cap the addition.
+        // Consultation-only products with no available units retain the existing
+        // 999-unit consultation cap.
+        const existing = items.find((item) => item.productId === product.id);
+        const available = Number(product.stock);
+        const limit = Number.isFinite(available) && available > 0 ? available : 999;
+        if ((existing?.quantity ?? 0) + quantity > limit) return false;
         setItems((current) => {
           const existing = current.find((item) => item.productId === product.id);
           if (!existing) return sanitize([...current, { productId: product.id, quantity, product }]);
