@@ -41,7 +41,8 @@ test("notice fits mobile without covering the bottom navigation", () => {
 });
 
 test("success notices are not shown when existing cart quantity reaches available stock", () => {
-  assert.match(provider, /const existing = items\.find\(\(item\) => item\.productId === product\.id\)/);
+  assert.match(provider, /const current = itemsRef\.current/);
+  assert.match(provider, /const existing = current\.find\(\(item\) => item\.productId === product\.id\)/);
   assert.match(provider, /if \(!canAppendCartQuantity\(existing\?\.quantity \?\? 0, quantity, product\.stock\)\) return false/);
   assert.match(notice, /Revisá la cantidad o intentá nuevamente/);
 });
@@ -69,4 +70,12 @@ test("cart notice offers accessible touch targets and Escape dismissal", () => {
   assert.match(styles, /grid-template-columns: 34px minmax\(0, 1fr\) 44px/);
   assert.match(styles, /min-height: 44px/);
   assert.match(styles, /width: 44px;\s*height: 44px;/);
+});
+
+test("rapid additions use the synchronously committed cart snapshot", () => {
+  assert.match(provider, /const itemsRef = useRef<CartLine\[\]>\(\[\]\)/);
+  assert.match(provider, /itemsRef\.current = next;\s*setItems\(next\)/);
+  assert.match(provider, /const current = itemsRef\.current/);
+  assert.match(provider, /commitItems\(next\)/);
+  assert.doesNotMatch(provider, /setItems\(\(current\) =>/);
 });
