@@ -52,3 +52,12 @@ test("desktop toast avoids floating assistant while mobile uses safe area", () =
   assert.match(styles, /right: auto/);
   assert.match(styles, /bottom: calc\(80px \+ env\(safe-area-inset-bottom\)\)/);
 });
+
+test("cart notice stays visible while hovered or keyboard-focused", () => {
+  assert.match(provider, /if \(!notice \|\| noticePaused\) return/);
+  assert.match(provider, /\[notice, noticePaused\]/);
+  assert.match(provider, /onPauseChange=\{setNoticePaused\}/);
+  assert.match(notice, /onMouseEnter=\{\(\) => onPauseChange\(true\)\}/);
+  assert.match(notice, /onFocusCapture=\{\(\) => onPauseChange\(true\)\}/);
+  assert.match(notice, /event\.currentTarget\.contains\(event\.relatedTarget\)/);
+});
