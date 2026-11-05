@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { CartNotice, type CartNoticeState } from "@/components/cart/cart-notice";
 import { canAddProductToCart } from "@/lib/products/availability";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { productLinePricing } from "@/lib/products/promotions";
@@ -13,6 +14,7 @@ type CartContextValue = {
   subtotal: number;
   hydrated: boolean;
   addItem: (product: Product, quantity?: number) => boolean;
+  notifyCartAction: (productName: string, quantity: number, success: boolean) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
@@ -53,6 +55,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const lastCatalogRefreshRef = useRef("");
+  const [notice, setNotice] = useState<CartNoticeState | null>(null);
+  const noticeSequence = useRef(0);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice((current) => current?.id === notice.id ? null : current), notice.kind === "success" ? 3400 : 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -142,6 +152,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       count,
       subtotal,
       hydrated,
+      notifyCartAction(productName, quantity, success) {
+        noticeSequence.current += 1;
+        setNotice({ id: noticeSequence.current, kind: success ? "success" : "error", productName, quantity });
+      },
       addItem(product, quantity = 1) {
         if (
           !product.id
@@ -183,7 +197,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
   }, [hydrated, items]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <CartNotice notice={notice} onClose={() => setNotice(null)} />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
