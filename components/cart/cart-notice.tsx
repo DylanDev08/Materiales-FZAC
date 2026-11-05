@@ -10,7 +10,7 @@ export type CartNoticeState = {
   quantity: number;
 };
 
-export function CartNotice({ notice, onClose }: { notice: CartNoticeState | null; onClose: () => void }) {
+export function CartNotice({ notice, onClose, onPauseChange }: { notice: CartNoticeState | null; onClose: () => void; onPauseChange: (paused: boolean) => void }) {
   if (!notice) return null;
 
   const success = notice.kind === "success";
@@ -21,6 +21,12 @@ export function CartNotice({ notice, onClose }: { notice: CartNoticeState | null
       role={success ? "status" : "alert"}
       aria-live={success ? "polite" : "assertive"}
       aria-atomic="true"
+      onMouseEnter={() => onPauseChange(true)}
+      onMouseLeave={() => onPauseChange(false)}
+      onFocusCapture={() => onPauseChange(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) onPauseChange(false);
+      }}
     >
       <span className="cart-notice__icon" aria-hidden="true">
         {success ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
