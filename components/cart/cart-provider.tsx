@@ -56,13 +56,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const lastCatalogRefreshRef = useRef("");
   const [notice, setNotice] = useState<CartNoticeState | null>(null);
+  const [noticePaused, setNoticePaused] = useState(false);
   const noticeSequence = useRef(0);
 
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || noticePaused) return;
     const timer = window.setTimeout(() => setNotice((current) => current?.id === notice.id ? null : current), notice.kind === "success" ? 3400 : 5000);
     return () => window.clearTimeout(timer);
-  }, [notice]);
+  }, [notice, noticePaused]);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -154,6 +155,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       notifyCartAction(productName, quantity, success) {
         noticeSequence.current += 1;
+        setNoticePaused(false);
         setNotice({ id: noticeSequence.current, kind: success ? "success" : "error", productName, quantity });
       },
       addItem(product, quantity = 1) {
@@ -207,7 +209,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return (
     <CartContext.Provider value={value}>
       {children}
-      <CartNotice notice={notice} onClose={() => setNotice(null)} />
+      <CartNotice notice={notice} onClose={() => { setNotice(null); setNoticePaused(false); }} onPauseChange={setNoticePaused} />
     </CartContext.Provider>
   );
 }
