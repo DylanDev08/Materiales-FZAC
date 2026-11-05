@@ -60,4 +60,6 @@ test("cart notice stays visible while hovered or keyboard-focused", () => {
   assert.match(notice, /onMouseEnter=\{\(\) => onPauseChange\(true\)\}/);
   assert.match(notice, /onFocusCapture=\{\(\) => onPauseChange\(true\)\}/);
   assert.match(notice, /event\.currentTarget\.contains\(event\.relatedTarget\)/);
+  assert.match(notice, /onPauseChange\(event\.currentTarget\.contains\(document\.activeElement\)\)/);
+  assert.match(notice, /onPauseChange\(event\.currentTarget\.matches\(":hover"\)\)/);
 });
