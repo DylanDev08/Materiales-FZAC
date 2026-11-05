@@ -46,6 +46,28 @@ test.describe("Auth manual y checkout no destructivo", () => {
     expect(decodeURIComponent(location)).toContain("next=/checkout");
   });
 
+  test("checkout rechaza pagos online y transferencia directa antes de crear un pedido", async ({ request }) => {
+    for (const paymentMethod of ["MERCADOPAGO", "BANK_TRANSFER"]) {
+      const response = await request.post("/api/checkout/create", {
+        data: {
+          items: [{ product_id: "00000000-0000-4000-8000-000000000001", quantity: 1 }],
+          customer_name: "Cliente Prueba",
+          customer_email: "cliente@example.com",
+          customer_phone: "3411234567",
+          shipping_method: "PICKUP",
+          address_snapshot: {},
+          payment_method: paymentMethod,
+          payment_flow: paymentMethod === "MERCADOPAGO" ? "CHECKOUT_PRO" : "TRANSFER",
+          accepted_terms: true,
+          idempotency_key: "checkout-sin-cobro-20261105"
+        }
+      });
+      expect(response.status()).toBe(422);
+      const result = await response.json();
+      expect(result.error).toBe("PAYMENT_METHOD_NOT_ALLOWED");
+    }
+  });
+
   test("alias /register redirige a /registro", async ({ request }) => {
     const response = await request.get("/register", { maxRedirects: 0 });
     expect([302, 303, 307, 308]).toContain(response.status());
