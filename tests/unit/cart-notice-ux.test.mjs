@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
+const card = read("../../components/product/product-card.tsx");
+const buybox = read("../../components/product/product-buybox.tsx");
+const provider = read("../../components/cart/cart-provider.tsx");
+const notice = read("../../components/cart/cart-notice.tsx");
+const styles = read("../../styles/cart-notice.css");
+const globals = read("../../app/globals.css");
+
+test("catalog and detail use one shared cart notification", () => {
+  assert.match(card, /notifyCartAction\(product\.name, quantity, success\)/);
+  assert.match(buybox, /notifyCartAction\(product\.name, quantity, success\)/);
+  assert.doesNotMatch(card, /product-card__toast/);
+  assert.doesNotMatch(buybox, /product-added-toast/);
+  assert.match(provider, /<CartNotice notice=\{notice\}/);
+});
+
+test("latest cart action replaces the previous message and expires", () => {
+  assert.match(provider, /noticeSequence\.current \+= 1/);
+  assert.match(provider, /setNotice\(\{ id: noticeSequence\.current/);
+  assert.match(provider, /current\?\.id === notice\.id \? null : current/);
+  assert.match(provider, /window\.clearTimeout\(timer\)/);
+  assert.match(notice, /aria-label="Cerrar aviso del carrito"/);
+  assert.match(notice, /href="\/carrito"/);
+});
+
+test("buy-now navigation does not display a success toast before checkout", () => {
+  assert.match(buybox, /if \(!success\) notifyCartAction\(product\.name, quantity, false\)/);
+  assert.match(buybox, /if \(success\) router\.push\("\/checkout"\)/);
+});
+
+test("notice fits mobile without covering the bottom navigation", () => {
+  assert.match(globals, /styles\/cart-notice\.css/);
+  assert.match(styles, /@media \(max-width: 600px\)/);
+  assert.match(styles, /bottom: calc\(80px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
+  assert.match(notice, /role=\{success \? "status" : "alert"\}/);
+});
