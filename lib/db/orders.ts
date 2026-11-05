@@ -642,16 +642,23 @@ export async function validateCheckoutStock(input: unknown) {
   return result;
 }
 
-export async function createCheckout(input: unknown) {
-  const payload = checkoutSchema.parse(input);
-  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
-  if (paymentMethod !== "WHATSAPP" || payload.paymentFlow !== "WHATSAPP") {
+function enforceWhatsAppOnlyCheckout(
+  paymentMethod: CheckoutInput["paymentMethod"],
+  paymentFlow: CheckoutInput["paymentFlow"]
+) {
+  if (paymentMethod !== "WHATSAPP" || paymentFlow !== "WHATSAPP") {
     throw new CheckoutIntegrityError(
       "PAYMENT_METHOD_NOT_ALLOWED",
       "Los pedidos nuevos se confirman por WhatsApp. Allí se coordina la transferencia; no se aceptan pagos online en la web.",
       422
     );
   }
+}
+
+export async function createCheckout(input: unknown) {
+  const payload = checkoutSchema.parse(input);
+  const paymentMethod = payload.paymentMethod ?? "MERCADOPAGO";
+  enforceWhatsAppOnlyCheckout(paymentMethod, payload.paymentFlow);
   const provider: PaymentProvider =
     paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : paymentMethod === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO";
   const idempotencyKey = payload.idempotencyKey?.trim();
