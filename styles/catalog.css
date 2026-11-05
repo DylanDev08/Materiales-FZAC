@@ -2106,3 +2106,40 @@
     transform: none;
   }
 }
+
+
+/* Visual QA hardening: prevent large ARS values and long names from breaking narrow cards. */
+.product-card__body,
+.product-card__body > a,
+.product-card__price,
+.product-card__selected-total {
+  min-width: 0;
+}
+.product-card h3,
+.product-card__description {
+  overflow-wrap: anywhere;
+}
+.product-card__price strong,
+.product-card__selected-total strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.product-card__actions .btn {
+  line-height: 1.25;
+  text-align: center;
+}
+.product-card__badges .status-pill {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 400px) {
+  .product-card__meta {
+    font-size: .61rem;
+  }
+  .product-card__price strong {
+    font-size: clamp(.92rem, 4.3vw, 1.04rem);
+  }
+  .product-card__quantity input {
+    padding-inline: 2px;
+  }
+}
