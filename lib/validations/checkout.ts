@@ -147,7 +147,7 @@ function checkoutCreateTransform(value: z.infer<typeof checkoutCreateFieldsSchem
     shippingMethod: value.shipping_method,
     address: value.address_snapshot,
     notes: value.notes,
-    paymentProvider: "MERCADOPAGO" as PaymentProvider,
+    paymentProvider: (value.payment_method === "WHATSAPP" || value.payment_flow === "WHATSAPP" ? "WHATSAPP" : "MERCADOPAGO") as PaymentProvider,
     paymentMethod: (value.payment_method ?? fallbackMethod) as PaymentMethod,
     paymentFlow: (value.payment_flow ?? "CHECKOUT_PRO") as PaymentFlow,
     acceptedTerms: value.accepted_terms,
