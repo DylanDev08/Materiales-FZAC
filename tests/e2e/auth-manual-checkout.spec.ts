@@ -52,7 +52,7 @@ test.describe("Auth manual y checkout no destructivo", () => {
     expect(response.headers()["location"] ?? "").toContain("/registro");
   });
 
-  test("producción no muestra bandera de pagos de prueba", async ({ request }) => {
+  test("producción informa que los pagos online están deshabilitados", async ({ request }) => {
     const base = new URL(process.env.BASE_URL || "http://localhost:3000");
     test.skip(!/fzacmateriales\.store$|onrender\.com$/.test(base.hostname), "Chequeo exclusivo de runtime productivo.");
 
@@ -60,8 +60,8 @@ test.describe("Auth manual y checkout no destructivo", () => {
     expect(status.status()).toBe(200);
     const body = await status.json();
     expect(body.environment).toBe("production");
-    expect(body.enabled).toBe(true);
-    expect(body.cardEnabled).toBe(true);
-    expect(body.productionReadiness?.blockers ?? []).toEqual([]);
+    expect(body.enabled).toBe(false);
+    expect(body.cardEnabled).toBe(false);
+    expect(body.paymentsEnabled).toBe(false);
   });
 });
