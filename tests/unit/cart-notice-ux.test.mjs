@@ -63,3 +63,11 @@ test("cart notice stays visible while hovered or keyboard-focused", () => {
   assert.match(notice, /onPauseChange\(event\.currentTarget\.contains\(document\.activeElement\)\)/);
   assert.match(notice, /onPauseChange\(event\.currentTarget\.matches\(":hover"\)\)/);
 });
+
+test("cart notice offers accessible touch targets and Escape dismissal", () => {
+  assert.match(notice, /event\.key === "Escape"/);
+  assert.match(notice, /event\.stopPropagation\(\)/);
+  assert.match(styles, /grid-template-columns: 34px minmax\(0, 1fr\) 44px/);
+  assert.match(styles, /min-height: 44px/);
+  assert.match(styles, /width: 44px;\s*height: 44px;/);
+});
