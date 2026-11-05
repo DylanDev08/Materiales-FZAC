@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CartNotice, type CartNoticeState } from "@/components/cart/cart-notice";
 import { canAddProductToCart } from "@/lib/products/availability";
+import { canAppendCartQuantity } from "@/lib/products/cart-quantity";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { productLinePricing } from "@/lib/products/promotions";
 import type { CartLine, Product } from "@/types/domain";
@@ -174,9 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Consultation-only products with no available units retain the existing
         // 999-unit consultation cap.
         const existing = items.find((item) => item.productId === product.id);
-        const available = Number(product.stock);
-        const limit = Number.isFinite(available) && available > 0 ? available : 999;
-        if ((existing?.quantity ?? 0) + quantity > limit) return false;
+        if (!canAppendCartQuantity(existing?.quantity ?? 0, quantity, product.stock)) return false;
         setItems((current) => {
           const existing = current.find((item) => item.productId === product.id);
           if (!existing) return sanitize([...current, { productId: product.id, quantity, product }]);
