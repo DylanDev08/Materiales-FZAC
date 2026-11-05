@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, CreditCard, PackageSearch, ShoppingCart, Truck } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, PackageSearch, ShoppingCart, Truck } from "lucide-react";
 import { AssistantLauncher } from "@/components/chatbot/assistant-launcher";
 
 const steps = [
@@ -27,20 +27,20 @@ const steps = [
     icon: ShoppingCart
   },
   {
-    title: "Elegí cómo pagar",
-    short: "Mercado Pago o transferencia.",
-    text: "Con stock validado podés pagar online con Mercado Pago o elegir transferencia bancaria y enviar el comprobante por WhatsApp.",
-    details: ["No hay pago contra entrega", "Mercado Pago confirma online", "Transferencia requiere comprobante por WhatsApp"],
+    title: "Confirmá por WhatsApp",
+    short: "Pedido sin pago online.",
+    text: "Confirmás el pedido en la web y abrís WhatsApp con la referencia para coordinar stock, datos de transferencia y entrega o retiro.",
+    details: ["No se cobra desde la web", "FZAC confirma stock y el monto", "La transferencia se verifica antes de preparar el pedido"],
     href: "/medios-de-pago",
-    action: "Ver medios de pago",
-    prompt: "Quiero entender las opciones de pago del e-commerce.",
-    icon: CreditCard
+    action: "Cómo coordinamos el pago",
+    prompt: "Quiero saber cómo confirmar un pedido y coordinar el pago por WhatsApp.",
+    icon: MessageCircle
   },
   {
     title: "Seguí el pedido",
     short: "Estado, comprobante y preparación.",
-    text: "Después del pago podés seguir el pedido desde Mi cuenta. En transferencias, FZAC empieza la preparación cuando verifica la acreditación del comprobante.",
-    details: ["Mercado Pago se actualiza automáticamente", "La transferencia requiere acreditación", "La preparación se actualiza desde FZAC"],
+    text: "Tu pedido queda registrado en Mi cuenta. Coordinás disponibilidad y transferencia por WhatsApp; FZAC confirma el pago antes de iniciar la preparación.",
+    details: ["Conservá la referencia del pedido", "El pago requiere acreditación", "FZAC actualiza la preparación"],
     href: "/cuenta/pedidos",
     action: "Ver mis pedidos",
     prompt: "Quiero saber cómo seguir un pedido y dónde encontrar el comprobante.",
