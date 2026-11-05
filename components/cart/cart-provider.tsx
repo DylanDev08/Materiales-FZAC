@@ -54,6 +54,14 @@ function mergeCurrentProducts(items: CartLine[], products: Product[]) {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
+  const itemsRef = useRef<CartLine[]>([]);
+
+  // Commit synchronously so sequential addItem calls within one React batch see
+  // each previous addition, rather than an outdated render snapshot.
+  function commitItems(next: CartLine[]) {
+    itemsRef.current = next;
+    setItems(next);
+  }
   const [hydrated, setHydrated] = useState(false);
   const lastCatalogRefreshRef = useRef("");
   const [notice, setNotice] = useState<CartNoticeState | null>(null);
@@ -70,9 +78,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     window.queueMicrotask(() => {
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
-        setItems(raw ? sanitize(JSON.parse(raw) as CartLine[]) : []);
+        commitItems(raw ? sanitize(JSON.parse(raw) as CartLine[]) : []);
       } catch {
-        setItems([]);
+        commitItems([]);
       } finally {
         setHydrated(true);
       }
@@ -112,7 +120,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         if (!data.products?.length) return;
 
-        setItems((current) => mergeCurrentProducts(current, data.products!.map((entry) => entry.product)));
+        commitItems(mergeCurrentProducts(itemsRef.current, data.products!.map((entry) => entry.product)));
       } catch {
         if (!controller.signal.aborted) lastCatalogRefreshRef.current = "";
       }
@@ -174,33 +182,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Do not report success when sanitize would silently cap the addition.
         // Consultation-only products with no available units retain the existing
         // 999-unit consultation cap.
-        const existing = items.find((item) => item.productId === product.id);
+        const current = itemsRef.current;
+        const existing = current.find((item) => item.productId === product.id);
         if (!canAppendCartQuantity(existing?.quantity ?? 0, quantity, product.stock)) return false;
-        setItems((current) => {
-          const existing = current.find((item) => item.productId === product.id);
-          if (!existing) return sanitize([...current, { productId: product.id, quantity, product }]);
 
-          return sanitize(
-            current.map((item) =>
+        const next = existing
+          ? sanitize(current.map((item) =>
               item.productId === product.id ? { ...item, product, quantity: item.quantity + quantity } : item
-            )
-          );
-        });
+            ))
+          : sanitize([...current, { productId: product.id, quantity, product }]);
+        commitItems(next);
         return true;
       },
       updateQuantity(productId, quantity) {
-        setItems((current) =>
-          sanitize(current.map((item) => (item.productId === productId ? { ...item, quantity } : item)))
-        );
+        commitItems(sanitize(itemsRef.current.map((item) =>
+          item.productId === productId ? { ...item, quantity } : item
+        )));
       },
       removeItem(productId) {
-        setItems((current) => current.filter((item) => item.productId !== productId));
+        commitItems(itemsRef.current.filter((item) => item.productId !== productId));
       },
       clearCart() {
-        setItems([]);
+        commitItems([]);
       },
       refreshProducts(products) {
-        setItems((current) => mergeCurrentProducts(current, products));
+        commitItems(mergeCurrentProducts(itemsRef.current, products));
       }
     };
   }, [hydrated, items]);
