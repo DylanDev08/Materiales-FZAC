@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AlertCircle, ArrowRight, CheckCircle, MessageCircle, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowRight, MessageCircle, Minus, Plus, ShoppingCart } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { currency, percentOff } from "@/lib/formatters/currency";
 import {
@@ -18,11 +18,9 @@ import { getWhatsAppHref } from "@/lib/utils/contact";
 import type { Product } from "@/types/domain";
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addItem, hydrated } = useCart();
+  const { addItem, hydrated, notifyCartAction } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [added, setAdded] = useState(false);
-  const [addError, setAddError] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const discount = percentOff(product.price, product.compare_price);
   const hasValidComparePrice = Boolean(product.compare_price && product.compare_price > product.price);
@@ -55,28 +53,15 @@ export function ProductCard({ product }: { product: Product }) {
 
   function setSafeQuantity(next: number) {
     setQuantity(Math.min(maxQuantity, Math.max(1, Number.isFinite(next) ? next : 1)));
-    setAdded(false);
-    setAddError(false);
   }
 
   function addToCart() {
     if (!hydrated || isAdding || !cartEligible) return;
     setIsAdding(true);
-    setAddError(false);
     const success = addItem(product, quantity);
-    setAdded(success);
-    setAddError(!success);
+    notifyCartAction(product.name, quantity, success);
     window.requestAnimationFrame(() => setIsAdding(false));
   }
-
-  useEffect(() => {
-    if (!added && !addError) return;
-    const timer = window.setTimeout(() => {
-      setAdded(false);
-      setAddError(false);
-    }, 2600);
-    return () => window.clearTimeout(timer);
-  }, [added, addError]);
 
   return (
     <article className="product-card">
@@ -196,26 +181,6 @@ export function ProductCard({ product }: { product: Product }) {
             Detalle <ArrowRight size={16} />
           </Link>
         </div>
-        {added ? (
-          <div className="product-card__toast" role="status" aria-live="polite">
-            <strong>
-              <CheckCircle size={15} /> Producto añadido al carrito
-            </strong>
-            <small>
-              {product.name} · Cantidad {quantity}
-            </small>
-            <span>
-              <Link href="/carrito" prefetch={false}>Ver carrito</Link>
-              <Link href="/productos" prefetch={false}>Seguir comprando</Link>
-            </span>
-          </div>
-        ) : null}
-        {addError ? (
-          <div className="product-card__toast product-card__toast--error" role="alert" aria-live="assertive">
-            <strong><AlertCircle size={15} /> El producto no se pudo añadir</strong>
-            <small>Volvé a intentarlo o consultanos si el problema continúa.</small>
-          </div>
-        ) : null}
       </div>
     </article>
   );
