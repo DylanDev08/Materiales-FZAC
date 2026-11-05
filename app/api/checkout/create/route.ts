@@ -40,12 +40,12 @@ async function handlePost(request: Request) {
   try {
     const payload = checkoutCreateSchema.parse(body.data);
 
-    if (payload.paymentMethod === "WHATSAPP") {
+    if (payload.paymentMethod !== "WHATSAPP" || payload.paymentFlow !== "WHATSAPP") {
       return Response.json(
         {
           ok: false,
           error: "PAYMENT_METHOD_NOT_ALLOWED",
-          message: "WhatsApp no es un medio de pago. Pagá online con Mercado Pago o elegí transferencia y enviá el comprobante por WhatsApp."
+          message: "Los pedidos nuevos se confirman únicamente por WhatsApp. FZAC coordina allí la transferencia y la entrega o retiro."
         },
         { status: 422 }
       );
