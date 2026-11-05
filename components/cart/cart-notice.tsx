@@ -21,6 +21,12 @@ export function CartNotice({ notice, onClose, onPauseChange }: { notice: CartNot
       role={success ? "status" : "alert"}
       aria-live={success ? "polite" : "assertive"}
       aria-atomic="true"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
       onMouseEnter={() => onPauseChange(true)}
       onMouseLeave={(event) => {
         // Keep the notice visible while a keyboard user is on a button or link.
