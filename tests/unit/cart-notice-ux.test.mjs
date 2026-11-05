@@ -39,3 +39,10 @@ test("notice fits mobile without covering the bottom navigation", () => {
   assert.match(styles, /prefers-reduced-motion: reduce/);
   assert.match(notice, /role=\{success \? "status" : "alert"\}/);
 });
+
+test("success notices are not shown when existing cart quantity reaches available stock", () => {
+  assert.match(provider, /const existing = items\.find\(\(item\) => item\.productId === product\.id\)/);
+  assert.match(provider, /const available = Number\(product\.stock\)/);
+  assert.match(provider, /if \(\(existing\?\.quantity \?\? 0\) \+ quantity > limit\) return false/);
+  assert.match(notice, /Revisá la cantidad o intentá nuevamente/);
+});
