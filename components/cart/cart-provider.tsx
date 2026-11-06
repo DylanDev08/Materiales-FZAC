@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { CartNotice, type CartNoticeState } from "@/components/cart/cart-notice";
 import { canAddProductToCart } from "@/lib/products/availability";
+import { canAppendCartQuantity } from "@/lib/products/cart-quantity";
 import { resolveProductImageUrl } from "@/lib/products/images";
 import { productLinePricing } from "@/lib/products/promotions";
 import type { CartLine, Product } from "@/types/domain";
@@ -13,6 +15,7 @@ type CartContextValue = {
   subtotal: number;
   hydrated: boolean;
   addItem: (product: Product, quantity?: number) => boolean;
+  notifyCartAction: (productName: string, quantity: number, success: boolean) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
@@ -51,16 +54,35 @@ function mergeCurrentProducts(items: CartLine[], products: Product[]) {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
+  const itemsRef = useRef<CartLine[]>([]);
+  const cartRevisionRef = useRef(0);
+
+  // Commit synchronously so sequential addItem calls within one React batch see
+  // each previous addition, rather than an outdated render snapshot.
+  function commitItems(next: CartLine[]) {
+    cartRevisionRef.current += 1;
+    itemsRef.current = next;
+    setItems(next);
+  }
   const [hydrated, setHydrated] = useState(false);
   const lastCatalogRefreshRef = useRef("");
+  const [notice, setNotice] = useState<CartNoticeState | null>(null);
+  const [noticePaused, setNoticePaused] = useState(false);
+  const noticeSequence = useRef(0);
+
+  useEffect(() => {
+    if (!notice || noticePaused) return;
+    const timer = window.setTimeout(() => setNotice((current) => current?.id === notice.id ? null : current), notice.kind === "success" ? 3400 : 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice, noticePaused]);
 
   useEffect(() => {
     window.queueMicrotask(() => {
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
-        setItems(raw ? sanitize(JSON.parse(raw) as CartLine[]) : []);
+        commitItems(raw ? sanitize(JSON.parse(raw) as CartLine[]) : []);
       } catch {
-        setItems([]);
+        commitItems([]);
       } finally {
         setHydrated(true);
       }
@@ -76,6 +98,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated || !items.length || lastCatalogRefreshRef.current === cartFingerprint) return;
 
     const controller = new AbortController();
+    const revisionAtRequest = cartRevisionRef.current;
     lastCatalogRefreshRef.current = cartFingerprint;
 
     void (async () => {
@@ -99,8 +122,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         };
 
         if (!data.products?.length) return;
+        // A customer may add/remove items while validation is in flight.
+        // Never apply an old response over a more recent local cart revision.
+        if (controller.signal.aborted || cartRevisionRef.current !== revisionAtRequest) return;
 
-        setItems((current) => mergeCurrentProducts(current, data.products!.map((entry) => entry.product)));
+        commitItems(mergeCurrentProducts(itemsRef.current, data.products.map((entry) => entry.product)));
       } catch {
         if (!controller.signal.aborted) lastCatalogRefreshRef.current = "";
       }
@@ -142,6 +168,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       count,
       subtotal,
       hydrated,
+      notifyCartAction(productName, quantity, success) {
+        noticeSequence.current += 1;
+        setNoticePaused(false);
+        setNotice({ id: noticeSequence.current, kind: success ? "success" : "error", productName, quantity });
+      },
       addItem(product, quantity = 1) {
         if (
           !product.id
@@ -154,36 +185,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         ) {
           return false;
         }
-        setItems((current) => {
-          const existing = current.find((item) => item.productId === product.id);
-          if (!existing) return sanitize([...current, { productId: product.id, quantity, product }]);
+        // Do not report success when sanitize would silently cap the addition.
+        // Consultation-only products with no available units retain the existing
+        // 999-unit consultation cap.
+        const current = itemsRef.current;
+        const existing = current.find((item) => item.productId === product.id);
+        if (!canAppendCartQuantity(existing?.quantity ?? 0, quantity, product.stock)) return false;
 
-          return sanitize(
-            current.map((item) =>
+        const next = existing
+          ? sanitize(current.map((item) =>
               item.productId === product.id ? { ...item, product, quantity: item.quantity + quantity } : item
-            )
-          );
-        });
+            ))
+          : sanitize([...current, { productId: product.id, quantity, product }]);
+        commitItems(next);
         return true;
       },
       updateQuantity(productId, quantity) {
-        setItems((current) =>
-          sanitize(current.map((item) => (item.productId === productId ? { ...item, quantity } : item)))
-        );
+        commitItems(sanitize(itemsRef.current.map((item) =>
+          item.productId === productId ? { ...item, quantity } : item
+        )));
       },
       removeItem(productId) {
-        setItems((current) => current.filter((item) => item.productId !== productId));
+        commitItems(itemsRef.current.filter((item) => item.productId !== productId));
       },
       clearCart() {
-        setItems([]);
+        commitItems([]);
       },
       refreshProducts(products) {
-        setItems((current) => mergeCurrentProducts(current, products));
+        commitItems(mergeCurrentProducts(itemsRef.current, products));
       }
     };
   }, [hydrated, items]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <CartNotice notice={notice} onClose={() => { setNotice(null); setNoticePaused(false); }} onPauseChange={setNoticePaused} />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

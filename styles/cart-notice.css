@@ -1,0 +1,114 @@
+/* Single, non-blocking storefront cart notice. */
+.cart-notice {
+  position: fixed;
+  z-index: 110;
+  /* Keep the desktop toast away from FZAC's floating WhatsApp/assistant controls. */
+  left: max(18px, env(safe-area-inset-left));
+  right: auto;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  width: min(365px, calc(100vw - 32px));
+  max-height: min(320px, calc(100dvh - 32px));
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 10px;
+  overflow: auto;
+  border: 1px solid rgba(244, 196, 0, .38);
+  border-radius: 14px;
+  background: #161616;
+  color: #f8f8f4;
+  padding: 14px;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, .45);
+  animation: cart-notice-in .2s ease-out both;
+}
+.cart-notice--error {
+  border-color: rgba(241, 102, 102, .5);
+}
+.cart-notice__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(244, 196, 0, .12);
+  color: #f4c400;
+}
+.cart-notice--error .cart-notice__icon {
+  background: rgba(241, 102, 102, .14);
+  color: #ff9b9b;
+}
+.cart-notice__content {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.cart-notice__content strong {
+  font-size: .9rem;
+  font-weight: 850;
+  line-height: 1.3;
+}
+.cart-notice__content p {
+  margin: 0;
+  color: #c6c6bf;
+  font-size: .77rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cart-notice__content small {
+  color: #d8b4b4;
+  font-size: .76rem;
+  line-height: 1.4;
+}
+.cart-notice__link {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 2px;
+  color: #f4c400;
+  font-size: .79rem;
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+.cart-notice__link:hover {
+  color: white;
+  text-decoration: underline;
+}
+.cart-notice__close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #b7b7b0;
+}
+.cart-notice__close:hover,
+.cart-notice__close:focus-visible {
+  background: #333;
+  color: white;
+}
+@keyframes cart-notice-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 600px) {
+  .cart-notice {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    max-height: min(230px, calc(100dvh - 120px));
+    padding: 12px;
+    border-radius: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cart-notice { animation: none; }
+}
