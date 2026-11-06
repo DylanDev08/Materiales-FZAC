@@ -79,3 +79,11 @@ test("rapid additions use the synchronously committed cart snapshot", () => {
   assert.match(provider, /commitItems\(next\)/);
   assert.doesNotMatch(provider, /setItems\(\(current\) =>/);
 });
+
+test("server catalog refresh cannot overwrite newer cart interactions", () => {
+  assert.match(provider, /const cartRevisionRef = useRef\(0\)/);
+  assert.match(provider, /cartRevisionRef\.current \+= 1/);
+  assert.match(provider, /const revisionAtRequest = cartRevisionRef\.current/);
+  assert.match(provider, /controller\.signal\.aborted \|\| cartRevisionRef\.current !== revisionAtRequest/);
+  assert.match(provider, /commitItems\(mergeCurrentProducts\(itemsRef\.current/);
+});
