@@ -55,10 +55,12 @@ function mergeCurrentProducts(items: CartLine[], products: Product[]) {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const itemsRef = useRef<CartLine[]>([]);
+  const cartRevisionRef = useRef(0);
 
   // Commit synchronously so sequential addItem calls within one React batch see
   // each previous addition, rather than an outdated render snapshot.
   function commitItems(next: CartLine[]) {
+    cartRevisionRef.current += 1;
     itemsRef.current = next;
     setItems(next);
   }
@@ -96,6 +98,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated || !items.length || lastCatalogRefreshRef.current === cartFingerprint) return;
 
     const controller = new AbortController();
+    const revisionAtRequest = cartRevisionRef.current;
     lastCatalogRefreshRef.current = cartFingerprint;
 
     void (async () => {
@@ -119,8 +122,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         };
 
         if (!data.products?.length) return;
+        // A customer may add/remove items while validation is in flight.
+        // Never apply an old response over a more recent local cart revision.
+        if (controller.signal.aborted || cartRevisionRef.current !== revisionAtRequest) return;
 
-        commitItems(mergeCurrentProducts(itemsRef.current, data.products!.map((entry) => entry.product)));
+        commitItems(mergeCurrentProducts(itemsRef.current, data.products.map((entry) => entry.product)));
       } catch {
         if (!controller.signal.aborted) lastCatalogRefreshRef.current = "";
       }
